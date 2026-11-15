@@ -17,6 +17,7 @@ R2-B5-D2 — Cognition Block Diagnosis (B4-R8 read-only diagnostic).
 
 READ-ONLY diagnostic. Production-код не меняется.
 """
+
 from __future__ import annotations
 
 import os
@@ -51,6 +52,7 @@ OUT_FILE = OUT_FILE_DIR / "r2_b5_d2_cog_block_diagnosis.txt"
 # ============================================================================
 class LogCapture:
     """Capture all log records during a code block."""
+
     def __init__(self):
         self.records: list[logging.LogRecord] = []
         self.handler = logging.Handler()
@@ -62,15 +64,13 @@ class LogCapture:
     def install(self) -> None:
         root = logging.getLogger()
         root.addHandler(self.handler)
-        for name in ["app", "app.services", "app.services.game_loop",
-                     "app.services.events", "app.services.npc"]:
+        for name in ["app", "app.services", "app.services.game_loop", "app.services.events", "app.services.npc"]:
             logging.getLogger(name).addHandler(self.handler)
 
     def uninstall(self) -> None:
         root = logging.getLogger()
         root.removeHandler(self.handler)
-        for name in ["app", "app.services", "app.services.game_loop",
-                     "app.services.events", "app.services.npc"]:
+        for name in ["app", "app.services", "app.services.game_loop", "app.services.events", "app.services.npc"]:
             logging.getLogger(name).removeHandler(self.handler)
 
     def find(self, pattern: str) -> list[logging.LogRecord]:
@@ -83,12 +83,14 @@ class LogCapture:
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
             try:
                 s.write(data)
             except Exception:
                 pass
+
     def flush(self):
         for s in self.streams:
             try:
@@ -146,9 +148,9 @@ def _print_production_code_reference() -> None:
         return
     lines = de_path.read_text(encoding="utf-8", errors="replace").split("\n")
     print(f"  Source: {de_path}")
-    print(f"  Lines 599-611 (cognition block construction in _generate_with_router):")
+    print("  Lines 599-611 (cognition block construction in _generate_with_router):")
     for i in range(598, min(611, len(lines))):
-        print(f"  L{i+1:4d}: {lines[i]}")
+        print(f"  L{i + 1:4d}: {lines[i]}")
 
 
 # ============================================================================
@@ -190,6 +192,7 @@ def main() -> int:
 
     try:
         from app.services.game_loop_builder import build_game_loop
+
         settings.saves_dir = str(temp_dir)
         settings.environment = "development"
 
@@ -225,10 +228,12 @@ def main() -> int:
 
     # 2.1: Check log records for registration errors
     print("--- 2.1: Log records during build (Epistemic Core registration) ---")
-    epistemic_logs = (capture.find("epistemic core")
-                      + capture.find("failed to register")
-                      + capture.find("[game_loop]")
-                      + capture.find("epistemic"))
+    epistemic_logs = (
+        capture.find("epistemic core")
+        + capture.find("failed to register")
+        + capture.find("[game_loop]")
+        + capture.find("epistemic")
+    )
     if epistemic_logs:
         seen_msgs = set()
         unique_logs = []
@@ -287,6 +292,7 @@ def main() -> int:
         else:
             try:
                 from app.domain.execution import TaskKind
+
                 dialogue_executor = executors.get(TaskKind.DIALOGUE)
             except Exception as e:
                 print(f"  Failed to import TaskKind: {e}")
@@ -366,7 +372,6 @@ def main() -> int:
     print("  Not manual injection — uses real EventBus + ClaimEventSubscriber.")
     print()
 
-    publish_success = False
     try:
         from app.services.events.event_bus import get_event_bus
 
@@ -376,14 +381,14 @@ def main() -> int:
         # Find EventType and EventDTO
         try:
             from app.services.events.event_types import EventType
-            print(f"  EventType imported from app.services.events.event_types")
+
+            print("  EventType imported from app.services.events.event_types")
         except Exception as e:
             print(f"  Cannot import EventType: {e}")
             EventType = None
 
         EventDTO = None
-        for mod_path in ["app.domain.events", "app.services.events.event_types",
-                         "app.services.events.event_bus"]:
+        for mod_path in ["app.domain.events", "app.services.events.event_types", "app.services.events.event_bus"]:
             try:
                 mod = __import__(mod_path, fromlist=["EventDTO"])
                 if hasattr(mod, "EventDTO"):
@@ -418,7 +423,9 @@ def main() -> int:
             try:
                 event = EventDTO(
                     id=_uuid.uuid4(),
-                    type=EventType.PLAYER_INSULTS.value if hasattr(EventType.PLAYER_INSULTS, "value") else EventType.PLAYER_INSULTS,
+                    type=EventType.PLAYER_INSULTS.value
+                    if hasattr(EventType.PLAYER_INSULTS, "value")
+                    else EventType.PLAYER_INSULTS,
                     source="player",
                     timestamp=_time.time(),
                     payload={
@@ -430,7 +437,7 @@ def main() -> int:
                     radius=10.0,
                     persistence_level="working",
                 )
-                print(f"  Event constructed via kwargs")
+                print("  Event constructed via kwargs")
             except Exception as e:
                 construction_errors.append(f"kwargs: {type(e).__name__}: {e}")
 
@@ -447,12 +454,12 @@ def main() -> int:
                         },
                         target_id="tavern_keeper_tornin",
                     )
-                    print(f"  Event constructed via EventDTO.create")
+                    print("  Event constructed via EventDTO.create")
                 except Exception as e:
                     construction_errors.append(f"create: {type(e).__name__}: {e}")
 
             if event is None:
-                print(f"  >>> CANNOT construct EventDTO. Errors:")
+                print("  >>> CANNOT construct EventDTO. Errors:")
                 for err in construction_errors:
                     print(f"    - {err}")
             else:
@@ -461,7 +468,6 @@ def main() -> int:
                 print()
                 print("  Publishing to EventBus (synchronous, subscribers process immediately)...")
                 bus.publish(event)
-                publish_success = True
                 print("  Publish returned.")
     except Exception as e:
         print(f"  EXCEPTION publishing PLAYER_INSULTS: {type(e).__name__}: {e}")
@@ -479,10 +485,10 @@ def main() -> int:
     else:
         try:
             records = tick_orch_store.get_all_for_agent("tavern_keeper_tornin")
-            print(f"  tick_orch_store.get_all_for_agent('tavern_keeper_tornin'):")
+            print("  tick_orch_store.get_all_for_agent('tavern_keeper_tornin'):")
             print(f"    count: {len(records)}")
             for i, r in enumerate(records):
-                print(f"  Record #{i+1}:")
+                print(f"  Record #{i + 1}:")
                 _print_belief_record(r, indent="    ")
         except Exception as e:
             print(f"  EXCEPTION reading tick_orch_store: {type(e).__name__}: {e}")
@@ -503,10 +509,10 @@ def main() -> int:
     else:
         try:
             records_de = de_store.get_all_for_agent("tavern_keeper_tornin")
-            print(f"  de_store.get_all_for_agent('tavern_keeper_tornin'):")
+            print("  de_store.get_all_for_agent('tavern_keeper_tornin'):")
             print(f"    count: {len(records_de)}")
             for i, r in enumerate(records_de):
-                print(f"  Record #{i+1}:")
+                print(f"  Record #{i + 1}:")
                 _print_belief_record(r, indent="    ")
         except Exception as e:
             print(f"  EXCEPTION reading de_store: {type(e).__name__}: {e}")
@@ -548,11 +554,11 @@ def main() -> int:
             # SAME call as dialogue_executor.py:607
             print("  Calling cog.resolve_block('tavern_keeper_tornin', 'maid_lusya')...")
             block = cog.resolve_block("tavern_keeper_tornin", "maid_lusya")
-            print(f"  resolve_block returned:")
+            print("  resolve_block returned:")
             print(f"    type: {type(block).__name__}")
             print(f"    length: {len(block) if isinstance(block, str) else 'N/A'}")
             print(f"    is empty: {block == '' if isinstance(block, str) else 'N/A'}")
-            print(f"    content:")
+            print("    content:")
             print("    " + "-" * 70)
             if isinstance(block, str):
                 for line in block.split("\n"):
@@ -588,7 +594,7 @@ def main() -> int:
 
             print("  Calling cog._format_beliefs('tavern_keeper_tornin')...")
             beliefs_lines = cog._format_beliefs("tavern_keeper_tornin")
-            print(f"  _format_beliefs returned:")
+            print("  _format_beliefs returned:")
             print(f"    type: {type(beliefs_lines).__name__}")
             print(f"    length: {len(beliefs_lines) if isinstance(beliefs_lines, list) else 'N/A'}")
             if isinstance(beliefs_lines, list):
@@ -616,7 +622,7 @@ def main() -> int:
             direct_records = de_store.get_all_for_agent("tavern_keeper_tornin")
             print(f"  Direct query returned {len(direct_records)} records")
             for i, r in enumerate(direct_records):
-                print(f"  Record #{i+1}:")
+                print(f"  Record #{i + 1}:")
                 _print_belief_record(r, indent="    ")
         except Exception as e:
             print(f"  EXCEPTION in direct query: {type(e).__name__}: {e}")
@@ -630,7 +636,9 @@ def main() -> int:
     # =====================================================================
     _section("PHASE 10: Summary — answers to Master's questions")
 
-    tick_orch_store_final = getattr(getattr(loop, "_tick_orch", None), "_epistemic_store", None) if loop._tick_orch else None
+    tick_orch_store_final = (
+        getattr(getattr(loop, "_tick_orch", None), "_epistemic_store", None) if loop._tick_orch else None
+    )
     de_store_final = getattr(dialogue_executor, "_epistemic_store", None) if dialogue_executor else None
 
     # Count records (best-effort)
@@ -655,18 +663,18 @@ def main() -> int:
 
   Q2: Наличие EpistemicStore в TickOrchestrator
   >>> present: {tick_orch_store_final is not None}
-  >>> id: {id(tick_orch_store_final) if tick_orch_store_final is not None else 'N/A'}
+  >>> id: {id(tick_orch_store_final) if tick_orch_store_final is not None else "N/A"}
   >>> Tornin records count: {tick_orch_records_count}
 
   Q3: Наличие EpistemicStore в production DialogueExecutor
   >>> present: {de_store_final is not None}
-  >>> id: {id(de_store_final) if de_store_final is not None else 'N/A'}
+  >>> id: {id(de_store_final) if de_store_final is not None else "N/A"}
   >>> Tornin records count: {de_records_count}
 
   Q4: Идентичность экземпляров
   >>> tick_orch store is None: {tick_orch_store_final is None}
   >>> DE store is None: {de_store_final is None}
-  >>> same instance: {tick_orch_store_final is de_store_final if (tick_orch_store_final is not None and de_store_final is not None) else 'N/A — at least one is None'}
+  >>> same instance: {tick_orch_store_final is de_store_final if (tick_orch_store_final is not None and de_store_final is not None) else "N/A — at least one is None"}
 
   Q5: Наличие убеждения Торнина в том же экземпляре
   >>> tick_orch records: {tick_orch_records_count}
@@ -709,6 +717,7 @@ def main() -> int:
 
     del loop
     import gc
+
     gc.collect()
 
     settings.saves_dir = orig_saves_dir

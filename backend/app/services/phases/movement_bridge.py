@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 _RESOLUTION_FAIL_SEEN: Dict[str, int] = {}
 
 
-def process_movement_intents(
-    movement_intents: List[Any], ctx: Any, orchestrator: Any
-) -> None:
+def process_movement_intents(movement_intents: List[Any], ctx: Any, orchestrator: Any) -> None:
     """Обрабатывает movement_intents через MovementEngine и применяет SceneChange.
 
     Мутирует ctx.scene_state через orchestrator._apply_with_shadow_observation.
@@ -29,8 +27,7 @@ def process_movement_intents(
     if not movement_intents:
         return
     # [DIAG-MV] временный зонд Z-исследования: дошли ли player-инжекты до моста
-    print(f"[DIAG-MV] intents={len(movement_intents)} "
-          f"actors={[getattr(i, 'actor_id', '?') for i in movement_intents]}")
+    print(f"[DIAG-MV] intents={len(movement_intents)} actors={[getattr(i, 'actor_id', '?') for i in movement_intents]}")
 
     from app.domain.movement import LocalSteeringGoal
     from app.services.spatial.movement_engine import MovementEngine
@@ -65,12 +62,12 @@ def process_movement_intents(
         from app.services.action.commitment_arbiter import CommitmentArbiter
 
         for intent in _merged_intents:
-            if hasattr(intent, 'target_intent') and intent.target_intent:
+            if hasattr(intent, "target_intent") and intent.target_intent:
                 resolved = resolver.resolve(
                     intent.target_intent,
                     npc_positions=_npc_positions,
                     actor_id=intent.actor_id,
-                    location_id=getattr(intent, 'location_id', None)  # noqa: ENIGMA002
+                    location_id=getattr(intent, "location_id", None),  # noqa: ENIGMA002
                 )
 
                 if resolved.resolution_status != TargetResolutionStatus.RESOLVED:
@@ -84,7 +81,9 @@ def process_movement_intents(
                     _count = _seen.get(_dedup_key, 0) + 1
                     _seen[_dedup_key] = _count
                     if _count == 1 or _count % 100 == 0:
-                        logger.warning(f"[MOVEMENT_BRIDGE] Target resolution failed for {intent.actor_id}: {resolved.resolution_reason} (repeat #{_count})")
+                        logger.warning(
+                            f"[MOVEMENT_BRIDGE] Target resolution failed for {intent.actor_id}: {resolved.resolution_reason} (repeat #{_count})"
+                        )
                     if _count == 1:
                         _actor_pos = (_npc_positions or {}).get(intent.actor_id)
                         logger.warning(
@@ -97,15 +96,10 @@ def process_movement_intents(
                 if resolved.mode == SpatialResolutionMode.NAV_NODE:
                     # Конвертируем в старый макро-интент
                     intent.target_node_id = resolved.anchor_node_id
-                    if CommitmentArbiter.enforce_for_intent(
-                        ctx.scene_state, intent, ctx.tick_number
-                    ):
+                    if CommitmentArbiter.enforce_for_intent(ctx.scene_state, intent, ctx.tick_number):
                         _resolved_intents.append(intent)
                     else:
-                        logger.debug(
-                            f"[ARBITER_GATE_2] blocked npc={intent.actor_id} "
-                            f"target={intent.target_node_id}"
-                        )
+                        logger.debug(f"[ARBITER_GATE_2] blocked npc={intent.actor_id} target={intent.target_node_id}")
                 elif resolved.mode == SpatialResolutionMode.LOCAL_POSITION:
                     if resolved.position is None:
                         logger.error("[MOVEMENT_BRIDGE] RESOLVED LOCAL_POSITION without position")
@@ -115,16 +109,14 @@ def process_movement_intents(
                         actor_id=intent.actor_id,
                         local_target_xy=resolved.position,
                         reason=intent.reason,
-                        priority=intent.priority
+                        priority=intent.priority,
                     )
                     _resolved_intents.append(micro_goal)
             else:
                 # Гейт ②b: сквозные интенты без target_intent — гейт только
                 # макро-подобные (с target_node_id); микро проходит свободно.
                 _macro_target = getattr(intent, "target_node_id", None)  # noqa: ENIGMA002
-                if _macro_target and not CommitmentArbiter.enforce_for_intent(
-                    ctx.scene_state, intent, ctx.tick_number
-                ):
+                if _macro_target and not CommitmentArbiter.enforce_for_intent(ctx.scene_state, intent, ctx.tick_number):
                     logger.debug(
                         f"[ARBITER_GATE_2] blocked passthrough npc={getattr(intent, 'actor_id', '')}"  # noqa: ENIGMA002
                     )
@@ -134,8 +126,9 @@ def process_movement_intents(
         _merged_intents = _resolved_intents
 
         # [DIAG-MV] после резолва/гейтов
-        print(f"[DIAG-MV] resolved={len(_merged_intents)} "
-              f"actors={[getattr(i, 'actor_id', '?') for i in _merged_intents]}")
+        print(
+            f"[DIAG-MV] resolved={len(_merged_intents)} actors={[getattr(i, 'actor_id', '?') for i in _merged_intents]}"
+        )
 
         orchestrator._apply_drf_scoring_overlay(_merged_intents, ctx)
         me = MovementEngine()
@@ -150,13 +143,11 @@ def process_movement_intents(
             scene_state=ctx.scene_state,
         )
         # [DIAG-MV] результат движка: сколько изменений и для кого
-        print(f"[DIAG-MV] engine_changes={len(spatial_changes or [])} "
-              f"targets={[getattr(sc, 'target', getattr(sc, 'npc_id', '?')) for sc in (spatial_changes or [])[:5]]}")
-        if spatial_changes and orchestrator._scene_manager:
-            orchestrator._apply_with_shadow_observation(
-                ctx, spatial_changes, phase_label="CAUSAL_BRIDGE"
-            )
-    else:
-        logger.error(
-            "[SPATIAL_AUTHORITY] SpatialService missing in Phase 5 (Movement Bridge)"
+        print(
+            f"[DIAG-MV] engine_changes={len(spatial_changes or [])} "
+            f"targets={[getattr(sc, 'target', getattr(sc, 'npc_id', '?')) for sc in (spatial_changes or [])[:5]]}"
         )
+        if spatial_changes and orchestrator._scene_manager:
+            orchestrator._apply_with_shadow_observation(ctx, spatial_changes, phase_label="CAUSAL_BRIDGE")
+    else:
+        logger.error("[SPATIAL_AUTHORITY] SpatialService missing in Phase 5 (Movement Bridge)")

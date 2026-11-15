@@ -25,21 +25,22 @@ from tests.gameplay.harness import TavernGameplayHarness
 
 _C = "Open_road"
 _LOCS = ("tavern", "city_gate", "market_square")
-_MAX_TICKS = 2880          # двое суток
-_SNAP_EVERY = 1            # телеметрия каждый тик (метрика gap требует подряд)
-_SPEED = 0.7               # movement_speed (MOVEMENT-V2)
-_WALK_EPS = 0.15           # допуск дискретизации за тик
-_JUMP_LIMIT = _SPEED * 3   # >2.1 за тик = подозрение на телепорт (dwell-S186 легален)
-_RELOC_LEGAL = 12.0        # известный легальный скачок: S186 materialize (задокументирован)
+_MAX_TICKS = 2880  # двое суток
+_SNAP_EVERY = 1  # телеметрия каждый тик (метрика gap требует подряд)
+_SPEED = 0.7  # movement_speed (MOVEMENT-V2)
+_WALK_EPS = 0.15  # допуск дискретизации за тик
+_JUMP_LIMIT = _SPEED * 3  # >2.1 за тик = подозрение на телепорт (dwell-S186 легален)
+_RELOC_LEGAL = 12.0  # известный легальный скачок: S186 materialize (задокументирован)
 
-_MARK_KEYS = ("ARBITER_REJECT", "INTENT_DEGRADE", "S186", "BOUNDARY_DWELL",
-              "RELOCATE", "SCHED_TRACE", "OFFSCREEN")
+_MARK_KEYS = ("ARBITER_REJECT", "INTENT_DEGRADE", "S186", "BOUNDARY_DWELL", "RELOCATE", "SCHED_TRACE", "OFFSCREEN")
 
 
 class _Collector:
     """Пассивный log-handler: тик-времени маркеры для классификации причин."""
+
     def __init__(self) -> None:
         import logging as _lg
+
         super().__init__(level=_lg.DEBUG)
         self.by_tick: dict[int, list[str]] = defaultdict(list)
         self.tick = 0
@@ -90,7 +91,7 @@ def _classify(nid: str, h, tick_events: list[str]) -> str:
     if "INTENT_DEGRADE" in joined:
         return "REPLANNING"
     if "OFFSCREEN" in joined:
-        return "OTHER"          # задокументированный транзитор
+        return "OTHER"  # задокументированный транзитор
     if act:
         # активность есть, движения нет — LifeEngine решил «уже на месте»
         return "WAITING_AT_TARGET"
@@ -169,7 +170,10 @@ def main() -> int:
                     lp = e.get("local_position") or {}
                     x, y = float(lp.get("x", 0.0)), float(lp.get("y", 0.0))
                     row = {
-                        "tick": tick, "loc": loc, "x": round(x, 3), "y": round(y, 3),
+                        "tick": tick,
+                        "loc": loc,
+                        "x": round(x, 3),
+                        "y": round(y, 3),
                         "act": e.get("activity"),
                     }
                     npc_trace[nid].append(row)
@@ -241,9 +245,11 @@ def main() -> int:
         out = Path(__file__).resolve().parents[3] / "reports"
         out.mkdir(parents=True, exist_ok=True)
         (out / "mvmt_trace.json").write_text(
-            json.dumps({"npcs": {k: v[:4000] for k, v in npc_trace.items()},
-                        "teleports": teleports[:50]}, ensure_ascii=False),
-            encoding="utf-8")
+            json.dumps(
+                {"npcs": {k: v[:4000] for k, v in npc_trace.items()}, "teleports": teleports[:50]}, ensure_ascii=False
+            ),
+            encoding="utf-8",
+        )
 
         print("[MVT] === COVERAGE ===")
         for k in sorted(coverage):

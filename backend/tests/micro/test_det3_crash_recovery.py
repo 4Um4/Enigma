@@ -189,8 +189,7 @@ def _scenario(tmp_path: Path, ticks: int, kill_at: str | None, expect_l1_from_re
 def test_det3_kill_before_phase10_flush(tmp_path):
     """T1: kill ДО Фазы 10 — ни L1, ни runtime тика N нет; рестарт+повтор:
     L1 пишет тик N впервые (дублей нет), runtime фиксирует тик N."""
-    before, after = _scenario(tmp_path, ticks=5, kill_at="before_phase10_flush",
-                               expect_l1_from_repeat=False)
+    before, after = _scenario(tmp_path, ticks=5, kill_at="before_phase10_flush", expect_l1_from_repeat=False)
     assert before["duplicates"] == []
     assert after["duplicates"] == []
     assert after["phantom_ticks"] is False
@@ -202,8 +201,7 @@ def test_det3_kill_after_l1_before_runtime(tmp_path):
     """T2 (ядро cross-file окна): L1 тика N записан, runtime — нет; рестарт
     +повтор тика N: INSERT OR IGNORE + UNIQUE → ноль дублей; runtime
     фиксирует N. Это и есть самовосстановление рассинхрона."""
-    before, after = _scenario(tmp_path, ticks=5, kill_at="after_l1_before_runtime",
-                               expect_l1_from_repeat=True)
+    before, after = _scenario(tmp_path, ticks=5, kill_at="after_l1_before_runtime", expect_l1_from_repeat=True)
     assert after["duplicates"] == []
     assert after["phantom_ticks"] is False
     assert after["integrity"] == {"memory": "ok", "runtime": "ok"}
@@ -212,8 +210,7 @@ def test_det3_kill_after_l1_before_runtime(tmp_path):
 def test_det3_clean_point_full_match(tmp_path):
     """T3: чистая точка — оба файла содержат тик N; после рестарт-повтора
     (+1): без фантомов/дублей; целостность и версии — неизменны."""
-    before, after = _scenario(tmp_path, ticks=5, kill_at="clean_point",
-                               expect_l1_from_repeat=True)
+    before, after = _scenario(tmp_path, ticks=5, kill_at="clean_point", expect_l1_from_repeat=True)
     assert before["runtime_ticks"] == 5
     assert after["runtime_ticks"] == 6
     assert after["duplicates"] == []

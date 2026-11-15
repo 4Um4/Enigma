@@ -89,9 +89,7 @@ OBJECT_KEYWORDS: dict[str, list[str]] = {
     ],
 }
 
-_KEYWORD_TO_TYPE: dict[str, str] = {
-    kw: obj_type for obj_type, keywords in OBJECT_KEYWORDS.items() for kw in keywords
-}
+_KEYWORD_TO_TYPE: dict[str, str] = {kw: obj_type for obj_type, keywords in OBJECT_KEYWORDS.items() for kw in keywords}
 
 _MAGIC_WORDS: set[str] = {
     "магическ",
@@ -142,9 +140,7 @@ REACTION_ONLY_EVENTS: frozenset[str] = frozenset(
     }
 )
 
-_TRIGGER_TO_EVENT: dict[str, str] = {
-    word: event_type for event_type, words in EVENT_TRIGGERS.items() for word in words
-}
+_TRIGGER_TO_EVENT: dict[str, str] = {word: event_type for event_type, words in EVENT_TRIGGERS.items() for word in words}
 
 # State machine с приоритетами (фикс #3)
 # Больше = "более конечное", меньше = "можно перезаписать"

@@ -5,6 +5,7 @@ path: /project/backend/app/services/adr_net/adr_cli.py
 Зависимости: argparse, app.services.adr_net.adr_graph, app.services.adr_net.adr_conflict_detector
 Основные сущности: CLI entry point
 """
+
 import argparse
 import logging
 import sys
@@ -12,12 +13,15 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="ENIGMA ADR-Net CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     impact_parser = subparsers.add_parser("impact", help="Что ломается, если я поменяю файл?")
-    impact_parser.add_argument("--file", required=True, help="Путь к файлу (например, backend/app/services/tick_orchestrator.py)")
+    impact_parser.add_argument(
+        "--file", required=True, help="Путь к файлу (например, backend/app/services/tick_orchestrator.py)"
+    )
 
     _conflicts_parser = subparsers.add_parser("conflicts", help="Проверить граф на конфликты")
 
@@ -67,6 +71,7 @@ def main() -> None:
                 logger.warning(f"  - {' -> '.join(cycle)}")
         else:
             logger.info("\n✅ Циклических зависимостей не обнаружено.")
+
 
 if __name__ == "__main__":
     main()

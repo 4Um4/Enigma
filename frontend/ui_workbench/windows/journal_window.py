@@ -5,14 +5,15 @@ v1-заготовка: манифест + контракт рендера. Ре�
 Зависимости: ui_workbench.manifests, pygame (для K_j)
 Основные сущности: JOURNAL_MANIFEST
 """
+
 import pygame
 from ui_workbench.manifests import InputBinding, WindowManifest, WindowState
 
 JOURNAL_MANIFEST = WindowManifest(
     window_id="journal",
     title="Журнал",
-    layer=3,                                   # Осознанный анализ (UI Doctrine §IX)
-    data_source="dialog_journal",              # SSOT: avatar_service.get_journal → snapshot
+    layer=3,  # Осознанный анализ (UI Doctrine §IX)
+    data_source="dialog_journal",  # SSOT: avatar_service.get_journal → snapshot
     default_state=WindowState.HIDDEN,
     anchor="top_right",
     offset=(12, 12),

@@ -2,10 +2,12 @@
 map_editor/core/geometry.py
 Математические и геометрические хелперы редактора карт.
 """
+
 import math
 from typing import List, Tuple
 
 SCALE = 20
+
 
 class Geometry:
     """Содержит статические методы для преобразования координат и расчётов геометрии."""
@@ -36,9 +38,7 @@ class Geometry:
         cos_a, sin_a = math.cos(angle), math.sin(angle)
         hw, hh = w / 2, h / 2
         corners = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
-        return [
-            (x * cos_a - y * sin_a + cx, x * sin_a + y * cos_a + cy) for x, y in corners
-        ]
+        return [(x * cos_a - y * sin_a + cx, x * sin_a + y * cos_a + cy) for x, y in corners]
 
     @staticmethod
     def point_to_segment_dist(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
@@ -53,7 +53,9 @@ class Geometry:
         return math.hypot(px - proj_x, py - proj_y)
 
     @staticmethod
-    def project_point_to_segment(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> Tuple[float, float]:
+    def project_point_to_segment(
+        px: float, py: float, x1: float, y1: float, x2: float, y2: float
+    ) -> Tuple[float, float]:
         """Проецирует точку на отрезок. Возвращает (proj_x, proj_y)."""
         dx, dy = x2 - x1, y2 - y1
         length_sq = dx * dx + dy * dy
@@ -63,14 +65,16 @@ class Geometry:
         return x1 + t * dx, y1 + t * dy
 
     @staticmethod
-    def segments_intersect(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float) -> bool:
+    def segments_intersect(
+        x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float
+    ) -> bool:
         """Стандартный алгоритм проверки пересечения отрезков (CCW)."""
+
         def ccw(ax, ay, bx, by, cx, cy):
             return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
-        
-        return (
-            ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and
-            ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4)
+
+        return ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4) and ccw(x1, y1, x2, y2, x3, y3) != ccw(
+            x1, y1, x2, y2, x4, y4
         )
 
     @staticmethod
@@ -80,9 +84,7 @@ class Geometry:
         if line_len == 0:
             return math.hypot(px - x1, py - y1) < threshold
 
-        t = max(
-            0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / (line_len**2))
-        )
+        t = max(0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / (line_len**2)))
         proj_x = x1 + t * (x2 - x1)
         proj_y = y1 + t * (y2 - y1)
 

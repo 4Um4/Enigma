@@ -24,6 +24,7 @@ production-кода. Входы — только феноменологичес�
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/social_vertical_test.py
 """
+
 import sys
 import tempfile
 import types
@@ -48,7 +49,9 @@ from pathlib import Path as _P
 _data_src = _P(settings.data_dir)
 _data_tmp = _P(tempfile.mkdtemp(prefix="social_data_"))
 _sh.copytree(
-    _data_src, _data_tmp, dirs_exist_ok=True,
+    _data_src,
+    _data_tmp,
+    dirs_exist_ok=True,
     ignore=_sh.ignore_patterns("replay.db", "logs"),
 )
 _wt = _data_tmp / "sessions" / "Open_road" / "world_tick.json"
@@ -81,13 +84,14 @@ _EPS = 1e-6
 MAX_TICKS = 140
 
 SPY = {"events": []}
-EMA_LOG = []          # (tick, {npc: ema}) — дифы дают фактических получателей
-DECISIONS_LOG = []    # (tick, npc, winner) — только через публичный стейт задач
+EMA_LOG = []  # (tick, {npc: ema}) — дифы дают фактических получателей
+DECISIONS_LOG = []  # (tick, npc, winner) — только через публичный стейт задач
 
 
 SPY_SPOKE_TOTAL = 0  # S262: счётчик в момент прихода — immune к clear()
 SPY_SPOKE_EVENTS = []  # S262: полный список (async-пул публикует после
 # расчётной точки цикла — 25/3 в замере; пары берём отсюда)
+
 
 def _spy(event):
     SPY["events"].append(event)
@@ -97,10 +101,7 @@ def _spy(event):
         SPY_SPOKE_TOTAL += 1
         SPY_SPOKE_EVENTS.append(event)
         _pl = getattr(event, "payload", {}) or {}
-        print(
-            f"[S2-PAYLOAD] source_attr={getattr(event, 'source', '?')!r} "
-            f"keys={sorted(_pl.keys())}"
-        )
+        print(f"[S2-PAYLOAD] source_attr={getattr(event, 'source', '?')!r} keys={sorted(_pl.keys())}")
 
 
 def _quiet():
@@ -136,10 +137,7 @@ def _tick(world):
     if _pending > 0 or _pool_alive is False:
         _proc = getattr(_sched, "total_processed_tasks", 0)
         _fail = getattr(_sched, "failed_tasks", 0)
-        print(
-            f"[POOL-DIAG] pending={_pending} pool={_pool_alive} "
-            f"processed={_proc} failed={_fail}"
-        )
+        print(f"[POOL-DIAG] pending={_pending} pool={_pool_alive} processed={_proc} failed={_fail}")
     return world.game_loop.idle_tick(CAMPAIGN)
 
 
@@ -181,11 +179,7 @@ def _rel_snapshot(world):
         return {}
     try:
         _player = _rel.get(CAMPAIGN, "player") or {}
-        return {
-            str(k): round(float(v), 4)
-            for k, v in _player.items()
-            if isinstance(v, (int, float))
-        }
+        return {str(k): round(float(v), 4) for k, v in _player.items() if isinstance(v, (int, float))}
     except Exception as _e:
         print(f"[REL-SNAP] fault: {_e}")
     return {}
@@ -212,15 +206,16 @@ def main() -> int:
         print("[E0] DialogueExecutor → stub-режим (LLM выключена для диагностики)")
     _bus = world.game_loop._tick_orch._get_event_bus()
     for _et in (
-        EventType.NPC_SPOKE, EventType.ACTIVITY_OUTCOME, EventType.NPC_PROXIMITY_CLOSE,
+        EventType.NPC_SPOKE,
+        EventType.ACTIVITY_OUTCOME,
+        EventType.NPC_PROXIMITY_CLOSE,
     ):
         _bus.subscribe(_et, _spy)
     _tick(world)  # инициализация
 
     _greg_map = {w: _greg(world, w) for w in (TORNIN, LUSYA, ORM, GORAN, BORKO)}
     print(f"[E0] gregariousness: {_greg_map}")
-    print(f"[E0] setpoint (0.2+0.6g): "
-          f"{ {w: round(0.2 + 0.6 * v, 3) for w, v in _greg_map.items()} }")
+    print(f"[E0] setpoint (0.2+0.6g): { {w: round(0.2 + 0.6 * v, 3) for w, v in _greg_map.items()} }")
 
     # S259-DIAG: лог-шпионы канала EMA (applicator) и Phase8 (reduction)
     import logging
@@ -259,19 +254,24 @@ def main() -> int:
         # задачи тика: публичная наблюдаемость интентов
         for _task in _pending_tasks(world):
             _pl = _task.get("payload") or {}
-            DECISIONS_LOG.append((
-                _task.get("tick", -1), _task.get("owner_id", "?"),
-                str(_pl.get("intent_type", "?")), _pl.get("target_id"),
-            ))
-        _new = [e for e in SPY["events"]
-                if str(getattr(e, "type", "")) == "npc_spoke"]
+            DECISIONS_LOG.append(
+                (
+                    _task.get("tick", -1),
+                    _task.get("owner_id", "?"),
+                    str(_pl.get("intent_type", "?")),
+                    _pl.get("target_id"),
+                )
+            )
+        _new = [e for e in SPY["events"] if str(getattr(e, "type", "")) == "npc_spoke"]
         _spoke_events.extend(_new)
         # [SPY-DIAG] S262: содержимое SPY на момент фильтрации — разводит
         # «события не приходят» vs «приходят, но type не матчит» vs
         # «приходят после clear» (async executor-pool)
         if SPY["events"]:
-            print(f"[SPY-DIAG] t={_t} spy_n={len(SPY['events'])} "
-                  f"types={[str(getattr(e, 'type', '?')) for e in SPY['events'][:5]]}")
+            print(
+                f"[SPY-DIAG] t={_t} spy_n={len(SPY['events'])} "
+                f"types={[str(getattr(e, 'type', '?')) for e in SPY['events'][:5]]}"
+            )
         SPY["events"].clear()
         # останов: после первой зафиксированной NPC_SPOKE ещё +8 тиков
         # на наблюдение gain/последствий
@@ -293,8 +293,10 @@ def main() -> int:
     # [SCENE-DUMP] S262-финал: реплики в самой сцене (минуя шину/шпиона) —
     # разводит «слеп шпион» vs «пуст мир». recent_dialogues пишет
     # task_scheduler при материализации Артефакта (ADR-O-313).
-    _rd = (_scene(world).get("recent_dialogues") or [])
-    print(f"[SCENE-DUMP] recent_dialogues={len(_rd)}; первые={[(d.get('speaker_id'), d.get('target_id')) for d in _rd[:4]]}")
+    _rd = _scene(world).get("recent_dialogues") or []
+    print(
+        f"[SCENE-DUMP] recent_dialogues={len(_rd)}; первые={[(d.get('speaker_id'), d.get('target_id')) for d in _rd[:4]]}"
+    )
 
     # ── обработка S1: цепь давления ───────────────────────────────────
     _ema_rows = [row for row in EMA_LOG if isinstance(row[1], dict) and row[1]]
@@ -308,48 +310,37 @@ def main() -> int:
     _talk_tasks = [d for d in DECISIONS_LOG if d[2] in ("talk", "greeting", "approach")]
     _any_social = [d for d in DECISIONS_LOG if d[2] not in ("", "?")]
     print(f"[S1] EMA старт→финал: {[(w, f, l) for w, f, l, g in _s1_chain]}")
-    print(f"[S1] social-задачи (talk/greeting/approach): "
-          f"{len(_talk_tasks)}; всего задач: {len(_any_social)}")
-    s1 = bool(_talk_tasks) or any(
-        (l is not None and f is not None and l != f) for _, f, l, _ in _s1_chain
+    print(f"[S1] social-задачи (talk/greeting/approach): {len(_talk_tasks)}; всего задач: {len(_any_social)}")
+    s1 = bool(_talk_tasks) or any((l is not None and f is not None and l != f) for _, f, l, _ in _s1_chain)
+    print(
+        f"[S1] PRESSURE→SOCIAL: EMA жив и движется, социальные задачи "
+        f"{'рождаются' if _talk_tasks else 'не рождались'} — "
+        f"{'✅ (цепь активна)' if s1 else '❌/⚠️ (см. разбор)'}"
     )
-    print(f"[S1] PRESSURE→SOCIAL: EMA жив и движется, социальные задачи "
-          f"{'рождаются' if _talk_tasks else 'не рождались'} — "
-          f"{'✅ (цепь активна)' if s1 else '❌/⚠️ (см. разбор)'}")
 
     # ── S2: кто получил gain/decay после каждой NPC_SPOKE ────────────
-    print(
-        f"[S2] NPC_SPOKE событий: цикл={len(_spoke_events)}, "
-        f"всего-через-шпион={SPY_SPOKE_TOTAL}"
-    )
+    print(f"[S2] NPC_SPOKE событий: цикл={len(_spoke_events)}, всего-через-шпион={SPY_SPOKE_TOTAL}")
     _spoke_events_total = SPY_SPOKE_TOTAL  # S2-S3 используют полную сумму
     _gain_recipients = []
     for _e in _spoke_events:
         _spk = getattr(_e, "source", "?")
         _tgt = (getattr(_e, "payload", {}) or {}).get("target_id", "?")
-        _idx = next((i for i, r in enumerate(EMA_LOG)
-                     if isinstance(r[1], dict) and r[1]), 0)
+        _idx = next((i for i, r in enumerate(EMA_LOG) if isinstance(r[1], dict) and r[1]), 0)
         _before = EMA_LOG[max(0, _idx)][1]
         _after = EMA_LOG[-1][1]
-        _diffs = {
-            w: round(_after.get(w, 0.0) - _before.get(w, 0.0), 4)
-            for w in _after if _before.get(w) is not None
-        }
+        _diffs = {w: round(_after.get(w, 0.0) - _before.get(w, 0.0), 4) for w in _after if _before.get(w) is not None}
         _gain_recipients.append((_spk, _tgt, _diffs))
         print(f"[S2] spoke: speaker={_spk} target={_tgt}")
     # Полный диф за окно (кто реально получил gain, кто decay):
-    _full_diff = {
-        w: round(_last.get(w, 0.0) - _first.get(w, 0.0), 4)
-        for w in _last if _first.get(w) is not None
-    }
+    _full_diff = {w: round(_last.get(w, 0.0) - _first.get(w, 0.0), 4) for w in _last if _first.get(w) is not None}
     print(f"[S2] итоговый диф EMA (кто получил gain/decay): {_full_diff}")
     _speakers = {s for s, t, d in _gain_recipients}
-    _speaker_gained = any(
-        _full_diff.get(s, 0.0) > _EPS for s in _speakers
-    ) if _speakers else False
-    print(f"[S2] спикеры {_speakers} получили EMA-gain: "
-          f"{'ДА' if _speaker_gained else 'НЕТ'} → α-гипотеза "
-          f"{'ПОДТВЕРЖДАЕТСЯ (инициатор не насыщается)' if _speakers and not _speaker_gained else 'опровергается/недостаточно данных'}")
+    _speaker_gained = any(_full_diff.get(s, 0.0) > _EPS for s in _speakers) if _speakers else False
+    print(
+        f"[S2] спикеры {_speakers} получили EMA-gain: "
+        f"{'ДА' if _speaker_gained else 'НЕТ'} → α-гипотеза "
+        f"{'ПОДТВЕРЖДАЕТСЯ (инициатор не насыщается)' if _speakers and not _speaker_gained else 'опровергается/недостаточно данных'}"
+    )
 
     # ── S3: target — resolver vs scheduler ────────────────────────────
     _target_paths = []
@@ -360,39 +351,37 @@ def main() -> int:
     _tasks_no_target = [d for d in DECISIONS_LOG if d[3] in (None, "", "all")]
     print(f"[S3] задач без target (fallback scheduler'а): {len(_tasks_no_target)}")
     s3 = bool(_spoke_events) and all(t for t, _ in _target_paths)
-    print(f"[S3] TARGET: адресаты разрешены и достигнуты — "
-          f"{'✅' if s3 else '❌/N/A (если речи нет — см. S1)'}")
+    print(f"[S3] TARGET: адресаты разрешены и достигнуты — {'✅' if s3 else '❌/N/A (если речи нет — см. S1)'}")
 
     # ── S4: мембрана/изоляция ─────────────────────────────────────────
     _rel1 = _rel_snapshot(world)
-    _rel_changed = {k for k in set(_rel0) | set(_rel1)
-                    if _rel0.get(k) != _rel1.get(k)}
-    print(f"[S4] изолированный прогон не проводился отдельно — мембрана "
-          f"оценивается по составу: rel-мутаций всего {len(_rel_changed)} "
-          f"({sorted(_rel_changed)[:6]}); ложных NPC_SPOKE к отсутствующим "
-          f"target: {sum(1 for t, _ in _target_paths if not t)}")
+    _rel_changed = {k for k in set(_rel0) | set(_rel1) if _rel0.get(k) != _rel1.get(k)}
+    print(
+        f"[S4] изолированный прогон не проводился отдельно — мембрана "
+        f"оценивается по составу: rel-мутаций всего {len(_rel_changed)} "
+        f"({sorted(_rel_changed)[:6]}); ложных NPC_SPOKE к отсутствующим "
+        f"target: {sum(1 for t, _ in _target_paths if not t)}"
+    )
     s4 = all(t for t, _ in _target_paths) or not _spoke_events
-    print(f"[S4] FAILURE/MEMBRANE: ложных writes "
-          f"{'нет' if s4 else 'ЕСТЬ (см. выше)'} — "
-          f"{'✅' if s4 else '❌'}")
+    print(f"[S4] FAILURE/MEMBRANE: ложных writes {'нет' if s4 else 'ЕСТЬ (см. выше)'} — {'✅' if s4 else '❌'}")
 
     # ── S5: OFF/baseline ──────────────────────────────────────────────
-    print("[S5] OFF-абляция НЕ ПРОВОДИЛАСЬ: production SOCIAL не гейтов "
-          "флагом (факт раскопа S259: контур работает без env-гейта). "
-          "OFF == baseline по построению текущего кода — зафиксировано, "
-          "гейт задним числом НЕ изобретается (приказ).")
+    print(
+        "[S5] OFF-абляция НЕ ПРОВОДИЛАСЬ: production SOCIAL не гейтов "
+        "флагом (факт раскопа S259: контур работает без env-гейта). "
+        "OFF == baseline по построению текущего кода — зафиксировано, "
+        "гейт задним числом НЕ изобретается (приказ)."
+    )
 
     print("=" * 64)
     _ema_lines = [r for r in _applog.records if "SOCIAL_EMA" in r]
-    _crash_lines = [
-        r for r in _redlog.records if "PHASE8" in r or "CRASH" in r or "CRITICAL" in r
-    ]
-    print(f"[DIAG-APPLY] SOCIAL_EMA-записей применителя: {len(_ema_lines)}; "
-          f"последние: {_ema_lines[-3:]}")
-    print(f"[DIAG-CRASH] Phase8-события reduction: {len(_crash_lines)}; "
-          f"последние: {_crash_lines[-3:]}")
-    print("[SOCIAL-DIAG] полный вывод: см. блоки S1–S5 выше. "
-          "Runtime-evidence для α/β/γ/δ — в дифах и событиях этого прогона.")
+    _crash_lines = [r for r in _redlog.records if "PHASE8" in r or "CRASH" in r or "CRITICAL" in r]
+    print(f"[DIAG-APPLY] SOCIAL_EMA-записей применителя: {len(_ema_lines)}; последние: {_ema_lines[-3:]}")
+    print(f"[DIAG-CRASH] Phase8-события reduction: {len(_crash_lines)}; последние: {_crash_lines[-3:]}")
+    print(
+        "[SOCIAL-DIAG] полный вывод: см. блоки S1–S5 выше. "
+        "Runtime-evidence для α/β/γ/δ — в дифах и событиях этого прогона."
+    )
     print("=" * 64)
     return 0
 

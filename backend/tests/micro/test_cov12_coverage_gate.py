@@ -11,6 +11,7 @@
 
 Чистый micro: decomposer подменяется, LLM/uvicorn не нужны.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -55,9 +56,7 @@ def _fake_result(items_count: int) -> SimpleNamespace:
         )
         for i in range(items_count)
     ]
-    return SimpleNamespace(
-        ok=True, items=items, age_anchors=[], error=None, raw_response=""
-    )
+    return SimpleNamespace(ok=True, items=items, age_anchors=[], error=None, raw_response="")
 
 
 def _install_decomposer(monkeypatch: pytest.MonkeyPatch, items_count: int) -> None:
@@ -65,9 +64,7 @@ def _install_decomposer(monkeypatch: pytest.MonkeyPatch, items_count: int) -> No
         async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
             return _fake_result(items_count)
 
-    monkeypatch.setattr(
-        routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer()
-    )
+    monkeypatch.setattr(routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer())
 
 
 async def _decompose(fragment_ord: int, fragment: str) -> dict:

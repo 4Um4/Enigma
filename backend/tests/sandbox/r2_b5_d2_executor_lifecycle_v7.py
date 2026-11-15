@@ -22,6 +22,7 @@ v7 strategy:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -108,15 +109,17 @@ class _LogCapture(logging.Handler):
         """Return messages with full source info."""
         out = []
         for r in self.records:
-            out.append({
-                "level": r.levelname,
-                "logger_name": r.name,
-                "message": r.getMessage(),
-                "pathname": r.pathname,
-                "lineno": r.lineno,
-                "funcName": r.funcName,
-                "module": r.module,
-            })
+            out.append(
+                {
+                    "level": r.levelname,
+                    "logger_name": r.name,
+                    "message": r.getMessage(),
+                    "pathname": r.pathname,
+                    "lineno": r.lineno,
+                    "funcName": r.funcName,
+                    "module": r.module,
+                }
+            )
         return out
 
     def messages(self) -> List[str]:
@@ -326,6 +329,7 @@ def _install_class_spies() -> bool:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         _orig_execute = DialogueExecutor.execute
         DialogueExecutor.execute = _spy_execute
         _orig_gen = DialogueExecutor._generate_with_router
@@ -336,12 +340,14 @@ def _install_class_spies() -> bool:
         return False
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         _orig_materialize = DialogueMaterializer.materialize
         DialogueMaterializer.materialize = _spy_materialize
     except Exception as e:
         print(f"  [DialogueMaterializer spy install failed: {e}]")
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         _orig_to_event = IntentEventAdapter.to_event
         IntentEventAdapter.to_event = staticmethod(_spy_to_event)
     except Exception as e:
@@ -353,6 +359,7 @@ def _restore_class_spies() -> None:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         if _orig_execute is not None:
             DialogueExecutor.execute = _orig_execute
         if _orig_gen is not None:
@@ -361,12 +368,14 @@ def _restore_class_spies() -> None:
         pass
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         if _orig_materialize is not None:
             DialogueMaterializer.materialize = _orig_materialize
     except Exception:
         pass
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         if _orig_to_event is not None:
             IntentEventAdapter.to_event = _orig_to_event
     except Exception:
@@ -464,18 +473,22 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 2: install spies BEFORE build_game_loop")
         if _install_class_spies():
-            print(f"  Class spies installed (plain functions)")
+            print("  Class spies installed (plain functions)")
 
         from app.services.execution.dialogue_executor import DialogueExecutor
         from app.services.execution.dialogue_materializer import DialogueMaterializer
         from app.services.events.intent_event_adapter import IntentEventAdapter
 
-        print(f"\n  Verify spy installation:")
+        print("\n  Verify spy installation:")
         print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute is _spy_execute}")
-        print(f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
-              f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}")
-        print(f"    DialogueMaterializer.materialize is _spy_materialize: "
-              f"{DialogueMaterializer.materialize is _spy_materialize}")
+        print(
+            f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
+            f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}"
+        )
+        print(
+            f"    DialogueMaterializer.materialize is _spy_materialize: "
+            f"{DialogueMaterializer.materialize is _spy_materialize}"
+        )
 
         _clear_spy_calls()
         _reset_log_capture()
@@ -528,7 +541,7 @@ def main() -> int:
                 break
         store = getattr(sub, "_store", None) if sub else None
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         payload = {
             "action_type": "player_insults",
@@ -548,10 +561,10 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  PLAYER_INSULTS published")
+        print("  PLAYER_INSULTS published")
 
         # Verify spies still installed
-        print(f"\n  Verify spies BEFORE idle_tick:")
+        print("\n  Verify spies BEFORE idle_tick:")
         print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute is _spy_execute}")
 
         # =====================================================================
@@ -589,7 +602,7 @@ def main() -> int:
             print(f"    module: {log['module']}")
 
         # Group by source (pathname + lineno) to detect duplicates
-        print(f"\n  === Group by source (pathname + lineno) ===")
+        print("\n  === Group by source (pathname + lineno) ===")
         source_groups: Dict[Tuple[str, int], int] = {}
         for log in de_logs:
             key = (log["pathname"], log["lineno"])
@@ -617,7 +630,7 @@ def main() -> int:
             if call.get("exception"):
                 print(f"    EXCEPTION: {call['exception']}")
                 if "exception_traceback" in call:
-                    print(f"    TRACEBACK:")
+                    print("    TRACEBACK:")
                     print(call["exception_traceback"][:1500])
 
         # =====================================================================
@@ -641,12 +654,13 @@ def main() -> int:
             print(f"  Tornin total records: {len(tornin_after)}")
             for r in tornin_after:
                 print(f"    prop={str(getattr(r, 'proposition', None))[:80]}")
-                print(f"      conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -664,28 +678,28 @@ def main() -> int:
         print(f"  execute() spy calls: {execute_calls_count}")
 
         if new_borko_belief:
-            print(f"\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif execute_calls_count > 0:
-            print(f"\n  >>> VERDICT: execute() WAS called (spy captured)")
-            print(f"  >>> Investigate spy call details in Step 6")
+            print("\n  >>> VERDICT: execute() WAS called (spy captured)")
+            print("  >>> Investigate spy call details in Step 6")
         elif unique_de_sources == 1 and de_logs:
             # Single source — let's check if it's dialogue_executor.execute
             src_path, src_line = next(iter(source_groups.keys()))
-            print(f"\n  >>> Single source of [DIALOGUE_EXEC] log:")
+            print("\n  >>> Single source of [DIALOGUE_EXEC] log:")
             print(f"  >>> {src_path}:{src_line}")
             if "dialogue_executor.py" in src_path:
-                print(f"  >>> Source IS dialogue_executor.py")
-                print(f"  >>> But spy didn't trigger — descriptor protocol issue?")
-                print(f"  >>> Try: wrap logger.debug directly to capture call stack")
+                print("  >>> Source IS dialogue_executor.py")
+                print("  >>> But spy didn't trigger — descriptor protocol issue?")
+                print("  >>> Try: wrap logger.debug directly to capture call stack")
             else:
-                print(f"  >>> Source is NOT dialogue_executor.py!")
-                print(f"  >>> Log comes from a DIFFERENT file")
-                print(f"  >>> This explains why spy on DialogueExecutor.execute didn't trigger")
+                print("  >>> Source is NOT dialogue_executor.py!")
+                print("  >>> Log comes from a DIFFERENT file")
+                print("  >>> This explains why spy on DialogueExecutor.execute didn't trigger")
         elif len(de_logs) == 0:
-            print(f"\n  >>> VERDICT: No [DIALOGUE_EXEC] logs — execute() not called at all")
-            print(f"  >>> task_scheduler didn't dispatch task during idle_tick")
+            print("\n  >>> VERDICT: No [DIALOGUE_EXEC] logs — execute() not called at all")
+            print("  >>> task_scheduler didn't dispatch task during idle_tick")
         else:
-            print(f"\n  >>> VERDICT: Multiple sources — see Step 5 for details")
+            print("\n  >>> VERDICT: Multiple sources — see Step 5 for details")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()

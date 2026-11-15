@@ -1,9 +1,10 @@
-﻿"""
+"""
 path: /backend/tests/services/execution/test_dialogue_materializer_p5b.py
 Назначение: P5-B3 — интеграционный контракт DialogueMaterializer × PropositionVerifier.
 
 Покрывает Master условия A/B/C/D на уровне материализатора.
 """
+
 from __future__ import annotations
 
 from app.domain.execution import Artifact
@@ -176,11 +177,15 @@ def test_speaker_id_preserved_in_both_events():
     verifier = _RecordingVerifier(verdict=True)
     mat = DialogueMaterializer(proposition_verifier=verifier)
 
-    events = list(mat.materialize(_make_dialogue_artifact(
-        proposition=PROP,
-        speaker_id="maid_lusya",
-        target_id="tornin",
-    )))
+    events = list(
+        mat.materialize(
+            _make_dialogue_artifact(
+                proposition=PROP,
+                speaker_id="maid_lusya",
+                target_id="tornin",
+            )
+        )
+    )
 
     npc_spoke = next(e for e in events if e.type == EventType.NPC_SPOKE.value)
     claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)
@@ -194,11 +199,15 @@ def test_target_id_preserved_in_both_events():
     verifier = _RecordingVerifier(verdict=True)
     mat = DialogueMaterializer(proposition_verifier=verifier)
 
-    events = list(mat.materialize(_make_dialogue_artifact(
-        proposition=PROP,
-        speaker_id="maid_lusya",
-        target_id="tornin",
-    )))
+    events = list(
+        mat.materialize(
+            _make_dialogue_artifact(
+                proposition=PROP,
+                speaker_id="maid_lusya",
+                target_id="tornin",
+            )
+        )
+    )
 
     npc_spoke = next(e for e in events if e.type == EventType.NPC_SPOKE.value)
     claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)

@@ -32,6 +32,7 @@ Production-path L3-тест. Доказывает сквозную причин�
 Production-путь НЕ подменён: EventBus → ClaimEventSubscriber → BeliefRevisionEngine →
   EpistemicStore → EpistemicContextResolver → DecisionHub → DialogueExecutor → NPC_SPOKE.
 """
+
 import logging
 import types
 from typing import Any, List, Optional
@@ -55,24 +56,28 @@ SPY_CLAIM: List[tuple] = []
 
 def _spy_npc_spoke(event: Any) -> None:
     _pl = getattr(event, "payload", {}) or {}
-    SPY_SPOKE.append((
-        getattr(event, "source", "?"),
-        _pl.get("target_id"),
-        _pl.get("intent_type"),
-        bool(_pl.get("proposition")),
-    ))
+    SPY_SPOKE.append(
+        (
+            getattr(event, "source", "?"),
+            _pl.get("target_id"),
+            _pl.get("intent_type"),
+            bool(_pl.get("proposition")),
+        )
+    )
 
 
 def _spy_comm_claim(event: Any) -> None:
     _pl = getattr(event, "payload", {}) or {}
     _prop = _pl.get("proposition") or {}
-    SPY_CLAIM.append((
-        getattr(event, "source", "?"),
-        _pl.get("target_id"),
-        _prop.get("predicate"),
-        _prop.get("subject_id"),
-        _prop.get("object_id"),
-    ))
+    SPY_CLAIM.append(
+        (
+            getattr(event, "source", "?"),
+            _pl.get("target_id"),
+            _prop.get("predicate"),
+            _prop.get("subject_id"),
+            _prop.get("object_id"),
+        )
+    )
 
 
 class _SyncPool:
@@ -93,6 +98,7 @@ class _SyncPool:
 
 def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     from app.domain.execution import TaskKind
+
     _sched = getattr(harness.game_loop, "_task_scheduler", None)
     if _sched is None:
         _sched = harness.game_loop._get_task_scheduler()
@@ -117,9 +123,8 @@ def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     # (structural propagation без семантической проверки).
     from app.services.cognition.proposition_verifier import PassthroughVerifier
     from app.services.execution.dialogue_materializer import DialogueMaterializer
-    _sched._materializers["dialogue_line"] = DialogueMaterializer(
-        proposition_verifier=PassthroughVerifier()
-    )
+
+    _sched._materializers["dialogue_line"] = DialogueMaterializer(proposition_verifier=PassthroughVerifier())
     print("[WIRING] _materializers['dialogue_line'] = PassthroughVerifier (structural test)")
 
 
@@ -127,6 +132,7 @@ def _install_spies(harness: TavernGameplayHarness) -> None:
     """Подписка spies на NPC_SPOKE + COMMUNICATION_CLAIM (mirror gc05)."""
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
+
     _bus = get_event_bus()
     _bus.subscribe(EventType.NPC_SPOKE, _spy_npc_spoke)
     _bus.subscribe(EventType.COMMUNICATION_CLAIM, _spy_comm_claim)
@@ -154,11 +160,16 @@ def _override_witness_disposition() -> None:
     Прецедент: gc05 guard disposition override.
     """
     from app.domain import epistemic_dispositions as _ed
+
     _keys = list(_ed.EPISTEMIC_DISPOSITIONS.keys())
     print(f"[OVERRIDE] Available dispositions: {_keys}")
     _ed.EPISTEMIC_DISPOSITIONS["maid"] = {
-        "report": 0.0, "warn": 0.0, "attack": 0.0,
-        "spread_rumor": 1.4, "talk": 0.8, "intimidate": 0.0,
+        "report": 0.0,
+        "warn": 0.0,
+        "attack": 0.0,
+        "spread_rumor": 1.4,
+        "talk": 0.8,
+        "intimidate": 0.0,
     }
     print("[OVERRIDE] maid: spread_rumor=1.4, talk=0.8")
 
@@ -195,10 +206,7 @@ def _publish_player_insults(
     )
     _bus = get_event_bus()
     _bus.publish(_event)
-    print(
-        f"[INJECT] PLAYER_INSULTS: source={_PLAYER} "
-        f"target={target_id} radius={radius} type={_event.type}"
-    )
+    print(f"[INJECT] PLAYER_INSULTS: source={_PLAYER} target={target_id} radius={radius} type={_event.type}")
 
 
 def _read_all_epistemic(harness: TavernGameplayHarness) -> dict:
@@ -216,11 +224,7 @@ def _read_all_epistemic(harness: TavernGameplayHarness) -> dict:
 
 def _is_insulted(record: dict, subject: str, victim: str) -> bool:
     _p = record.get("proposition", {}) or {}
-    return (
-        _p.get("predicate") == "insulted"
-        and _p.get("subject_id") == subject
-        and _p.get("object_id") == victim
-    )
+    return _p.get("predicate") == "insulted" and _p.get("subject_id") == subject and _p.get("object_id") == victim
 
 
 def _run_butterfly(
@@ -289,14 +293,9 @@ class TestButterflyFullGameLoop:
                 if _found:
                     break
 
-            assert _found, (
-                f"CC-02 FAIL: INSULTED(player, {_VICTIM}) not found. "
-                f"Agents: {list(_all.keys())}"
-            )
+            assert _found, f"CC-02 FAIL: INSULTED(player, {_VICTIM}) not found. Agents: {list(_all.keys())}"
             _src = _found_rec.get("source_id", "")
-            assert _src != "direct_observation", (
-                "CC-02 FAIL: source_id='direct_observation' — membrane bypassed."
-            )
+            assert _src != "direct_observation", "CC-02 FAIL: source_id='direct_observation' — membrane bypassed."
             print(f"[OK] CC-02: source_id={_src!r} — membrane confirmed")
         finally:
             _h.dispose()
@@ -325,9 +324,7 @@ class TestButterflyFullGameLoop:
                 print(f"  src={c[0]} tgt={c[1]} pred={c[2]} subj={c[3]} obj={c[4]}")
 
             # CC-03: NPCs spoke through full game loop
-            assert len(SPY_SPOKE) > 0, (
-                "CC-03 FAIL: no NPC_SPOKE events — NPCs didn't speak through full game loop."
-            )
+            assert len(SPY_SPOKE) > 0, "CC-03 FAIL: no NPC_SPOKE events — NPCs didn't speak through full game loop."
 
             _with_prop = [s for s in SPY_SPOKE if s[3]]
             if len(_with_prop) > 0:
@@ -391,10 +388,7 @@ class TestButterflyFullGameLoop:
             #     рассказывает одному NPC (например, merchant_goran), который затем
             #     пересказывает остальным. Chain link maid_lusya → merchant_goran
             #     документирован в record merchant_goran с source_id="maid_lusya".
-            _maid_chain = [
-                (_a, r) for (_a, r) in _chain
-                if r.get("source_id") == "maid_lusya"
-            ]
+            _maid_chain = [(_a, r) for (_a, r) in _chain if r.get("source_id") == "maid_lusya"]
             assert len(_maid_chain) > 0, (
                 f"CC-04 FAIL: no chain record with source_id='maid_lusya'. "
                 f"Chain sources: {[r.get('source_id') for (_a, r) in _chain]}. "
@@ -417,22 +411,20 @@ class TestButterflyFullGameLoop:
 
             # (3) confidence > 0 — belief не нулевой (reliability × _CLAIM_WEIGHT)
             _conf = _maid_rec.get("confidence", 0)
-            assert _conf > 0, (
-                f"CC-04 FAIL: confidence={_conf} (expected > 0). Record: {_maid_rec}"
-            )
+            assert _conf > 0, f"CC-04 FAIL: confidence={_conf} (expected > 0). Record: {_maid_rec}"
 
-            print(f"[OK] CC-04: {len(_chain)} chain records; "
-                  f"maid_lusya chain link confirmed: "
-                  f"source_id=maid_lusya, original_source_id=player, "
-                  f"confidence={_conf}")
+            print(
+                f"[OK] CC-04: {len(_chain)} chain records; "
+                f"maid_lusya chain link confirmed: "
+                f"source_id=maid_lusya, original_source_id=player, "
+                f"confidence={_conf}"
+            )
         finally:
             _h.dispose()
 
     def test_negative_membrane_isolation(self) -> None:
         """Negative: radius=1.0 → ≤2 NPC have belief (membrane filters)."""
-        _h = _run_butterfly(
-            victim=_VICTIM, ticks=3, insult_radius=1.0, override_disposition=False
-        )
+        _h = _run_butterfly(victim=_VICTIM, ticks=3, insult_radius=1.0, override_disposition=False)
         try:
             _all = _read_all_epistemic(_h)
             print(f"[CHECK] Agents (radius=1.0): {list(_all.keys())}")
@@ -444,8 +436,7 @@ class TestButterflyFullGameLoop:
                     print(f"  [INSULT] {_aid}")
 
             assert _count <= 2, (
-                f"Negative FAIL: {_count} NPC have INSULTED at radius=1.0 — "
-                f"membrane not filtering. Expected ≤2."
+                f"Negative FAIL: {_count} NPC have INSULTED at radius=1.0 — membrane not filtering. Expected ≤2."
             )
             print(f"[OK] Negative: {_count} NPC with belief (radius=1.0)")
         finally:

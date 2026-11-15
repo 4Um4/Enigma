@@ -18,21 +18,20 @@ def test_state_applicator_accepts_l1_chronicle():
     mock_rel_store = MagicMock()
 
     # 2. Создаём StateApplicator с l1_chronicle
-    applicator = StateApplicator(
-        relationship_store=mock_rel_store,
-        l1_chronicle=mock_chronicle
-    )
+    applicator = StateApplicator(relationship_store=mock_rel_store, l1_chronicle=mock_chronicle)
 
     # 3. Проверяем, что L1Chronicle сохранён внутри
-    assert applicator._l1_chronicle is mock_chronicle, \
+    assert applicator._l1_chronicle is mock_chronicle, (
         "StateApplicator не сохранил ссылку на L1Chronicle в self._l1_chronicle"
+    )
+
 
 def test_tick_state_has_l1_chronicle_field():
     """Проверяет, что TickState имеет поле l1_chronicle и оно передаётся."""
     from app.domain.tick import TickState
 
     mock_chronicle = MagicMock()
-    
+
     tick_state = TickState(
         tick_id=0,
         campaign_id="test",
@@ -41,9 +40,8 @@ def test_tick_state_has_l1_chronicle_field():
         effective_drives_map={},
         interventions=(),
         pe_modifiers_map={},
-        l1_chronicle=mock_chronicle
+        l1_chronicle=mock_chronicle,
     )
 
-    assert hasattr(tick_state, 'l1_chronicle'), "TickState не имеет поля l1_chronicle"
-    assert tick_state.l1_chronicle is mock_chronicle, \
-        "Значение l1_chronicle не передаётся в TickState"
+    assert hasattr(tick_state, "l1_chronicle"), "TickState не имеет поля l1_chronicle"
+    assert tick_state.l1_chronicle is mock_chronicle, "Значение l1_chronicle не передаётся в TickState"

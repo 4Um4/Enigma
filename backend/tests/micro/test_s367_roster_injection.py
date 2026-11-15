@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """S367: roster-инъекция — regression для contract-gated backstop.
 Запуск: python -m pytest backend/tests/micro/test_s367_roster_injection.py -v
 
@@ -12,6 +12,7 @@
 7. contract-gate: LOCATION name_hint НЕ backstopится.
 8. contract-gate: EFFECT target_hint=null НЕ backstopится.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,9 +42,7 @@ def _loc(name_hint, summary="место", confidence=0.8):
 
 
 def _normalize(raw, roster):
-    return ChronicleDecompositionNormalizer.normalize(
-        raw, chronicle_id="c1", fragment_ord=0, roster=roster
-    )
+    return ChronicleDecompositionNormalizer.normalize(raw, chronicle_id="c1", fragment_ord=0, roster=roster)
 
 
 def _qid(item):
@@ -84,26 +83,31 @@ def test_absent_roster_disables_backstop():
 
 
 def test_llm_identity_question_no_duplicate():
-    raw = json.dumps({
-        "items": [{
-            "kind": "RELATIONSHIP",
-            "draft_payload": {"summary": "связь", "target_hint": "старый пьянчужка",
-                              "nature": "trust", "valence": "positive"},
-            "confidence": 0.4,
-            "question": {
-                "question_id": "q_llm",
-                "target_span": "старый пьянчужка",
-                "options": ["SELECT_EXISTING_NPC", "CREATE_NEW_NPC",
-                            "UNKNOWN_PERSON", "LEAVE_WHITE_SPOT"],
-            },
-        }]
-    })
+    raw = json.dumps(
+        {
+            "items": [
+                {
+                    "kind": "RELATIONSHIP",
+                    "draft_payload": {
+                        "summary": "связь",
+                        "target_hint": "старый пьянчужка",
+                        "nature": "trust",
+                        "valence": "positive",
+                    },
+                    "confidence": 0.4,
+                    "question": {
+                        "question_id": "q_llm",
+                        "target_span": "старый пьянчужка",
+                        "options": ["SELECT_EXISTING_NPC", "CREATE_NEW_NPC", "UNKNOWN_PERSON", "LEAVE_WHITE_SPOT"],
+                    },
+                }
+            ]
+        }
+    )
     items = _normalize(raw, ROSTER)
     q = items[0].question
-    assert q is not None and q.question_id == "q_llm", "LLM identity preserved; got %r" % (
-        q.question_id if q else None)
-    assert not any(it.question and it.question.question_id.startswith("roster_mismatch")
-                   for it in items)
+    assert q is not None and q.question_id == "q_llm", "LLM identity preserved; got %r" % (q.question_id if q else None)
+    assert not any(it.question and it.question.question_id.startswith("roster_mismatch") for it in items)
 
 
 def test_prompt_contains_roster_block():

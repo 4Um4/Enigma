@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/idle_services.py
 Зависимости: app.services.affect, app.models.affect, app.core.constants, app.services.tick_utils
 Основные сущности: Phase0_5Deps, run_phase_0_5
 """
+
 from __future__ import annotations
 
 import logging
@@ -67,9 +68,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
         try:
             imprints = tuple(AffectiveImprint(**imp) for imp in imp_dicts)
             # ADR-O-302: delta_time = GAME_TICK_INTERVAL_SECONDS (60 сек). Магическое число 5.0 убито.
-            decayed = decay_affective_imprints(
-                imprints, float(GAME_TICK_INTERVAL_SECONDS), _current_time
-            )
+            decayed = decay_affective_imprints(imprints, float(GAME_TICK_INTERVAL_SECONDS), _current_time)
             npc_dict["affective_imprints"] = [asdict(d) for d in decayed]
         except Exception as e:
             # Инвариант 3: Аффективный decay — критический процесс, не debug
@@ -94,14 +93,10 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
             if getattr(ctx, "is_player_turn", False) and ctx.shared_context is not None
             else ctx.scene_state
         )
-        _dyn_ids = tuple(
-            str(n.get("npc_id", "")) for n in ctx.all_npcs_raw if n.get("npc_id")
-        )
+        _dyn_ids = tuple(str(n.get("npc_id", "")) for n in ctx.all_npcs_raw if n.get("npc_id"))
         # Время — канон _advance_idle_time: ctx.scene_state (обновляются оба источника).
         _dyn_seconds = float(ctx.scene_state.get("game_time_seconds", 0) or 0)
-        _dyn_deltas = compute_time_driven_deltas(
-            _dyn_scene, _dyn_ids, _dyn_seconds, ctx.tick_number
-        )
+        _dyn_deltas = compute_time_driven_deltas(_dyn_scene, _dyn_ids, _dyn_seconds, ctx.tick_number)
         if _dyn_deltas:
             ctx.delta_buffer.extend(_dyn_deltas)
 
@@ -132,10 +127,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
         try:
             deltas = handler.handle(snapshots, ctx.campaign_id, current_tick)
         except Exception as e:
-            logger.error(
-                f"[PHASE_0.5] {handler.name} handle() failed: {e}. "
-                f"Deltas lost this tick."
-            )
+            logger.error(f"[PHASE_0.5] {handler.name} handle() failed: {e}. Deltas lost this tick.")
             continue
 
         if deltas:
@@ -160,9 +152,7 @@ def run_phase_0_5(ctx: _TickContext, deps: Phase0_5Deps) -> None:
                                 )
                             )
                     if _decay_events:
-                        deps.l1_chronicle.commit_tick_buffer(
-                            _decay_events, ctx.tick_number
-                        )
+                        deps.l1_chronicle.commit_tick_buffer(_decay_events, ctx.tick_number)
 
     # S75-R1.1 FIX: Perceptual Decay (Rule 38, ADR-122).
     # threat_gradient, uncertainty, anomaly_score затухают в idle-тиках.

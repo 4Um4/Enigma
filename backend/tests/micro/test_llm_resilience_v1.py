@@ -47,14 +47,13 @@ def test_playback_valid_empty_response_is_returned(monkeypatch):
 
     monkeypatch.setattr(settings, "replay_playback", True)
     _hash = compute_prompt_hash("probe: валидная пустая запись", None, None)
-    router = _make_router(
-        entries={("sess-t1", "dm", _hash): {"response": ""}}
-    )
+    router = _make_router(entries={("sess-t1", "dm", _hash): {"response": ""}})
     result = router.request_for_agent("dm", "probe: валидная пустая запись")
     assert result == ""
 
 
 # ── T3: D65 — стрим в едином replay-контракте ─────────────────────────────
+
 
 def test_stream_record_via_notify_end(monkeypatch):
     """D65: полный стрим-ответ пишется в кэш через notify_stream_end."""
@@ -73,9 +72,7 @@ def test_stream_record_via_notify_end(monkeypatch):
 
     r = ModelRouter()
     r.set_replay_context(_RecStore(), "sess-t3")
-    ctx = r.notify_stream_start(
-        "dm_narrative", "narrative", prompt="PROMPT", system_prompt="SYS", params=None
-    )
+    ctx = r.notify_stream_start("dm_narrative", "narrative", prompt="PROMPT", system_prompt="SYS", params=None)
     r.notify_stream_end(ctx, 42, full_text="ПОЛНЫЙ ОТВЕТ")
     assert len(calls) == 1
     assert calls[0]["prompt"] == "PROMPT"
@@ -143,6 +140,7 @@ def test_stream_live_when_not_playback(monkeypatch):
     r = ModelRouter()
     assert r.playback_stream_lookup("dm_narrative", "PROMPT", "SYS", None) is None
 
+
 # ── T-queue: D62 — приоритетная очередь worker-ветки (LLM_RESILIENCE_V1) ──
 
 import threading as _th
@@ -175,8 +173,7 @@ def _q_router():
 class _CallLog:
     """Стаб _request_via_pool: invocation 1 — блокирующийся, далее мгновенные."""
 
-    def __init__(self, router, block_first=0.0, gate=None,
-                 first_result="FIRST", later_result="LATER"):
+    def __init__(self, router, block_first=0.0, gate=None, first_result="FIRST", later_result="LATER"):
         self.calls = 0
         self.block_first = block_first
         self.gate = gate
@@ -184,8 +181,7 @@ class _CallLog:
         self.later_result = later_result
         router._request_via_pool = self.fake  # type: ignore[method-assign]
 
-    def fake(self, capability, preferred_keys=None, prompt="",
-             params=None, system_prompt=None):
+    def fake(self, capability, preferred_keys=None, prompt="", params=None, system_prompt=None):
         self.calls += 1
         if self.calls == 1:
             if self.gate is not None:
@@ -242,7 +238,8 @@ def test_queue_second_canonical_waits_first_not_aborted(monkeypatch):
     t1 = _run_worker(r, prompt="first", results=res1, errors=err1)
     assert _wait_until(lambda: r._slot_busy)
     t2 = _run_worker(r, prompt="second", results=res2, errors=err2)
-    t1.join(timeout=5); t2.join(timeout=5)
+    t1.join(timeout=5)
+    t2.join(timeout=5)
     assert res1 == ["FIRST"] and not err1
     assert res2 == ["LATER"] and not err2
     assert ab.n == 0  # выполняющийся не прерывается прибытием
@@ -255,8 +252,7 @@ def test_queue_ambient_yields_to_canonical(monkeypatch):
     order = []
     state = {"n": 0}
 
-    def fake(capability, preferred_keys=None, prompt="",
-             params=None, system_prompt=None):
+    def fake(capability, preferred_keys=None, prompt="", params=None, system_prompt=None):
         state["n"] += 1
         if state["n"] == 1:
             _t.sleep(0.4)
@@ -284,8 +280,7 @@ def test_queue_ambient_overflow_drop(monkeypatch):
     _AbortCounter(r)
     holder = _run_worker(r, prompt="holder")
     assert _wait_until(lambda: r._slot_busy)
-    waiters = [_run_worker(r, prompt=f"amb-{i}", priority="ambient")
-               for i in range(8)]
+    waiters = [_run_worker(r, prompt=f"amb-{i}", priority="ambient") for i in range(8)]
     assert _wait_until(lambda: len(r._waiters) >= 8)
     errs = []
     ninth = _run_worker(r, prompt="amb-9", priority="ambient", errors=errs)
@@ -349,15 +344,15 @@ def test_queue_walltime_forfeit_and_late_result_guard(monkeypatch):
     assert _wait_until(lambda: r._slot_busy)
     t2 = _run_worker(r, prompt="second", results=res2)
     t2.join(timeout=5)
-    assert res2 == ["SECOND"]          # следующий canonical обслужен
-    assert ab.n >= 1                   # слой 1: реальная отмена попытана
-    gate.set()                         # «сервер наконец ответил» первому
+    assert res2 == ["SECOND"]  # следующий canonical обслужен
+    assert ab.n >= 1  # слой 1: реальная отмена попытана
+    gate.set()  # «сервер наконец ответил» первому
     t1.join(timeout=5)
     assert len(err1) == 1 and "R4A_WALLTIME" in str(err1[0])  # не «LATE»
     res3 = []
     t3 = _run_worker(r, prompt="third", results=res3)
     t3.join(timeout=5)
-    assert res3 == ["SECOND"]          # слот чист: прямой захват
+    assert res3 == ["SECOND"]  # слот чист: прямой захват
 
 
 def test_queue_flag_off_old_abort_mechanics(monkeypatch):
@@ -371,15 +366,18 @@ def test_queue_flag_off_old_abort_mechanics(monkeypatch):
     t1 = _run_worker(r, prompt="first", results=res1)
     assert _wait_until(lambda: r._request_in_progress)
     t2 = _run_worker(r, prompt="second", results=res2)
-    _t.sleep(0.15)   # t2 внутри abort-ветки (sleep 1.0 старого пути)
-    gate.set()       # первый освобождается
-    t1.join(timeout=5); t2.join(timeout=5)
+    _t.sleep(0.15)  # t2 внутри abort-ветки (sleep 1.0 старого пути)
+    gate.set()  # первый освобождается
+    t1.join(timeout=5)
+    t2.join(timeout=5)
     assert ab.n >= 1
     assert res1 == ["A"] and res2 == ["B"]
+
 
 # ── T-D61: детектор / рестарт / сброс backoff ─────────────────────────────
 
 import asyncio as _aio
+
 
 class _FakeResp:
     status = 200
@@ -410,9 +408,7 @@ def test_outage_proven_backoff_immediate(monkeypatch):
             }
 
     monkeypatch.setattr(_pm, "get_model_pool", lambda: _Pool())
-    monkeypatch.setattr(
-        _health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"}
-    )
+    monkeypatch.setattr(_health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"})
     result = _aio.run(llm_outage())
     assert result == {
         "status": "outage",
@@ -452,9 +448,7 @@ def test_outage_online(monkeypatch):
             return {"degraded": False, "models": {}}
 
     monkeypatch.setattr(_pm, "get_model_pool", lambda: _Pool())
-    monkeypatch.setattr(
-        _health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"}
-    )
+    monkeypatch.setattr(_health_mod, "check_llm_health", lambda use_cache=True: {"status": "online"})
     assert _aio.run(llm_outage())["status"] == "online"
 
 
@@ -506,9 +500,7 @@ def test_restart_refuses_foreign_port_owner(monkeypatch):
         raise ConnectionError("refused")
 
     monkeypatch.setattr("urllib.request.urlopen", _boom)
-    monkeypatch.setattr(
-        _sl, "_stop_llama_server", lambda: "refused: порт занят notepad.exe (pid=1)"
-    )
+    monkeypatch.setattr(_sl, "_stop_llama_server", lambda: "refused: порт занят notepad.exe (pid=1)")
     result = _aio.run(_sl.restart_llama_server())
     assert result["restarted"] is False
     assert result["reason"] == "port_busy_unknown_owner"
@@ -528,9 +520,7 @@ def test_restart_load_timeout_loud(monkeypatch):
         def open(self, *a, **k):
             raise ConnectionError("not ready")
 
-    monkeypatch.setattr(
-        "urllib.request.build_opener", lambda *a, **k: _NeverReadyOpener()
-    )
+    monkeypatch.setattr("urllib.request.build_opener", lambda *a, **k: _NeverReadyOpener())
     monkeypatch.setattr(_sl, "_stop_llama_server", lambda: "stopped")
     monkeypatch.setattr(
         _sl,
@@ -564,9 +554,7 @@ def test_restart_serialized_by_lock():
 def test_start_reuses_ready_server(monkeypatch):
     import app.services.llm.server_lifecycle as _sl
 
-    monkeypatch.setattr(
-        _sl, "acquire_llama_server_lock", lambda port, url: ("reuse", "health ok")
-    )
+    monkeypatch.setattr(_sl, "acquire_llama_server_lock", lambda port, url: ("reuse", "health ok"))
     result = _aio.run(_sl.start_llama_server())
     assert result == {
         "started": True,
@@ -578,9 +566,7 @@ def test_start_reuses_ready_server(monkeypatch):
 def test_start_reports_missing_model(monkeypatch):
     import app.services.llm.server_lifecycle as _sl
 
-    monkeypatch.setattr(
-        _sl, "acquire_llama_server_lock", lambda port, url: ("spawn", "free")
-    )
+    monkeypatch.setattr(_sl, "acquire_llama_server_lock", lambda port, url: ("spawn", "free"))
     monkeypatch.setattr(
         _sl,
         "_spawn_llama_server",
@@ -601,9 +587,7 @@ import os as _os
 import sys as _sys
 import time as _time
 
-_ROOT_D61 = _os.path.dirname(
-    _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-)
+_ROOT_D61 = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))))
 _FE_D61 = _os.path.join(_ROOT_D61, "frontend")
 if _FE_D61 not in _sys.path:
     _sys.path.append(_FE_D61)  # ТЗ §3.6: sys.path += frontend
@@ -643,11 +627,7 @@ def _d61_frame_gates(ctrl: LlmOutageController, gw: _D61CountingGateway) -> None
     """
     _skip_time_active = [False]
     _workbench_paused = False
-    if (
-        not _skip_time_active[0]
-        and not _workbench_paused
-        and not ctrl.llm_paused
-    ):
+    if not _skip_time_active[0] and not _workbench_paused and not ctrl.llm_paused:
         gw.idle_tick()
     if not ctrl.llm_paused:
         gw.skip_time()

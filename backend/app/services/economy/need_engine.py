@@ -97,9 +97,7 @@ class NeedEngine:
     Вызывается каждый мирный тик для обновления состояния.
     """
 
-    def tick(
-        self, profile: EconomicProfile, current_activity: str = ""
-    ) -> List[NeedDrive]:
+    def tick(self, profile: EconomicProfile, current_activity: str = "") -> List[NeedDrive]:
         """
         Обрабатывает один тик для NPC.
 
@@ -172,9 +170,7 @@ class NeedEngine:
                 profile.remove_good(good_id, amount=1.0)
                 profile.satisfy_need(need.need_type)
                 satisfied.append(need.need_type)
-                logger.debug(
-                    f"[NEED_ENGINE] {profile.npc_id}: auto-satisfied {need.need_type.value}"
-                )
+                logger.debug(f"[NEED_ENGINE] {profile.npc_id}: auto-satisfied {need.need_type.value}")
 
         return satisfied
 

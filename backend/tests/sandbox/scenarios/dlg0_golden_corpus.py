@@ -21,6 +21,7 @@ LLM-free, headless, детерминированный корпус для из�
 
 Гейт: DLG-GC-00 (§9.3i).
 """
+
 from __future__ import annotations
 
 import sys
@@ -40,24 +41,27 @@ from app.services.memory.dialogue_session import DialogueSession
 
 # ── Dataclasses ──────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class DLGCheck:
     """Результат одной проверки сценария."""
+
     check_id: str
-    applicable: bool       # False → не считается в US (диагностический)
-    passed: bool           # если applicable=False → False (не повышает US)
+    applicable: bool  # False → не считается в US (диагностический)
+    passed: bool  # если applicable=False → False (не повышает US)
     detail: str = ""
 
 
 @dataclass(frozen=True)
 class DLGScenario:
     """Спецификация сценария корпуса."""
+
     scenario_id: str
     category: str
     description: str
     ref_3_6: Optional[str]
 
-    speaker: str            # "player" | "npc"
+    speaker: str  # "player" | "npc"
     event_type: str
     semantic_acts: Tuple[Dict[str, Any], ...]
     text: str
@@ -110,15 +114,14 @@ class CorpusReport:
 
 # ── Session memory (прецедент test_player_self_intro_claim.py) ──────────────
 
+
 class _SessionMemory:
     """MemoryManager-контракт (прецедент d8p-теста SessionMemory)."""
 
     def __init__(self) -> None:
         self._sessions: Dict[Tuple[str, str, str], DialogueSession] = {}
 
-    def get_dialogue_session(
-        self, campaign_id: str, npc_id: str, partner_id: str = "player"
-    ) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         key = (campaign_id, npc_id, partner_id)
         if key not in self._sessions:
             self._sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
@@ -126,6 +129,7 @@ class _SessionMemory:
 
 
 # ── Event factory ───────────────────────────────────────────────────────────
+
 
 def _spoke_event(
     acts: Tuple[Dict[str, Any], ...],
@@ -150,260 +154,369 @@ def _spoke_event(
 CORPUS: Tuple[DLGScenario, ...] = (
     # ── SELF_INTRODUCTION (PASS-candidates) ──────────────────────────────────
     DLGScenario(
-        scenario_id="dlg-001", category="self_intro",
+        scenario_id="dlg-001",
+        category="self_intro",
         description="SELF_INTRODUCTION → 1 claim; имя доезжает до prompt-block",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},),
-        text="Меня зовут Мю", event_id="evt-dlg-001",
+        text="Меня зовут Мю",
+        event_id="evt-dlg-001",
         target_id="merchant_goran",
-        expected_claims_count=1, expected_claim_contains=("Мю", "представился"),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=1,
+        expected_claim_contains=("Мю", "представился"),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-002", category="self_intro",
+        scenario_id="dlg-002",
+        category="self_intro",
         description="Дубль event_id (два вызова с одним event_id) → 1 claim (идемпотентность)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},),
-        text="Меня зовут Мю", event_id="evt-dlg-002",
+        text="Меня зовут Мю",
+        event_id="evt-dlg-002",
         target_id="merchant_goran",
-        expected_claims_count=1, expected_claim_contains=("Мю",),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=1,
+        expected_claim_contains=("Мю",),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-003", category="self_intro",
+        scenario_id="dlg-003",
+        category="self_intro",
         description="name пустой → skip, 0 claims",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": ""}},),
-        text="", event_id="evt-dlg-003",
+        text="",
+        event_id="evt-dlg-003",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-004", category="self_intro",
+        scenario_id="dlg-004",
+        category="self_intro",
         description="name >64 chars → skip, 0 claims",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "А" * 65}},),
-        text="А" * 65, event_id="evt-dlg-004",
+        text="А" * 65,
+        event_id="evt-dlg-004",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-005", category="self_intro",
+        scenario_id="dlg-005",
+        category="self_intro",
         description="target_id=None → claim не пишется (нет адресата)",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},),
-        text="Меня зовут Мю", event_id="evt-dlg-005",
+        text="Меня зовут Мю",
+        event_id="evt-dlg-005",
         target_id=None,
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     # ── Другие речевые акты — нет consumer (KNOWN-RED DLG-1) ─────────────────
     DLGScenario(
-        scenario_id="dlg-006", category="greeting",
+        scenario_id="dlg-006",
+        category="greeting",
         description="PLAYER GREETING → нет consumer, 0 claims (KNOWN-RED DLG-1)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "GREETING", "params": {}},),
-        text="Привет!", event_id="evt-dlg-006",
+        text="Привет!",
+        event_id="evt-dlg-006",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-1",),
     ),
     DLGScenario(
-        scenario_id="dlg-007", category="question",
+        scenario_id="dlg-007",
+        category="question",
         description="PLAYER QUESTION → нет consumer (KNOWN-RED DLG-1)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "QUESTION", "params": {"topic": "weather"}},),
-        text="Какая погода?", event_id="evt-dlg-007",
+        text="Какая погода?",
+        event_id="evt-dlg-007",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-1",),
     ),
     DLGScenario(
-        scenario_id="dlg-008", category="assert",
+        scenario_id="dlg-008",
+        category="assert",
         description="PLAYER ASSERT → нет consumer (KNOWN-RED DLG-1)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "ASSERT", "params": {"claim": "Торнин вор"}},),
-        text="Торнин вор", event_id="evt-dlg-008",
+        text="Торнин вор",
+        event_id="evt-dlg-008",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-1",),
     ),
     DLGScenario(
-        scenario_id="dlg-009", category="order",
+        scenario_id="dlg-009",
+        category="order",
         description="PLAYER ORDER → нет consumer (KNOWN-RED DLG-1)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "ORDER", "params": {}},),
-        text="Встань!", event_id="evt-dlg-009",
+        text="Встань!",
+        event_id="evt-dlg-009",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-1",),
     ),
     # ── Topic detection (API-level: add_turn, НЕ player-pipeline) ───────────
     DLGScenario(
-        scenario_id="dlg-010", category="topic",
+        scenario_id="dlg-010",
+        category="topic",
         description="API: keyword 'борко' в add_turn → topic=guard_borko (механический _detect_topic)",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
-        semantic_acts=(), text="борко", event_id="evt-dlg-010",
+        semantic_acts=(),
+        text="борко",
+        event_id="evt-dlg-010",
         target_id="guard_borko",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic="guard_borko", expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic="guard_borko",
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-011", category="topic",
+        scenario_id="dlg-011",
+        category="topic",
         description="API: смена topic через add_turn (last-write-wins)",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
-        semantic_acts=(), text="торнин", event_id="evt-dlg-011",
+        semantic_acts=(),
+        text="торнин",
+        event_id="evt-dlg-011",
         target_id="tavern_keeper_tornin",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic="tavern_keeper", expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic="tavern_keeper",
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-012", category="topic",
+        scenario_id="dlg-012",
+        category="topic",
         description="API: topic persistence через 3 turns (без авто-reset)",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
-        semantic_acts=(), text="борко", event_id="evt-dlg-012",
+        semantic_acts=(),
+        text="борко",
+        event_id="evt-dlg-012",
         target_id="guard_borko",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic="guard_borko", expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic="guard_borko",
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     # ── Multi-act (DLG-L1 идемпотентность / DLG-L3 tail loss) ────────────────
     DLGScenario(
-        scenario_id="dlg-013", category="multi_act",
+        scenario_id="dlg-013",
+        category="multi_act",
         description="Два SELF_INTRO в одном event (один event_id) → 1 claim (дедуп по event_id)",
-        ref_3_6="DLG-L1", speaker="player",
+        ref_3_6="DLG-L1",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=(
             {"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},
             {"type": "SELF_INTRODUCTION", "params": {"name": "Второе"}},
         ),
-        text="Меня зовут Мю", event_id="evt-dlg-013",
+        text="Меня зовут Мю",
+        event_id="evt-dlg-013",
         target_id="merchant_goran",
-        expected_claims_count=1, expected_claim_contains=("Мю",),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=1,
+        expected_claim_contains=("Мю",),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=(),
     ),
     DLGScenario(
-        scenario_id="dlg-014", category="composite",
+        scenario_id="dlg-014",
+        category="composite",
         description="SELF_INTRO+QUESTION → 1 claim, QUESTION потерян (KNOWN-RED DLG-3)",
-        ref_3_6="DLG-L3", speaker="player",
+        ref_3_6="DLG-L3",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=(
             {"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},
             {"type": "QUESTION", "params": {"topic": "weather"}},
         ),
-        text="Меня зовут Мю. Какая погода?", event_id="evt-dlg-014",
+        text="Меня зовут Мю. Какая погода?",
+        event_id="evt-dlg-014",
         target_id="merchant_goran",
-        expected_claims_count=1, expected_claim_contains=("Мю",),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=1,
+        expected_claim_contains=("Мю",),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-3",),
     ),
     DLGScenario(
-        scenario_id="dlg-015", category="composite",
+        scenario_id="dlg-015",
+        category="composite",
         description="3 акта → 1 claim, 2 потеряны (KNOWN-RED DLG-3)",
-        ref_3_6="DLG-L3", speaker="player",
+        ref_3_6="DLG-L3",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=(
             {"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},
             {"type": "QUESTION", "params": {"topic": "weather"}},
             {"type": "ASSERT", "params": {"claim": "Торнин вор"}},
         ),
-        text="Меня зовут Мю. Какая погода? Торнин вор.", event_id="evt-dlg-015",
+        text="Меня зовут Мю. Какая погода? Торнин вор.",
+        event_id="evt-dlg-015",
         target_id="merchant_goran",
-        expected_claims_count=1, expected_claim_contains=("Мю",),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=1,
+        expected_claim_contains=("Мю",),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-3",),
     ),
     # ── Repeat guard (DLG-L2 — отсутствует) ──────────────────────────────────
     DLGScenario(
-        scenario_id="dlg-016", category="repeat_guard",
+        scenario_id="dlg-016",
+        category="repeat_guard",
         description="2× SELF_INTRO (разные event_id, одно имя) → 2 claims, нет guard (KNOWN-RED DLG-2)",
-        ref_3_6="DLG-L2", speaker="player",
+        ref_3_6="DLG-L2",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},),
-        text="Меня зовут Мю", event_id="evt-dlg-016",
+        text="Меня зовут Мю",
+        event_id="evt-dlg-016",
         target_id="merchant_goran",
-        expected_claims_count=2, expected_claim_contains=("Мю",),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=2,
+        expected_claim_contains=("Мю",),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-2",),
     ),
     DLGScenario(
-        scenario_id="dlg-017", category="correction",
+        scenario_id="dlg-017",
+        category="correction",
         description="«Меня не так зовут» как ASSERT → нет act CORRECTION, 0 claims (KNOWN-RED DLG-2)",
-        ref_3_6="DLG-L2", speaker="player",
+        ref_3_6="DLG-L2",
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
         semantic_acts=({"type": "ASSERT", "params": {"claim": "меня не так зовут"}},),
-        text="Меня не так зовут", event_id="evt-dlg-017",
+        text="Меня не так зовут",
+        event_id="evt-dlg-017",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
         known_red_for=("DLG-2",),
     ),
     # ── Асимметрия PLAYER/NPC [H] (диагностическая, не в US) ─────────────────
     DLGScenario(
-        scenario_id="dlg-018", category="asymmetry",
+        scenario_id="dlg-018",
+        category="asymmetry",
         description="NPC-путь не имеет semantic-act consumer; PLAYER имеет типизированные semantic_acts [H]",
-        ref_3_6="DLG-L1 (асимметрия)", speaker="npc",
+        ref_3_6="DLG-L1 (асимметрия)",
+        speaker="npc",
         event_type=EventType.NPC_SPOKE.value,
-        semantic_acts=(), text="Привет", event_id="evt-dlg-018",
+        semantic_acts=(),
+        text="Привет",
+        event_id="evt-dlg-018",
         target_id=None,
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
-        known_red_for=("DLG-1",), diagnostic_only=True,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
+        known_red_for=("DLG-1",),
+        diagnostic_only=True,
     ),
     # ── API-level (не из player-pipeline) ────────────────────────────────────
     DLGScenario(
-        scenario_id="dlg-019", category="api",
+        scenario_id="dlg-019",
+        category="api",
         description="API: DialogueSession.add_open_question работает (API-level, не end-to-end)",
-        ref_3_6=None, speaker="player",
+        ref_3_6=None,
+        speaker="player",
         event_type=EventType.PLAYER_SPOKE.value,
-        semantic_acts=(), text="", event_id="evt-dlg-019",
+        semantic_acts=(),
+        text="",
+        event_id="evt-dlg-019",
         target_id="merchant_goran",
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=1,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=1,
         known_red_for=(),
     ),
     # ── NEG-28 (NL-8, не наш трек; диагностический) ──────────────────────────
     DLGScenario(
-        scenario_id="dlg-020", category="neg28",
+        scenario_id="dlg-020",
+        category="neg28",
         description="NPC-реплика с числами — NEG-28 (NL-8, вне трека DLG; диагностический)",
-        ref_3_6=None, speaker="npc",
+        ref_3_6=None,
+        speaker="npc",
         event_type=EventType.NPC_SPOKE.value,
-        semantic_acts=(), text="Мне 25 лет", event_id="evt-dlg-020",
+        semantic_acts=(),
+        text="Мне 25 лет",
+        event_id="evt-dlg-020",
         target_id=None,
-        expected_claims_count=0, expected_claim_contains=(),
-        expected_topic=None, expected_open_questions_count=0,
-        known_red_for=("NL-8",), diagnostic_only=True,
+        expected_claims_count=0,
+        expected_claim_contains=(),
+        expected_topic=None,
+        expected_open_questions_count=0,
+        known_red_for=("NL-8",),
+        diagnostic_only=True,
     ),
 )
 
 
 # ── Исполнение сценария ─────────────────────────────────────────────────────
+
 
 def _run_scenario(scenario: DLGScenario) -> ScenarioResult:
     """Выполняет сценарий против реального pipeline; без подмены результатов."""
@@ -439,8 +552,10 @@ def _run_scenario(scenario: DLGScenario) -> ScenarioResult:
             # API-level: add_open_question напрямую
             session = mem.get_dialogue_session(campaign_id, npc_id, partner_id="player")
             session.add_open_question(
-                text="кто ты?", asked_by="player",
-                addressed_to=npc_id, tick=1,
+                text="кто ты?",
+                asked_by="player",
+                addressed_to=npc_id,
+                tick=1,
             )
             actual_topic = session.topic
             actual_claims_count = len(session.claims)
@@ -484,41 +599,51 @@ def _run_scenario(scenario: DLGScenario) -> ScenarioResult:
 
         # ── Сравнение с ожиданиями ────────────────────────────────────────────
         if not scenario.diagnostic_only:
-            checks.append(DLGCheck(
-                check_id=f"{scenario.scenario_id}.claims_count",
-                applicable=True,
-                passed=actual_claims_count == scenario.expected_claims_count,
-                detail=f"expected={scenario.expected_claims_count}, actual={actual_claims_count}",
-            ))
+            checks.append(
+                DLGCheck(
+                    check_id=f"{scenario.scenario_id}.claims_count",
+                    applicable=True,
+                    passed=actual_claims_count == scenario.expected_claims_count,
+                    detail=f"expected={scenario.expected_claims_count}, actual={actual_claims_count}",
+                )
+            )
             if scenario.expected_claim_contains:
                 all_in = all(s in actual_claim_text for s in scenario.expected_claim_contains)
-                checks.append(DLGCheck(
-                    check_id=f"{scenario.scenario_id}.claim_text",
-                    applicable=True,
-                    passed=all_in,
-                    detail=f"actual_claim='{actual_claim_text[:80]}'",
-                ))
+                checks.append(
+                    DLGCheck(
+                        check_id=f"{scenario.scenario_id}.claim_text",
+                        applicable=True,
+                        passed=all_in,
+                        detail=f"actual_claim='{actual_claim_text[:80]}'",
+                    )
+                )
             if scenario.expected_topic is not None:
-                checks.append(DLGCheck(
-                    check_id=f"{scenario.scenario_id}.topic",
-                    applicable=True,
-                    passed=actual_topic == scenario.expected_topic,
-                    detail=f"expected={scenario.expected_topic}, actual={actual_topic}",
-                ))
+                checks.append(
+                    DLGCheck(
+                        check_id=f"{scenario.scenario_id}.topic",
+                        applicable=True,
+                        passed=actual_topic == scenario.expected_topic,
+                        detail=f"expected={scenario.expected_topic}, actual={actual_topic}",
+                    )
+                )
             if scenario.expected_open_questions_count > 0:
-                checks.append(DLGCheck(
-                    check_id=f"{scenario.scenario_id}.open_questions",
-                    applicable=True,
-                    passed=actual_open_q_count == scenario.expected_open_questions_count,
-                    detail=f"expected={scenario.expected_open_questions_count}, actual={actual_open_q_count}",
-                ))
+                checks.append(
+                    DLGCheck(
+                        check_id=f"{scenario.scenario_id}.open_questions",
+                        applicable=True,
+                        passed=actual_open_q_count == scenario.expected_open_questions_count,
+                        detail=f"expected={scenario.expected_open_questions_count}, actual={actual_open_q_count}",
+                    )
+                )
         else:
-            checks.append(DLGCheck(
-                check_id=f"{scenario.scenario_id}.diagnostic",
-                applicable=False,
-                passed=False,
-                detail=f"diagnostic observation: {scenario.description}",
-            ))
+            checks.append(
+                DLGCheck(
+                    check_id=f"{scenario.scenario_id}.diagnostic",
+                    applicable=False,
+                    passed=False,
+                    detail=f"diagnostic observation: {scenario.description}",
+                )
+            )
 
     except Exception as e:
         error = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
@@ -527,6 +652,7 @@ def _run_scenario(scenario: DLGScenario) -> ScenarioResult:
 
 
 # ── Скорер ──────────────────────────────────────────────────────────────────
+
 
 def run_corpus() -> CorpusReport:
     """Запуск корпуса; детерминирован (без RNG, без LLM)."""
@@ -561,9 +687,7 @@ def run_corpus() -> CorpusReport:
         if r.error:
             red_findings.append((r.scenario.scenario_id, f"ERROR: {r.error.splitlines()[0]}"))
 
-    scenarios_with_applicable = sum(
-        1 for r in results if any(c.applicable for c in r.checks)
-    )
+    scenarios_with_applicable = sum(1 for r in results if any(c.applicable for c in r.checks))
     total_scenarios = len(results)
     coverage = (scenarios_with_applicable / total_scenarios * 100) if total_scenarios else 0.0
     us_baseline = (total_passed / total_applicable * 100) if total_applicable > 0 else None
@@ -601,9 +725,7 @@ def format_report(report: CorpusReport) -> str:
     lines += ["", "By category:"]
     for cat in sorted(report.by_category.keys()):
         s = report.by_category[cat]
-        lines.append(
-            f"  {cat:15s} total={s['total']:2d}  applicable={s['applicable']:2d}  passed={s['passed']:2d}"
-        )
+        lines.append(f"  {cat:15s} total={s['total']:2d}  applicable={s['applicable']:2d}  passed={s['passed']:2d}")
     lines += ["", f"KNOWN-RED findings ({len(report.red_findings)}):"]
     for sid, reason in report.red_findings:
         lines.append(f"  [{sid}] {reason}")

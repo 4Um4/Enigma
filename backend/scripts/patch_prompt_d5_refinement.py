@@ -1,6 +1,7 @@
 # backend/scripts/patch_prompt_d5_refinement.py
 # Идемпотентное уточнение D5: анти-регрессия EFFECT/LOCATION/DESIRE
-import sys, pathlib
+import pathlib
+import sys
 
 PROMPT_PATH = pathlib.Path("backend/prompts/chronicle_decompose_system.txt")
 MARKER = "D5-REFINED"
@@ -124,6 +125,7 @@ EVENT, DESIRE_SEED.
   - TRAIT_SEED — если это паттерн поведения
 Смотри на синтаксис и контекст, не на отдельное слово."""
 
+
 def main():
     if not PROMPT_PATH.exists():
         print(f"ERROR: {PROMPT_PATH} not found", file=sys.stderr)
@@ -132,19 +134,20 @@ def main():
     text = PROMPT_PATH.read_text(encoding="utf-8")
 
     if MARKER in text:
-        print(f"[skip] D5 refinement already applied")
+        print("[skip] D5 refinement already applied")
         return
 
     if OLD_D5 not in text:
-        print(f"ERROR: OLD D5 block not found — check prompt state", file=sys.stderr)
+        print("ERROR: OLD D5 block not found — check prompt state", file=sys.stderr)
         sys.exit(3)
 
     # Заменяем старый D5 на новый + маркер
     new_text = text.replace(OLD_D5, NEW_D5 + "\n\n<!-- " + MARKER + " -->")
 
     PROMPT_PATH.write_text(new_text, encoding="utf-8")
-    print(f"[ok] D5 refinement applied")
+    print("[ok] D5 refinement applied")
     print(f"     size: {len(text)} -> {len(new_text)} bytes")
+
 
 if __name__ == "__main__":
     main()

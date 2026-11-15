@@ -118,16 +118,8 @@ class PerceptionPhysicsEngine:
 
         # 2. Voice Manifestation (аудио канал)
         if audibility > 0.1:
-            signals.extend(
-                self._filter_voice(
-                    manifest.voice, relation, target_id, current_tick, audibility
-                )
-            )
-            signals.extend(
-                self._filter_breathing(
-                    manifest.breathing, relation, target_id, current_tick, audibility
-                )
-            )
+            signals.extend(self._filter_voice(manifest.voice, relation, target_id, current_tick, audibility))
+            signals.extend(self._filter_breathing(manifest.breathing, relation, target_id, current_tick, audibility))
 
         # 3. Movement (визуальный + аудио)
         if visibility > 0.1 or audibility > 0.1:
@@ -168,16 +160,9 @@ class PerceptionPhysicsEngine:
 
         return dist_factor * light_factor
 
-    def _compute_confidence(
-        self, base_resolution: float, observer_attention: float, signal_salience: float
-    ) -> float:
+    def _compute_confidence(self, base_resolution: float, observer_attention: float, signal_salience: float) -> float:
         """Вычисляет confidence (0-1). Никогда не 1.0."""
-        raw = (
-            base_resolution
-            * observer_attention
-            * (1.0 - 0.0)
-            * (0.5 + 0.5 * signal_salience)
-        )
+        raw = base_resolution * observer_attention * (1.0 - 0.0) * (0.5 + 0.5 * signal_salience)
         return min(0.95, raw)
 
     def _make_signal(
@@ -250,9 +235,7 @@ class PerceptionPhysicsEngine:
                 )
 
         if body.standing_balance < 0.9 and resolution > 0.5:
-            conf = self._compute_confidence(
-                visibility, resolution, 1.0 - body.standing_balance
-            )
+            conf = self._compute_confidence(visibility, resolution, 1.0 - body.standing_balance)
             if conf > 0.2:
                 signals.append(
                     self._make_signal(
@@ -392,9 +375,7 @@ class PerceptionPhysicsEngine:
                 )
 
         if micro.pupil_dilation > 0.1:
-            conf = self._compute_confidence(
-                visibility, resolution, micro.pupil_dilation
-            )
+            conf = self._compute_confidence(visibility, resolution, micro.pupil_dilation)
             if conf > 0.2:
                 signals.append(
                     self._make_signal(
@@ -410,9 +391,7 @@ class PerceptionPhysicsEngine:
                 )
 
         if abs(micro.brow_position) > 0.1:
-            conf = self._compute_confidence(
-                visibility, resolution, abs(micro.brow_position)
-            )
+            conf = self._compute_confidence(visibility, resolution, abs(micro.brow_position))
             if conf > 0.2:
                 signals.append(
                     self._make_signal(
@@ -503,9 +482,7 @@ class PerceptionPhysicsEngine:
     ) -> List[PerceivedSignal]:
         signals = []
         if breathing.rate > 16.0:
-            conf = self._compute_confidence(
-                audibility, 1.0, (breathing.rate - 16.0) / 10.0
-            )
+            conf = self._compute_confidence(audibility, 1.0, (breathing.rate - 16.0) / 10.0)
             if conf > 0.2:
                 signals.append(
                     self._make_signal(
@@ -598,9 +575,7 @@ class PerceptionPhysicsEngine:
                 )
 
         if movement.coordination < 0.9 and visibility > 0.1:
-            conf = self._compute_confidence(
-                visibility, 0.8, 1.0 - movement.coordination
-            )
+            conf = self._compute_confidence(visibility, 0.8, 1.0 - movement.coordination)
             if conf > 0.2:
                 signals.append(
                     self._make_signal(

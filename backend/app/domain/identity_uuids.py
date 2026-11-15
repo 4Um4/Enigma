@@ -10,10 +10,10 @@ path: /project/backend/app/domain/identity_uuids.py
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-import logging
 
 _logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class IdentityUUIDs:
 
     player_consciousness: str  # UUID-P
     avatar_consciousness: str  # UUID-A
-    body: str                  # UUID-B
+    body: str  # UUID-B
 
     def __post_init__(self) -> None:
         if self.player_consciousness == self.avatar_consciousness:
@@ -54,15 +54,9 @@ class IdentityUUIDs:
                 f"({self.player_consciousness}) — сознания не различаются"
             )
         if self.player_consciousness == self.body:
-            raise ValueError(
-                f"Player consciousness UUID == body UUID "
-                f"({self.player_consciousness}) — сознание = тело"
-            )
+            raise ValueError(f"Player consciousness UUID == body UUID ({self.player_consciousness}) — сознание = тело")
         if self.avatar_consciousness == self.body:
-            raise ValueError(
-                f"Avatar consciousness UUID == body UUID "
-                f"({self.avatar_consciousness}) — сознание = тело"
-            )
+            raise ValueError(f"Avatar consciousness UUID == body UUID ({self.avatar_consciousness}) — сознание = тело")
 
     def to_dict(self) -> Dict[str, str]:
         """Сериализация для player_avatar.json."""
@@ -87,7 +81,8 @@ class IdentityUUIDs:
             # L4: громкий отказ — повреждённые данные наблюдаемы, не молчат (Устав §7.21, ADR-O-308)
             _logger.warning(
                 "IdentityUUIDs.from_dict: повреждённые данные — %s; keys=%s",
-                exc, list(data.keys()) if isinstance(data, dict) else type(data).__name__
+                exc,
+                list(data.keys()) if isinstance(data, dict) else type(data).__name__,
             )
             return None
 

@@ -5,6 +5,7 @@ path: /frontend/ui_workbench/persistence.py
 Зависимости: json, pathlib
 Основные сущности: WorkbenchPersistence
 """
+
 import json
 from pathlib import Path
 from typing import Dict
@@ -38,6 +39,4 @@ class WorkbenchPersistence:
     def save_window_states(self, states: Dict[str, dict]) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"_version": _SCHEMA_VERSION, "window_states": states}
-        self._path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        self._path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -9,8 +9,12 @@ R2-BUTTERFLY-B5-OBSTACLES — Этап 1: проверка открытых пр
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -101,7 +105,7 @@ def stage1_1_prop_target_in_reach() -> None:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
         print(f"  {rel} L{ln}: {line}")
 
-    print(f"""
+    print("""
 >>> Анализ:
 
   PROP_TARGET_IN_REACH — это код ошибки/статус, возникающий когда:
@@ -117,15 +121,18 @@ def stage1_1_prop_target_in_reach() -> None:
 
     # Find the function/method that returns PROP_TARGET_IN_REACH
     print("\n--- Поиск 'return PROP_TARGET_IN_REACH' или 'PROP_TARGET_IN_REACH' в assignment ---")
-    results2 = _grep_in_dir(_BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"])
+    results2 = _grep_in_dir(
+        _BACKEND, ["return.*PROP_TARGET_IN_REACH", "PROP_TARGET_IN_REACH.*=", "= PROP_TARGET_IN_REACH"]
+    )
     for path, ln, line in results2:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
         print(f"  {rel} L{ln}: {line}")
 
     # Find distance/reach check code
     print("\n--- Поиск проверки дистанции (in_reach, target_in_reach, communication_range) ---")
-    results3 = _grep_in_dir(_BACKEND, ["in_reach", "target_in_reach", "communication_range", "comm_range",
-                                       "within_range", "PROP_TARGET"])
+    results3 = _grep_in_dir(
+        _BACKEND, ["in_reach", "target_in_reach", "communication_range", "comm_range", "within_range", "PROP_TARGET"]
+    )
     for path, ln, line in results3[:30]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
         print(f"  {rel} L{ln}: {line}")
@@ -146,10 +153,10 @@ def stage1_1_prop_target_in_reach() -> None:
                     continue
                 start = max(0, ln - 10)
                 end = min(len(lines), ln + 10)
-                print(f"\n  Контекст L{start+1}–L{end}:")
+                print(f"\n  Контекст L{start + 1}–L{end}:")
                 for j in range(start, end):
                     marker = " >>>" if j + 1 == ln else "    "
-                    print(f"  {marker} L{j+1}: {lines[j]}")
+                    print(f"  {marker} L{j + 1}: {lines[j]}")
                 for k in range(start, end):
                     shown_ranges.add(k + 1)
         except Exception as e:
@@ -162,7 +169,7 @@ def stage1_1_prop_target_in_reach() -> None:
 def stage1_2_communication_conditions() -> None:
     _print_section("ЭТАП 1.2: Условия успешной коммуникации")
 
-    print(f"""
+    print("""
 >>> Все условия для успешной передачи слуха (PROP_SPREAD_RUMOR):
 
   1. Источник (maid_lusya) должен иметь слух в EpistemicStore
@@ -196,8 +203,10 @@ def stage1_2_communication_conditions() -> None:
 
     # Find communication execution code
     print("\n--- Поиск кода выполнения коммуникации (DialogueExecutor, spread_rumor, communicate) ---")
-    results = _grep_in_dir(_BACKEND, ["spread_rumor", "SPREAD_RUMOR", "DialogueExecutor",
-                                       "communicate", "propagate_rumor", "claim_subscriber"])
+    results = _grep_in_dir(
+        _BACKEND,
+        ["spread_rumor", "SPREAD_RUMOR", "DialogueExecutor", "communicate", "propagate_rumor", "claim_subscriber"],
+    )
     print(f"Найдено {len(results)} совпадений:")
     for path, ln, line in results[:30]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -205,8 +214,10 @@ def stage1_2_communication_conditions() -> None:
 
     # Find subscriber that handles SPREAD_RUMOR
     print("\n--- Поиск подписчиков SPREAD_RUMOR / COMMUNICATION_CLAIM ---")
-    results2 = _grep_in_dir(_BACKEND, ["COMMUNICATION_CLAIM", "claim_subscriber", "ClaimEventSubscriber",
-                                        "NPC_SPOKE", "npc_dialogue_subscriber"])
+    results2 = _grep_in_dir(
+        _BACKEND,
+        ["COMMUNICATION_CLAIM", "claim_subscriber", "ClaimEventSubscriber", "NPC_SPOKE", "npc_dialogue_subscriber"],
+    )
     print(f"Найдено {len(results2)} совпадений:")
     for path, ln, line in results2[:20]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -228,7 +239,7 @@ def stage1_3_report_confidence_threshold() -> None:
 
     # Read context around each occurrence
     if results:
-        print(f"\n--- Контекст каждого вхождения ---")
+        print("\n--- Контекст каждого вхождения ---")
         files_shown = set()
         for path, ln, line in results:
             if path in files_shown:
@@ -243,10 +254,10 @@ def stage1_3_report_confidence_threshold() -> None:
                     if "REPORT_CONFIDENCE_THRESHOLD" in l:
                         start = max(0, i - 5)
                         end = min(len(lines), i + 10)
-                        print(f"\n  Контекст L{start+1}–L{end} (вокруг L{i}):")
+                        print(f"\n  Контекст L{start + 1}–L{end} (вокруг L{i}):")
                         for j in range(start, end):
                             marker = " >>>" if j + 1 == i else "    "
-                            print(f"  {marker} L{j+1}: {lines[j]}")
+                            print(f"  {marker} L{j + 1}: {lines[j]}")
             except Exception as e:
                 print(f"  [read error: {e}]")
 
@@ -257,7 +268,7 @@ def stage1_3_report_confidence_threshold() -> None:
 def stage1_4_confidence_formula() -> None:
     _print_section("ЭТАП 1.4: Формула confidence = 0.215 — происхождение")
 
-    print(f"""
+    print("""
 >>> Из B4:
   Торнин получил запись в EpistemicStore:
     source_id = maid_lusya
@@ -281,8 +292,9 @@ def stage1_4_confidence_formula() -> None:
 
     # Search for confidence calculation
     print("\n--- Поиск вычисления confidence (confidence =, _confidence, compute_confidence) ---")
-    results = _grep_in_dir(_BACKEND, ["confidence =", "_confidence =", "compute_confidence",
-                                       "update_confidence", "confidence_factor"])
+    results = _grep_in_dir(
+        _BACKEND, ["confidence =", "_confidence =", "compute_confidence", "update_confidence", "confidence_factor"]
+    )
     print(f"Найдено {len(results)} совпадений (показаны первые 30):")
     for path, ln, line in results[:30]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -290,8 +302,9 @@ def stage1_4_confidence_formula() -> None:
 
     # Search for EpistemicStore update
     print("\n--- Поиск EpistemicStore.update / add_belief / record ---")
-    results2 = _grep_in_dir(_BACKEND, ["epistemic_store", "EpistemicStore", "add_belief",
-                                        "record_belief", "update_belief", "store_belief"])
+    results2 = _grep_in_dir(
+        _BACKEND, ["epistemic_store", "EpistemicStore", "add_belief", "record_belief", "update_belief", "store_belief"]
+    )
     print(f"Найдено {len(results2)} совпадений (показаны первые 20):")
     for path, ln, line in results2[:20]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -309,8 +322,7 @@ def stage1_4_confidence_formula() -> None:
 
     # Search for testimony confidence formula
     print("\n--- Поиск формулы testimony confidence ---")
-    results4 = _grep_in_dir(_BACKEND, ["testimony", "witness", "source_confidence",
-                                        "trust_factor", "credibility"])
+    results4 = _grep_in_dir(_BACKEND, ["testimony", "witness", "source_confidence", "trust_factor", "credibility"])
     print(f"Найдено {len(results4)} совпадений (показаны первые 20):")
     for path, ln, line in results4[:20]:
         rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -323,7 +335,7 @@ def stage1_4_confidence_formula() -> None:
 def stage1_5_natural_proximity() -> None:
     _print_section("ЭТАП 1.5: Может ли NPC естественно сблизиться")
 
-    print(f"""
+    print("""
 >>> Вопрос: могут ли Люся и Торнин естественно оказаться в допустимой дистанции?
 
   Известные позиции NPC в tavern.json:
@@ -351,9 +363,19 @@ def stage1_5_natural_proximity() -> None:
 
     # Find communication distance threshold
     print("\n--- Поиск порога дистанции коммуникации ---")
-    results = _grep_in_dir(_BACKEND, ["COMMUNICATION_RADIUS", "COMM_RANGE", "TALK_RADIUS",
-                                       "DIALOGUE_RADIUS", "SPEECH_RADIUS", "comm_distance",
-                                       "talk_distance", "dialogue_distance"])
+    results = _grep_in_dir(
+        _BACKEND,
+        [
+            "COMMUNICATION_RADIUS",
+            "COMM_RANGE",
+            "TALK_RADIUS",
+            "DIALOGUE_RADIUS",
+            "SPEECH_RADIUS",
+            "comm_distance",
+            "talk_distance",
+            "dialogue_distance",
+        ],
+    )
     if results:
         for path, ln, line in results:
             rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -367,8 +389,10 @@ def stage1_5_natural_proximity() -> None:
     if const_path.exists():
         src = const_path.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line.upper() for kw in ["RADIUS", "RANGE", "DISTANCE", "REACH",
-                                                   "COMM", "TALK", "DIALOGUE", "SPEECH"]):
+            if any(
+                kw in line.upper()
+                for kw in ["RADIUS", "RANGE", "DISTANCE", "REACH", "COMM", "TALK", "DIALOGUE", "SPEECH"]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
     # Find where PROP_TARGET_IN_REACH is checked
@@ -385,7 +409,7 @@ def stage1_5_natural_proximity() -> None:
 def final_summary() -> None:
     _print_section("ИТОГ ЭТАПА 1 — сводка открытых препятствий")
 
-    print(f"""
+    print("""
 =============================================================================
 ОТКРЫТЫЕ ПРЕПЯТСТВИЯ (после исследования)
 =============================================================================

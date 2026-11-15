@@ -53,6 +53,7 @@ class IntentReadiness(str, Enum):
     означает REALIS; quoted=True запрещает материализацию акта при
     легальности хранения в плоском semantic_acts (запрет — исполнение,
     не хранение)."""
+
     RESOLVED = "RESOLVED"
     REFERENCE_AMBIGUOUS = "REFERENCE_AMBIGUOUS"
     SEMANTIC_AMBIGUOUS = "SEMANTIC_AMBIGUOUS"
@@ -101,6 +102,7 @@ class IntentSemanticField(BaseModel):
     """Слой 1: Вероятностная реконструкция намерения. Не команда, а поле.
     S199: Расширенный семантический контракт. Frozen=True (Pure Reducer, ADR-TZ10-1).
     """
+
     class Config:
         frozen = True
 
@@ -117,7 +119,10 @@ class IntentSemanticField(BaseModel):
     subject_id: Optional[str] = Field(default=None, description="npc_id / canon topic_key / secret_id")
     subject_hint: Optional[str] = Field(default=None, description="сырая NP; переживает нерезолв")
     social_intent: Optional[SocialIntent] = Field(default=None)
-    addressee: Optional[str] = Field(default=None, description="Кому адресована фраза (обращение); ≠ target/actor (доктрина телесной семантики §12-1)")
+    addressee: Optional[str] = Field(
+        default=None,
+        description="Кому адресована фраза (обращение); ≠ target/actor (доктрина телесной семантики §12-1)",
+    )
     # Multi-Act Understanding (вердикт Мастера): одна фраза = несколько
     # семантических актов. LLM ПРЕДЛАГАЕТ, Python валидирует (тип+параметры).
     # semantic_acts — канонический акт; верхнеуровневые поля (action/speech_act)
@@ -130,7 +135,10 @@ class IntentSemanticField(BaseModel):
     #     НЕ трактуется как REALIS.
     #   quoted: bool|None — акт внутри чужой речи; True = запрет исполнения.
     #   quoted_speaker_hint: str|None — предполагаемый автор цитаты.
-    semantic_acts: List[Dict[str, Any]] = Field(default_factory=list, description="[{type: GREETING|ASK_NAME|SELF_INTRODUCTION|ASK_IDENTITY|ASK_LOCATION|ASSERT|ORDER|THREAT|COMPLIMENT|QUESTION|FAREWELL, params: {...}, negated: bool|None, modality: str|None, quoted: bool|None, quoted_speaker_hint: str|None}]")
+    semantic_acts: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="[{type: GREETING|ASK_NAME|SELF_INTRODUCTION|ASK_IDENTITY|ASK_LOCATION|ASSERT|ORDER|THREAT|COMPLIMENT|QUESTION|FAREWELL, params: {...}, negated: bool|None, modality: str|None, quoted: bool|None, quoted_speaker_hint: str|None}]",
+    )
     # S-UE Блок 1: машинные факты полноты разбора — НЕ самооценка LLM (U-9).
     # Состав: {has_acts, action_class, llm_status: OK|UNAVAILABLE|INVALID,
     # ambiguity_flag, act_completeness, temporal_marker_on_action}. Пишет
@@ -142,7 +150,9 @@ class IntentSemanticField(BaseModel):
     condition: Optional[str] = Field(default=None, description="Условие («если будешь хорошо вести»)")
 
     references: list[str] = Field(default_factory=list, description="Анафора, coreference («он», «это»)")
-    conversation_continuation: Optional[str] = Field(default=None, description="CONTINUE / NEW_TOPIC / RETURN_TO / CLARIFY")
+    conversation_continuation: Optional[str] = Field(
+        default=None, description="CONTINUE / NEW_TOPIC / RETURN_TO / CLARIFY"
+    )
     dialogue_thread: Optional[str] = Field(default=None, description="ID активного thread из DialogueSession")
 
     # ── Сохраняемые поля (физика/эмоции) ───────────────────────────────────
@@ -153,7 +163,10 @@ class IntentSemanticField(BaseModel):
 
     # ── Утилитарные / Legacy поля ─────────────────────────────────────────
     target_zone: TargetZone = Field(default=TargetZone.UNDEFINED)
-    zone_raw: Optional[str] = Field(default=None, description="Сырая зона LLM до нормализации (латеральность: EYE_LEFT/EAR/NOSE); доктрина телесной семантики §2")
+    zone_raw: Optional[str] = Field(
+        default=None,
+        description="Сырая зона LLM до нормализации (латеральность: EYE_LEFT/EAR/NOSE); доктрина телесной семантики §2",
+    )
     tool_reference: Optional[str] = Field(default=None)
     semantic: EmotionalVector = Field(default_factory=EmotionalVector)
     raw_text: str

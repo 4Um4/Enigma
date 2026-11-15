@@ -86,6 +86,4 @@ class ManifestationState:
     breathing: BreathingManifestation = field(default_factory=BreathingManifestation)
     movement: MovementManifestation = field(default_factory=MovementManifestation)
     hands: HandsManifestation = field(default_factory=HandsManifestation)
-    micro_expression: MicroExpressionManifestation = field(
-        default_factory=MicroExpressionManifestation
-    )
+    micro_expression: MicroExpressionManifestation = field(default_factory=MicroExpressionManifestation)

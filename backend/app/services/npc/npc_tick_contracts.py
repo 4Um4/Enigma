@@ -9,6 +9,7 @@ path: backend/app/services/npc/npc_tick_contracts.py
 Зависимости: npc_state, decision_hub, domain/events
 Основные сущности: NpcTickInput, NpcTickBuffer, NpcTickServices
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -82,11 +83,6 @@ class NpcTickServices:
     reputation_engine: Optional[Any]
     economic_profiles: Dict[str, Any]
     event_bus: Any = None  # Фаза 6-7: IntentEventAdapter → EventBus (§3.3)
-    spatial_service: Optional[Any] = (
-        None  # SpatialService v1.2 — навигация (граф, узлы)
-    )
-    spatial_query: Optional[Any] = (
-        None  # SpatialQueryService — ADR-048 Authoritative Spatial Spine
-    )
+    spatial_service: Optional[Any] = None  # SpatialService v1.2 — навигация (граф, узлы)
+    spatial_query: Optional[Any] = None  # SpatialQueryService — ADR-048 Authoritative Spatial Spine
     crystallized_belief_store: Optional[Any] = None  # AUDIT-002 §3.2
-

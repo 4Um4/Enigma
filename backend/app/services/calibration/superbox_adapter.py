@@ -8,6 +8,7 @@ path: backend/app/services/calibration/superbox_adapter.py
 Зависимости: pytest, app.services.calibration.preset_io.
 Основные сущности: SuperboxAdapter, SuperboxRunResult.
 """
+
 from __future__ import annotations
 
 import logging
@@ -21,9 +22,7 @@ from app.services.calibration.preset_io import Preset, load_preset
 logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_SCENARIOS_DIR = (
-    _REPO_ROOT / "backend" / "tests" / "sandbox" / "SUPERBOX" / "scenarios"
-)
+_SCENARIOS_DIR = _REPO_ROOT / "backend" / "tests" / "sandbox" / "SUPERBOX" / "scenarios"
 
 # LLM-зависимые сценарии: в offline-контуре дают ложно-красные результаты.
 _LLM_DEPENDENT: frozenset = frozenset({"semantic_torture_test.py"})
@@ -37,21 +36,15 @@ class SuperboxRunResult:
 
 
 def _scenario_files() -> List[Path]:
-    return sorted(
-        f
-        for f in _SCENARIOS_DIR.glob("epistemic_*.py")
-    ) + sorted(
-        f
-        for f in _SCENARIOS_DIR.glob("modifier_*.py")
+    return sorted(f for f in _SCENARIOS_DIR.glob("epistemic_*.py")) + sorted(
+        f for f in _SCENARIOS_DIR.glob("modifier_*.py")
     )
 
 
 class SuperboxAdapter:
     """M0-AC-005: инварианты SUPERBOX зелёны при overlay констант пресета."""
 
-    def run_baseline(
-        self, files: List[str] | None = None
-    ) -> SuperboxRunResult:
+    def run_baseline(self, files: List[str] | None = None) -> SuperboxRunResult:
         """Baseline: тот же набор сценариев БЕЗ overlay (для дельта-вердикта
         AC-005: 'overlay не ломает', а не 'всё зелёное при любом pre-existing')."""
         import pytest
@@ -68,17 +61,14 @@ class SuperboxAdapter:
             skipped_scenarios=[],
         )
 
-    def run_under_preset(
-        self, preset_path: str, *, extra_args: List[str] | None = None
-    ) -> SuperboxRunResult:
+    def run_under_preset(self, preset_path: str, *, extra_args: List[str] | None = None) -> SuperboxRunResult:
         preset: Preset = load_preset(preset_path)
         files = _scenario_files()
         skipped = [f.name for f in files if f.name in _LLM_DEPENDENT]
         runnable = [str(f) for f in files if f.name not in _LLM_DEPENDENT]
         if skipped:
             logger.warning(
-                "[SUPERBOX_ADAPTER] LLM-зависимые сценарии пропущены "
-                "(offline-контур калибровки): %s", skipped
+                "[SUPERBOX_ADAPTER] LLM-зависимые сценарии пропущены (offline-контур калибровки): %s", skipped
             )
         import pytest
 

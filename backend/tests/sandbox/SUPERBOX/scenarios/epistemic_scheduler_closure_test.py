@@ -16,7 +16,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_SCHEDULER_TEST")
 logger.setLevel(logging.INFO)
 
@@ -37,31 +37,28 @@ CAMPAIGN_ID = "Open_road"
 NPC_A = "guard_borko"
 NPC_B = "thief_shadow"
 
+
 def run_test():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SUPERBOX-016: Runtime TaskScheduler Epistemic Closure")
-    print("="*60)
+    print("=" * 60)
 
     # 1. Инициализация изолированных сервисов
     rel_store = RelationshipStore(data_dir=str(BACKEND_ROOT.parent / "saves" / "test_sandbox"))
     rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
-    
+
     reliability_provider = TrustBasedReliabilityProvider(rel_store, CAMPAIGN_ID)
     engine = BeliefRevisionEngine(reliability_provider=reliability_provider)
     store = EpistemicStore()
-    
+
     mock_positions = {
         "player": {"local_position": {"x": 0.0, "y": 0.0}},
         NPC_A: {"local_position": {"x": 1.0, "y": 1.0}},
         NPC_B: {"local_position": {"x": 2.0, "y": 2.0}},
     }
     spatial_query = SpatialQueryService(npc_positions=mock_positions)
-    
-    subscriber = ClaimEventSubscriber(
-        engine=engine,
-        store=store,
-        spatial_query_provider=lambda: spatial_query
-    )
+
+    subscriber = ClaimEventSubscriber(engine=engine, store=store, spatial_query_provider=lambda: spatial_query)
 
     # 2. Регистрация подписчика на EventBus
     bus = get_event_bus()
@@ -77,7 +74,7 @@ def run_test():
         economy_tracker=None,
         belief_store=None,
         memory_manager=None,
-        confession_parser=None
+        confession_parser=None,
     )
 
     # 4. Создание QueuedTask с intent_type="intimidate" (входит в canonical list)
@@ -87,7 +84,7 @@ def run_test():
         topic="угроза",
         intent_type="intimidate",
         emotional_state="angry",
-        exposure=ExposureLevel.from_semantic("normal")
+        exposure=ExposureLevel.from_semantic("normal"),
     )
     task = QueuedTask(
         task_id="test_task_1",
@@ -99,7 +96,7 @@ def run_test():
         creator_system="NPC_AI",
         owner_id=NPC_A,
         target_ids=[NPC_B],
-        payload=req
+        payload=req,
     )
 
     # Подготавливаем scene_state для TaskScheduler.
@@ -122,16 +119,16 @@ def run_test():
             "emotional_state": req.emotional_state,
             "thread_id": getattr(req, "thread_id", ""),
             "prepared_prompt": getattr(req, "prepared_prompt", ""),
-            "proposition": getattr(req, "proposition", None)
-        }
+            "proposition": getattr(req, "proposition", None),
+        },
     }
 
     scene_state = {
         "campaign_id": CAMPAIGN_ID,
         "tick": 1,
-        "game_time_seconds": 100.0, # > 30.0 (COOLDOWN_PER_NPC_SEC)
+        "game_time_seconds": 100.0,  # > 30.0 (COOLDOWN_PER_NPC_SEC)
         "pending_tasks": [_task_dict],
-        "npc_positions": mock_positions
+        "npc_positions": mock_positions,
     }
 
     # Вызываем execute_pending, который запустит асинхронную обработку
@@ -155,7 +152,9 @@ def run_test():
     if belief_from_friend:
         print(f"  Убеждение от друга (NPC_A): confidence={belief_from_friend.confidence:.2f}")
         if belief_from_friend.confidence > 0.5:
-            print("  ✅ Runtime труба работает: TaskScheduler -> Executor -> Materializer -> EventBus -> EpistemicStore[player].")
+            print(
+                "  ✅ Runtime труба работает: TaskScheduler -> Executor -> Materializer -> EventBus -> EpistemicStore[player]."
+            )
         else:
             print("  ❌ ОШИБКА: Confidence от друга слишком низкое!")
             raise AssertionError("SUPERBOX-016 FAILED: Low confidence")
@@ -163,10 +162,11 @@ def run_test():
         print("  ❌ ОШИБКА: Убеждение от друга не найдено!")
         raise AssertionError("SUPERBOX-016 FAILED: Belief not found")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎉 RUNTIME TASKSCHEDULER ЭПИСТЕМИЧЕСКОЕ ЗАМЫКАНИЕ ДОКАЗАНО!")
     print("Полная каузальная труба от Intent до EpistemicStore работает без ручных вызовов.")
-    print("="*60)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     run_test()

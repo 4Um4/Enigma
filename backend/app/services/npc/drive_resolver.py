@@ -26,7 +26,7 @@ class DriveResolver:
         archetype: NPCPersonality,
         beliefs: Optional[List[CrystallizedBelief]] = None,
         body_state: Optional[Dict[str, Any]] = None,
-        identity_l1: Optional["NPCIdentityL1"] = None, # V8-PSY-9 FIX: Инъекция L1
+        identity_l1: Optional["NPCIdentityL1"] = None,  # V8-PSY-9 FIX: Инъекция L1
     ) -> EffectiveDrives:
         """
         Pure function: L0 + L1(Identity) + L2.5(Beliefs) + BodyState -> L3 Projection.
@@ -56,7 +56,7 @@ class DriveResolver:
         # P5-08: Модуляция от физиологии (body_state)
         if body_state:
             _fatigue = float(body_state.get("fatigue", 0.0)) / 100.0  # 0.0..1.0
-            _pain = float(body_state.get("pain", 0.0)) / 100.0       # 0.0..1.0
+            _pain = float(body_state.get("pain", 0.0)) / 100.0  # 0.0..1.0
 
             # Усталость снижает желание (desire) и повышает потребность в покое (control)
             if _fatigue > 0.5:

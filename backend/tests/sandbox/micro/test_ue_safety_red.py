@@ -7,6 +7,7 @@
 Зависимости: app.domain.intent_profile, app.services.game_loop.phase_1_input
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_safety_red.py -q; cd ..
 """
+
 import pytest
 
 from app.domain.intent_profile import ActionType, IntentSemanticField
@@ -28,8 +29,12 @@ def test_red_attack_unresolved_negation_not_resolved():
     # negated-информации нет вовсе → исполнение обязано быть закрыто.
     sf = IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его.")
     res = resolve_player_intent(
-        raw_action="Не бей его.", action_type="player_attacks", target="",
-        player_dict=None, scene_context=_SCENE, semantic_field=sf,
+        raw_action="Не бей его.",
+        action_type="player_attacks",
+        target="",
+        player_dict=None,
+        scene_context=_SCENE,
+        semantic_field=sf,
     )
     assert res.original_intent.parameters.intent_readiness != "RESOLVED"
 
@@ -41,8 +46,12 @@ def test_red_two_guards_no_silent_pick():
     # кандидатов, а не молча выбрать guard_market.
     sf = IntentSemanticField(action=ActionType.OBSERVE, raw_text="Проследи за стражником.", target="стражник")
     res = resolve_player_intent(
-        raw_action="Проследи за стражником.", action_type="player_interacts",
-        target="стражник", player_dict=None, scene_context=_SCENE, semantic_field=sf,
+        raw_action="Проследи за стражником.",
+        action_type="player_interacts",
+        target="стражник",
+        player_dict=None,
+        scene_context=_SCENE,
+        semantic_field=sf,
     )
     params = res.original_intent.parameters
     assert getattr(params, "reference_candidates", None) is not None

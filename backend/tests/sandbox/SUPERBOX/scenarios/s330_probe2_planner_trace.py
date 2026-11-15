@@ -10,6 +10,7 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/s330_probe2_planner_trac
 Основные сущности: main (прогон 20 тиков + отчёт).
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/s330_probe2_planner_trace.py
 """
+
 import io
 import logging
 import os
@@ -51,11 +52,15 @@ class _BufHandler(logging.Handler):
 
 def _instrument() -> None:
     logging.getLogger().setLevel(logging.CRITICAL)
-    for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-               "app.services.llm.llama_cpp_provider",
-               "app.services.game_loop.task_scheduler",
-               "app.services.execution.dialogue_queue",
-               "app.services.memory", "app.services.npc.npc_tick_pipeline"):
+    for _n in (
+        "app.services.llm.router",
+        "app.services.llm.provider_manager",
+        "app.services.llm.llama_cpp_provider",
+        "app.services.game_loop.task_scheduler",
+        "app.services.execution.dialogue_queue",
+        "app.services.memory",
+        "app.services.npc.npc_tick_pipeline",
+    ):
         logging.getLogger(_n).setLevel(logging.CRITICAL)
     _h = _BufHandler()
     _h.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
@@ -72,8 +77,7 @@ def _taps() -> None:
 
     _orig_ctp = _me.MovementEngine._compile_traversal_plan
 
-    def _ctp(self, intent, svc, current_pos, tick, source_xy, target_xy,
-             target_node_obj):  # type: ignore[no-untyped-def]
+    def _ctp(self, intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj):  # type: ignore[no-untyped-def]
         _aid = getattr(intent, "actor_id", "?")
         if _aid == TORNIN:
             _b = intent.body_capabilities
@@ -84,11 +88,9 @@ def _taps() -> None:
                 f"body(mjd={_b.max_jump_distance}, mjh={_b.max_jump_height}, "
                 f"can_jump={_b.can_jump}, speed={_b.movement_speed})\n"
             )
-        _res = _orig_ctp(self, intent, svc, current_pos, tick, source_xy,
-                         target_xy, target_node_obj)
+        _res = _orig_ctp(self, intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj)
         if _aid == TORNIN:
-            _buf.write(f"[P2][CTP-OUT] tick={tick} status={_res.status} "
-                       f"reason={getattr(_res, 'reason', None)}\n")
+            _buf.write(f"[P2][CTP-OUT] tick={tick} status={_res.status} reason={getattr(_res, 'reason', None)}\n")
         return _res
 
     _me.MovementEngine._compile_traversal_plan = _ctp  # type: ignore[method-assign]
@@ -99,8 +101,7 @@ def _taps() -> None:
         _plan = _orig_cp(self, query, geometry)
         _mjd = query.body.max_jump_distance
         _clr = getattr(_plan, "available_clearance", None)
-        _hd = (round(_clr + _mjd, 3)
-               if (_clr is not None and not _plan.possible) else None)
+        _hd = round(_clr + _mjd, 3) if (_clr is not None and not _plan.possible) else None
         _buf.write(
             f"[P2][PLAN] src=({query.source_pose.x:.2f},{query.source_pose.y:.2f}) "
             f"tgt=({query.target_pose.x:.2f},{query.target_pose.y:.2f}) "

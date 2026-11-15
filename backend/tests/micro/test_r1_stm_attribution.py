@@ -9,6 +9,7 @@
   - to_prompt_block должен содержать "tavern_keeper_tornin" (фактический говорящий)
   - НЕ должен подписывать реплику торнина как "maid_lusya" (владелец сессии)
 """
+
 import sys
 from pathlib import Path
 
@@ -42,29 +43,25 @@ def test_r1_npc_speaker_attributed_not_owner():
     block = session.to_prompt_block()
 
     # Позитивные проверки: фактические говорящие подписаны
-    assert "tavern_keeper_tornin" in block, (
-        f"R-1 FAIL: реплика Торнина не подписана его ID. Block:\n{block}"
-    )
-    assert "maid_lusya" in block, (
-        f"R-1 FAIL: реплика Люси не подписана её ID. Block:\n{block}"
-    )
+    assert "tavern_keeper_tornin" in block, f"R-1 FAIL: реплика Торнина не подписана его ID. Block:\n{block}"
+    assert "maid_lusya" in block, f"R-1 FAIL: реплика Люси не подписана её ID. Block:\n{block}"
 
     # Негативная проверка: реплика Торнина НЕ подписана как maid_lusya (владелец)
     # До фикса: speaker_name = self.npc_id -> обе реплики подписаны "maid_lusya"
     # После фикса: каждая реплика подписана фактическим говорящим.
     # Формат строки: "  {speaker_name}{target_marker}{intent_marker}: {turn.text}"
     # Поэтому проверяем startswith, а не "id:" (двоеточие после intent_marker).
-    lines = [l.strip() for l in block.split("\n")
-             if l.strip().startswith("tavern_keeper_tornin")
-             or l.strip().startswith("maid_lusya")]
+    lines = [
+        l.strip()
+        for l in block.split("\n")
+        if l.strip().startswith("tavern_keeper_tornin") or l.strip().startswith("maid_lusya")
+    ]
     assert len(lines) >= 2, (
-        f"R-1 FAIL: ожидается >=2 строк с разными говорящими, найдено {len(lines)}.\n"
-        f"Block:\n{block}"
+        f"R-1 FAIL: ожидается >=2 строк с разными говорящими, найдено {len(lines)}.\nBlock:\n{block}"
     )
     # Первая реплика — Торнин (говорил первым)
     assert lines[0].startswith("tavern_keeper_tornin"), (
-        f"R-1 FAIL: первая реплика не подписана как tavern_keeper_tornin.\n"
-        f"Lines:\n{lines}"
+        f"R-1 FAIL: первая реплика не подписана как tavern_keeper_tornin.\nLines:\n{lines}"
     )
 
 
@@ -88,12 +85,8 @@ def test_r1_player_speaker_still_igrok():
 
     block = session.to_prompt_block()
 
-    assert "Игрок" in block, (
-        f"R-1 FAIL: реплика игрока не подписана 'Игрок'. Block:\n{block}"
-    )
-    assert "maid_lusya" in block, (
-        f"R-1 FAIL: реплика Люси не подписана её ID. Block:\n{block}"
-    )
+    assert "Игрок" in block, f"R-1 FAIL: реплика игрока не подписана 'Игрок'. Block:\n{block}"
+    assert "maid_lusya" in block, f"R-1 FAIL: реплика Люси не подписана её ID. Block:\n{block}"
 
 
 def test_r1_three_way_attribution():

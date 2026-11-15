@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover
 _LOG = logging.getLogger(__name__)
 
 # Статусы /api/llm/outage (контракт D61-бэкенда, коммит 31387976)
-_STATUS_OUTAGE = "outage"            # доказанный pool backoff -> пауза сразу
+_STATUS_OUTAGE = "outage"  # доказанный pool backoff -> пауза сразу
 _STATUS_UNCONFIRMED = "unconfirmed"  # health offline при чистом пуле
 _STATUS_ONLINE = "online"
 
@@ -41,7 +41,7 @@ M_FAILED = "FAILED"
 # Рестарт-флоу владеет модалкой в этих состояниях — watcher не вмешивается
 _RESTART_FLOW = (M_RESTARTING, M_SUCCESS, M_FAILED)
 
-_POLL_INTERVAL = 5.0    # доктрина №6: один поток, интервал 5 с
+_POLL_INTERVAL = 5.0  # доктрина №6: один поток, интервал 5 с
 _UNCONFIRMED_LIMIT = 2  # доктрина №2: дебаунс 2 проб подряд
 
 # Доктрина №6 «один поток»: гасим watcher прошлой сессии run()
@@ -91,9 +91,7 @@ class LlmOutageController:
                 _ACTIVE.stop()  # доктрина №6: watcher всегда один
             _ACTIVE = self
             self._stop_evt.clear()
-            self._thread = threading.Thread(
-                target=self._poll_loop, daemon=True, name="llm-outage-watcher"
-            )
+            self._thread = threading.Thread(target=self._poll_loop, daemon=True, name="llm-outage-watcher")
             self._thread.start()
 
     def stop(self) -> None:
@@ -183,9 +181,7 @@ class LlmOutageController:
                     }
                 self._restart_result = (res, my_gen)
 
-            threading.Thread(
-                target=_worker, daemon=True, name="llm-restart-worker"
-            ).start()
+            threading.Thread(target=_worker, daemon=True, name="llm-restart-worker").start()
 
     # ---------------------------------------------------- выходы модалки
 
@@ -266,9 +262,7 @@ def _wrap_px(font: Any, text: str, max_px: int) -> "list[str]":
     return lines
 
 
-def draw_outage_modal(
-    screen: Any, ctrl: LlmOutageController, font: Any = None
-) -> Optional[str]:
+def draw_outage_modal(screen: Any, ctrl: LlmOutageController, font: Any = None) -> Optional[str]:
     """Рисует модалку D61 поверх кадра; возвращает действие клика/None.
 
     font не используется (сигнатура ТЗ §3.2): шрифт локальный (_get_font).

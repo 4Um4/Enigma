@@ -49,9 +49,9 @@ def test_three_statuses_rules():
             "a_canon",
             True,
             [
-                _belief("b1", "формулировка", "danger"),      # канон+реестр → runtime
-                _belief("b2", "формулировка"),                 # канон без типа → unknown
-                _belief("b3", "формулировка", "чужой_тип"),    # канон вне реестра → unknown
+                _belief("b1", "формулировка", "danger"),  # канон+реестр → runtime
+                _belief("b2", "формулировка"),  # канон без типа → unknown
+                _belief("b3", "формулировка", "чужой_тип"),  # канон вне реестра → unknown
             ],
         ),
         "b_draft": _doc(

@@ -43,14 +43,12 @@ def _exec(db: Path, statements: tuple[str, ...], *, rows: int = 0, entries: int 
             conn.execute(stmt)
         for i in range(rows):
             conn.execute(
-                "INSERT INTO event_memories (id, npc_id, campaign_id, event_type, created_at)"
-                " VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO event_memories (id, npc_id, campaign_id, event_type, created_at) VALUES (?, ?, ?, ?, ?)",
                 (f"m{i}", f"npc{i}", "camp", "TALK", "2026-01-01T00:00:00"),
             )
         for i in range(entries):
             conn.execute(
-                "INSERT INTO entries (id, collection, timestamp, payload_json)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO entries (id, collection, timestamp, payload_json) VALUES (?, ?, ?, ?)",
                 (f"e{i}", "col", "t", "{}"),
             )
         conn.commit()
@@ -364,9 +362,10 @@ def test_T11_schema_plus_one_applied_once(tmp_path):
 
     conn = sqlite3.connect(db)
     try:
-        rows = [tuple(r) for r in conn.execute(
-            "SELECT from_version, to_version, owner FROM _schema_migrations ORDER BY to_version"
-        )]
+        rows = [
+            tuple(r)
+            for r in conn.execute("SELECT from_version, to_version, owner FROM _schema_migrations ORDER BY to_version")
+        ]
         assert rows == [(0, 1, "COV-1/Б"), (1, 2, "COV-1/Б"), (2, 3, "TEST/A")]
     finally:
         conn.close()

@@ -14,6 +14,7 @@ Master protocol (guarantees):
   - Distinguish: proxy.failures == [] / > 0 / unrelated RuntimeError.
   - Failure count > 0 is diagnostic gold, not a pass/fail signal.
 """
+
 import os
 
 import pytest

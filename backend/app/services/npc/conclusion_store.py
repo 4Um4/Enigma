@@ -63,9 +63,7 @@ class ConclusionStore:
 
     # ── WRITE (единственный путь — через гейт) ─────────────────────────
 
-    def apply(
-        self, proposal: ConclusionProposal, clamped_confidence: float
-    ) -> ConclusionApplyResult:
+    def apply(self, proposal: ConclusionProposal, clamped_confidence: float) -> ConclusionApplyResult:
         """Диспатч-цель ConclusionGate.
 
         Новая идентичность -> запись -> CREATED.
@@ -101,15 +99,12 @@ class ConclusionStore:
         if existing is None:
             bucket[cid] = record
             logger.debug(
-                f"[CONCLUSION_STORE] formed {cid} conf={record.confidence:.2f} "
-                f"evidence={len(record.evidence)}"
+                f"[CONCLUSION_STORE] formed {cid} conf={record.confidence:.2f} evidence={len(record.evidence)}"
             )
             return ConclusionApplyResult.CREATED
         else:
             # Reinforcement: union evidence + max confidence; origin не трогаем.
-            merged_evidence = tuple(
-                dict.fromkeys(existing.evidence + record.evidence)
-            )
+            merged_evidence = tuple(dict.fromkeys(existing.evidence + record.evidence))
             bucket[cid] = ConclusionRecord(
                 owner_id=existing.owner_id,
                 subject=existing.subject,
@@ -123,17 +118,13 @@ class ConclusionStore:
                 formed_tick=existing.formed_tick,
             )
             logger.debug(
-                f"[CONCLUSION_STORE] reinforced {cid} "
-                f"conf={bucket[cid].confidence:.2f} "
-                f"evidence={len(merged_evidence)}"
+                f"[CONCLUSION_STORE] reinforced {cid} conf={bucket[cid].confidence:.2f} evidence={len(merged_evidence)}"
             )
             return ConclusionApplyResult.REINFORCED
 
     # ── READ ───────────────────────────────────────────────────────────
 
-    def get(
-        self, owner_id: str, subject: str, predicate: Any
-    ) -> Optional[ConclusionRecord]:
+    def get(self, owner_id: str, subject: str, predicate: Any) -> Optional[ConclusionRecord]:
         """Возвращает ConclusionRecord по owner_id, subject и predicate (первый найденный).
 
         Используется тестами и downstream-слоями для точечной проверки наличия вывода.
@@ -197,24 +188,16 @@ class ConclusionStore:
                     subject=str(item.get("subject", "")),
                     predicate=predicate,
                     object=str(item.get("object", "")),
-                    confidence=max(
-                        0.0, min(1.0, float(item.get("confidence", 0.0)))
-                    ),
+                    confidence=max(0.0, min(1.0, float(item.get("confidence", 0.0)))),
                     evidence=tuple(item.get("evidence") or ()),
                     trace_id=str(item.get("trace_id", "")),
                     causal_parent=str(item.get("causal_parent", "")),
-                    source=str(
-                        item.get("source", CONCLUSION_SOURCE_DIRECT)
-                    ),
+                    source=str(item.get("source", CONCLUSION_SOURCE_DIRECT)),
                     formed_tick=int(item.get("formed_tick", 0)),
                 )
                 if not record.owner_id or not record.subject:
                     raise ValueError("пустые owner_id/subject")
-                store._conclusions.setdefault(record.owner_id, {})[
-                    record.conclusion_id()
-                ] = record
+                store._conclusions.setdefault(record.owner_id, {})[record.conclusion_id()] = record
             except Exception as e:  # noqa: ENIGMA001
-                logger.warning(
-                    f"[CONCLUSION_STORE] Failed to deserialize record: {e}"
-                )
+                logger.warning(f"[CONCLUSION_STORE] Failed to deserialize record: {e}")
         return store

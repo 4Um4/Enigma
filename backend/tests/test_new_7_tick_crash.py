@@ -5,6 +5,7 @@
 Запуск: cd backend
 python -m pytest tests/test_new_7_tick_crash.py -v
 """
+
 import types
 from unittest.mock import MagicMock
 
@@ -25,15 +26,15 @@ def test_new_7_idle_tick_simple_namespace_does_not_crash():
         tick_number=1,
         drf_bus=MagicMock(),
         all_npcs_raw=[{"id": "test_npc"}],
-        shared_context=types.SimpleNamespace() # Эмулируем idle_tick
+        shared_context=types.SimpleNamespace(),  # Эмулируем idle_tick
     )
-    
+
     mock_svc = MagicMock()
     mock_svc.social_engine.compute_social_modifiers.return_value = {}
     mock_svc.memory_manager.get_identity_traits.return_value = []
     mock_svc.reputation_engine.compute_reputation_modifier.return_value = {}
     mock_svc.economic_profiles.get.return_value = {}
-    
+
     # 2. Act & Assert
     try:
         assemble_preloaded_data(mock_ctx, mock_svc)

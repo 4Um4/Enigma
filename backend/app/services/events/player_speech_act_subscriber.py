@@ -55,20 +55,13 @@ class PlayerSpeechActSubscriber:
                 params = act.get("params") or {}
                 name = str(params.get("name") or "").strip()
                 if not name or len(name) > _MAX_NAME_LEN:
-                    logger.warning(
-                        f"[SPEECH_ACT] SELF_INTRODUCTION с невалидным name — пропущен "
-                        f"(len={len(name)})"
-                    )
+                    logger.warning(f"[SPEECH_ACT] SELF_INTRODUCTION с невалидным name — пропущен (len={len(name)})")
                     continue
                 npc_id = self._resolve_listener(payload)
                 if not npc_id:
-                    logger.info(
-                        "[SPEECH_ACT] SELF_INTRODUCTION без адресата-актора — claim не пишется"
-                    )
+                    logger.info("[SPEECH_ACT] SELF_INTRODUCTION без адресата-актора — claim не пишется")
                     continue
-                session = self._memory.get_dialogue_session(
-                    campaign_id, npc_id, partner_id="player"
-                )
+                session = self._memory.get_dialogue_session(campaign_id, npc_id, partner_id="player")
                 # Идемпотентность: дубль event_id → 1 claim (Q5-прецедент).
                 if event_id and any(
                     c.event_id == event_id
@@ -95,6 +88,7 @@ class PlayerSpeechActSubscriber:
                 _claim_sub = self._get_claim_subscriber()
                 if _claim_sub is not None:
                     import dataclasses as _dc
+
                     _new_payload = dict(payload)
                     _new_payload["proposition"] = {
                         "subject_id": "player",
@@ -102,14 +96,10 @@ class PlayerSpeechActSubscriber:
                         "object_id": name,
                         "polarity": True,
                     }
-                    _new_payload.setdefault(
-                        "claim_id", f"player-selfintro-{event_id}"
-                    )
+                    _new_payload.setdefault("claim_id", f"player-selfintro-{event_id}")
                     _new_payload.setdefault("speech_act", "assert")
                     _new_payload.setdefault("target_id", npc_id)
-                    _claim_sub.on_claim_event(
-                        _dc.replace(event, payload=_new_payload)
-                    )
+                    _claim_sub.on_claim_event(_dc.replace(event, payload=_new_payload))
                     logger.info(
                         f"[SPEECH_ACT] player.name={name} → EpistemicStore "
                         f"(listener={npc_id}, claim=player-selfintro-{event_id[:8]})"
@@ -125,4 +115,3 @@ class PlayerSpeechActSubscriber:
         if not npc_id or npc_id in ("player", "all"):
             return ""
         return npc_id
-

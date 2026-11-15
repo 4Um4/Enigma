@@ -21,10 +21,10 @@ class StateDeltaProposal:
     INV-LLM-NOT-SSOT: между Interpretation и State нет прямого пути.
     """
 
-    trace_id: str          # content_reference:owner:source (E1.0)
-    field: str             # ключ DeltaGate.WHITELIST
-    value: float           # предложенная дельта (клампится гейтом)
-    rationale: str = ""    # объяснение — лог/аудит, не для игры
+    trace_id: str  # content_reference:owner:source (E1.0)
+    field: str  # ключ DeltaGate.WHITELIST
+    value: float  # предложенная дельта (клампится гейтом)
+    rationale: str = ""  # объяснение — лог/аудит, не для игры
     source: str = "mechanical"  # mechanical | llm
     # E2.0-b AG1-п.13: каузальный родитель — event.id источника.
     # Связывает belief, возникший на тиковой ветке позже, с тем же

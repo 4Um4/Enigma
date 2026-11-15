@@ -136,9 +136,7 @@ class InterpretationEngine:
         # берём отношение к player; при не-игроковых — 0.0 (точно прежнее
         # фактическое поведение, т.к. плоских ключей не существовало).
         # Порог, формула и клампы НЕ тронуты (один несоответствие → один ремонт).
-        _bias_rel = (
-            state.relationship_cache.get("player", {}) if actor_is_player else {}
-        )
+        _bias_rel = state.relationship_cache.get("player", {}) if actor_is_player else {}
         fear_value: Any = _bias_rel.get("fear", 0.0)
         trust_value: Any = _bias_rel.get("trust", 0.0)
 
@@ -200,9 +198,7 @@ class InterpretationEngine:
             modifiers["help"] = round(bias.trust_bias * 0.2, 4)
 
         if bias.salience_bias > 0.05:
-            modifiers["observe"] = modifiers.get("observe", 0.0) + round(
-                bias.salience_bias * 0.1, 4
-            )
+            modifiers["observe"] = modifiers.get("observe", 0.0) + round(bias.salience_bias * 0.1, 4)
 
         return modifiers
 
@@ -222,11 +218,7 @@ class InterpretationEngine:
             score += MARKER_THREAT.get(marker, 0)
 
         # Тип действия
-        action_type = (
-            event.event_type.value
-            if hasattr(event.event_type, "value")
-            else str(event.event_type)
-        )
+        action_type = event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type)
         score += ACTION_THREAT.get(action_type, 0)
 
         # Репутация игрока

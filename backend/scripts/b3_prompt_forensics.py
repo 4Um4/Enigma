@@ -6,11 +6,11 @@ Instrumentation (без подмены): wrap router.request_for_agent для ca
 Запуск: cd backend; python scripts/b3_prompt_forensics.py
 Требует: LLM-server на :8181 (ensure_llm)
 """
-import sys
-import os
-import json
-import time
+
 import copy
+import json
+import sys
+import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -25,13 +25,13 @@ CAPTURED = []
 
 
 def main():
-    from app.services.llm.runtime.client import ensure_llm
-    from tests.gameplay.harness import TavernGameplayHarness
     from app.domain import epistemic_dispositions as _ed
     from app.domain.events import EventDTO
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
     from app.services.execution.dialogue_executor import DialogueExecutor
+    from app.services.llm.runtime.client import ensure_llm
+    from tests.gameplay.harness import TavernGameplayHarness
 
     print("[1] ensure_llm...")
     try:
@@ -51,19 +51,21 @@ def main():
         _orig_req = _router.request_for_agent
 
         def _capture(agent_name, prompt, params=None, system_prompt=None, priority="canonical"):
-            CAPTURED.append({
-                "agent": agent_name,
-                "prompt": prompt,
-                "system_prompt": system_prompt,
-                "prompt_len": len(prompt) if prompt else 0,
-                "tick": getattr(task, "tick", None),
-                "owner_id": getattr(task, "owner_id", ""),
-                "campaign_id": getattr(task, "campaign_id", ""),
-                "intent_type": getattr(req, "intent_type", ""),
-                "target_id": getattr(req, "target_id", ""),
-                "has_prop": bool(getattr(req, "proposition", None)),
-                "prop": getattr(req, "proposition", None),
-            })
+            CAPTURED.append(
+                {
+                    "agent": agent_name,
+                    "prompt": prompt,
+                    "system_prompt": system_prompt,
+                    "prompt_len": len(prompt) if prompt else 0,
+                    "tick": getattr(task, "tick", None),
+                    "owner_id": getattr(task, "owner_id", ""),
+                    "campaign_id": getattr(task, "campaign_id", ""),
+                    "intent_type": getattr(req, "intent_type", ""),
+                    "target_id": getattr(req, "target_id", ""),
+                    "has_prop": bool(getattr(req, "proposition", None)),
+                    "prop": getattr(req, "proposition", None),
+                }
+            )
             return _orig_req(agent_name, prompt, params, system_prompt, priority)
 
         _router.request_for_agent = _capture
@@ -79,8 +81,12 @@ def main():
     _h.new_game()
     _orig_disp = copy.deepcopy(_ed.EPISTEMIC_DISPOSITIONS)
     _ed.EPISTEMIC_DISPOSITIONS["maid"] = {
-        "report": 0.0, "warn": 0.0, "attack": 0.0,
-        "spread_rumor": 1.4, "talk": 0.8, "intimidate": 0.0,
+        "report": 0.0,
+        "warn": 0.0,
+        "attack": 0.0,
+        "spread_rumor": 1.4,
+        "talk": 0.8,
+        "intimidate": 0.0,
     }
 
     try:
@@ -89,10 +95,14 @@ def main():
 
         print("[5] Publish PLAYER_INSULTS...")
         _event = EventDTO(
-            id=uuid4(), type=EventType.PLAYER_INSULTS.value,
-            source=PLAYER, timestamp=0.0,
+            id=uuid4(),
+            type=EventType.PLAYER_INSULTS.value,
+            source=PLAYER,
+            timestamp=0.0,
             payload={"target_id": VICTIM, "action_type": "player_insults", "intent_type": "insult"},
-            visibility="public", radius=15.0, persistence_level="session",
+            visibility="public",
+            radius=15.0,
+            persistence_level="session",
         )
         get_event_bus().publish(_event)
 
@@ -117,24 +127,36 @@ def main():
 
     output = Path("data/b3_prompt_forensics.json")
     with open(output, "w", encoding="utf-8") as f:
-        json.dump({"total": len(CAPTURED), "npc": len(npc), "verifier": len(ver),
-                   "maid_prop": len(maid_prop), "prompts": CAPTURED}, f, ensure_ascii=False, indent=2)
+        json.dump(
+            {
+                "total": len(CAPTURED),
+                "npc": len(npc),
+                "verifier": len(ver),
+                "maid_prop": len(maid_prop),
+                "prompts": CAPTURED,
+            },
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
     print(f"\n  Saved to: {output}")
 
-    print(f"\n{'='*80}")
-    print(f"ANALYSIS: maid_lusya prompts with proposition")
-    print(f"{'='*80}")
+    print(f"\n{'=' * 80}")
+    print("ANALYSIS: maid_lusya prompts with proposition")
+    print(f"{'=' * 80}")
 
     for i, p in enumerate(maid_prop[:5]):
         prompt = p["prompt"] or ""
         plen = len(prompt)
         has_claim = "[Факт, которым ты делишься]" in prompt
-        has_beliefs = "Ты боишься" in prompt or "Ты доверяешь" in prompt or "Ты предан" in prompt or "Ты злишься" in prompt
+        has_beliefs = (
+            "Ты боишься" in prompt or "Ты доверяешь" in prompt or "Ты предан" in prompt or "Ты злишься" in prompt
+        )
         has_stm = "[Контекст текущего разговора]" in prompt
         has_cog = "Ты знаешь" in prompt or "ты видел" in prompt or "тебе сообщил" in prompt
         has_target = "Ты обращаешься к" in prompt
 
-        print(f"\n--- maid_lusya [{i+1}] tick={p['tick']} target={p['target_id']} ---")
+        print(f"\n--- maid_lusya [{i + 1}] tick={p['tick']} target={p['target_id']} ---")
         print(f"  prompt_len: {plen}")
         print(f"  proposition: {p['prop']}")
         print(f"  has_claim_block: {has_claim}")
@@ -148,20 +170,21 @@ def main():
             pct = pos / plen * 100 if plen > 0 else 0
             print(f"  claim_block position: char {pos}/{plen} ({pct:.1f}%)")
             end = prompt.find("\n", pos + 50)
-            if end == -1: end = plen
-            print(f"  claim_block: {prompt[pos:min(end, pos+250)]}")
+            if end == -1:
+                end = plen
+            print(f"  claim_block: {prompt[pos : min(end, pos + 250)]}")
 
-        print(f"\n  PROMPT FIRST 400:")
+        print("\n  PROMPT FIRST 400:")
         print(f"  {prompt[:400]}")
-        print(f"\n  PROMPT LAST 400:")
+        print("\n  PROMPT LAST 400:")
         print(f"  {prompt[-400:]}")
 
-    print(f"\n{'='*80}")
-    print(f"VERIFIER prompts (confirm proposition)")
-    print(f"{'='*80}")
+    print(f"\n{'=' * 80}")
+    print("VERIFIER prompts (confirm proposition)")
+    print(f"{'=' * 80}")
     for i, p in enumerate(ver[:3]):
         prompt = p["prompt"] or ""
-        print(f"\n--- verifier [{i+1}] len={len(prompt)} ---")
+        print(f"\n--- verifier [{i + 1}] len={len(prompt)} ---")
         print(f"  has 'player': {'player' in prompt}")
         print(f"  has 'tavern_keeper_tornin': {'tavern_keeper_tornin' in prompt}")
         print(f"  has 'субъект: ?': {'субъект: ?' in prompt or 'субъект:  ?' in prompt}")

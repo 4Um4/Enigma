@@ -20,8 +20,15 @@ _CAMPAIGN = "Open_road"
 _TICKS = 100  # GC-00: 100 LLM-free тиков
 
 _DECISION_EVENT_KEYS = (
-    "npc_spoke", "offer_job", "request_service", "spread_rumor",
-    "call_for_help", "change_role", "warn", "trade", "report",
+    "npc_spoke",
+    "offer_job",
+    "request_service",
+    "spread_rumor",
+    "call_for_help",
+    "change_role",
+    "warn",
+    "trade",
+    "report",
 )
 
 
@@ -103,8 +110,10 @@ def test_gc00_seed_determinism():
         finally:
             _h.dispose()
         _runs.append(_fps)
-        print(f"[GC00-DET] run{_run_idx + 1}: last_time={_h.counters.game_time_seconds} "
-              f"spoke={_h.counters.npc_spoke} moved={_h.counters.npc_moved}")
+        print(
+            f"[GC00-DET] run{_run_idx + 1}: last_time={_h.counters.game_time_seconds} "
+            f"spoke={_h.counters.npc_spoke} moved={_h.counters.npc_moved}"
+        )
 
     _a, _b = _runs
     # Анти-вакуум: PASS на всех-None отпечатках запрещён
@@ -242,20 +251,16 @@ def test_gc00_avid1_avatar_in_idle_pipeline():
         print("\n[AG1-D5] ============= AVATAR BODY ===============")
         print(f"npc_id={_av.npc_id}")
         print(f"body_state keys={sorted(_bs.keys())}")
-        print(f"current_hp={_bs.get('current_hp', '<ABSENT>')} "
-              f"max_hp={_bs.get('max_hp', '<ABSENT>')}")
-        print(f"effective_hp={_av.effective_hp}  "
-              f"effective_max_hp={_av.effective_max_hp}")
-        print(f"life_status={_bs.get('life_status', '<ABSENT>')} "
-              f"money={_bs.get('money', '<ABSENT>')}")
+        print(f"current_hp={_bs.get('current_hp', '<ABSENT>')} max_hp={_bs.get('max_hp', '<ABSENT>')}")
+        print(f"effective_hp={_av.effective_hp}  effective_max_hp={_av.effective_max_hp}")
+        print(f"life_status={_bs.get('life_status', '<ABSENT>')} money={_bs.get('money', '<ABSENT>')}")
 
         # Dict-сторона: есть ли ВТОРОЕ тело (DOUBLE TRUTH)?
         for _nid in ("player", "Tester"):
             _d = _h.inspect_npc(_nid)
             if _d:
                 _dbs = _d.get("body_state") or {}
-                print(f"dict[{_nid}]: body_keys={sorted(_dbs.keys())} "
-                      f"current_hp={_dbs.get('current_hp', '<ABSENT>')}")
+                print(f"dict[{_nid}]: body_keys={sorted(_dbs.keys())} current_hp={_dbs.get('current_hp', '<ABSENT>')}")
             else:
                 print(f"dict[{_nid}]: <NOT IN SNAPSHOT>")
         print("[AG1-D5] ===========================================\n")
@@ -271,8 +276,7 @@ def test_gc00_avid1_avatar_in_idle_pipeline():
         )
         assert _av.effective_hp > 0, "AG1-D5: effective_hp=0.0 в новом мире"
         assert "life_status" in _bs, (
-            "AG1-D5: life_status отсутствует — Death Guard видит дефолт 'ALIVE' "
-            "(:2154) при неинициализированном теле"
+            "AG1-D5: life_status отсутствует — Death Guard видит дефолт 'ALIVE' (:2154) при неинициализированном теле"
         )
     finally:
         _h.dispose()

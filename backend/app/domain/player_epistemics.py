@@ -1,4 +1,4 @@
-﻿# path: /project/backend/app/domain/player_epistemics.py
+# path: /project/backend/app/domain/player_epistemics.py
 """
 Файл: backend/app/domain/player_epistemics.py
 Назначение: P6 — доменные DTO эпистемического слоя ИГРОКА.
@@ -25,22 +25,22 @@ from typing import Optional
 from app.domain.disclosure import DisclosureLevel
 
 # ── Уровни знания игрока (ТЗ-P6: 0/1/2) ─────────────────────────────────
-UNKNOWN = 0       # сигнала нет
-CLUE = 1          # улика/подозрение (вкладка "Гипотезы", P8)
-IDENTIFIED = 2    # секрет идентифицирован ("раскрыт" для compat-поверхности)
+UNKNOWN = 0  # сигнала нет
+CLUE = 1  # улика/подозрение (вкладка "Гипотезы", P8)
+IDENTIFIED = 2  # секрет идентифицирован ("раскрыт" для compat-поверхности)
 
 
 class SurfaceKind(str, Enum):
     """Классы поверхностей — единственные источники знания игрока."""
 
     DIALOGUE_OUTCOME = "dialogue_outcome"  # уровень P5-решения (не текст!)
-    EAVESDROP = "eavesdrop"                # подслушанная реплика NPC->NPC
-    DM_NARRATIVE = "dm_narrative"          # мир/мастер подтвердил
-    VISUAL_CUE = "visual_cue"              # ТЗ-мандат; эмиссии в P6 нет
+    EAVESDROP = "eavesdrop"  # подслушанная реплика NPC->NPC
+    DM_NARRATIVE = "dm_narrative"  # мир/мастер подтвердил
+    VISUAL_CUE = "visual_cue"  # ТЗ-мандат; эмиссии в P6 нет
 
 
 # ── content_class-словарь (структурные метки; НЕ строки реплик) ─────────
-CONTENT_EAVESDROP_FULL = "eavesdrop_full"              # полная реплика -> 2
+CONTENT_EAVESDROP_FULL = "eavesdrop_full"  # полная реплика -> 2
 CONTENT_ACTION_SECRET_LANDED = "action_secret_landed"  # действие подтвердило -> 2
 
 
@@ -53,10 +53,10 @@ class PlayerObservation:
     """
 
     tick: int
-    secret_id: Optional[str]      # None -> предметное наблюдение без секрета
+    secret_id: Optional[str]  # None -> предметное наблюдение без секрета
     surface_kind: SurfaceKind
-    source_id: str                # кто породил поверхность
-    text: str                     # автотекст из шаблонов (kind, level)
+    source_id: str  # кто породил поверхность
+    text: str  # автотекст из шаблонов (kind, level)
 
 
 @dataclass(frozen=True)
@@ -68,10 +68,10 @@ class SurfaceEvent:
     kind: SurfaceKind
     tick: int
     source_id: str
-    secret_id: Optional[str] = None          # структурный провенанс
+    secret_id: Optional[str] = None  # структурный провенанс
     disclosure_level: Optional[DisclosureLevel] = None  # DIALOGUE_OUTCOME
-    content_class: Optional[str] = None      # EAVESDROP / DM_NARRATIVE
-    subject_hint: Optional[str] = None       # тема/предмет (для шаблонов)
+    content_class: Optional[str] = None  # EAVESDROP / DM_NARRATIVE
+    subject_hint: Optional[str] = None  # тема/предмет (для шаблонов)
 
 
 @dataclass(frozen=True)
@@ -98,6 +98,6 @@ class EpistemicUpdate:
     from_level: int
     to_level: int
     level_changed: bool
-    marked_discovered: bool       # вызван ли truth.mark_discovered (только ->2)
+    marked_discovered: bool  # вызван ли truth.mark_discovered (только ->2)
     level_change: Optional[LevelChangeEvent]
     observation: Optional[PlayerObservation]

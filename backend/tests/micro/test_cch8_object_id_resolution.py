@@ -10,6 +10,7 @@ ClarificationQuestion, но decompose_fragment не устанавливал obj
 - 7 unit-тестов на helper resolve_object_ref_from_roster
 - 2 integration-теста на decompose_fragment (exact match → object_id; partial → question)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -182,18 +183,14 @@ def test_decompose_fragment_sets_object_id_on_exact_match(monkeypatch):
         fragment="some text",
         author_text_full="test biography for object_id resolution",
     )
-    response = asyncio.run(
-        routes_chronicle.decompose_fragment("test_c", "blacksmith_orm", req)
-    )
+    response = asyncio.run(routes_chronicle.decompose_fragment("test_c", "blacksmith_orm", req))
 
     assert response["status"] == "OK"
     saved_doc = _draft_store[("test_c", "blacksmith_orm")]
     assert len(saved_doc.entries) == 1
     entry = saved_doc.entries[0]
     assert entry.kind is EntryKind.RELATIONSHIP
-    assert entry.object_id is not None, (
-        "object_id должен быть установлен для exact match (COV-10.4 fix)"
-    )
+    assert entry.object_id is not None, "object_id должен быть установлен для exact match (COV-10.4 fix)"
     assert entry.object_id.ref_kind is EntityRefKind.RESOLVED
     assert entry.object_id.npc_id == "thief_shadow"
     assert entry.open_questions == (), "exact match → no open_questions"
@@ -278,12 +275,8 @@ def test_decompose_fragment_no_object_id_on_partial_match(monkeypatch):
     assert entry.kind is EntryKind.RELATIONSHIP
     # COV-12 п.2b: NEW_NPC placeholder, не None. Без placeholder /resolve._match
     # (name_hint==target_span) не находил EntityRef, и white spot терялся.
-    assert entry.object_id is not None, (
-        "partial match → object_id должен быть NEW_NPC placeholder (не None)"
-    )
+    assert entry.object_id is not None, "partial match → object_id должен быть NEW_NPC placeholder (не None)"
     assert entry.object_id.ref_kind is EntityRefKind.NEW_NPC
     assert entry.object_id.name_hint == "Торнин"
-    assert len(entry.open_questions) > 0, (
-        "partial match → должен быть ClarificationQuestion"
-    )
+    assert len(entry.open_questions) > 0, "partial match → должен быть ClarificationQuestion"
     assert entry.open_questions[0].target_span == "Торнин"

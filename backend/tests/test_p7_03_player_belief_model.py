@@ -32,13 +32,13 @@ class TestP703PlayerBeliefModel:
         obs1 = log.add(tick=1, observation_type="x", content="y", source_id="z", source_type=ObservationSourceType.NPC)
         ev1 = log.add_evidence(obs1.observation_id, "sec1", 0.6, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs1, ev1)
-        
+
         assert model.get_belief_for_secret("sec1").support_mass == 0.6
-        
+
         obs2 = log.add(tick=2, observation_type="x", content="y2", source_id="z", source_type=ObservationSourceType.NPC)
         ev2 = log.add_evidence(obs2.observation_id, "sec1", 0.6, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs2, ev2)
-        
+
         assert model.get_belief_for_secret("sec1").support_mass == 1.2
 
     def test_contradiction_reduces_confidence(self, log: ObservationLog, model: PlayerBeliefModel):
@@ -46,13 +46,13 @@ class TestP703PlayerBeliefModel:
         obs1 = log.add(tick=1, observation_type="x", content="y", source_id="z", source_type=ObservationSourceType.NPC)
         ev1 = log.add_evidence(obs1.observation_id, "sec1", 0.8, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs1, ev1)
-        
+
         assert model.get_confidence_for_secret("sec1") == 0.8
-        
+
         obs2 = log.add(tick=2, observation_type="x", content="y2", source_id="z", source_type=ObservationSourceType.NPC)
         ev2 = log.add_evidence(obs2.observation_id, "sec1", 0.5, EvidencePolarity.CONTRADICTS)
         model.update_from_evidence(obs2, ev2)
-        
+
         assert model.get_confidence_for_secret("sec1") == pytest.approx(0.3)
 
     def test_belief_reversal_to_false(self, log: ObservationLog, model: PlayerBeliefModel):
@@ -61,12 +61,12 @@ class TestP703PlayerBeliefModel:
         ev1 = log.add_evidence(obs1.observation_id, "sec1", 0.9, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs1, ev1)
         assert model.get_belief_for_secret("sec1").belief_value == BeliefValue.TRUE
-        
+
         obs2 = log.add(tick=2, observation_type="x", content="y2", source_id="z", source_type=ObservationSourceType.NPC)
         ev2 = log.add_evidence(obs2.observation_id, "sec1", 0.9, EvidencePolarity.CONTRADICTS)
         model.update_from_evidence(obs2, ev2)
         # support=0.9, contradiction=0.9 -> net=0.0 -> UNKNOWN
-        
+
         obs3 = log.add(tick=3, observation_type="x", content="y3", source_id="z", source_type=ObservationSourceType.NPC)
         ev3 = log.add_evidence(obs3.observation_id, "sec1", 0.9, EvidencePolarity.CONTRADICTS)
         model.update_from_evidence(obs3, ev3)
@@ -77,11 +77,11 @@ class TestP703PlayerBeliefModel:
         """Повторная обработка того же наблюдения не меняет массы."""
         obs1 = log.add(tick=1, observation_type="x", content="y", source_id="z", source_type=ObservationSourceType.NPC)
         ev1 = log.add_evidence(obs1.observation_id, "sec1", 0.5, EvidencePolarity.SUPPORTS)
-        
+
         model.update_from_evidence(obs1, ev1)
         initial_mass = model.get_belief_for_secret("sec1").support_mass
-        
-        model.update_from_evidence(obs1, ev1) # Повтор
+
+        model.update_from_evidence(obs1, ev1)  # Повтор
         assert model.get_belief_for_secret("sec1").support_mass == initial_mass
 
     def test_contradictory_evidence_preserves_history(self, log: ObservationLog, model: PlayerBeliefModel):
@@ -90,14 +90,14 @@ class TestP703PlayerBeliefModel:
         ev1 = log.add_evidence(obs1.observation_id, "sec1", 0.9, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs1, ev1)
         assert model.get_belief_for_secret("sec1").belief_value == BeliefValue.TRUE
-        
+
         obs2 = log.add(tick=2, observation_type="x", content="y2", source_id="z", source_type=ObservationSourceType.NPC)
         ev2 = log.add_evidence(obs2.observation_id, "sec1", 0.9, EvidencePolarity.CONTRADICTS)
         model.update_from_evidence(obs2, ev2)
         assert model.get_belief_for_secret("sec1").belief_value == BeliefValue.UNKNOWN
         assert model.get_belief_for_secret("sec1").support_mass == 0.9
         assert model.get_belief_for_secret("sec1").contradiction_mass == 0.9
-        
+
         obs3 = log.add(tick=3, observation_type="x", content="y3", source_id="z", source_type=ObservationSourceType.NPC)
         ev3 = log.add_evidence(obs3.observation_id, "sec1", 0.9, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs3, ev3)
@@ -112,7 +112,7 @@ class TestP703PlayerBeliefModel:
         assert belief is not None
         assert belief.support_mass == 1.0
         assert belief.belief_value == BeliefValue.TRUE
-        
+
         # Идемпотентность по evidence_id
         model.register_direct_evidence("goran_contraband", EvidencePolarity.SUPPORTS, 1.0, evidence_id="blackmail_001")
         assert belief.support_mass == 1.0

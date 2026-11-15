@@ -7,6 +7,7 @@ path: /project/backend/app/services/adr_net/adr_graph.py
 
 Запуск:
 """
+
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +16,7 @@ import networkx as nx
 from app.services.adr_net.adr_parser import ADRNode, run_parser
 
 logger = logging.getLogger(__name__)
+
 
 class ADRGraphBuilder:
     """Строит направленный граф зависимостей ADR."""
@@ -47,7 +49,7 @@ class ADRGraphBuilder:
                 title=node.title,
                 adr_type=node.adr_type,
                 domain=node.domain,
-                laws=node.laws
+                laws=node.laws,
             )
 
             # Добавляем файлы как отдельные узлы и связи IMPLEMENTS
@@ -64,7 +66,9 @@ class ADRGraphBuilder:
                     self.graph.add_node(law_node_id, node_type="LAW", name=law)
                 self.graph.add_edge(node.adr_id, law_node_id, edge_type="DEFINES")
 
-        logger.info(f"[ADR_NET] Graph built: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges.")
+        logger.info(
+            f"[ADR_NET] Graph built: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges."
+        )
         return self.graph
 
     def get_impact(self, file_path: str) -> List[str]:
@@ -73,6 +77,7 @@ class ADRGraphBuilder:
         Поддерживает поиск как по полному пути, так и по короткому имени (basename).
         """
         from pathlib import Path
+
         target_basename = Path(file_path).name
 
         impacted_adrs = []
@@ -88,4 +93,4 @@ class ADRGraphBuilder:
                         if self.graph.nodes[predecessor].get("node_type") == "ADR":
                             impacted_adrs.append(predecessor)
 
-        return list(set(impacted_adrs)) # Убираем дубликаты
+        return list(set(impacted_adrs))  # Убираем дубликаты

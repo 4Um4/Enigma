@@ -81,9 +81,7 @@ class EconomyTracker:
                 continue
 
             # ── INCOME: runway × savings + flow × (1 - savings) ──
-            runway = (
-                ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
-            )
+            runway = ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
             runway_factor = min(1.0, runway / 30.0)  # 1.0 если runway > 30 дней
             flow_factor = 1.0 if self._daily_income.get(npc_id, 0.0) > 0 else 0.0
 
@@ -98,9 +96,7 @@ class EconomyTracker:
                     )
                 )
                 savings = psycho.get_savings_tendency()
-                income_satisfaction = runway_factor * savings + flow_factor * (
-                    1.0 - savings
-                )
+                income_satisfaction = runway_factor * savings + flow_factor * (1.0 - savings)
             else:
                 # Fallback: равный вес buffer и flow
                 income_satisfaction = (runway_factor + flow_factor) / 2.0
@@ -164,13 +160,8 @@ class EconomyTracker:
                 )
                 savings = psycho.get_savings_tendency()
 
-            runway = (
-                ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
-            )
-            needs_status = {
-                need.need_type.value: f"{need.effective_urgency:.2f}"
-                for need in ep.base_needs
-            }
+            runway = ep.gold / DAILY_EXPENSES_MIN if DAILY_EXPENSES_MIN > 0 else float("inf")
+            needs_status = {need.need_type.value: f"{need.effective_urgency:.2f}" for need in ep.base_needs}
 
             snapshot.append(
                 {

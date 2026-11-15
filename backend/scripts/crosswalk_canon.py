@@ -16,6 +16,7 @@
 
 Входные файлы НЕ изменяются.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 ROOT = Path(__file__).resolve().parents[2]
 # CCH-12: параметризованный npc_id (по умолчанию blacksmith_orm для обратной совместимости)
@@ -39,21 +40,51 @@ OUT_MD = OUT_DIR / f"crosswalk_{_NPC_ID}.md"
 
 # Маркеры EFFECT (occupation, trauma, gain, loss)
 EFFECT_MARKERS = [
-    "обожжён", "ожог", "травма", "потерял", "потеряла", "умер", "убил",
-    "стал кузнецом", "занятие", "професси", "навык", "умение",
-    "из которых", "кузнец в городе", "кузнец уже",
+    "обожжён",
+    "ожог",
+    "травма",
+    "потерял",
+    "потеряла",
+    "умер",
+    "убил",
+    "стал кузнецом",
+    "занятие",
+    "професси",
+    "навык",
+    "умение",
+    "из которых",
+    "кузнец в городе",
+    "кузнец уже",
 ]
 
 # Маркеры LOCATION
 LOCATION_MARKERS = [
-    "кузня", "кузница", "таверн", "пристройк", "город", "улиц", "дом",
-    "горн", "лежанк", "стойк", "зал", "кухн",
+    "кузня",
+    "кузница",
+    "таверн",
+    "пристройк",
+    "город",
+    "улиц",
+    "дом",
+    "горн",
+    "лежанк",
+    "стойк",
+    "зал",
+    "кухн",
 ]
 
 # Маркеры BELIEF_SEED
 BELIEF_MARKERS = [
-    "верит", "знает", "понимает", "думает", "считает",
-    "правил", "закон", "вывод", "истина", "опыт",
+    "верит",
+    "знает",
+    "понимает",
+    "думает",
+    "считает",
+    "правил",
+    "закон",
+    "вывод",
+    "истина",
+    "опыт",
 ]
 
 
@@ -75,8 +106,13 @@ class EntryView:
         # CCH-12: приоритет statement (PORTRET/BELIEF_SEED/DESIRE_SEED) —
         # именно он несёт смысл, не summary/trait.
         _PRIORITY_BLOB_KEYS = (
-            "statement", "summary", "trait", "about_hint",
-            "target_hint", "name_hint", "observed_hint",
+            "statement",
+            "summary",
+            "trait",
+            "about_hint",
+            "target_hint",
+            "name_hint",
+            "observed_hint",
         )
         for key in _PRIORITY_BLOB_KEYS:
             v = payload.get(key)
@@ -134,6 +170,7 @@ class CrosswalkRow:
 
 
 # ── Загрузка ────────────────────────────────────────────────────────────────
+
 
 def load_old_canon() -> List[EntryView]:
     data = json.loads(OLD_CANON.read_text(encoding="utf-8-sig"))
@@ -225,6 +262,7 @@ def similarity(old: EntryView, new: EntryView) -> Tuple[float, str]:
 
 # ── Crosswalk ───────────────────────────────────────────────────────────────
 
+
 def crosswalk(old_entries: List[EntryView], new_entries: List[EntryView]) -> List[CrosswalkRow]:
     rows: List[CrosswalkRow] = []
     for old in old_entries:
@@ -256,25 +294,16 @@ def crosswalk(old_entries: List[EntryView], new_entries: List[EntryView]) -> Lis
                 rationale = f"1 match, same kind ({candidates[0].old_kind})"
             else:
                 status = "RECLASSIFIED"
-                rationale = (
-                    f"1 match, kind changed: "
-                    f"{candidates[0].old_kind} → {candidates[0].new_kind}"
-                )
+                rationale = f"1 match, kind changed: {candidates[0].old_kind} → {candidates[0].new_kind}"
         else:
             top_score = candidates[0].score
             second_score = candidates[1].score
             if top_score - second_score < 0.1:
                 status = "AMBIGUOUS"
-                rationale = (
-                    f"multiple candidates with close scores "
-                    f"(top={top_score:.2f}, 2nd={second_score:.2f})"
-                )
+                rationale = f"multiple candidates with close scores (top={top_score:.2f}, 2nd={second_score:.2f})"
             elif top_score > 0.5 and candidates[0].old_kind == candidates[0].new_kind:
                 status = "DUPLICATED"
-                rationale = (
-                    f">1 matches with same kind (top={top_score:.2f}, "
-                    f"2nd={second_score:.2f})"
-                )
+                rationale = f">1 matches with same kind (top={top_score:.2f}, 2nd={second_score:.2f})"
             else:
                 status = "MERGED"
                 rationale = (
@@ -297,8 +326,8 @@ def crosswalk(old_entries: List[EntryView], new_entries: List[EntryView]) -> Lis
 
 # ── Вывод ───────────────────────────────────────────────────────────────────
 
-def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
-                  new_entries: List[EntryView]) -> None:
+
+def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView], new_entries: List[EntryView]) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # JSON
@@ -316,23 +345,25 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     }
 
     for r in rows:
-        out_json["rows"].append({
-            "old_ordinal": r.old_ordinal,
-            "old_kind": r.old_kind,
-            "old_summary": r.old_summary,
-            "status": r.status,
-            "rationale": r.rationale,
-            "matches": [
-                {
-                    "new_ordinal": m.new_ordinal,
-                    "new_kind": m.new_kind,
-                    "new_text": m.new_text,
-                    "score": round(m.score, 3),
-                    "reason": m.reason,
-                }
-                for m in r.matches
-            ],
-        })
+        out_json["rows"].append(
+            {
+                "old_ordinal": r.old_ordinal,
+                "old_kind": r.old_kind,
+                "old_summary": r.old_summary,
+                "status": r.status,
+                "rationale": r.rationale,
+                "matches": [
+                    {
+                        "new_ordinal": m.new_ordinal,
+                        "new_kind": m.new_kind,
+                        "new_text": m.new_text,
+                        "score": round(m.score, 3),
+                        "reason": m.reason,
+                    }
+                    for m in r.matches
+                ],
+            }
+        )
 
     # Сводки
     by_status: Dict[str, int] = {}
@@ -342,25 +373,27 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
         by_kind.setdefault(r.old_kind, {})
         by_kind[r.old_kind][r.status] = by_kind[r.old_kind].get(r.status, 0) + 1
         if r.status == "LOST":
-            out_json["lost"].append({
-                "ordinal": r.old_ordinal,
-                "kind": r.old_kind,
-                "summary": r.old_summary,
-            })
+            out_json["lost"].append(
+                {
+                    "ordinal": r.old_ordinal,
+                    "kind": r.old_kind,
+                    "summary": r.old_summary,
+                }
+            )
         elif r.status == "AMBIGUOUS":
-            out_json["ambiguous"].append({
-                "ordinal": r.old_ordinal,
-                "kind": r.old_kind,
-                "summary": r.old_summary,
-                "candidates_count": len(r.matches),
-            })
+            out_json["ambiguous"].append(
+                {
+                    "ordinal": r.old_ordinal,
+                    "kind": r.old_kind,
+                    "summary": r.old_summary,
+                    "candidates_count": len(r.matches),
+                }
+            )
 
     out_json["summary"]["by_status"] = by_status
     out_json["summary"]["by_old_kind"] = by_kind
 
-    OUT_JSON.write_text(
-        json.dumps(out_json, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    OUT_JSON.write_text(json.dumps(out_json, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Markdown
     md = ["# Crosswalk: старый канон vs новый draft", ""]
@@ -372,8 +405,7 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     md.append("")
     md.append("| Статус | Кол-во |")
     md.append("|--------|--------|")
-    for status in ["PRESERVED", "RECLASSIFIED", "MERGED", "DUPLICATED",
-                   "LOST", "AMBIGUOUS"]:
+    for status in ["PRESERVED", "RECLASSIFIED", "MERGED", "DUPLICATED", "LOST", "AMBIGUOUS"]:
         md.append(f"| {status} | {by_status.get(status, 0)} |")
     md.append("")
     md.append("## Сводка по kind (только критичные: EFFECT, LOCATION, BELIEF_SEED)")
@@ -394,10 +426,7 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     md.append("|---------|------|---------|")
     for r in rows:
         if r.status == "LOST":
-            md.append(
-                f"| {r.old_ordinal} | {r.old_kind} | "
-                f"{r.old_summary[:80]} |"
-            )
+            md.append(f"| {r.old_ordinal} | {r.old_kind} | {r.old_summary[:80]} |")
     md.append("")
 
     md.append("## AMBIGUOUS (неоднозначно)")
@@ -406,10 +435,7 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     md.append("|---------|------|---------|-----------|")
     for r in rows:
         if r.status == "AMBIGUOUS":
-            md.append(
-                f"| {r.old_ordinal} | {r.old_kind} | "
-                f"{r.old_summary[:80]} | {len(r.matches)} |"
-            )
+            md.append(f"| {r.old_ordinal} | {r.old_kind} | {r.old_summary[:80]} | {len(r.matches)} |")
     md.append("")
 
     md.append("## RECLASSIFIED (kind изменился)")
@@ -419,10 +445,7 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     for r in rows:
         if r.status == "RECLASSIFIED" and r.matches:
             m = r.matches[0]
-            md.append(
-                f"| {r.old_ordinal} | {r.old_kind} | {m.new_kind} | "
-                f"{r.old_summary[:60]} | {m.new_text[:60]} |"
-            )
+            md.append(f"| {r.old_ordinal} | {r.old_kind} | {m.new_kind} | {r.old_summary[:60]} | {m.new_text[:60]} |")
     md.append("")
 
     md.append("## Полная таблица")
@@ -430,13 +453,10 @@ def write_outputs(rows: List[CrosswalkRow], old_entries: List[EntryView],
     md.append("| ordinal | kind | status | rationale |")
     md.append("|---------|------|--------|-----------|")
     for r in rows:
-        md.append(
-            f"| {r.old_ordinal} | {r.old_kind} | {r.status} | "
-            f"{r.rationale} |"
-        )
+        md.append(f"| {r.old_ordinal} | {r.old_kind} | {r.status} | {r.rationale} |")
 
     OUT_MD.write_text("\n".join(md), encoding="utf-8")
-    print(f"[ok] crosswalk written:")
+    print("[ok] crosswalk written:")
     print(f"  JSON: {OUT_JSON}")
     print(f"  MD:   {OUT_MD}")
 
@@ -462,8 +482,7 @@ def main() -> int:
     for r in rows:
         by_status[r.status] = by_status.get(r.status, 0) + 1
     print("\n=== Сводка по статусам ===")
-    for status in ["PRESERVED", "RECLASSIFIED", "MERGED", "DUPLICATED",
-                   "LOST", "AMBIGUOUS"]:
+    for status in ["PRESERVED", "RECLASSIFIED", "MERGED", "DUPLICATED", "LOST", "AMBIGUOUS"]:
         print(f"  {status:15s}: {by_status.get(status, 0)}")
 
     print("\n=== По kind (критичные) ===")

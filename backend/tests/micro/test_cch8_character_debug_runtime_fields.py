@@ -11,6 +11,7 @@ Conditions per Master verdict:
 - null = field absent in npc_dict; 0/[] = field present but empty
 - No seeder/resolver/canonizer calls from debug code
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -44,7 +45,7 @@ import subprocess
 import sys
 import time
 
-_BACKEND = Path(__file__).resolve().parents[2]   # .../backend
+_BACKEND = Path(__file__).resolve().parents[2]  # .../backend
 _VENV_PY = _BACKEND.parent / ".venv" / "Scripts" / "python.exe"
 
 
@@ -59,6 +60,7 @@ def _port_open(port: int) -> bool:
 _llm_started_here = False
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="cch8")
     _llm_started_here = True
 except Exception as _e:
@@ -78,8 +80,7 @@ def _shutdown_uvicorn(proc: subprocess.Popen) -> None:
 
 if not _port_open(8000):
     _uvicorn_proc = subprocess.Popen(
-        [str(_VENV_PY), "-m", "uvicorn", "app.main:app",
-         "--host", "127.0.0.1", "--port", "8000"],
+        [str(_VENV_PY), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
         cwd=str(_BACKEND),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -93,8 +94,7 @@ if not _port_open(8000):
     else:
         try:
             tail = _uvicorn_proc.stdout.read().decode("utf-8", errors="replace")[-2000:]
-            print(f"⚠️ B1: uvicorn не поднялся за 10с. Хвост лога:\n{tail}",
-                  file=sys.stderr)
+            print(f"⚠️ B1: uvicorn не поднялся за 10с. Хвост лога:\n{tail}", file=sys.stderr)
         except Exception:
             pass
 
@@ -104,14 +104,16 @@ if not _port_open(8000):
 try:
     if os.environ.get("IPT_NO_REAPER", "").strip().lower() not in ("1", "true", "yes"):
         from scripts.ghost_reaper import reap as _reap
+
         _r = _reap(dry_run=False)
-        print(f"[B1] KILLER_SPIRIT: killed={len(_r.get('killed', []))}, "
-              f"spared={len(_r.get('spared', []))}, "
-              f"fault={len(_r.get('fault', []))}",
-              file=sys.stderr)
+        print(
+            f"[B1] KILLER_SPIRIT: killed={len(_r.get('killed', []))}, "
+            f"spared={len(_r.get('spared', []))}, "
+            f"fault={len(_r.get('fault', []))}",
+            file=sys.stderr,
+        )
 except Exception as _e:  # noqa: BLE001 — канальный отказ, не тика
     print(f"[B1] KILLER_SPIRIT FAULT (не критично): {_e!r}", file=sys.stderr)
-
 
 
 @pytest.fixture(autouse=True)

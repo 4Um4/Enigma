@@ -9,6 +9,7 @@ path: backend/tests/test_world_object_spawner.py
 
     Запуск: cd backend; python -m pytest tests/test_world_object_spawner.py tests/test_object_fsms.py tests/test_world_object_topology.py tests/test_affordance_resolver.py -q; cd ..
 """
+
 import pytest
 from app.services.world.world_object_spawner import (
     SpawnReport,
@@ -44,12 +45,15 @@ def _editor_obj(etype: str, **overrides) -> dict:
 
 
 def test_spawn_mapping_filters_unmapped():
-    editor = {"objects": [
-        _editor_obj("table"), _editor_obj("wall"),
-        _editor_obj("decoration"), _editor_obj("bar"),
-    ]}
-    report = WorldObjectSpawner.spawn_from_editor(
-        _scene(), "Open_road", "tavern", editor)
+    editor = {
+        "objects": [
+            _editor_obj("table"),
+            _editor_obj("wall"),
+            _editor_obj("decoration"),
+            _editor_obj("bar"),
+        ]
+    }
+    report = WorldObjectSpawner.spawn_from_editor(_scene(), "Open_road", "tavern", editor)
     assert report.spawned == 0
     assert len(report.skipped_unmapped) == 4
     assert report.faults == ()
@@ -58,8 +62,7 @@ def test_spawn_mapping_filters_unmapped():
 def test_door_and_door_transition_map_to_door():
     editor = {"objects": [_editor_obj("door"), _editor_obj("door_transition")]}
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
     assert report.spawned == 2
     for _oid in report.spawned_ids:
         assert WorldObjectStore.get(scene, _oid).archetype == "door"
@@ -75,8 +78,7 @@ def test_door_initial_state_projection():
 def test_chair_spawns_intact_with_position():
     editor = {"objects": [_editor_obj("chair", position={"x": 4.25, "y": 7.0})]}
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
     obj = WorldObjectStore.get(scene, report.spawned_ids[0])
     assert obj.archetype == "chair"
     assert obj.state == "INTACT"  # damage-track; AVAILABLE — деривация W1
@@ -89,52 +91,61 @@ def test_object_id_deterministic_and_stable():
     b = _deterministic_object_id("Open_road", "tavern", "obj_7")
     c = _deterministic_object_id("Open_road", "city_gate", "obj_7")
     d = _deterministic_object_id("Open_road", "tavern", "obj_8")
-    assert a == b            # детерминизм (replay)
+    assert a == b  # детерминизм (replay)
     assert len({a, c, d}) == 3  # provenance различает локацию/editor_id
     assert a.startswith("wo_") and len(a) == 3 + 16
     import re
+
     assert re.fullmatch(r"wo_[0-9a-f]{16}", a)
 
 
 def test_presentation_fields_not_projected():
     editor = {"objects": [_editor_obj("door")]}
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
     raw = scene["world_objects"][report.spawned_ids[0]]
     # W0-инвариант: ни одного ключа из presentation/spatial editor-полей
-    for _forbidden in ("sprite", "color", "name", "show_name",
-                       "size", "passability", "cover", "rotation",
-                       "properties", "durability", "wall_id"):
+    for _forbidden in (
+        "sprite",
+        "color",
+        "name",
+        "show_name",
+        "size",
+        "passability",
+        "cover",
+        "rotation",
+        "properties",
+        "durability",
+        "wall_id",
+    ):
         assert _forbidden not in raw, f"W0-утечка: {_forbidden}"
 
 
 def test_fault_isolation_duplicate_editor_id():
-    editor = {"objects": [
-        _editor_obj("chair", id="dupe_1"),
-        _editor_obj("chair", id="dupe_1"),  # дубль → STRICT стора
-        _editor_obj("chair", id="ok_2"),
-    ]}
+    editor = {
+        "objects": [
+            _editor_obj("chair", id="dupe_1"),
+            _editor_obj("chair", id="dupe_1"),  # дубль → STRICT стора
+            _editor_obj("chair", id="ok_2"),
+        ]
+    }
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
-    assert report.spawned == 2          # первый + третий живут
-    assert len(report.faults) == 1      # дубль — fault с причиной
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
+    assert report.spawned == 2  # первый + третий живут
+    assert len(report.faults) == 1  # дубль — fault с причиной
     assert "dupe_1" in report.faults[0]
 
 
 def test_missing_editor_id_fallback_index():
     editor = {"objects": [_editor_obj("door", id=None)]}
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
     assert report.spawned == 1
     assert report.faults == ()
 
 
 def test_none_editor_data_empty_report():
-    report = WorldObjectSpawner.spawn_from_editor(
-        _scene(), "Open_road", "tavern", None)
+    report = WorldObjectSpawner.spawn_from_editor(_scene(), "Open_road", "tavern", None)
     assert isinstance(report, SpawnReport)
     assert report.spawned == 0
 
@@ -145,17 +156,14 @@ def test_real_tavern_json_spawn():
     (portals не входят в objects — вне реестра by design)."""
     import json
     from pathlib import Path
-    _p = Path(__file__).resolve().parents[2].parent / (
-        "frontend/map_editor/campaigns/Open_road/locations/tavern.json")
+
+    _p = Path(__file__).resolve().parents[2].parent / ("frontend/map_editor/campaigns/Open_road/locations/tavern.json")
     if not _p.exists():
         pytest.skip("campaign JSON недоступен в этом окружении")
     editor = json.loads(_p.read_text(encoding="utf-8-sig"))
     scene = _scene()
-    report = WorldObjectSpawner.spawn_from_editor(
-        scene, "Open_road", "tavern", editor)
-    doors = sum(
-        1 for oid in report.spawned_ids
-        if WorldObjectStore.get(scene, oid).archetype == "door")
+    report = WorldObjectSpawner.spawn_from_editor(scene, "Open_road", "tavern", editor)
+    doors = sum(1 for oid in report.spawned_ids if WorldObjectStore.get(scene, oid).archetype == "door")
     chairs = report.spawned - doors
     assert doors >= 2 and chairs >= 16
     assert report.faults == ()

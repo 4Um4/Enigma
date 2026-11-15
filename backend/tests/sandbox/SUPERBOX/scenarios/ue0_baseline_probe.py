@@ -9,6 +9,7 @@
 Основные сущности: run_baseline, _capture_llm, _emulate_readiness.
 Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.ue0_baseline_probe; cd ..
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +38,7 @@ for _p in (str(_BACKEND_ROOT), str(_ROOT)):
 # kill_llama_server). Принцип Мастера: идентификация ≠ владение.
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="ue0_baseline")
 except Exception as _e:
     print(f"ВНИМАНИЕ: LLM недоступна ({_e}); slow-path уйдет в отказы")
@@ -117,9 +119,14 @@ async def _probe_one(case_id, text, compressor) -> dict:
     if field is not None:
         try:
             from app.services.game_loop.phase_1_input import resolve_player_intent
+
             resolution = resolve_player_intent(
-                raw_action=text, action_type="dialogue", target="",
-                player_dict=None, scene_context=SCENE_CONTEXT, semantic_field=field,
+                raw_action=text,
+                action_type="dialogue",
+                target="",
+                player_dict=None,
+                scene_context=SCENE_CONTEXT,
+                semantic_field=field,
             )
             params = resolution.original_intent.parameters
             resolved = params.target_id
@@ -140,11 +147,12 @@ async def _probe_one(case_id, text, compressor) -> dict:
             "speech_act": str(getattr(getattr(field, "speech_act", None), "value", None)),
             "ambiguity": str(getattr(field.ambiguity, "value", None)),
             "semantic_acts": [
-                {k: v for k, v in a.items() if k in ("type", "params", "topic", "name")}
-                for a in field.semantic_acts
+                {k: v for k, v in a.items() if k in ("type", "params", "topic", "name")} for a in field.semantic_acts
             ][:8],
             "subject_hint": field.subject_hint,
-            "proposition": None if not field.proposition else {
+            "proposition": None
+            if not field.proposition
+            else {
                 "predicate": str(field.proposition.predicate.value),
                 "polarity": field.proposition.polarity,
                 "object_id": field.proposition.object_id,
@@ -152,22 +160,29 @@ async def _probe_one(case_id, text, compressor) -> dict:
             "condition": field.condition,
         }
 
-    emu = _emulate_readiness(field, resolved) if field is not None else {
-        "readiness": "FAILED", "reason": "no-field", "emulated": "EMULATED",
-        "would_execute": False, "claim_publish": False,
-    }
+    emu = (
+        _emulate_readiness(field, resolved)
+        if field is not None
+        else {
+            "readiness": "FAILED",
+            "reason": "no-field",
+            "emulated": "EMULATED",
+            "would_execute": False,
+            "claim_publish": False,
+        }
+    )
 
     return {
         "case_id": case_id,
         "text": text,
-        "llm_status": llm_status,          # таймаут/ошибка — технический статус
+        "llm_status": llm_status,  # таймаут/ошибка — технический статус
         "latency_s": latency,
-        "attempts": 1,                     # текущий клиент: без повторов
+        "attempts": 1,  # текущий клиент: без повторов
         "field": field_dump,
         "resolved_target_id": resolved,
         "readiness_emulation": emu,
         "consumer_outcome": consumer_outcome,
-        "interpretation_error": None,      # содержательная ошибка — заполняется при разборе
+        "interpretation_error": None,  # содержательная ошибка — заполняется при разборе
     }
 
 
@@ -180,8 +195,11 @@ async def run_baseline() -> None:
     REPORTS.mkdir(parents=True, exist_ok=True)
     compressor = IntentCompressor(LlamaCppCompressorClient())
     rows = []
-    header = {"type": "HEADER", "env_contract": ENV_CONTRACT,
-              "note": "readiness = EMULATION будущей политики, не текущая реализация"}
+    header = {
+        "type": "HEADER",
+        "env_contract": ENV_CONTRACT,
+        "note": "readiness = EMULATION будущей политики, не текущая реализация",
+    }
     rows.append(header)
 
     for case_id, text in CORPUS:
@@ -193,7 +211,9 @@ async def run_baseline() -> None:
     rows.append({"type": "GOLD", "cases": {k: v for k, v in GOLD.items()}})
 
     REPORT.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows), encoding="utf-8")
-    print(f"[UE0] отчёт: {REPORT} ({len(rows)} строк: 1 header + {len(CORPUS)} корпус + {len(CONTROL)} контроль + 1 gold)")
+    print(
+        f"[UE0] отчёт: {REPORT} ({len(rows)} строк: 1 header + {len(CORPUS)} корпус + {len(CONTROL)} контроль + 1 gold)"
+    )
 
 
 if __name__ == "__main__":

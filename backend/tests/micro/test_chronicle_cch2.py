@@ -4,6 +4,7 @@ FR-2.2 «никаких молчаливых фолбэков» закреплё
 тестами нормализатора. LLM не требуется — детерминизм живого контура
 проверяется отдельно (T-CCH-02, протокол S316).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -100,7 +101,10 @@ def test_vague_relation_membrane_injects_question():
     assert it.question is not None
     assert it.question.question_id == "vague_relation_0"
     assert {o.value for o in it.question.options} == {
-        "SELECT_EXISTING_NPC", "CREATE_NEW_NPC", "UNKNOWN_PERSON", "LEAVE_WHITE_SPOT",
+        "SELECT_EXISTING_NPC",
+        "CREATE_NEW_NPC",
+        "UNKNOWN_PERSON",
+        "LEAVE_WHITE_SPOT",
     }
     assert it.confidence <= 0.4 and it.needs_confirmation is True
 
@@ -122,9 +126,7 @@ def test_degrade_bad_question_options_drops_option_not_item():
 
 def test_degrade_missing_confidence_forces_confirmation():
     """confidence None → 0.5 + needs_confirmation (честная деградация, не смерть item)."""
-    raw = (
-        '{"items": [{"kind": "EVENT", "draft_payload": {"summary": "s"}}]}'
-    )
+    raw = '{"items": [{"kind": "EVENT", "draft_payload": {"summary": "s"}}]}'
     items = ChronicleDecompositionNormalizer.normalize(raw, chronicle_id="c", fragment_ord=0)
     assert items[0].confidence == 0.5 and items[0].needs_confirmation is True
 
@@ -249,9 +251,7 @@ def test_canonize_flow_locked_by_open_question(tmp_path):
     # Прямая проверка контракта store, который инвариантен эндпоинту:
     # draft с открытым вопросом не может пройти save_canonical.
     store = ChronicleStore(canonical_dir=tmp_path / "chronicles", drafts_root=tmp_path)
-    q = ClarificationQuestion(
-        question_id="q1", target_span="стражник", options=(ClarificationOption.LEAVE_WHITE_SPOT,)
-    )
+    q = ClarificationQuestion(question_id="q1", target_span="стражник", options=(ClarificationOption.LEAVE_WHITE_SPOT,))
     doc = ChronicleDocument(
         chronicle_id="cc",
         npc_ref="a",

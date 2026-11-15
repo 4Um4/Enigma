@@ -18,6 +18,8 @@ from app.models.social_fabric import RelationshipSnapshot
 class WorldContinuityMode(Enum):
     ISOLATED = "isolated"
     CONTINUOUS = "continuous"
+
+
 from app.services.player_cognition.observation_log import ObservationLog
 from app.services.player_cognition.player_belief_model import PlayerBeliefModel
 from app.services.social.faction_alignment_tracker import FactionAlignmentTracker
@@ -28,6 +30,7 @@ from app.services.truth_state_loader import TruthStateLoader
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CANON_PATH = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
+
 
 class TestP713WorldDiff:
     """P7-13: Тесты сборки WorldStateDiff (Run Result Export)."""
@@ -43,30 +46,40 @@ class TestP713WorldDiff:
         fate = FateTracker()
         fate.update_state("maid_lusya", stability=0.1, threat=0.9)
         fate.trigger_fate("maid_lusya", FateOutcome.ESCAPE, tick=10, cause="test", description="test")
-        
+
         faction = FactionAlignmentTracker()
         faction.set_initial("гильдия_воров")
         faction.apply_delta("гильдия_воров", -80.0)
-        
+
         fabric = SocialFabricTracker()
-        fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-            source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
-        ))
+        fabric.set_baseline(
+            "maid_lusya",
+            "player",
+            RelationshipSnapshot(
+                source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
+            ),
+        )
         fabric.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-50.0, fear_delta=40.0)
-        
+
         log = ObservationLog()
         model = PlayerBeliefModel()
-        obs = log.add(tick=1, observation_type="blackmail", content="I know", source_id="maid_lusya", source_type=ObservationSourceType.NPC)
+        obs = log.add(
+            tick=1,
+            observation_type="blackmail",
+            content="I know",
+            source_id="maid_lusya",
+            source_type=ObservationSourceType.NPC,
+        )
         ev = log.add_evidence(obs.observation_id, "lusya_basement", 1.0, EvidencePolarity.SUPPORTS)
         model.update_from_evidence(obs, ev)
-        
+
         return truth_state, fate, faction, fabric, model
 
     def test_diff_contains_npc_fates(self, setup):
         truth, fate, faction, fabric, model = setup
         builder = WorldDiffBuilder()
         diff = builder.build(truth, fate, faction, fabric, model)
-        
+
         assert "maid_lusya" in diff.npc_fates
         assert diff.npc_fates["maid_lusya"] == "escape"
         assert "maid_lusya_escape" in diff.world_events
@@ -80,7 +93,7 @@ class TestP713WorldDiff:
         truth, fate, faction, fabric, model = setup
         builder = WorldDiffBuilder()
         diff = builder.build(truth, fate, faction, fabric, model)
-        
+
         assert diff.faction_alignments["гильдия_воров"] == -80.0
         assert diff.player_reputation["гильдия_воров"] == "enemy"
 
@@ -88,7 +101,7 @@ class TestP713WorldDiff:
         truth, fate, faction, fabric, model = setup
         builder = WorldDiffBuilder()
         diff = builder.build(truth, fate, faction, fabric, model)
-        
+
         assert diff.secrets_exposed.get("lusya_basement") == True
         assert diff.secrets_exposed.get("tornin_debt") == False
 

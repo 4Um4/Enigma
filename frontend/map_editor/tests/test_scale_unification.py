@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_scale_unification.py
+"""path: /frontend/map_editor/tests/test_scale_unification.py
 
 Назначение: ME-2.8-FIX — SCALE unification + coordinate space separation.
     SCALE=20 unified across all editor modules (editor_core, geometry,
@@ -22,6 +22,7 @@ from core.geometry import Geometry
 
 # === Existing tests (SCALE value verification) ===
 
+
 def test_geometry_module_scale_is_20():
     """geometry.SCALE = 20 (module-level, canonical world scale)."""
     assert GEO_SCALE == 20
@@ -33,6 +34,7 @@ def test_geometry_class_has_no_scale_attribute():
 
 
 # === Part C: Invariant tests ===
+
 
 def test_world_screen_world_roundtrip():
     """World → Screen → World returns original coordinate."""

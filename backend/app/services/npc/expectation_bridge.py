@@ -98,8 +98,7 @@ def conclusion_to_expectations(
         context.subject_physical_strength is not None
         and context.owner_physical_strength is not None
         and context.owner_physical_strength > 0.0
-        and context.subject_physical_strength
-        > context.owner_physical_strength * PHYSICAL_SUPERIORITY_RATIO
+        and context.subject_physical_strength > context.owner_physical_strength * PHYSICAL_SUPERIORITY_RATIO
     ):
         results.append(
             ExpectationRecord(

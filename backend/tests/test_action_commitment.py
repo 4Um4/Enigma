@@ -69,7 +69,9 @@ class TestCommitmentFSM:
                     continue
                 record = _mk(initial_status=frm)
                 ok = transition_commitment(
-                    record, to, tick=99,
+                    record,
+                    to,
+                    tick=99,
                     interrupt_reason="R" if to == "INTERRUPTED" else None,
                     # S203.4 (D-6): FAILED без причины запрещён — симметрия
                     # параметризации INTERRUPTED в этом же вызове.
@@ -78,9 +80,7 @@ class TestCommitmentFSM:
                 assert ok == (to in allowed), f"{frm}->{to}: got {ok}, allowed={to in allowed}"
 
     def test_terminals_have_no_exits(self):
-        assert COMMITMENT_TERMINAL_STATUSES == {
-            "COMPLETED", "FAILED", "INTERRUPTED", "EXPIRED", "CANCELLED"
-        }
+        assert COMMITMENT_TERMINAL_STATUSES == {"COMPLETED", "FAILED", "INTERRUPTED", "EXPIRED", "CANCELLED"}
 
     def test_interrupted_requires_reason(self):
         """INTERRUPTED без причины прекращения = отказ, запись не мутирована."""
@@ -113,11 +113,7 @@ class TestCommitmentId:
         assert build_commitment_id(100, "n", "MOVE", 1) == build_commitment_id(100, "n", "MOVE", 1)
 
     def test_unique_across_inputs(self):
-        ids = {
-            build_commitment_id(t, "n", "MOVE", o)
-            for t in range(3)
-            for o in range(3)
-        }
+        ids = {build_commitment_id(t, "n", "MOVE", o) for t in range(3) for o in range(3)}
         assert len(ids) == 9
 
 
@@ -183,19 +179,16 @@ class TestRegistryLifecycle:
             ss = {}
             CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c")
             CommitmentRegistry.mark_executing(ss, "n1", 2)
-            _kwargs = (
-                {"fail_reason": _fail_reasons[terminal]} if terminal == "FAILED" else {}
-            )
-            ok = {"FAILED": CommitmentRegistry.fail,
-                  "EXPIRED": CommitmentRegistry.expire,
-                  "CANCELLED": CommitmentRegistry.cancel}[terminal](ss, "n1", 3, **_kwargs)
+            _kwargs = {"fail_reason": _fail_reasons[terminal]} if terminal == "FAILED" else {}
+            ok = {
+                "FAILED": CommitmentRegistry.fail,
+                "EXPIRED": CommitmentRegistry.expire,
+                "CANCELLED": CommitmentRegistry.cancel,
+            }[terminal](ss, "n1", 3, **_kwargs)
             assert ok is True
             assert ss["commitment_history"]["n1"][-1]["status"] == terminal
             if terminal == "FAILED":
-                assert (
-                    ss["commitment_history"]["n1"][-1]["fail_reason"]
-                    == FAIL_TASK_ERROR
-                )
+                assert ss["commitment_history"]["n1"][-1]["fail_reason"] == FAIL_TASK_ERROR
 
     def test_history_cap_bounded(self, flag_on):
         """№1: retained history ограничена cap — реестр не растёт бесконечно."""
@@ -220,18 +213,14 @@ class TestRegistryLifecycle:
 class TestSweep:
     def test_vanished_traversal_interrupted(self, flag_on):
         ss = {}
-        CommitmentRegistry.mirror_traversal_materialized(
-            ss, tick=3, npc_id="n1", cause="c", target_node="bar"
-        )
+        CommitmentRegistry.mirror_traversal_materialized(ss, tick=3, npc_id="n1", cause="c", target_node="bar")
         # traversal отсутствует в active_traversals (обход Н-46-класса)
         assert CommitmentRegistry.sweep(ss, tick=4) == 1
         assert ss["commitment_history"]["n1"][-1]["interrupt_reason"] == "TRAVERSAL_VANISHED"
 
     def test_alive_traversal_untouched(self, flag_on):
         ss = {"active_traversals": {"n1": {"status": "MOVING"}}}
-        CommitmentRegistry.mirror_traversal_materialized(
-            ss, tick=3, npc_id="n1", cause="c", target_node="bar"
-        )
+        CommitmentRegistry.mirror_traversal_materialized(ss, tick=3, npc_id="n1", cause="c", target_node="bar")
         assert CommitmentRegistry.sweep(ss, tick=4) == 0
         assert CommitmentRegistry.has_active_commitment(ss, "n1") is True
 
@@ -249,10 +238,7 @@ class TestSweep:
         ss = {}
         CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
         assert CommitmentRegistry.sweep(ss, tick=30) == 1  # 30-1=29 > 25
-        assert (
-            ss["commitment_history"]["n1"][-1]["interrupt_reason"]
-            == INTERRUPT_TASK_VANISHED
-        )
+        assert ss["commitment_history"]["n1"][-1]["interrupt_reason"] == INTERRUPT_TASK_VANISHED
 
     def test_blocked_timeout_to_failed(self, flag_on):
         """S203.4 (Ц5): BLOCKED + blocked_since_tick > 10 → FAILED(BLOCKED_TIMEOUT).
@@ -375,9 +361,7 @@ class TestS2034PriorityPolicy:
 
         first = resolve_candidate_priority(intent_type="attack", intent_domain="SOCIAL")
         for _ in range(3):
-            assert resolve_candidate_priority(
-                intent_type="attack", intent_domain="SOCIAL"
-            ) == first
+            assert resolve_candidate_priority(intent_type="attack", intent_domain="SOCIAL") == first
 
 
 class TestS2034CommitmentContract:
@@ -386,9 +370,7 @@ class TestS2034CommitmentContract:
     def test_factory_default_fields_are_legacy_neutral(self):
         from app.domain.action_commitment import build_commitment_dict
 
-        cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="MOVE", ordinal=1, cause="schedule:patrol"
-        )
+        cm = build_commitment_dict(tick=1, npc_id="n1", action="MOVE", ordinal=1, cause="schedule:patrol")
         assert cm["priority"] == 0
         assert cm["priority_policy_version"] is None
         assert cm["executor_ref"] is None
@@ -421,12 +403,8 @@ class TestS2034CommitmentContract:
         меняет ретроактивно идентичности (INV-REPLAY-DETERMINISM)."""
         from app.domain.action_commitment import build_commitment_dict
 
-        a = build_commitment_dict(
-            tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=1
-        )
-        b = build_commitment_dict(
-            tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=7
-        )
+        a = build_commitment_dict(tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=1)
+        b = build_commitment_dict(tick=1, npc_id="n1", action="MOVE", ordinal=3, cause="c", priority=7)
         assert a["commitment_id"] == b["commitment_id"]
 
     def test_fail_reason_constants_fixed(self):
@@ -456,9 +434,7 @@ class TestS2034CommitmentContract:
             cause="schedule:patrol",
             initial_status="COMMITTED",
         )
-        ok = transition_commitment(
-            cm, "INTERRUPTED", tick=2, interrupt_reason=INTERRUPT_PRIORITY_SUPERSEDE
-        )
+        ok = transition_commitment(cm, "INTERRUPTED", tick=2, interrupt_reason=INTERRUPT_PRIORITY_SUPERSEDE)
         assert ok is True
         assert cm["interrupt_reason"] == INTERRUPT_PRIORITY_SUPERSEDE
 
@@ -475,10 +451,7 @@ class TestS2034CommitmentContract:
         # Закон №14 — атомарность: ОБА рельса терминальны.
         assert ss["active_traversals"]["n1"]["status"] == "CANCELLED"
         assert ss["commitment_history"]["n1"][-1]["status"] == "INTERRUPTED"
-        assert (
-            ss["commitment_history"]["n1"][-1]["interrupt_reason"]
-            == "PRIORITY_SUPERSEDE"
-        )
+        assert ss["commitment_history"]["n1"][-1]["interrupt_reason"] == "PRIORITY_SUPERSEDE"
 
 
 class TestS2034FailReasonContract:
@@ -488,8 +461,12 @@ class TestS2034FailReasonContract:
         from app.domain.action_commitment import build_commitment_dict, transition_commitment
 
         cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="EAT", ordinal=1,
-            cause="need:hunger", initial_status="EXECUTING",
+            tick=1,
+            npc_id="n1",
+            action="EAT",
+            ordinal=1,
+            cause="need:hunger",
+            initial_status="EXECUTING",
         )
         assert transition_commitment(cm, "FAILED", tick=2) is False
         assert cm["status"] == "EXECUTING"  # ничего не мутировано
@@ -502,8 +479,12 @@ class TestS2034FailReasonContract:
         )
 
         cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="EAT", ordinal=1,
-            cause="need:hunger", initial_status="EXECUTING",
+            tick=1,
+            npc_id="n1",
+            action="EAT",
+            ordinal=1,
+            cause="need:hunger",
+            initial_status="EXECUTING",
         )
         assert transition_commitment(cm, "FAILED", tick=2, fail_reason=FAIL_TASK_ERROR)
         assert cm["fail_reason"] == FAIL_TASK_ERROR
@@ -533,25 +514,31 @@ class TestS2034FailReasonContract:
         )
 
         cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="EAT", ordinal=1,
-            cause="need:hunger", initial_status="COMMITTED",
+            tick=1,
+            npc_id="n1",
+            action="EAT",
+            ordinal=1,
+            cause="need:hunger",
+            initial_status="COMMITTED",
         )
         assert transition_commitment(cm, "BLOCKED", tick=5)
         assert cm["blocked_since_tick"] == 5
         assert transition_commitment(cm, "EXECUTING", tick=7)
         assert cm["blocked_since_tick"] is None  # выход из BLOCKED — сброс
         assert transition_commitment(cm, "BLOCKED", tick=8)
-        assert transition_commitment(
-            cm, "FAILED", tick=9, fail_reason=FAIL_BLOCKED_TIMEOUT
-        )
+        assert transition_commitment(cm, "FAILED", tick=9, fail_reason=FAIL_BLOCKED_TIMEOUT)
         assert cm["fail_reason"] == FAIL_BLOCKED_TIMEOUT
 
     def test_blocked_entry_without_tick_leaves_clock_unwound(self):
         from app.domain.action_commitment import build_commitment_dict, transition_commitment
 
         cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="EAT", ordinal=1,
-            cause="need:hunger", initial_status="COMMITTED",
+            tick=1,
+            npc_id="n1",
+            action="EAT",
+            ordinal=1,
+            cause="need:hunger",
+            initial_status="COMMITTED",
         )
         assert transition_commitment(cm, "BLOCKED")  # tick=None
         assert cm["blocked_since_tick"] is None  # часы не заведены — Э7-sweep скипает
@@ -561,8 +548,12 @@ class TestS2034FailReasonContract:
         from app.domain.traversal_schema import transition_commitment_preview
 
         cm = build_commitment_dict(
-            tick=1, npc_id="n1", action="EAT", ordinal=1,
-            cause="need:hunger", initial_status="EXECUTING",
+            tick=1,
+            npc_id="n1",
+            action="EAT",
+            ordinal=1,
+            cause="need:hunger",
+            initial_status="EXECUTING",
         )
         assert transition_commitment_preview(cm, "FAILED") is False
         assert transition_commitment_preview(cm, "FAILED", fail_reason="TASK_ERROR")
@@ -641,9 +632,7 @@ class TestS2034ArbiterInterrupt:
 
             for executor in ("task", "windup", "sleep"):
                 ss = {}
-                CommitmentRegistry.commit(
-                    ss, tick=1, npc_id="n1", action="TALK", cause="c", executor=executor
-                )
+                CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor=executor)
                 r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 2, candidate_priority=99)
                 assert r.verdict == VERDICT_REJECT, executor
                 assert r.reason == REASON_INCUMBENT_PROTECTED, executor
@@ -662,9 +651,7 @@ class TestS2034ArbiterInterrupt:
             )
 
             ss = {}
-            CommitmentRegistry.commit(
-                ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task"
-            )
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="TALK", cause="c", executor="task")
             CommitmentRegistry.mark_executing(ss, "n1", 2)
             r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 3, candidate_priority=99)
             assert r.verdict == VERDICT_REJECT
@@ -704,8 +691,11 @@ class TestS2034ArbiterInterrupt:
                 ss, tick=5, npc_id="n1", cause="schedule:patrol", target_node="gate"
             )
             _intent = SimpleNamespace(
-                actor_id="n1", target_node_id="bar", reason="need:flee",
-                domain=IntentDomain.SURVIVAL, intent_type="",
+                actor_id="n1",
+                target_node_id="bar",
+                reason="need:flee",
+                domain=IntentDomain.SURVIVAL,
+                intent_type="",
             )
             assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is True
             # Закон №14: ОБА рельса терминальны одним вызовом.
@@ -730,8 +720,11 @@ class TestS2034ArbiterInterrupt:
             ss = {}
             CommitmentRegistry.commit(ss, tick=5, npc_id="n1", action="MOVE", cause="c", target_id="gate")
             _intent = SimpleNamespace(
-                actor_id="n1", target_node_id="bar", reason="need:flee",
-                domain=IntentDomain.SURVIVAL, intent_type="",
+                actor_id="n1",
+                target_node_id="bar",
+                reason="need:flee",
+                domain=IntentDomain.SURVIVAL,
+                intent_type="",
             )
             # traversal-записи нет → interrupt_traversal NOT_FOUND → False;
             # инкумбент не тронут (частичный interrupt запрещён, №14).
@@ -763,16 +756,17 @@ class TestS2034ArbiterInterrupt:
             )
             assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"  # Н-50
             _intent = SimpleNamespace(
-                actor_id="n1", target_node_id="bar", reason="social:greet",
-                domain=IntentDomain.SOCIAL, intent_type="",
+                actor_id="n1",
+                target_node_id="bar",
+                reason="social:greet",
+                domain=IntentDomain.SOCIAL,
+                intent_type="",
             )
             assert CommitmentArbiter.enforce_for_intent(ss, _intent, 6) is False
             # Частичный эффект запрещён (№14): оба рельса нетронуты.
             assert ss["active_traversals"]["n1"]["status"] == "MOVING"
             assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"
-            r = CommitmentArbiter.arbitrate(
-                ss, "n1", "bar", "src", 6, candidate_priority=PRIORITY_SOCIAL
-            )
+            r = CommitmentArbiter.arbitrate(ss, "n1", "bar", "src", 6, candidate_priority=PRIORITY_SOCIAL)
             assert r.verdict == VERDICT_REJECT and r.reason == REASON_INCUMBENT
         finally:
             arb.ARBITER_ENFORCEMENT, arb.S203_4_ARBITER_INTERRUPT = saved
@@ -808,9 +802,7 @@ class TestS2034OwnershipMirrors:
         cr, saved = self._mirrors(True)
         try:
             ss = {}
-            cm = CommitmentRegistry.mirror_task_committed(
-                ss, 1, "n1", "warn:goran", "task-1-n1-0-dlg", priority=2
-            )
+            cm = CommitmentRegistry.mirror_task_committed(ss, 1, "n1", "warn:goran", "task-1-n1-0-dlg", priority=2)
             assert cm is not None and cm["status"] == "COMMITTED"
             assert cm["executor"] == "task" and cm["executor_ref"] == "task-1-n1-0-dlg"
             assert cm["priority"] == 2
@@ -844,9 +836,7 @@ class TestS2034OwnershipMirrors:
             CommitmentRegistry.mirror_task_terminal(ss, "n1", 2, "EXECUTING")
             assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 3, "FAILED") is False
             assert ss["active_commitments"]["n1"]["status"] == "EXECUTING"  # не мутировано
-            assert CommitmentRegistry.mirror_task_terminal(
-                ss, "n1", 3, "FAILED", fail_reason="TASK_CRASH"
-            )
+            assert CommitmentRegistry.mirror_task_terminal(ss, "n1", 3, "FAILED", fail_reason="TASK_CRASH")
             assert ss["commitment_history"]["n1"][-1]["fail_reason"] == "TASK_CRASH"
         finally:
             cr.S203_4_OWNERSHIP_MIRRORS = saved
@@ -935,9 +925,7 @@ class TestS2034TaskOutbox:
         cr.S203_4_OWNERSHIP_MIRRORS = True
         try:
             ss = {}
-            cm = CommitmentRegistry.mirror_windup_committed(
-                ss, 1, "n1", "attack", "t2", "windup:attack"
-            )
+            cm = CommitmentRegistry.mirror_windup_committed(ss, 1, "n1", "attack", "t2", "windup:attack")
             assert cm is not None
             assert cm["executor"] == "windup" and cm["priority"] == PRIORITY_WINDOWED
         finally:
@@ -950,14 +938,16 @@ class TestS2034TaskOutbox:
         cr.S203_4_OWNERSHIP_MIRRORS = True
         try:
             ss = {}
-            _sleepy = {"npc_id": "n1", "body_state": {
-                "life_status": "ALIVE",
-                "coupling_profile": {"coupling_mode": "SLEEP"}}}
+            _sleepy = {
+                "npc_id": "n1",
+                "body_state": {"life_status": "ALIVE", "coupling_profile": {"coupling_mode": "SLEEP"}},
+            }
             CommitmentRegistry.reconcile_sleep_ownership(ss, [_sleepy], 5)
             assert ss["active_commitments"]["n1"]["executor"] == "sleep"  # Y6 закрыт
-            _awake = {"npc_id": "n1", "body_state": {
-                "life_status": "ALIVE",
-                "coupling_profile": {"coupling_mode": "FULL_WAKE"}}}
+            _awake = {
+                "npc_id": "n1",
+                "body_state": {"life_status": "ALIVE", "coupling_profile": {"coupling_mode": "FULL_WAKE"}},
+            }
             CommitmentRegistry.reconcile_sleep_ownership(ss, [_awake], 6)
             assert ss["commitment_history"]["n1"][-1]["status"] == "COMPLETED"
             # исчезнувший спящий: создан и NPC удалён из мира
@@ -1048,9 +1038,7 @@ class TestS2B6CanonicalCoupling:
             for _pat in _patterns:
                 if _pat in _src:
                     _violations.append(f"{_p.relative_to(_root)}: {_pat}")
-        assert not _violations, (
-            f"Фантомные coupling-литералы в production: {_violations}"
-        )
+        assert not _violations, f"Фантомные coupling-литералы в production: {_violations}"
 
 
 class TestS2B6OnsetGatedCoupling:
@@ -1085,7 +1073,9 @@ class TestS2B6OnsetGatedCoupling:
         """Факт сна переживает decay sp: ×3-окно = весь эпизод (класс F2).
         Также пол-инвариант: низкое давление при живом факте — не бодрство."""
         _r = self._resolver()
-        assert _r.resolve({"sleep_pressure": 0.05, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+        assert (
+            _r.resolve({"sleep_pressure": 0.05, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+        )
         assert _r.resolve({"sleep_pressure": 0.05, "arousal": 0.7, "sleep_onset_tick": 42}).coupling_mode.value == "REM"
 
     def test_onset_tick_zero_is_valid_fact(self):
@@ -1105,7 +1095,9 @@ class TestS2B6OnsetGatedCoupling:
     def test_bidirectional_invariant_no_awake_label_with_fact(self):
         _r = self._resolver()
         assert _r.resolve({"sleep_pressure": 0.2, "arousal": 0.0}).coupling_mode.value == "FULL_WAKE"
-        assert _r.resolve({"sleep_pressure": 0.2, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+        assert (
+            _r.resolve({"sleep_pressure": 0.2, "arousal": 0.0, "sleep_onset_tick": 42}).coupling_mode.value == "SLEEP"
+        )
 
 
 class TestS2B6OnsetEligibility:
@@ -1152,8 +1144,7 @@ class TestS2B6OnsetEligibility:
         assert not _e.eligible and _e.reason == "dead"
 
     def test_gap9_threat_blocks(self):
-        _e = self._resolve(self._npc(perceptual_kernel={
-            "threat_gradient": 0.4, "initiative_suppression": 0.0}))
+        _e = self._resolve(self._npc(perceptual_kernel={"threat_gradient": 0.4, "initiative_suppression": 0.0}))
         assert not _e.eligible and _e.reason == "blocked_threat"
 
     def test_gap9_stress_blocks(self):
@@ -1161,8 +1152,7 @@ class TestS2B6OnsetEligibility:
         assert not _e.eligible and _e.reason == "blocked_stress"
 
     def test_paralysis_blocks(self):
-        _e = self._resolve(self._npc(perceptual_kernel={
-            "threat_gradient": 0.0, "initiative_suppression": 0.8}))
+        _e = self._resolve(self._npc(perceptual_kernel={"threat_gradient": 0.0, "initiative_suppression": 0.8}))
         assert not _e.eligible and _e.reason == "blocked_paralysis"
 
 
@@ -1183,11 +1173,17 @@ class TestS2B6OnsetTransition:
 
     def _awake(self, **kw):
         _d = {
-            "npc_id": "n1", "id": "n1",
+            "npc_id": "n1",
+            "id": "n1",
             "routine": {"current": "sleeping"},
             "body_state": {"life_status": "ALIVE", "sleep_pressure": 0.0, "arousal": 0.0, "fatigue": 0.0},
             "psyche": {"stress": 0.0},
-            "perceptual_kernel": {"threat_gradient": 0.0, "initiative_suppression": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
+            "perceptual_kernel": {
+                "threat_gradient": 0.0,
+                "initiative_suppression": 0.0,
+                "uncertainty": 0.0,
+                "anomaly_score": 0.0,
+            },
         }
         _d.update(kw)
         return _d
@@ -1220,9 +1216,16 @@ class TestS2B6OnsetTransition:
 
     def test_intent_withdrawal_wakes(self):
         _svc = self._svc()
-        _n = self._awake(routine={"current": "working"},
-                         body_state={"life_status": "ALIVE", "sleep_pressure": 0.8,
-                                     "arousal": 0.0, "fatigue": 50.0, "sleep_onset_tick": 3})
+        _n = self._awake(
+            routine={"current": "working"},
+            body_state={
+                "life_status": "ALIVE",
+                "sleep_pressure": 0.8,
+                "arousal": 0.0,
+                "fatigue": 50.0,
+                "sleep_onset_tick": 3,
+            },
+        )
         _res = _svc.process_sleep_lifecycle(_n, 10)
         assert _res == []  # поведение уже у расписания; физиология только чистится
         # Отсутствие факта = отсутствие ключа (pop; None-зомби нет).
@@ -1233,8 +1236,15 @@ class TestS2B6OnsetTransition:
 
     def test_arousal_wake_clears_fact(self):
         _svc = self._svc()
-        _n = self._awake(body_state={"life_status": "ALIVE", "sleep_pressure": 0.8,
-                                     "arousal": 1.0, "fatigue": 50.0, "sleep_onset_tick": 0})
+        _n = self._awake(
+            body_state={
+                "life_status": "ALIVE",
+                "sleep_pressure": 0.8,
+                "arousal": 1.0,
+                "fatigue": 50.0,
+                "sleep_onset_tick": 0,
+            }
+        )
         _n["perceptual_kernel"]["threat_gradient"] = 1.0
         _res = _svc.process_sleep_lifecycle(_n, 10)
         assert _res != []  # SceneChange пробуждения (архаичная ветка жива)
@@ -1268,18 +1278,26 @@ class TestS2B6OnsetTransition:
         from app.services.body.body_engine import BodyEngine
         from app.services.npc.coupling_resolver import CouplingResolver
 
-        _mode = CouplingResolver().resolve(
-            {"sleep_pressure": 0.8, "arousal": 0.0, "sleep_onset_tick": 5}
-        ).coupling_mode
+        _mode = CouplingResolver().resolve({"sleep_pressure": 0.8, "arousal": 0.0, "sleep_onset_tick": 5}).coupling_mode
         assert _mode.value == "SLEEP"  # факт → режим (Wave 1)
-        _p = BodyEngine().handle(
-            [{
-                "npc_id": "n1", "life_status": "ALIVE",
-                "activity": "sleeping", "velocity": (0.0, 0.0),
-                "coupling_mode": _mode.value, "body_mass": 1.0,
-            }],
-            "t", 6,
-        )[0].payload
+        _p = (
+            BodyEngine()
+            .handle(
+                [
+                    {
+                        "npc_id": "n1",
+                        "life_status": "ALIVE",
+                        "activity": "sleeping",
+                        "velocity": (0.0, 0.0),
+                        "coupling_mode": _mode.value,
+                        "body_mass": 1.0,
+                    }
+                ],
+                "t",
+                6,
+            )[0]
+            .payload
+        )
         assert _p.fatigue_delta == -0.245  # режим → ×3 (Phase A)
         assert _p.energy_delta == 0.76
 
@@ -1297,8 +1315,11 @@ class TestS2034WindupSerialization:
         from app.domain.action_windup import ActionWindup, WindupStatus
 
         _orig = ActionWindup(
-            actor_id="n1", target_id="n2", action_type="steal",
-            started_tick=5, duration_ticks=2,
+            actor_id="n1",
+            target_id="n2",
+            action_type="steal",
+            started_tick=5,
+            duration_ticks=2,
             status=WindupStatus.PENDING,
             held_intent_id="cmt-abc123",
         )
@@ -1310,8 +1331,11 @@ class TestS2034WindupSerialization:
         from app.domain.action_windup import ActionWindup, WindupStatus
 
         _orig = ActionWindup(
-            actor_id="n1", target_id="n2", action_type="attack",
-            started_tick=3, duration_ticks=2,
+            actor_id="n1",
+            target_id="n2",
+            action_type="attack",
+            started_tick=3,
+            duration_ticks=2,
             status=WindupStatus.INTERRUPTED,
         )
         _restored = ActionWindup.from_dict(_orig.to_dict())
@@ -1323,11 +1347,16 @@ class TestS2034WindupSerialization:
         from app.domain.epistemology import Predicate, Proposition
 
         _orig = CommunicationIntent(
-            speaker="n1", audience="n2", topic="trade",
-            intent_type="warn", emotional_state="angry",
+            speaker="n1",
+            audience="n2",
+            topic="trade",
+            intent_type="warn",
+            emotional_state="angry",
             exposure_level=ExposureLevel(semantic="normal"),
-            semantic_action="warn", target_id="n2",
-            thread_id="t-1", priority=0.7,
+            semantic_action="warn",
+            target_id="n2",
+            thread_id="t-1",
+            priority=0.7,
             proposition=Proposition(
                 subject_id="n1",
                 predicate=Predicate.STOLE,
@@ -1345,8 +1374,11 @@ class TestS2034WindupSerialization:
         from app.domain.communication import CommunicationIntent, ExposureLevel
 
         _orig = CommunicationIntent(
-            speaker="n1", audience="all", topic="gossip",
-            intent_type="talk", emotional_state="нейтрально",
+            speaker="n1",
+            audience="all",
+            topic="gossip",
+            intent_type="talk",
+            emotional_state="нейтрально",
             exposure_level=ExposureLevel(semantic="whisper"),
         )
         _restored = CommunicationIntent.from_dict(_orig.to_dict())
@@ -1362,8 +1394,7 @@ class TestS2B1BodyEngine:
         from app.services.body.body_engine import BodyEngine
 
         _engine = BodyEngine()
-        _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "activity": "working", "body_mass": 1.0}
+        _npc = {"npc_id": "n1", "life_status": "ALIVE", "activity": "working", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert len(_deltas) == 1
         assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: load=0.5 → exp=0.25 rec=0.15 → -0.10
@@ -1372,8 +1403,7 @@ class TestS2B1BodyEngine:
         from app.services.body.body_engine import BodyEngine
 
         _engine = BodyEngine()
-        _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "activity": "", "body_mass": 1.0}
+        _npc = {"npc_id": "n1", "life_status": "ALIVE", "activity": "", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert len(_deltas) == 1
         assert _deltas[0].payload.energy_delta == 0.3  # S2B.2: load=0.0 → rec=0.30 exp=0 → +0.30
@@ -1391,22 +1421,37 @@ class TestS2B1BodyEngine:
         from app.services.npc.state_applicator import StateApplicator
 
         _engine = BodyEngine()
-        _npc = {"npc_id": "n1", "life_status": "ALIVE",
-                "activity": "working", "body_mass": 1.0}
+        _npc = {"npc_id": "n1", "life_status": "ALIVE", "activity": "working", "body_mass": 1.0}
         _deltas = _engine.handle([_npc], "test", 1)
         assert _deltas[0].payload.energy_delta == -0.1  # S2B.2: working load=0.5
 
         # Apply: mock state (only body_state needed by _apply_physiology_deltas)
         class _MockState:
             pass
+
         _state = _MockState()
-        _state.body_state = {"energy": 100.0, "current_hp": 100,
-                             "pain": 0.0, "fatigue": 0.0,
-                             "blood_loss": 0.0, "shock_impulse": 0.0,
-                             "injuries": [], "modifiers": {}, "statuses": []}
+        _state.body_state = {
+            "energy": 100.0,
+            "current_hp": 100,
+            "pain": 0.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [],
+            "modifiers": {},
+            "statuses": [],
+        }
         _applicator = object.__new__(StateApplicator)
         _applicator._apply_physiology_deltas(
-            _state, 0, 0, 0, 0, [], [], [], 0,
+            _state,
+            0,
+            0,
+            0,
+            0,
+            [],
+            [],
+            [],
+            0,
             energy_delta=_deltas[0].payload.energy_delta,
         )
         assert _state.body_state["energy"] == 99.9  # 100 - 0.1
@@ -1417,14 +1462,31 @@ class TestS2B1BodyEngine:
 
         class _MockState:
             pass
+
         _state = _MockState()
-        _state.body_state = {"energy": 0.5, "current_hp": 100, "pain": 0.0,
-                             "fatigue": 0.0, "blood_loss": 0.0,
-                             "shock_impulse": 0.0, "injuries": [],
-                             "modifiers": {}, "statuses": []}
+        _state.body_state = {
+            "energy": 0.5,
+            "current_hp": 100,
+            "pain": 0.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [],
+            "modifiers": {},
+            "statuses": [],
+        }
         _applicator = object.__new__(StateApplicator)
         _applicator._apply_physiology_deltas(
-            _state, 0, 0, 0, 0, [], [], [], 0, energy_delta=-1.0,
+            _state,
+            0,
+            0,
+            0,
+            0,
+            [],
+            [],
+            [],
+            0,
+            energy_delta=-1.0,
         )
         assert _state.body_state["energy"] == 0.0  # clamped, not -0.5
 
@@ -1434,13 +1496,20 @@ class TestS2B2EnergyDynamics:
 
     def _engine(self):
         from app.services.body.body_engine import BodyEngine
+
         return BodyEngine()
 
     def _npc(self, **kw):
         # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
-        _d = {"npc_id": "n1", "life_status": "ALIVE", "stress": 0.0,
-              "velocity": (0.0, 0.0), "activity": "", "coupling_mode": "",
-              "body_mass": 1.0}
+        _d = {
+            "npc_id": "n1",
+            "life_status": "ALIVE",
+            "stress": 0.0,
+            "velocity": (0.0, 0.0),
+            "activity": "",
+            "coupling_mode": "",
+            "body_mass": 1.0,
+        }
         _d.update(kw)
         return _d
 
@@ -1470,9 +1539,7 @@ class TestS2B2EnergyDynamics:
     def test_c_sleep_recovery_bonus(self):
         _e = self._engine()
         _awake_idle = _e.handle([self._npc(activity="")], "t", 1)[0].payload.energy_delta
-        _sleeping = _e.handle([self._npc(
-            activity="sleeping", coupling_mode="SLEEP"
-        )], "t", 1)[0].payload.energy_delta
+        _sleeping = _e.handle([self._npc(activity="sleeping", coupling_mode="SLEEP")], "t", 1)[0].payload.energy_delta
         assert _sleeping > _awake_idle  # sleep bonus
 
     # D: replay — pure function → same inputs → same outputs (replay by construction)
@@ -1487,12 +1554,8 @@ class TestS2B2EnergyDynamics:
     # E: body sensitivity — same activity, different body_mass → different cost
     def test_e_body_sensitivity(self):
         _e = self._engine()
-        _light = _e.handle([self._npc(
-            activity="working", body_mass=0.8
-        )], "t", 1)[0].payload.energy_delta
-        _heavy = _e.handle([self._npc(
-            activity="working", body_mass=1.2
-        )], "t", 1)[0].payload.energy_delta
+        _light = _e.handle([self._npc(activity="working", body_mass=0.8)], "t", 1)[0].payload.energy_delta
+        _heavy = _e.handle([self._npc(activity="working", body_mass=1.2)], "t", 1)[0].payload.energy_delta
         # heavier body → more expenditure → lower (more negative) delta
         assert _heavy < _light
 
@@ -1502,13 +1565,19 @@ class TestS2B3Hydration:
 
     def _engine(self):
         from app.services.body.body_engine import BodyEngine
+
         return BodyEngine()
 
     def _npc(self, **kw):
         # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
-        _d = {"npc_id": "n1", "life_status": "ALIVE",
-              "activity": "", "velocity": (0.0, 0.0),
-              "coupling_mode": "", "body_mass": 1.0}
+        _d = {
+            "npc_id": "n1",
+            "life_status": "ALIVE",
+            "activity": "",
+            "velocity": (0.0, 0.0),
+            "coupling_mode": "",
+            "body_mass": 1.0,
+        }
         _d.update(kw)
         return _d
 
@@ -1536,12 +1605,8 @@ class TestS2B3Hydration:
     def test_body_sensitivity(self):
         """Heavier body → more hydration loss."""
         _e = self._engine()
-        _light = _e.handle([self._npc(
-            activity="working", body_mass=0.8
-        )], "t", 1)[0].payload.hydration_delta
-        _heavy = _e.handle([self._npc(
-            activity="working", body_mass=1.2
-        )], "t", 1)[0].payload.hydration_delta
+        _light = _e.handle([self._npc(activity="working", body_mass=0.8)], "t", 1)[0].payload.hydration_delta
+        _heavy = _e.handle([self._npc(activity="working", body_mass=1.2)], "t", 1)[0].payload.hydration_delta
         assert _heavy < _light  # more negative
 
 
@@ -1551,13 +1616,19 @@ class TestS2B4Nutrition:
 
     def _engine(self):
         from app.services.body.body_engine import BodyEngine
+
         return BodyEngine()
 
     def _npc(self, **kw):
         # ADR-O-373: вход BodyEngine — ПЛОСКИЙ NPCStateSnapshot (Phase 0.5)
-        _d = {"npc_id": "n1", "life_status": "ALIVE",
-              "activity": "", "velocity": (0.0, 0.0),
-              "coupling_mode": "", "body_mass": 1.0}
+        _d = {
+            "npc_id": "n1",
+            "life_status": "ALIVE",
+            "activity": "",
+            "velocity": (0.0, 0.0),
+            "coupling_mode": "",
+            "body_mass": 1.0,
+        }
         _d.update(kw)
         return _d
 
@@ -1586,12 +1657,8 @@ class TestS2B4Nutrition:
     def test_body_sensitivity(self):
         """Тяжелее тело (body_mass) → больше расход питания."""
         _e = self._engine()
-        _light = _e.handle([self._npc(
-            activity="working", body_mass=0.8
-        )], "t", 1)[0].payload.nutrition_delta
-        _heavy = _e.handle([self._npc(
-            activity="working", body_mass=1.2
-        )], "t", 1)[0].payload.nutrition_delta
+        _light = _e.handle([self._npc(activity="working", body_mass=0.8)], "t", 1)[0].payload.nutrition_delta
+        _heavy = _e.handle([self._npc(activity="working", body_mass=1.2)], "t", 1)[0].payload.nutrition_delta
         assert _heavy < _light  # more negative
 
     def test_slower_than_hydration_invariant(self):
@@ -1603,13 +1670,12 @@ class TestS2B4Nutrition:
         assert _e.BASE_NUTRITION_LOSS < _e.BASE_HYDRATION_LOSS  # 0.05 < 0.2
         assert _e.NUTRITION_LOAD_COEFF < 1.0  # hydration-коэф. в формуле = 1.0
         for _kw in (
-            {"activity": ""},            # load=0.0
-            {"activity": "working"},     # load=0.5
-            {"velocity": (0.8, 0.0)},    # load=0.9 (RUN)
+            {"activity": ""},  # load=0.0
+            {"activity": "working"},  # load=0.5
+            {"velocity": (0.8, 0.0)},  # load=0.9 (RUN)
         ):
             _p = _e.handle([self._npc(**_kw)], "t", 1)[0].payload
             assert _p.nutrition_delta > _p.hydration_delta  # менее отрицательный
-
 
     def test_nutrition_clamp_to_zero(self):
         """Boundary (зеркало S2B.1 test_energy_clamp_to_zero): nutrition
@@ -1618,14 +1684,31 @@ class TestS2B4Nutrition:
 
         class _MockState:
             pass
+
         _state = _MockState()
-        _state.body_state = {"nutrition": 0.5, "current_hp": 100, "pain": 0.0,
-                             "fatigue": 0.0, "blood_loss": 0.0,
-                             "shock_impulse": 0.0, "injuries": [],
-                             "modifiers": {}, "statuses": []}
+        _state.body_state = {
+            "nutrition": 0.5,
+            "current_hp": 100,
+            "pain": 0.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [],
+            "modifiers": {},
+            "statuses": [],
+        }
         _applicator = object.__new__(StateApplicator)
         _applicator._apply_physiology_deltas(
-            _state, 0, 0, 0, 0, [], [], [], 0, nutrition_delta=-1.0,
+            _state,
+            0,
+            0,
+            0,
+            0,
+            [],
+            [],
+            [],
+            0,
+            nutrition_delta=-1.0,
         )
         assert _state.body_state["nutrition"] == 0.0  # clamped, not -0.5
 
@@ -1640,8 +1723,12 @@ class TestS2B5ProjectionContract:
         "npc_id": "n1",
         "life_status": "ALIVE",
         "body_state": {
-            "current_hp": 100, "energy": 100.0, "hydration": 100.0,
-            "nutrition": 100.0, "fatigue": 0.0, "body_mass": 1.1,
+            "current_hp": 100,
+            "energy": 100.0,
+            "hydration": 100.0,
+            "nutrition": 100.0,
+            "fatigue": 0.0,
+            "body_mass": 1.1,
             "coupling_profile": {"coupling_mode": "FULL_WAKE"},
         },
         "routine": {"current": "working"},
@@ -1679,14 +1766,22 @@ class TestS2B7ProjectionContract:
         "id": "n1",
         "psyche": {"stress": 0.0},
         "body_state": {
-            "current_hp": 70.0, "pain": 20.0, "fatigue": 0.0,
-            "blood_loss": 0.1, "consciousness": 1.0, "shock_impulse": 0.2,
+            "current_hp": 70.0,
+            "pain": 20.0,
+            "fatigue": 0.0,
+            "blood_loss": 0.1,
+            "consciousness": 1.0,
+            "shock_impulse": 0.2,
             "life_status": "ALIVE",
-            "injuries": [{
-                "damage_type": "slash", "target_zone": "leg_l",
-                "structural_damage": 0.4, "functional_loss": 0.3,
-                "critical_effects": ("bleeding",),
-            }],
+            "injuries": [
+                {
+                    "damage_type": "slash",
+                    "target_zone": "leg_l",
+                    "structural_damage": 0.4,
+                    "functional_loss": 0.3,
+                    "critical_effects": ("bleeding",),
+                }
+            ],
             "coupling_profile": {"coupling_mode": "FULL_WAKE"},
         },
         "routine": {"current": "idle"},
@@ -1694,6 +1789,7 @@ class TestS2B7ProjectionContract:
 
     def test_snapshot_carries_injury_contract(self):
         from app.services.tick_utils import build_npc_snapshots
+
         _snap = build_npc_snapshots([dict(self.RAW)])[0]
         assert _snap["injuries_by_zone"]["leg_l"]
         assert _snap["life_status"] == "ALIVE"
@@ -1703,6 +1799,7 @@ class TestS2B7ProjectionContract:
         """Процессор ЖИВ на production-снапшоте: рана → хронические дельты."""
         from app.services.combat.injury_processor import InjuryProcessor
         from app.services.tick_utils import build_npc_snapshots
+
         _snaps = build_npc_snapshots([dict(self.RAW)])
         _deltas = InjuryProcessor().handle(_snaps, "t", 1)
         assert len(_deltas) == 1
@@ -1714,6 +1811,7 @@ class TestS2B7ProjectionContract:
         До S2B.7 DEAD-check читал несуществующий ключ — был мёртв."""
         from app.services.combat.injury_processor import InjuryProcessor
         from app.services.tick_utils import build_npc_snapshots
+
         _raw = dict(self.RAW)
         _raw["body_state"] = {**self.RAW["body_state"], "life_status": "DEAD"}
         _snaps = build_npc_snapshots([_raw])
@@ -1729,12 +1827,10 @@ class TestS2B7ProjectionContract:
 
         from app.models.idle_tick import NPCStateSnapshot
         from app.services.combat import injury_processor as _ip
+
         _contract = set(NPCStateSnapshot.__annotations__.keys())
         _tree = ast.parse(inspect.getsource(_ip))
-        _handle = next(
-            n for n in ast.walk(_tree)
-            if isinstance(n, ast.FunctionDef) and n.name == "handle"
-        )
+        _handle = next(n for n in ast.walk(_tree) if isinstance(n, ast.FunctionDef) and n.name == "handle")
         _illegal = set()
         for _node in ast.walk(_handle):
             if (
@@ -1777,12 +1873,7 @@ class TestS2B7CapabilityDegradation:
         assert locomotion_impairment([]) == 0.0
         assert locomotion_impairment([self._inj("leg_l", 0.5)]) == 0.5
         # обе ноги: 1 − (1−0.5)(1−0.5) = 0.75 — совокупность, не сумма
-        assert (
-            locomotion_impairment(
-                [self._inj("leg_l", 0.5), self._inj("leg_r", 0.5)]
-            )
-            == 0.75
-        )
+        assert locomotion_impairment([self._inj("leg_l", 0.5), self._inj("leg_r", 0.5)]) == 0.75
         # рука не влияет на locomotion
         assert locomotion_impairment([self._inj("arm_r", 0.9)]) == 0.0
 
@@ -1790,18 +1881,8 @@ class TestS2B7CapabilityDegradation:
         from app.domain.vital_state import manipulation_impairment
 
         # одна целая рука сохраняет действия (лучшая = min потерь)
-        assert (
-            manipulation_impairment(
-                [self._inj("arm_l", 1.0), self._inj("arm_r", 0.0)]
-            )
-            == 0.0
-        )
-        assert (
-            manipulation_impairment(
-                [self._inj("arm_l", 0.6), self._inj("arm_r", 0.3)]
-            )
-            == 0.3
-        )
+        assert manipulation_impairment([self._inj("arm_l", 1.0), self._inj("arm_r", 0.0)]) == 0.0
+        assert manipulation_impairment([self._inj("arm_l", 0.6), self._inj("arm_r", 0.3)]) == 0.3
         assert manipulation_impairment([]) == 0.0
 
     def test_is_capable_structural_arm_veto(self):
@@ -1839,14 +1920,8 @@ class TestS2B7CapabilityDegradation:
             is True
         )
         # боль/шок — прежние первичные блокираторы, семантика не тронута
-        assert (
-            is_capable({"pain": 80.0, "shock_impulse": 0.0, "injuries": []})
-            is False
-        )
-        assert (
-            is_capable({"pain": 0.0, "shock_impulse": 0.8, "injuries": []})
-            is False
-        )
+        assert is_capable({"pain": 80.0, "shock_impulse": 0.0, "injuries": []}) is False
+        assert is_capable({"pain": 0.0, "shock_impulse": 0.8, "injuries": []}) is False
 
     def test_view_contrast_wounded_vs_healthy(self):
         """Дифференциальный гейт §4.4 (ось capability): контраст."""
@@ -1868,9 +1943,7 @@ class TestS2B7CapabilityDegradation:
         from app.domain.body_state_view import build_body_state_view
         from app.services.world.affordance_resolver import PRECONDITION_REGISTRY
 
-        _healthy = build_body_state_view(
-            {"pain": 0.0, "shock_impulse": 0.0, "injuries": []}, "h"
-        )
+        _healthy = build_body_state_view({"pain": 0.0, "shock_impulse": 0.0, "injuries": []}, "h")
         _wounded = build_body_state_view(
             {
                 "pain": 0.0,
@@ -1923,12 +1996,19 @@ class TestS2B5Fatigue:
 
     def _engine(self):
         from app.services.body.body_engine import BodyEngine
+
         return BodyEngine()
 
     def _snap(self, **kw):
-        _d = {"npc_id": "n1", "life_status": "ALIVE", "stress": 0.0,
-              "velocity": (0.0, 0.0), "activity": "", "coupling_mode": "",
-              "body_mass": 1.0}
+        _d = {
+            "npc_id": "n1",
+            "life_status": "ALIVE",
+            "stress": 0.0,
+            "velocity": (0.0, 0.0),
+            "activity": "",
+            "coupling_mode": "",
+            "body_mass": 1.0,
+        }
         _d.update(kw)
         return _d
 
@@ -1946,9 +2026,7 @@ class TestS2B5Fatigue:
         """Сон (load 0.1, ×3): −0.245; строго глубже idle-восстановления."""
         _e = self._engine()
         _idle = _e.handle([self._snap()], "t", 1)[0].payload.fatigue_delta
-        _sleep = _e.handle(
-            [self._snap(coupling_mode="SLEEP")], "t", 1
-        )[0].payload.fatigue_delta
+        _sleep = _e.handle([self._snap(coupling_mode="SLEEP")], "t", 1)[0].payload.fatigue_delta
         assert _sleep == -0.245
         assert _sleep < _idle
 
@@ -1957,12 +2035,8 @@ class TestS2B5Fatigue:
         delta(RUN) > delta(WALK) > delta(IDLE) (кодирование по формуле §4.2)."""
         _e = self._engine()
         _idle = _e.handle([self._snap()], "t", 1)[0].payload.fatigue_delta
-        _walk = _e.handle(
-            [self._snap(velocity=(0.3, 0.0))], "t", 1
-        )[0].payload.fatigue_delta
-        _run = _e.handle(
-            [self._snap(velocity=(0.8, 0.0))], "t", 1
-        )[0].payload.fatigue_delta
+        _walk = _e.handle([self._snap(velocity=(0.3, 0.0))], "t", 1)[0].payload.fatigue_delta
+        _run = _e.handle([self._snap(velocity=(0.8, 0.0))], "t", 1)[0].payload.fatigue_delta
         assert _run > _walk > _idle
 
     def test_wear_slower_than_fuel_invariant(self):
@@ -1974,12 +2048,8 @@ class TestS2B5Fatigue:
     def test_body_sensitivity(self):
         """Тяжелее тело → больше износ → delta более положительный."""
         _e = self._engine()
-        _light = _e.handle(
-            [self._snap(activity="working", body_mass=0.8)], "t", 1
-        )[0].payload.fatigue_delta
-        _heavy = _e.handle(
-            [self._snap(activity="working", body_mass=1.2)], "t", 1
-        )[0].payload.fatigue_delta
+        _light = _e.handle([self._snap(activity="working", body_mass=0.8)], "t", 1)[0].payload.fatigue_delta
+        _heavy = _e.handle([self._snap(activity="working", body_mass=1.2)], "t", 1)[0].payload.fatigue_delta
         assert _heavy > _light
 
     def test_determinism(self):
@@ -2001,12 +2071,14 @@ class TestS2B5Fatigue:
         from app.services.tick_utils import aggregate_deltas
 
         _combat = StateDeltas(
-            npc_id="n1", domain=DeltaDomain.PHYSIOLOGY,
+            npc_id="n1",
+            domain=DeltaDomain.PHYSIOLOGY,
             payload=PhysiologyPayload(fatigue_delta=5.0),
             source="impact_resolution",
         )
         _engine_d = StateDeltas(
-            npc_id="n1", domain=DeltaDomain.PHYSIOLOGY,
+            npc_id="n1",
+            domain=DeltaDomain.PHYSIOLOGY,
             payload=PhysiologyPayload(fatigue_delta=0.215),
             source="body_engine",
         )
@@ -2032,9 +2104,16 @@ class TestS2B5Fatigue:
             pass
 
         _state = _MockState()
-        _state.body_state = {"fatigue": 98.0, "current_hp": 100, "pain": 0.0,
-                             "blood_loss": 0.0, "shock_impulse": 0.0,
-                             "injuries": [], "modifiers": {}, "statuses": []}
+        _state.body_state = {
+            "fatigue": 98.0,
+            "current_hp": 100,
+            "pain": 0.0,
+            "blood_loss": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [],
+            "modifiers": {},
+            "statuses": [],
+        }
         _applicator = object.__new__(StateApplicator)
         # слоты: (state, hp, pain, fatigue, blood, inj, add_st, rm_st, shock)
         _applicator._apply_physiology_deltas(_state, 0, 0, 5.0, 0, [], [], [], 0)
@@ -2042,9 +2121,16 @@ class TestS2B5Fatigue:
         assert _state.body_state["fatigue"] == 100.0  # 103.215 → clamp
 
         _state2 = _MockState()
-        _state2.body_state = {"fatigue": 0.1, "current_hp": 100, "pain": 0.0,
-                              "blood_loss": 0.0, "shock_impulse": 0.0,
-                              "injuries": [], "modifiers": {}, "statuses": []}
+        _state2.body_state = {
+            "fatigue": 0.1,
+            "current_hp": 100,
+            "pain": 0.0,
+            "blood_loss": 0.0,
+            "shock_impulse": 0.0,
+            "injuries": [],
+            "modifiers": {},
+            "statuses": [],
+        }
         _applicator._apply_physiology_deltas(_state2, 0, 0, -0.245, 0, [], [], [], 0)
         assert _state2.body_state["fatigue"] == 0.0  # −0.145 → clamp
 
@@ -2077,10 +2163,7 @@ class TestDeltaPolicyIdentity:
             ReductionPolicy,
         )
 
-        assert (
-            DELTA_POLICY_REGISTRY[DeltaDomain.PHYSIOLOGY]
-            is ReductionPolicy.PHYSICS_COMPOSITE
-        )
+        assert DELTA_POLICY_REGISTRY[DeltaDomain.PHYSIOLOGY] is ReductionPolicy.PHYSICS_COMPOSITE
 
 
 class TestFlagNeutrality:
@@ -2118,6 +2201,7 @@ class TestJsonRoundTrip:
         assert restored["active_commitments"]["n2"]["commitment_id"] == ss["active_commitments"]["n2"]["commitment_id"]
         assert len(restored["commitment_history"]["n1"]) == len(ss["commitment_history"]["n1"])
         assert restored["commitment_ordinals"] == ss["commitment_ordinals"]
+
 
 # ── S203.2: Arbiter ─────────────────────────────────────────────────────────
 
@@ -2202,6 +2286,7 @@ class TestCommitmentArbiter:
         finally:
             ca.ARBITER_ENFORCEMENT = old
 
+
 # ── S203.3: interrupt_traversal (атомарность, idempotency, GC-подхват) ─────
 
 
@@ -2213,16 +2298,22 @@ class TestInterruptTraversal:
     def _world(commitment=True):
         ss = {
             "active_traversals": {
-                "n1": {"npc_id": "n1", "status": "MOVING", "target_node": "bar",
-                       "started_tick": 1, "duration_ticks": 3,
-                       "path_waypoints": [[0, 0], [1, 1]],
-                       "segment_modes": ["WALK"], "segment_arc_heights": [0.0],
-                       "current_waypoint_idx": 0, "from_node": "a"},
+                "n1": {
+                    "npc_id": "n1",
+                    "status": "MOVING",
+                    "target_node": "bar",
+                    "started_tick": 1,
+                    "duration_ticks": 3,
+                    "path_waypoints": [[0, 0], [1, 1]],
+                    "segment_modes": ["WALK"],
+                    "segment_arc_heights": [0.0],
+                    "current_waypoint_idx": 0,
+                    "from_node": "a",
+                },
             }
         }
         if commitment:
-            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE",
-                                      cause="c", target_id="bar")
+            CommitmentRegistry.commit(ss, tick=1, npc_id="n1", action="MOVE", cause="c", target_id="bar")
             CommitmentRegistry.mark_executing(ss, "n1", 1)
         return ss
 

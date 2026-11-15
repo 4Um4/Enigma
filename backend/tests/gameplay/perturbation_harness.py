@@ -50,14 +50,15 @@ class ProbeSpec:
     injection берётся из manifest.probe_hint (воспроизводимость proof);
     expected_window — свойство proof-сценария, НЕ прибора (вердикт Мастера:
     delayed consumers не объявляются мёртвыми универсальным правилом)."""
-    field: str                      # манифест-ключ носителя: "body_state.fatigue"
+
+    field: str  # манифест-ключ носителя: "body_state.fatigue"
     npc_id: str
     injection: float
     write_kind: str = "PHYSIOLOGY"  # PHYSIOLOGY | RELATIONSHIP_V2; BELIEF_DELTA — шаг re-proof
-    pair_target: str = "player"     # RELATIONSHIP_V2: направленность пары (R001-прецедент)
-    inject_after_tick: int = 1      # K: столько тиков до инъекции; первый
-                                    # потенциально затронутый тик решения — следующий
-    horizon: int = 6               # N: полный тик-бюджет КАЖДОГО рукава (чётность)
+    pair_target: str = "player"  # RELATIONSHIP_V2: направленность пары (R001-прецедент)
+    inject_after_tick: int = 1  # K: столько тиков до инъекции; первый
+    # потенциально затронутый тик решения — следующий
+    horizon: int = 6  # N: полный тик-бюджет КАЖДОГО рукава (чётность)
 
 
 @dataclass
@@ -69,11 +70,11 @@ class ProbeResult:
     # PENDING падает KeyError = громкий отказ (L4), не тихий None.
     verdict: str = "PENDING"
     first_divergence_tick: Optional[int] = None  # индекс тика расхождения в рукаве
-    divergence_delta: Optional[int] = None       # Δ = first_divergence − K
-    utility_delta_observed: bool = False         # scores разошлись (диагностика, не вердикт)
+    divergence_delta: Optional[int] = None  # Δ = first_divergence − K
+    utility_delta_observed: bool = False  # scores разошлись (диагностика, не вердикт)
     argmax_flip: bool = False
     checkpoints: Dict[str, Optional[float]] = field(default_factory=dict)
-    overwrite_source: Optional[str] = None        # causal_ledger-хвост при перезаписи
+    overwrite_source: Optional[str] = None  # causal_ledger-хвост при перезаписи
     score_diffs: List[Tuple[int, str, str, Optional[float], Optional[float]]] = field(
         default_factory=list
     )  # (тик, npc, ось, base, pert) — ГДЕ деформирован utility-ландшафт
@@ -119,9 +120,7 @@ def _rows_from_tap(
     _scores: Dict[Tuple[int, str], Dict[str, float]] = {}
     for _tick_idx, _res in enumerate(tap.stash):
         if getattr(_res, "status", "ok") == "error":
-            raise RuntimeError(
-                f"[PERTURBATION] TICK_CRASH в рукаве: {getattr(_res, 'error', 'unknown')}"
-            )
+            raise RuntimeError(f"[PERTURBATION] TICK_CRASH в рукаве: {getattr(_res, 'error', 'unknown')}")
         for _ctx in getattr(_res, "npc_contexts", []) or []:
             _nid = str(_ctx.get("npc_id", "?"))
             _dec = _ctx.get("decision_result")
@@ -169,6 +168,7 @@ def _ledger_tail(harness: Any, npc_id: str) -> Optional[str]:
 
 # ── Инъекторы: каждый — дословная реплика ДОКАЗАННОГО production-паттерна ──
 
+
 def _inject_physiology(harness: Any, spec: ProbeSpec) -> None:
     """PHYSIOLOGY-инъекция (паттерн causal_state_test группа C, дословно):
     StateDeltas(PHYSIOLOGY) → production StateApplicator.apply_deltas_only
@@ -212,9 +212,7 @@ def _inject_physiology(harness: Any, spec: ProbeSpec) -> None:
         source="perturbation_harness",
     )
     _cause = Cause(source_event_id=uuid.uuid5(_INJECTION_NS, f"{spec.field}:{spec.npc_id}"))
-    _new_state = _applicator.apply_deltas_only(
-        _state, _deltas, campaign_id=_CAMPAIGN, cause=_cause
-    )
+    _new_state = _applicator.apply_deltas_only(_state, _deltas, campaign_id=_CAMPAIGN, cause=_cause)
     NPCState.to_persistence_dict(_new_state, _npc_dict)
 
 
@@ -258,9 +256,11 @@ def _make_checkpoint_reader(spec: ProbeSpec) -> Callable[[Any, str], Optional[fl
     S249-факт). Vacuum → 0.0 — ИЗМЕРИТЕЛЬНАЯ конвенция прибора: онтологически
     Vacuum ≠ 0.0 (§ENIGMA-003); досье-запись обязана отмечать baseline-Vacuum."""
     if spec.write_kind == "RELATIONSHIP_V2":
+
         def _rel_reader(harness: Any, npc_id: str) -> Optional[float]:
             _v = harness.read_trust(npc_id, spec.pair_target)
             return 0.0 if _v is None else _v
+
         return _rel_reader
     return lambda harness, npc_id: _read_field(harness, npc_id, spec.field)
 
@@ -304,8 +304,7 @@ def _run_arm(spec: ProbeSpec, perturbed: bool) -> _ArmData:
         finally:
             _tap.detach()
     _rows, _scores = _rows_from_tap(_tap)
-    return _ArmData(rows=sorted(_rows), scores=_scores,
-                    checkpoints=_checkpoints, ledger_tail=_ledger)
+    return _ArmData(rows=sorted(_rows), scores=_scores, checkpoints=_checkpoints, ledger_tail=_ledger)
 
 
 def _fail_probe(res: ProbeResult, verdict: str, note: str) -> ProbeResult:
@@ -343,9 +342,7 @@ def _gap_verdict(res: ProbeResult, p: _ArmData, base: _ArmData, k: int) -> Probe
     res.utility_delta_observed = bool(res.score_diffs)
     res.notes.append("state → decision: ребро НЕ доказано; finding → владельцу сегмента (машина не чинит)")
     if res.score_diffs:
-        res.notes.append(
-            "annotation: utility_delta=observed, argmax_flip=false — калибровочный материал DecisionHub"
-        )
+        res.notes.append("annotation: utility_delta=observed, argmax_flip=false — калибровочный материал DecisionHub")
     return res
 
 
@@ -363,17 +360,20 @@ def run_probe(spec: ProbeSpec) -> ProbeResult:
         _aa1 = _run_arm(spec, perturbed=False)
         _aa2 = _run_arm(spec, perturbed=False)
         if _aa1.rows != _aa2.rows:
-            return _fail_probe(_res, "INVALID",
-                "A/A-дрейф (траектория): прибор ловит RNG-шум, не каузальность — чинить ПРИБОР")
+            return _fail_probe(
+                _res, "INVALID", "A/A-дрейф (траектория): прибор ловит RNG-шум, не каузальность — чинить ПРИБОР"
+            )
         if _aa1.scores != _aa2.scores:
-            return _fail_probe(_res, "INVALID",
+            return _fail_probe(
+                _res,
+                "INVALID",
                 "A/A-дрейф (scores_trace): суб-пороговая дивергенция между идентичными "
                 "рукавами — вердикты контаминированы; кандидат №1 — глобальный backoff-"
                 "стейт LLM-роутера (smoke S319: arm-1 платит 3 retry, arm-2 fast-fail); "
-                "чинить изоляцию рукавов, не мир")
+                "чинить изоляцию рукавов, не мир",
+            )
         if not _aa1.rows:
-            return _fail_probe(_res, "INVALID",
-                "траектория пуста: npc_contexts не материализуются — прибор слеп")
+            return _fail_probe(_res, "INVALID", "траектория пуста: npc_contexts не материализуются — прибор слеп")
         _base, _p = _aa1, _run_arm(spec, perturbed=True)
         _k = spec.inject_after_tick
 
@@ -386,24 +386,31 @@ def run_probe(spec: ProbeSpec) -> ProbeResult:
         _pK1 = _p.checkpoints.get("at_K1")
         _bK1 = _base.checkpoints.get("at_K1")
         _res.checkpoints = {
-            "base_at_K": _bK, "post_injection": _pPost,
-            "p_at_K1": _pK1, "base_at_K1": _bK1,
+            "base_at_K": _bK,
+            "post_injection": _pPost,
+            "p_at_K1": _pK1,
+            "base_at_K1": _bK1,
             "p_at_N": _p.checkpoints.get("at_N"),
             "base_at_N": _base.checkpoints.get("at_N"),
         }
         _thr = max(0.5, abs(spec.injection) * _SURVIVAL_MIN_FRACTION)
         if _bK is None or _pPost is None or _pK1 is None or _bK1 is None:
-            return _fail_probe(_res, "INJECTION_FAILED",
-                "точка чтения поля недостижима (checkpoint=None) — отдельная находка")
+            return _fail_probe(
+                _res, "INJECTION_FAILED", "точка чтения поля недостижима (checkpoint=None) — отдельная находка"
+            )
         if abs(_pPost - _bK) < _thr:
-            return _fail_probe(_res, "INJECTION_FAILED",
-                f"дельта не доехала до точки чтения (post={_pPost}, base={_bK}, порог={_thr})")
+            return _fail_probe(
+                _res, "INJECTION_FAILED", f"дельта не доехала до точки чтения (post={_pPost}, base={_bK}, порог={_thr})"
+            )
         if abs(_pK1 - _bK1) < _thr:
             # Дельта перезаписана физикой тика ДО первого решения: consumer
             # неизвестен, organ не обвинён (дисциплина INJECTION_FAILED ≠ GAP)
-            _fail_probe(_res, "INJECTION_FAILED",
+            _fail_probe(
+                _res,
+                "INJECTION_FAILED",
                 f"дельта перезаписана физикой тика до первого решения "
-                f"(K1: p={_pK1}, base={_bK1}) — consumer неизвестен, organ не обвинён")
+                f"(K1: p={_pK1}, base={_bK1}) — consumer неизвестен, organ не обвинён",
+            )
             _res.overwrite_source = _p.ledger_tail
             return _res
 
@@ -415,15 +422,11 @@ def run_probe(spec: ProbeSpec) -> ProbeResult:
 
         _res.verdict = "WIRED"
         _ticks = sorted({r[0] for r in _pr} | {r[0] for r in _br})
-        _fd = next((_t for _t in _ticks
-                    if [r for r in _pr if r[0] == _t] != [r for r in _br if r[0] == _t]),
-                   None)
+        _fd = next((_t for _t in _ticks if [r for r in _pr if r[0] == _t] != [r for r in _br if r[0] == _t]), None)
         _res.first_divergence_tick = _fd
         _res.divergence_delta = (_fd - _k) if _fd is not None else None
         _res.argmax_flip = {r[:3] for r in _pr} != {r[:3] for r in _br}
-        _res.notes.append(
-            f"first_divergence: tick={_fd} (Δ={_res.divergence_delta} от инъекции после тика {_k})"
-        )
+        _res.notes.append(f"first_divergence: tick={_fd} (Δ={_res.divergence_delta} от инъекции после тика {_k})")
         return _res
     finally:
         _dh.SCORE_NOISE_RANGE = _orig_noise
@@ -433,8 +436,7 @@ def run_smoke(npc_id: str = "merchant_goran", horizon: int = 4) -> bool:
     """Bring-up гейт №1: A/A-детерминизм прибора БЕЗ инъекции — на двух
     уровнях (rows + scores). GREEN = измерительным каналам можно верить;
     RED = чинить прибор, не мир."""
-    _spec = ProbeSpec(field="body_state.fatigue", npc_id=npc_id,
-                      injection=0.0, horizon=horizon)
+    _spec = ProbeSpec(field="body_state.fatigue", npc_id=npc_id, injection=0.0, horizon=horizon)
     import app.services.npc.decision_hub as _dh
 
     _orig = _dh.SCORE_NOISE_RANGE
@@ -459,11 +461,12 @@ def run_smoke(npc_id: str = "merchant_goran", horizon: int = 4) -> bool:
                 print(f"[SMOKE] первый дрейф (rows): {_r1} vs {_r2}")
                 break
     if not _scores_ok:
-        _diff = sorted(k for k in set(_a.scores) | set(_b.scores)
-                       if _a.scores.get(k) != _b.scores.get(k))
+        _diff = sorted(k for k in set(_a.scores) | set(_b.scores) if _a.scores.get(k) != _b.scores.get(k))
         if _diff:
-            print(f"[SMOKE] дрейф scores: {len(_diff)} ключей; первый: {_diff[0]}: "
-                  f"{_a.scores.get(_diff[0])} vs {_b.scores.get(_diff[0])}")
+            print(
+                f"[SMOKE] дрейф scores: {len(_diff)} ключей; первый: {_diff[0]}: "
+                f"{_a.scores.get(_diff[0])} vs {_b.scores.get(_diff[0])}"
+            )
     print(f"[SMOKE] fatigue checkpoints (base): {_a.checkpoints}")
     print(f"ИТОГ SMOKE: {'GREEN — прибор детерминирован' if _ok else 'RED — INVALID-прибор'}")
     return _ok
@@ -475,7 +478,9 @@ if __name__ == "__main__":
         sys.exit(0 if run_smoke() else 1)
     if _mode == "probe":
         _spec = ProbeSpec(
-            field=sys.argv[2], npc_id=sys.argv[3], injection=float(sys.argv[4]),
+            field=sys.argv[2],
+            npc_id=sys.argv[3],
+            injection=float(sys.argv[4]),
             horizon=int(sys.argv[5]) if len(sys.argv) > 5 else 6,
             write_kind=sys.argv[6] if len(sys.argv) > 6 else "PHYSIOLOGY",
         )

@@ -9,6 +9,7 @@ path: /project/backend/tests/micro/test_npc_addressing_delivery.py
     app.services.events.npc_addressing_delivery_subscriber
 Основные сущности: тесты battery 1-21
 """
+
 from __future__ import annotations
 
 import threading
@@ -344,6 +345,7 @@ def test_11_new_ctx_no_inheritance():
 def test_12_excluded_projection_intact():
     """NPC_ADDRESSES_PLAYER остаётся в EXCLUDED_EVENT_TYPES (regression)."""
     from app.services.game_loop.idle_event_projection import EXCLUDED_EVENT_TYPES
+
     assert EventType.NPC_ADDRESSES_PLAYER in EXCLUDED_EVENT_TYPES
 
 
@@ -375,6 +377,7 @@ def test_13_intent_ssot_preserved():
 def test_14_no_new_persistent_fields():
     """NPCState не получила новых полей (regression)."""
     from app.models.npc_state import NPCState
+
     # Verify C3-A1 did not add fields to NPCState
     state = NPCState(npc_id="test")
     assert not hasattr(state, "addressing_buffer")

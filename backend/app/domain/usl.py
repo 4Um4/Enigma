@@ -22,6 +22,7 @@ NPC и в живом игровом диалоге. USL — не третья п
     USL-5: провенанс трассируем (source_span обязателен)
     USL-6: детерминизм (повторный прогон = идентичный USLUnit)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -35,6 +36,7 @@ from app.domain.chronicle import KnowledgeChannel
 
 # ── Источник USLUnit (USL-2: источник ≠ истина) ──────────────────────────────
 
+
 class USLSourceKind(str, Enum):
     """Происхождение смысловой единицы.
 
@@ -42,15 +44,16 @@ class USLSourceKind(str, Enum):
     за истинность отвечают существующие writer-каналы (canonize, BeliefRevisionEngine).
     PLAYER_ASSERTION никогда не становится AUTHOR_CANON (инвариант USL-2).
     """
-    AUTHOR_CANON = "author_canon"           # канонизированная хроника (статус AUTHOR_*)
+
+    AUTHOR_CANON = "author_canon"  # канонизированная хроника (статус AUTHOR_*)
     AUTHOR_HYPOTHESIS = "author_hypothesis"  # LLM_DRAFT — гипотеза декомпозитора
-    PLAYER_ASSERTION = "player_assertion"   # утверждение игрока (не становится каноном)
-    NPC_SPEECH = "npc_speech"               # реплика NPC
-    NPC_MEMORY = "npc_memory"               # воспоминание NPC
-    WORLD_CHRONICLE = "world_chronicle"     # хроника мира (проекции CCH-5)
-    RUMOR = "rumor"                         # слух
-    INFERENCE = "inference"                 # вывод (BC-1 dormant; testimony — после BC-5)
-    HYPOTHESIS = "hypothesis"               # модель-гипотеза (галлюцинация LLM, не разобрано)
+    PLAYER_ASSERTION = "player_assertion"  # утверждение игрока (не становится каноном)
+    NPC_SPEECH = "npc_speech"  # реплика NPC
+    NPC_MEMORY = "npc_memory"  # воспоминание NPC
+    WORLD_CHRONICLE = "world_chronicle"  # хроника мира (проекции CCH-5)
+    RUMOR = "rumor"  # слух
+    INFERENCE = "inference"  # вывод (BC-1 dormant; testimony — после BC-5)
+    HYPOTHESIS = "hypothesis"  # модель-гипотеза (галлюцинация LLM, не разобрано)
 
 
 @dataclass(frozen=True)
@@ -60,14 +63,16 @@ class USLSourceRef:
     span обязателен (USL-5: поле без происхождения запрещено).
     tick/ordinal — опциональны, зависят от источника.
     """
+
     source_kind: USLSourceKind
-    document_ref: str = ""          # npc_id (биография) / npc_id+tick (ввод) / campaign_id
-    span: str = ""                   # подстрока исходного текста (USL-5)
-    tick: Optional[int] = None       # для игрового ввода (ClaimEvent.tick)
-    ordinal: Optional[int] = None    # для биографического фрагмента (fragment_ord)
+    document_ref: str = ""  # npc_id (биография) / npc_id+tick (ввод) / campaign_id
+    span: str = ""  # подстрока исходного текста (USL-5)
+    tick: Optional[int] = None  # для игрового ввода (ClaimEvent.tick)
+    ordinal: Optional[int] = None  # для биографического фрагмента (fragment_ord)
 
 
 # ── Эпистемика (USL-3: не решает истинность) ─────────────────────────────────
+
 
 @dataclass(frozen=True)
 class USLEpistemics:
@@ -77,13 +82,15 @@ class USLEpistemics:
     истинности утверждения. disputed=True — противоречие уже известно в данных
     (прецедент BeliefGrounding.MISTAKEN).
     """
+
     source_kind: USLSourceKind
-    channel: Optional[KnowledgeChannel] = None    # реюз chronicle.KnowledgeChannel
-    certainty: Optional[float] = None              # 0..1, None = не оценено
+    channel: Optional[KnowledgeChannel] = None  # реюз chronicle.KnowledgeChannel
+    certainty: Optional[float] = None  # 0..1, None = не оценено
     disputed: bool = False
 
 
 # ── Сущности (тонкая ссылка, не копия EntityRef) ─────────────────────────────
+
 
 @dataclass(frozen=True)
 class USLEntityRef:
@@ -96,13 +103,15 @@ class USLEntityRef:
     kind: "resolved" (npc_id) | "new_npc" | "white_spot" | "unknown_person"
           | "self" | "addressee" | "player" | "unknown"
     """
+
     kind: str
-    ref_id: str = ""              # npc_id / white_spot_id / player / addressee / unknown
-    name_hint: str = ""           # для unresolved — сырая NP-группа
-    source_span: str = ""         # USL-5: подстрока, из которой возникла ссылка
+    ref_id: str = ""  # npc_id / white_spot_id / player / addressee / unknown
+    name_hint: str = ""  # для unresolved — сырая NP-группа
+    source_span: str = ""  # USL-5: подстрока, из которой возникла ссылка
 
 
 # ── События (закрытый реестр USLPredicate) ───────────────────────────────────
+
 
 class USLPredicate(str, Enum):
     """Закрытый реестр USL-предикатов (расширение = мини-ADR).
@@ -115,6 +124,7 @@ class USLPredicate(str, Enum):
     Биографические расширения маппируются из EntryKind через явную таблицу
     (прецедент entry_kind_to_cause_kind, chronicle.py:114-123).
     """
+
     # Общие 6 (значения совпадают с Predicate.value)
     STOLE = "stole"
     ATTACKED = "attacked"
@@ -123,15 +133,15 @@ class USLPredicate(str, Enum):
     EXITS_TO = "exits_to"
     NAME = "name"
     # Биографические расширения (из EntryKind/payload)
-    WORK_FOR = "work_for"           # EntryKind.RELATIONSHIP «работал на»
-    KNOWS = "knows"                 # KNOWLEDGE_LINK «знал»
-    BORN = "born"                   # EVENT «родился»
-    DIED = "died"                   # EVENT «умер»
-    LIVES_AT = "lives_at"           # LOCATION «живёт в»
-    HAS_TRAIT = "has_trait"         # TRAIT_SEED
-    HAS_EFFECT = "has_effect"       # EFFECT
-    BELIEVES = "believes"           # BELIEF_SEED
-    DESIRES = "desires"             # DESIRE_SEED
+    WORK_FOR = "work_for"  # EntryKind.RELATIONSHIP «работал на»
+    KNOWS = "knows"  # KNOWLEDGE_LINK «знал»
+    BORN = "born"  # EVENT «родился»
+    DIED = "died"  # EVENT «умер»
+    LIVES_AT = "lives_at"  # LOCATION «живёт в»
+    HAS_TRAIT = "has_trait"  # TRAIT_SEED
+    HAS_EFFECT = "has_effect"  # EFFECT
+    BELIEVES = "believes"  # BELIEF_SEED
+    DESIRES = "desires"  # DESIRE_SEED
 
 
 @dataclass(frozen=True)
@@ -143,8 +153,9 @@ class USLEvent:
     completed — завершённость («проработал пять лет» → True; «работаю» → False;
     None = не сказано).
     """
+
     predicate: USLPredicate
-    subject: Optional[str] = None          # ref_id USLEntityRef
+    subject: Optional[str] = None  # ref_id USLEntityRef
     object: Optional[str] = None
     polarity: bool = True
     completed: Optional[bool] = None
@@ -153,6 +164,7 @@ class USLEvent:
 
 
 # ── Время (6 форм по вердикту Мастера Q2) ─────────────────────────────────────
+
 
 class USLTimeKind(str, Enum):
     """Форма времени (вердикт Мастера Q2: различать 6 форм).
@@ -168,6 +180,7 @@ class USLTimeKind(str, Enum):
     «Пять лет назад работал» — RELATIVE (точка в прошлом относительно speech_time).
     Это разные семантические конструкции (поправка Мастера к Q2).
     """
+
     POINT = "point"
     DURATION = "duration"
     INTERVAL = "interval"
@@ -183,12 +196,13 @@ class USLAnchorKind(str, Enum):
     AgeAnchorKind не трогаем (вердикт Q2). USLAnchorKind — отдельный реестр
     для общего слоя, включающий оси, которых в хронике нет (GAME_TICK, SPEECH_TIME).
     """
-    AGE_N = "age_n"               # возраст (N лет) — реюз AgeAnchorKind.AGE_N
-    YEARS_AGO = "years_ago"       # «N лет назад» — реюз AgeAnchorKind.YEARS_AGO
-    WORLD_YEAR = "world_year"     # год мира (chronicle.py:339, потребитель пока 0)
-    GAME_TICK = "game_tick"        # тик симуляции (ClaimEvent.tick)
-    SPEECH_TIME = "speech_time"   # момент речи (для PLAYER_ASSERTION/NPC_SPEECH)
-    EVENT_REF = "event_ref"       # ссылка на событие (relative_to)
+
+    AGE_N = "age_n"  # возраст (N лет) — реюз AgeAnchorKind.AGE_N
+    YEARS_AGO = "years_ago"  # «N лет назад» — реюз AgeAnchorKind.YEARS_AGO
+    WORLD_YEAR = "world_year"  # год мира (chronicle.py:339, потребитель пока 0)
+    GAME_TICK = "game_tick"  # тик симуляции (ClaimEvent.tick)
+    SPEECH_TIME = "speech_time"  # момент речи (для PLAYER_ASSERTION/NPC_SPEECH)
+    EVENT_REF = "event_ref"  # ссылка на событие (relative_to)
     UNKNOWN = "unknown"
 
 
@@ -200,6 +214,7 @@ class USLTimeExpression:
     relative_to — event_ref / unit_id, к которому относится INTERVAL/ORDER.
     source_span обязателен (USL-5).
     """
+
     kind: USLTimeKind
     anchor: Optional[USLAnchorKind] = None
     value: Optional[int] = None
@@ -209,10 +224,12 @@ class USLTimeExpression:
 
 # ── Причинность (статус — за существующими слоями S366) ──────────────────────
 
+
 class USLCausalRelation(str, Enum):
     """Реестр причинных связей (реюз TruthRelation).
     USL не создаёт новую причинность (USL §6.4).
     """
+
     CAUSES = "causes"
     ENABLES = "enables"
     EXPLAINS = "explains"
@@ -228,6 +245,7 @@ class USLCausalLink:
     Запрет: USLTimeExpression(ORDER) никогда не конвертируется в USLCausalLink
     автоматически (хронология ≠ причина).
     """
+
     relation: USLCausalRelation
     cause_ref: str
     effect_ref: str
@@ -237,6 +255,7 @@ class USLCausalLink:
 
 # ── Отношения (без скаляров — USL §4.5) ──────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class USLRelation:
     """Отношение между участниками.
@@ -245,8 +264,9 @@ class USLRelation:
     (chronicle.py:154-168). Скаляры вычисляются потребителями (сеялкой,
     RelationshipStore) из структуры. USL хранит только тип и valence.
     """
-    relation_type: str             # "work_relation" / "kinship" / "alliance" / ...
-    subject: str                   # ref_id USLEntityRef
+
+    relation_type: str  # "work_relation" / "kinship" / "alliance" / ...
+    subject: str  # ref_id USLEntityRef
     object: str
     valence: Optional[str] = None  # "positive" / "negative" / "neutral"
     source_span: str = ""
@@ -254,8 +274,10 @@ class USLRelation:
 
 # ── Модальность (None = недостаточная информация, не False) ──────────────────
 
+
 class USLModality(str, Enum):
     """Модальность акта (реюз _VALID_ACT_MODALITIES из intent_compressor)."""
+
     REALIS = "REALIS"
     HYPOTHETICAL = "HYPOTHETICAL"
     CONDITIONAL = "CONDITIONAL"
@@ -270,6 +292,7 @@ class USLModal:
     intent_profile.py:53-55). Гейт потребителя (IntentReadiness) решает, что
     делать с None — USL лишь гарантирует, что модальность дошла до гейта.
     """
+
     negated: Optional[bool] = None
     modality: Optional[USLModality] = None
     condition: Optional[str] = None
@@ -278,6 +301,7 @@ class USLModal:
 
 
 # ── Контекст разговора / фрагмента ───────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class USLContext:
@@ -288,6 +312,7 @@ class USLContext:
     dialogue_thread/conversation_continuation, place (scene location),
     fragment_ord (для биографии).
     """
+
     references: Tuple[str, ...] = ()
     addressee: Optional[str] = None
     dialogue_thread: Optional[str] = None
@@ -297,6 +322,7 @@ class USLContext:
 
 
 # ── USLUnit — минимальная единица смысла ─────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class USLUnit:
@@ -310,9 +336,10 @@ class USLUnit:
     собирающая общий смысл из обоих контуров. origin_kind/origin_id указывают
     на исходный объект для трассировки, не дублируя его.
     """
-    unit_id: str                          # детерминированный (make_unit_id)
+
+    unit_id: str  # детерминированный (make_unit_id)
     source_ref: USLSourceRef
-    text_span: str                        # USL-5: поле без происхождения запрещено
+    text_span: str  # USL-5: поле без происхождения запрещено
 
     entities: Tuple[USLEntityRef, ...] = ()
     events: Tuple[USLEvent, ...] = ()
@@ -320,14 +347,12 @@ class USLUnit:
     causal: Tuple[USLCausalLink, ...] = ()
     relations: Tuple[USLRelation, ...] = ()
     modality: USLModal = field(default_factory=USLModal)
-    epistemics: USLEpistemics = field(
-        default_factory=lambda: USLEpistemics(source_kind=USLSourceKind.HYPOTHESIS)
-    )
+    epistemics: USLEpistemics = field(default_factory=lambda: USLEpistemics(source_kind=USLSourceKind.HYPOTHESIS))
     context: USLContext = field(default_factory=USLContext)
 
     # Трассировка к источнику (не дублирование)
-    origin_kind: str = ""   # "chronicle_entry" / "intent_field" / "fragment"
-    origin_id: str = ""     # entry_id / intent hash / fragment_ord
+    origin_kind: str = ""  # "chronicle_entry" / "intent_field" / "fragment"
+    origin_id: str = ""  # entry_id / intent hash / fragment_ord
 
 
 def make_unit_id(source_ref: USLSourceRef, text_span: str) -> str:

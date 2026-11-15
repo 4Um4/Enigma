@@ -77,9 +77,7 @@ def build_npc_context_block(
     act_text = own_pos.get("activity", "")
 
     # SpatialService v1.2 динамически резолвит лейблы узлов
-    pos_label = (
-        spatial_service.get_node_label(pos_text) if spatial_service else pos_text
-    )
+    pos_label = spatial_service.get_node_label(pos_text) if spatial_service else pos_text
 
     _activity_map = {
         "cleaning_tables": "убираешься",
@@ -119,8 +117,7 @@ def build_npc_context_block(
     elif target_id:
         # Игрок обращается к другому конкретному NPC
         lines.append(
-            f"- Игрок обращается к {target_name or target_id}, НЕ к тебе. "
-            f"Ты МОЛЧИШЬ — не говори ничего вслух."
+            f"- Игрок обращается к {target_name or target_id}, НЕ к тебе. Ты МОЛЧИШЬ — не говори ничего вслух."
         )
     else:
         # Нет явного адресата
@@ -129,8 +126,7 @@ def build_npc_context_block(
     # ── Предупреждение о физическом присутствии ───────────────────────────
     if distance_m is not None and distance_m < 1.5:
         lines.append(
-            "ВАЖНО: Игрок физически рядом с тобой (< 1.5 м). "
-            "Ты НЕ МОЖЕШЬ одновременно находиться в другом месте сцены."
+            "ВАЖНО: Игрок физически рядом с тобой (< 1.5 м). Ты НЕ МОЖЕШЬ одновременно находиться в другом месте сцены."
         )
 
     return "\n".join(lines)
@@ -250,9 +246,7 @@ def get_scene_description(scene_state: dict) -> str:
         for npc_id, pos in npc_positions.items():
             if pos.get("state") == "dead":
                 continue
-            position = position_map.get(
-                pos.get("position", ""), pos.get("position", "")
-            )
+            position = position_map.get(pos.get("position", ""), pos.get("position", ""))
             visible = pos.get("visible", True)
             npc_name = _npc_id_to_display(npc_id)
             hidden_tag = "" if visible else " [скрыт]"
@@ -296,24 +290,17 @@ def get_scene_description(scene_state: dict) -> str:
                 return "близко"
             return "в нескольких шагах" if d < 10.0 else "далеко"
 
-        dist_parts = [
-            f"{_npc_id_to_display(nid)}: {_dist_to_word(dist)}"
-            for nid, dist in distances.items()
-        ]
+        dist_parts = [f"{_npc_id_to_display(nid)}: {_dist_to_word(dist)}" for nid, dist in distances.items()]
         lines.append(f"- Расстояния: {', '.join(dist_parts)}")
 
     lines.append("")
     lines.append("ПРАВИЛА РЕАКЦИЙ NPC (ОБЯЗАТЕЛЬНО):")
     if target_npc_name:
         lines.append(
-            f"1. Игрок обратился к {target_npc_name} — "
-            f"ТОЛЬКО {target_npc_name} отвечает. Остальные NPC молчат."
+            f"1. Игрок обратился к {target_npc_name} — ТОЛЬКО {target_npc_name} отвечает. Остальные NPC молчат."
         )
     # else: не показываем ложное правило "не назвал" — имя может быть в тексте действия
-    lines.append(
-        "2. NPC не может одновременно быть рядом с игроком "
-        "И делать что-то в другом месте сцены."
-    )
+    lines.append("2. NPC не может одновременно быть рядом с игроком И делать что-то в другом месте сцены.")
     lines.append(
         "3. Все позиции из блока NPC выше — абсолютная правда. "
         "Не придумывай что NPC переместился если SceneState этого не зафиксировал."

@@ -10,6 +10,7 @@ path: /project/backend/tests/sandbox/superbox_social_deterministic.py
 Зависимости: app.services.game_loop_builder, threading (sync-замена пула)
 Запуск: cd backend; python tests/sandbox/superbox_social_deterministic.py
 """
+
 import logging
 import os
 import shutil
@@ -24,16 +25,15 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BACKEND_ROOT))
 assert (BACKEND_ROOT / "app" / "errors.py").exists(), (
-    f"BACKEND_ROOT неверен: {BACKEND_ROOT} (нет app/errors.py — "
-    "чужое дерево?)")
+    f"BACKEND_ROOT неверен: {BACKEND_ROOT} (нет app/errors.py — чужое дерево?)"
+)
 
 from app.core.config import settings
 
 # ── Изоляция (контракт-D-уроки: data-копия + чистый world_tick) ──────────
 _data_src = Path(settings.data_dir)
 _data_tmp = Path(tempfile.mkdtemp(prefix="soc_det_data_"))
-shutil.copytree(_data_src, _data_tmp, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(_data_src, _data_tmp, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 _wt = _data_tmp / "sessions" / "Open_road" / "world_tick.json"
 if _wt.exists():
     _wt.unlink()
@@ -43,9 +43,13 @@ os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
 os.environ["DESIRES_ENABLED"] = "1"
 
 logging.basicConfig(level=logging.WARNING)
-for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-           "app.services.llm.llama_cpp_provider", "app.services.memory",
-           "app.services.npc.npc_tick_pipeline"):
+for _n in (
+    "app.services.llm.router",
+    "app.services.llm.provider_manager",
+    "app.services.llm.llama_cpp_provider",
+    "app.services.memory",
+    "app.services.npc.npc_tick_pipeline",
+):
     logging.getLogger(_n).setLevel(logging.CRITICAL)
 logging.getLogger("app.services.npc.state_applicator").setLevel(logging.INFO)
 logging.getLogger("app.services.events.social_subscriber").setLevel(logging.DEBUG)
@@ -55,11 +59,10 @@ from app.services.events.event_types import EventType
 from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN = "Open_road"
-ACTORS = ("merchant_goran", "tavern_keeper_tornin", "maid_lusya",
-          "blacksmith_orm", "guard_borko", "thief_shadow")
+ACTORS = ("merchant_goran", "tavern_keeper_tornin", "maid_lusya", "blacksmith_orm", "guard_borko", "thief_shadow")
 TICKS = 160
 
-SPY_SPOKE = []       # (source, target_id, intent_type)
+SPY_SPOKE = []  # (source, target_id, intent_type)
 SPY_OUTCOME = []
 
 
@@ -67,8 +70,7 @@ def _spy(event):
     _t = str(getattr(event, "type", ""))
     _pl = getattr(event, "payload", {}) or {}
     if _t == "npc_spoke":
-        SPY_SPOKE.append((getattr(event, "source", "?"),
-                          _pl.get("target_id"), _pl.get("intent_type")))
+        SPY_SPOKE.append((getattr(event, "source", "?"), _pl.get("target_id"), _pl.get("intent_type")))
     elif _t == "activity_outcome":
         SPY_OUTCOME.append((getattr(event, "source", "?"), _pl.get("success")))
 
@@ -113,8 +115,7 @@ def _main() -> int:
     # Срезы отношений ДО (SSOT-ридер: player-словарь; trust-письма идут
     # source='player' → social_sub:talk)
     def _rel_snapshot():
-        _rel = getattr(gl, "_rel_store", None) or getattr(
-            getattr(gl, "memory_manager", None), "_relationships", None)
+        _rel = getattr(gl, "_rel_store", None) or getattr(getattr(gl, "memory_manager", None), "_relationships", None)
         try:
             return dict(_rel.get(CAMPAIGN, "player") or {})
         except Exception as _e:
@@ -167,8 +168,7 @@ def _main() -> int:
 
     # D4: next-tick observable (EMA-насыщение спикеров — petля давления)
     _st = gl._get_life_engine().get_npc_states(CAMPAIGN)
-    _ema = {n.get("npc_id"): round(float(n.get("social_input_ema", 0.0)), 3)
-            for n in _st if isinstance(n, dict)}
+    _ema = {n.get("npc_id"): round(float(n.get("social_input_ema", 0.0)), 3) for n in _st if isinstance(n, dict)}
     print(f"[D4] EMA-итог: {_ema}")
     _speakers = {s for s, t, _ in SPY_SPOKE}
     d4 = any(_ema.get(s, 0.0) > 0.0 for s in _speakers)
@@ -176,9 +176,13 @@ def _main() -> int:
     ok &= d4
 
     print("=" * 60)
-    print("🎉 SOCIAL ПРИЧИННАЯ ЦЕПЬ ДОКАЗАНА (детерминированная труба): "
-          "pressure → intent → target → interaction → relationship → "
-          "next-tick" if ok else "❌ НЕ ЗАМКНУТО — см. D1–D4 выше")
+    print(
+        "🎉 SOCIAL ПРИЧИННАЯ ЦЕПЬ ДОКАЗАНА (детерминированная труба): "
+        "pressure → intent → target → interaction → relationship → "
+        "next-tick"
+        if ok
+        else "❌ НЕ ЗАМКНУТО — см. D1–D4 выше"
+    )
     return 0 if ok else 1
 
 

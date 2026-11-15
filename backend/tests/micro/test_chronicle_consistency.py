@@ -1,4 +1,5 @@
 """CCH-2.5 приёмочные тесты ConsistencyService (ADR-O-422)."""
+
 from __future__ import annotations
 
 from app.domain.chronicle import (
@@ -31,9 +32,7 @@ def _entry(npc, **kw):
 
 
 def _doc(npc, age_start, entries):
-    return ChronicleDocument(
-        chronicle_id=f"c_{npc}", npc_ref=npc, entries=tuple(entries), game_start_age=age_start
-    )
+    return ChronicleDocument(chronicle_id=f"c_{npc}", npc_ref=npc, entries=tuple(entries), game_start_age=age_start)
 
 
 REG = CanonicalRegistry(
@@ -83,8 +82,14 @@ def test_cross_shared_role_guard_known_vs_unknown():
     lusya = _doc(
         "maid_lusya",
         14,
-        [_entry("maid_lusya", eid="l1", historical_age=12,
-                object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="стражник"))],
+        [
+            _entry(
+                "maid_lusya",
+                eid="l1",
+                historical_age=12,
+                object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="стражник"),
+            )
+        ],
     )
     borko = _doc(
         "guard_borko",
@@ -97,8 +102,18 @@ def test_cross_shared_role_guard_known_vs_unknown():
 
 
 def test_cross_time_incompatible_no_candidate():
-    lusya = _doc("maid_lusya", 14, [_entry("maid_lusya", eid="l1", historical_age=9,
-                object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="стражник"))])
+    lusya = _doc(
+        "maid_lusya",
+        14,
+        [
+            _entry(
+                "maid_lusya",
+                eid="l1",
+                historical_age=9,
+                object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="стражник"),
+            )
+        ],
+    )
     borko = _doc("guard_borko", 26, [_entry("guard_borko", eid="b1", historical_age=18)])
     rep = ConsistencyService().check([lusya, borko], REG)
     assert rep.by_kind("MERGE_CANDIDATE") == ()
@@ -109,10 +124,10 @@ def test_canon_alias_resolution_and_unknown_npc_contradiction():
         "maid_lusya",
         None,
         [
-            _entry("maid_lusya", eid="e1",
-                   object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="Стражник")),
-            _entry("maid_lusya", eid="e2",
-                   object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none")),
+            _entry(
+                "maid_lusya", eid="e1", object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="Стражник")
+            ),
+            _entry("maid_lusya", eid="e2", object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none")),
         ],
     )
     rep = ConsistencyService().check([doc], REG)
@@ -122,14 +137,20 @@ def test_canon_alias_resolution_and_unknown_npc_contradiction():
 
 def test_canon_secret_known_by_mismatch():
     reg = CanonicalRegistry(
-        alias_to_npc={}, archetype_of={"maid_lusya": "maid"},
+        alias_to_npc={},
+        archetype_of={"maid_lusya": "maid"},
         secret_known_by={"lusya_orm_borko": frozenset({"maid_lusya", "blacksmith_orm", "guard_borko"})},
     )
     doc = _doc(
         "maid_lusya",
         None,
-        [_entry("maid_lusya", eid="s1", payload={"is_secret": True, "secret_id": "lusya_orm_borko",
-                                                 "known_by": ["maid_lusya"]})],
+        [
+            _entry(
+                "maid_lusya",
+                eid="s1",
+                payload={"is_secret": True, "secret_id": "lusya_orm_borko", "known_by": ["maid_lusya"]},
+            )
+        ],
     )
     rep = ConsistencyService().check([doc], reg)
     sync = rep.by_kind("CANON_SYNC")
@@ -153,8 +174,7 @@ def test_canon_unknown_name_question():
     doc = _doc(
         "maid_lusya",
         None,
-        [_entry("maid_lusya", eid="e1",
-                object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="Лом"))],
+        [_entry("maid_lusya", eid="e1", object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="Лом"))],
     )
     rep = ConsistencyService().check([doc], REG)
     assert any(f.kind == "QUESTION" and "Лом" in f.message for f in rep.findings)

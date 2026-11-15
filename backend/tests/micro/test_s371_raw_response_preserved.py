@@ -5,6 +5,7 @@ S371.0: DecomposeResult.raw_response — сырой ответ LLM сохран�
 должен сохраняться в DecomposeResult.raw_response для диагностики
 (классификация truncation/unicode/quote/escape/unknown).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +38,7 @@ def test_s371_success_has_no_raw_response():
 
 def test_s371_decompose_preserves_raw_on_decomposition_error():
     """decompose() сохраняет сырой ответ LLM при DecompositionError."""
+
     class _MockRouter:
         async def request(self, **kwargs):
             return '{"items": [{"kind": "EVENT", "draft_payload": {}, "confidence": 0.5}],}'

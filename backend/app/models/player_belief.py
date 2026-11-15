@@ -12,9 +12,10 @@ from typing import Tuple
 
 
 class BeliefValue(str, Enum):
-    TRUE = "TRUE"       # Игрок уверен, что это правда
-    FALSE = "FALSE"     # Игрок уверен, что это ложь (ошибочное убеждение)
-    UNKNOWN = "UNKNOWN" # Игрок подозревает, но не уверен
+    TRUE = "TRUE"  # Игрок уверен, что это правда
+    FALSE = "FALSE"  # Игрок уверен, что это ложь (ошибочное убеждение)
+    UNKNOWN = "UNKNOWN"  # Игрок подозревает, но не уверен
+
 
 @dataclass(frozen=True)
 class PlayerBelief:

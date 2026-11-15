@@ -27,6 +27,7 @@ UI-индикатор (церемония Б) — отдельная задач�
 
 LLM-free: idle_tick без interventions — autonomous NPC movement/activity.
 """
+
 import logging
 
 import pytest
@@ -101,32 +102,19 @@ class TestLCImpl2TelegraphReachesClient:
             if _events:
                 _evt = _events[0]
                 assert isinstance(_evt, dict), (
-                    f"LC-IMPL-2 FAIL: элемент events не dict "
-                    f"({type(_evt).__name__}: {_evt!r})"
+                    f"LC-IMPL-2 FAIL: элемент events не dict ({type(_evt).__name__}: {_evt!r})"
                 )
-                assert "cause" in _evt, (
-                    f"LC-IMPL-2 FAIL: 'cause' отсутствует в events[0]: {_evt!r}"
-                )
-                assert "target" in _evt, (
-                    f"LC-IMPL-2 FAIL: 'target' отсутствует в events[0]: {_evt!r}"
-                )
-                assert "value" in _evt, (
-                    f"LC-IMPL-2 FAIL: 'value' отсутствует в events[0]: {_evt!r}"
-                )
-                print(
-                    f"[LC-IMPL-2] event: cause={_evt['cause']} "
-                    f"target={_evt['target']} value={_evt['value']}"
-                )
+                assert "cause" in _evt, f"LC-IMPL-2 FAIL: 'cause' отсутствует в events[0]: {_evt!r}"
+                assert "target" in _evt, f"LC-IMPL-2 FAIL: 'target' отсутствует в events[0]: {_evt!r}"
+                assert "value" in _evt, f"LC-IMPL-2 FAIL: 'value' отсутствует в events[0]: {_evt!r}"
+                print(f"[LC-IMPL-2] event: cause={_evt['cause']} target={_evt['target']} value={_evt['value']}")
                 return  # первый найденный event — тест GREEN
 
         # Если за 5 тиков нет событий v1-словаря — это валидное состояние
         # (NPC могут не выполнять ACTIVITY_OUTCOME/THEFT в этом прогоне).
         # Канал живой (test_events_key_present + test_events_key_is_list GREEN),
         # но событий нет — не дефект LC-IMPL-2, а ограничение v1-словаря.
-        print(
-            "[LC-IMPL-2] no v1-dictionary events in 5 ticks — "
-            "channel alive, but no ACTIVITY_OUTCOME/THEFT generated"
-        )
+        print("[LC-IMPL-2] no v1-dictionary events in 5 ticks — channel alive, but no ACTIVITY_OUTCOME/THEFT generated")
 
 
 if __name__ == "__main__":

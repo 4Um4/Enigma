@@ -6,6 +6,7 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_t
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_test.py
 """
+
 import atexit
 import logging
 import sys
@@ -22,10 +23,11 @@ sys.path.insert(0, str(_ROOT))
 # module-level atexit handler. Принцип Мастера: идентификация ≠ владение.
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="epistemic_2nd")
 except Exception as e:
     print(f"⚠️ Внимание: LLM недоступна ({e}). Тест продолжает работу без LLM.")
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_SECOND_ORDER")
 logger.setLevel(logging.INFO)
 
@@ -47,32 +49,32 @@ NPC_A = "thief_shadow"
 NPC_B = "merchant_goran"
 NPC_C = "guard_borko"
 
+
 def inject_lie(game_loop):
     """Инъецирует ложное убеждение напрямую в EpistemicStore NPC_C (guard_borko)."""
     from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
     from app.services.game_loop.scene_init import ensure_scene_initialized
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}),
-        scene_state=_scene
+        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
     )
-    
+
     # S198 FIX: Принудительно будим thief_shadow (NPC_A), чтобы SLEEP_GUARD не блокировал WARN.
     _all_npcs = game_loop._get_life_engine().get_npc_states(CAMPAIGN_ID)
     for _n in _all_npcs:
         if _n.get("npc_id") == NPC_A:
             _n["routine"] = _n.get("routine", {})
             _n["routine"]["current"] = "idle"
-            _n["routine"]["schedule"] = {} # Очищаем расписание, чтобы _should_sleep = False
+            _n["routine"]["schedule"] = {}  # Очищаем расписание, чтобы _should_sleep = False
             _n["body_state"] = _n.get("body_state", {})
             _n["body_state"]["sleep_pressure"] = 0.0
             _n["body_state"]["arousal"] = 1.0
-            
+
     # S197 FIX: Инъецируем STM для NPC_C (guard_borko) и NPC_B (merchant_goran), чтобы обойти ADR-O-342.
     # В логе видно, что guard_borko пытается WARN merchant_goran, но без STM понижается до approach.
     _mem_mgr = getattr(game_loop._tick_orch, "_memory_manager", None)
@@ -86,7 +88,7 @@ def inject_lie(game_loop):
             target_id=NPC_B,
             intent="talk",
             tone="serious",
-            tick=1
+            tick=1,
         )
         _mem_mgr.add_dialogue_turn(
             campaign_id=CAMPAIGN_ID,
@@ -97,16 +99,11 @@ def inject_lie(game_loop):
             target_id=NPC_A,
             intent="talk",
             tone="neutral",
-            tick=1
+            tick=1,
         )
-    
+
     _epistemic_store = game_loop._tick_orch._epistemic_store
-    _prop = Proposition(
-        subject_id=NPC_B,
-        predicate=Predicate.STOLE,
-        object_id="apple",
-        polarity=True
-    )
+    _prop = Proposition(subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True)
     _record = EpistemicRecord(
         agent_id=NPC_A,  # S197: Инъецируем убеждение в thief_shadow (NPC_A)
         proposition=_prop,
@@ -114,30 +111,31 @@ def inject_lie(game_loop):
         source_id="test_injector",
         source_claim_id="test_claim_1",
         first_observed_tick=1,
-        last_updated_tick=1
+        last_updated_tick=1,
     )
     _epistemic_store.upsert(_record)
+
 
 def run_tick(game_loop):
     from app.services.game_loop.scene_init import ensure_scene_initialized
     from app.services.spatial.spatial_factory import SpatialFactory
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     # S198 FIX: Устанавливаем честное SSOT время 22:00.
     # game_time_seconds — для Phase 0.5 (advance +60s -> 22:01).
     # environment.time_of_day — для _parse_game_time в LifeEngine/NpcTickPipeline.
     _scene["game_time_seconds"] = 22 * 3600
     _scene.setdefault("environment", {})["time_of_day"] = "22:00"
-    
+
     _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=CAMPAIGN_ID, location_id=LOCATION_ID, scene_state=_scene
     )
     _all_npcs = game_loop._get_life_engine().get_npc_states(CAMPAIGN_ID)
-    
+
     result = game_loop._tick_orch.execute(
         campaign_id=CAMPAIGN_ID,
         scene_state=_scene,
@@ -149,68 +147,68 @@ def run_tick(game_loop):
     )
     return result
 
+
 def execute_scheduler(game_loop, result):
     _scene = getattr(result, "final_scene_state", None) or {}
-    
+
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}),
-        scene_state=_scene
+        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
     )
-    
-    game_loop._task_scheduler.execute_pending(
-        scene_state=_scene,
-        campaign_id=CAMPAIGN_ID
-    )
+
+    game_loop._task_scheduler.execute_pending(scene_state=_scene, campaign_id=CAMPAIGN_ID)
+
 
 def main():
     logger.info("=== SUPERBOX-013: SECOND-ORDER OBSERVATION TEST ===")
-    
+
     # --- CONTROL RUN ---
     logger.info("[1/4] Control Run: No lie injected.")
     _game_loop_ctrl = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    
+
     # --- TREATMENT RUN ---
     logger.info("[2/4] Treatment Run: Injecting lie into NPC_A.")
     game_loop_treat = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    
+
     # S197 FIX: Прогреваем сцену, чтобы npc_positions заполнились и SpatialQueryService работал
     _ = run_tick(game_loop_treat)
-    
+
     inject_lie(game_loop_treat)
-    
+
     logger.info("[3/4] Running tick for Treatment...")
     result_treat = run_tick(game_loop_treat)
-    
+
     logger.info("[4/4] Executing TaskScheduler for Treatment...")
     execute_scheduler(game_loop_treat, result_treat)
-    
+
     # --- VALIDATION ---
     _epistemic_store = game_loop_treat._tick_orch._epistemic_store
-    
+
     # Agent A must have the injected belief
     rec_A = _epistemic_store.get(NPC_A)
     assert rec_A is not None, "NPC_A must have the injected belief"
     assert rec_A.proposition.subject_id == NPC_B, "NPC_A's belief must be about NPC_B"
     logger.info(f"[VALIDATION] NPC_A belief: {rec_A.proposition.subject_id} {rec_A.proposition.predicate.value}")
-    
+
     # Agent B must have the belief (Second-Order Observation)
     # Polling: ждём, пока асинхронный TaskScheduler обработает задачу и ClaimEventSubscriber обновит store
     import time
+
     rec_B = None
     for _ in range(20):
         rec_B = _epistemic_store.get(NPC_B)
         if rec_B is not None:
             break
         time.sleep(0.25)
-        
+
     assert rec_B is not None, "NPC_B MUST have the belief (Second-Order Observation failed!)"
     assert rec_B.proposition.subject_id == NPC_B, "NPC_B's belief must be about NPC_B"
     assert rec_B.proposition.predicate.value == "stole", "NPC_B's belief must be 'stole'"
     logger.info(f"[VALIDATION] NPC_B belief: {rec_B.proposition.subject_id} {rec_B.proposition.predicate.value}")
-    
+
     logger.info("=== SUPERBOX-013: PASS ===")
     logger.info("Second-Order Observation proven: NPC_A's action cascaded to NPC_B's belief.")
     print("\n✅ SUPERBOX-013: PASS — Second-Order Observation proven.")
+
 
 if __name__ == "__main__":
     main()

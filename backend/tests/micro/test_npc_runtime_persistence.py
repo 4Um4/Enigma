@@ -6,6 +6,7 @@ _last_committed_npcs_src (мёртвый снапшот). unlock_tick() комм
 
 Контракт: PERSIST-RECOVERY R1-R5.
 """
+
 import sys
 from pathlib import Path
 
@@ -50,9 +51,7 @@ def _npc(loc=LOC_A):
 def _mk(tmp_path, name="runtime.db"):
     db = tmp_path / name
     adapter = SqlitePersistenceAdapter(db)
-    ssm = SceneStateManager(
-        data_dir=tmp_path / "data", persistence=adapter, saves_dir=tmp_path / "saves"
-    )
+    ssm = SceneStateManager(data_dir=tmp_path / "data", persistence=adapter, saves_dir=tmp_path / "saves")
     return db, adapter, ssm
 
 
@@ -84,9 +83,7 @@ def test_t1_npc_runtime_roundtrip_production_path(tmp_path):
         assert loaded_scene, "SETUP FAIL: сцена не сохранена — tick-путь не отработал"
 
         loaded = reader.load_npc_runtime(CAMPAIGN)
-        assert loaded is not None, (
-            "DEFECT: NPC runtime не персистится — сцена сохранена, runtime отсутствует"
-        )
+        assert loaded is not None, "DEFECT: NPC runtime не персистится — сцена сохранена, runtime отсутствует"
         rec = next((r for r in loaded if r.get("id") == "npc_a"), None)
         assert rec is not None, "DEFECT: npc_a отсутствует в runtime"
 
@@ -136,9 +133,7 @@ def test_t3_abort_no_commit_no_leak(tmp_path):
     ssm.mark_tick_aborted(CAMPAIGN)
     ssm.unlock_tick(CAMPAIGN)
 
-    assert getattr(ssm, "_tick_npc_runtime", None) is None, (
-        "DEFECT: снимок NPC пережил границу тика"
-    )
+    assert getattr(ssm, "_tick_npc_runtime", None) is None, "DEFECT: снимок NPC пережил границу тика"
     adapter.close()
 
     reader = SqlitePersistenceAdapter(db)

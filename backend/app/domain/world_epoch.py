@@ -9,6 +9,7 @@ path: /project/backend/app/domain/world_epoch.py
 Зависимости: typing (чистый домен)
 Основные сущности: WorldEpoch, WorldView, TickOverlay
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Iterator, KeysView, List, Optional, Tuple
@@ -106,6 +107,7 @@ def _deep_seal(obj: Any) -> Any:
         return ReadOnlyList(_deep_seal(_v) for _v in obj)
     return obj
 
+
 def _shallow_of_root(obj: Any) -> Any:
     """S269 v2: root остаётся живым объектом вызывающего (move-semantics
     S266), вложенные контейнеры запечатываются."""
@@ -133,8 +135,7 @@ class WorldEpoch:
     _npcs: List[Dict[str, Any]]
     _sealed_cache: Dict[str, Any]
 
-    def __init__(self, epoch_id: int, state: Dict[str, Any],
-                 npcs: Optional[List[Dict[str, Any]]] = None):
+    def __init__(self, epoch_id: int, state: Dict[str, Any], npcs: Optional[List[Dict[str, Any]]] = None):
         # ВЛАДЕНИЕ ПЕРЕДАНО вызывающим (move-semantics): после создания
         # Epoch вызывающий обязан прекратить мутировать переданные dict.
         # Это контракт, enforcing — через WorldView (нет write-пути).
@@ -166,10 +167,7 @@ class WorldEpoch:
     def __setattr__(self, name: str, value: Any) -> None:
         # S268: без интерполяции атрибутов — на свежесконструированном
         # объекте (deepcopy._reconstruct) их ещё нет, сообщение само падало
-        raise AttributeError(
-            "WorldEpoch is immutable; "
-            "mutation requires TickOverlay → atomic commit → new epoch"
-        )
+        raise AttributeError("WorldEpoch is immutable; mutation requires TickOverlay → atomic commit → new epoch")
 
     def __deepcopy__(self, memo: Any) -> "WorldEpoch":
         # S268: immutable → шаринг безопасен по построению (deepcopy-совместимость:
@@ -252,38 +250,26 @@ class WorldView:
         raise AttributeError("WorldView is read-only; use TickOverlay")
 
     def __setitem__(self, key: str, value: Any) -> None:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
     def __deepcopy__(self, memo: Any) -> "WorldView":
         # S268: проекция иммутабельной эпохи → шаринг безопасен
         return self
 
     def __delitem__(self, key: str) -> None:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
     def setdefault(self, key: str, default: Any = None) -> Any:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
     def update(self, *args: Any, **kwargs: Any) -> None:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
     def pop(self, *args: Any, **kwargs: Any) -> Any:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
     def clear(self) -> None:
-        raise AttributeError(
-            "WorldView is read-only; use TickOverlay for writes"
-        )
+        raise AttributeError("WorldView is read-only; use TickOverlay for writes")
 
 
 class TickOverlay(Dict[str, Any]):
@@ -407,4 +393,5 @@ class TickOverlay(Dict[str, Any]):
         # в начале тика) получает плоский dictmerged — семантика
         # «снимок мира» сохранена. Возврат dict — не overlay!
         import copy as _copy
+
         return _copy.deepcopy(self.commit(), memo)

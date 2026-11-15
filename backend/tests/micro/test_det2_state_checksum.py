@@ -65,8 +65,7 @@ def test_det2_stable_across_processes_and_hashseed():
         "import sys, json, hashlib;"
         "sys.path.insert(0, r'%s');"
         "from app.services.tick_orchestrator import TickOrchestrator as T;"
-        "print(T._DET2_DIGEST_PUBLIC(json.loads(%r)))"
-        % (str(Path(__file__).resolve().parents[2]), payload)
+        "print(T._DET2_DIGEST_PUBLIC(json.loads(%r)))" % (str(Path(__file__).resolve().parents[2]), payload)
     )
     digests = []
     for seed in ("0", "12345", "999"):
@@ -74,9 +73,7 @@ def test_det2_stable_across_processes_and_hashseed():
         import os
 
         env = {**os.environ, "PYTHONHASHSEED": seed}
-        proc = subprocess.run(
-            [sys.executable, "-c", code], capture_output=True, text=True, env=env
-        )
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
         assert proc.returncode == 0, proc.stderr[-500:]
         digests.append(proc.stdout.strip())
     assert digests[0] == digests[1] == digests[2], digests

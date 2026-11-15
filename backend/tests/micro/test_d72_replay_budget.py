@@ -12,6 +12,7 @@ path: backend/tests/micro/test_d72_replay_budget.py
 Зависимости: pytest, app.services.replay.replay_store.ReplayStore,
   app.services.state.migration_runner._REPLAY_SPEC_V2.
 """
+
 from __future__ import annotations
 
 import sqlite3
@@ -24,9 +25,8 @@ from app.services.replay.replay_store import ReplayStore
 
 # ─────────────────── helpers ───────────────────
 
-def _make_store_with_sessions(
-    db_path: Path, n: int, pinned_ids: set[int] | None = None
-) -> ReplayStore:
+
+def _make_store_with_sessions(db_path: Path, n: int, pinned_ids: set[int] | None = None) -> ReplayStore:
     """Создаёт ReplayStore (v1-схема в __init__), применяет v2-миграцию
     (sessions.pinned + индексы — D72), затем n сессий с started_at i*100.0.
 
@@ -34,6 +34,7 @@ def _make_store_with_sessions(
     i=0 — самая старая, i=n-1 — самая свежая.
     """
     from app.services.state.migration_runner import _REPLAY_V2_STATEMENTS
+
     pinned_ids = pinned_ids or set()
     store = ReplayStore(db_path)
     # v1->v2: ReplayStore.__init__ создаёт v1-схему; v2-колонка pinned
@@ -53,53 +54,61 @@ def _make_store_with_sessions(
     return store
 
 
-def _add_all_dependent_rows(
-    store: ReplayStore, session_id: str, tick_id: int = 1
-) -> None:
+def _add_all_dependent_rows(store: ReplayStore, session_id: str, tick_id: int = 1) -> None:
     """Добавляет по одной строке в каждую из 5 зависимых таблиц."""
     store.record_tick(
-        session_id=session_id, tick_id=tick_id,
-        game_time_seconds=0.0, tick_state={"test": True},
+        session_id=session_id,
+        tick_id=tick_id,
+        game_time_seconds=0.0,
+        tick_state={"test": True},
     )
     store.record_intervention(
-        session_id=session_id, tick_id=tick_id,
-        source="test", payload={"action": "test"},
+        session_id=session_id,
+        tick_id=tick_id,
+        source="test",
+        payload={"action": "test"},
     )
     store.record_llm_call(
-        session_id=session_id, tick_id=tick_id,
-        agent_name="test_agent", prompt="test prompt",
-        response="test response", model_name="test_model", latency_ms=10,
+        session_id=session_id,
+        tick_id=tick_id,
+        agent_name="test_agent",
+        prompt="test prompt",
+        response="test response",
+        model_name="test_model",
+        latency_ms=10,
     )
     store.record_causal_probe(
-        session_id=session_id, tick_id=tick_id,
-        probe_name="test_probe", status="ok", details={"data": True},
+        session_id=session_id,
+        tick_id=tick_id,
+        probe_name="test_probe",
+        status="ok",
+        details={"data": True},
     )
     store.record_scene_change(
-        session_id=session_id, tick_id=tick_id,
-        change={"type": "test"}, applied=True,
+        session_id=session_id,
+        tick_id=tick_id,
+        change={"type": "test"},
+        applied=True,
     )
 
 
 # ─────────────────── миграция v1->v2 ───────────────────
+
 
 def test_d72_migrate_adds_pinned_column(tmp_path: Path) -> None:
     """T-D72-migrate: v2 migration adds sessions.pinned BOOLEAN NOT NULL DEFAULT 0."""
     db_path = tmp_path / "replay.db"
     store = ReplayStore(db_path)  # creates v1 schema in constructor
     from app.services.state.migration_runner import _REPLAY_V2_STATEMENTS
+
     for stmt in _REPLAY_V2_STATEMENTS:
         store.conn.execute(stmt)
     store.conn.commit()
-    cols = [
-        r[1]
-        for r in store.conn.execute("PRAGMA table_info(sessions)").fetchall()
-    ]
+    cols = [r[1] for r in store.conn.execute("PRAGMA table_info(sessions)").fetchall()]
     assert "pinned" in cols, "sessions.pinned column missing after v2 migration"
     # DEFAULT 0: new session without explicit pinned is unpinned
     sid = store.start_session(campaign_id="test", commit_hash="dev")
-    row = store.conn.execute(
-        "SELECT pinned FROM sessions WHERE session_id = ?", (sid,)
-    ).fetchone()
+    row = store.conn.execute("SELECT pinned FROM sessions WHERE session_id = ?", (sid,)).fetchone()
     assert int(row[0]) == 0, "default pinned should be 0 (unpinned)"
     store.close()
 
@@ -109,6 +118,7 @@ def test_d72_migrate_adds_indexes(tmp_path: Path) -> None:
     db_path = tmp_path / "replay.db"
     store = ReplayStore(db_path)
     from app.services.state.migration_runner import _REPLAY_V2_STATEMENTS
+
     for stmt in _REPLAY_V2_STATEMENTS:
         store.conn.execute(stmt)
     store.conn.commit()
@@ -131,6 +141,7 @@ def test_d72_migrate_via_spec_apply(tmp_path: Path) -> None:
     in its constructor; then we apply the v2 migration via the spec.
     """
     from app.services.state.migration_runner import _REPLAY_SPEC_V2
+
     db_path = tmp_path / "replay.db"
     store = ReplayStore(db_path)
     store.conn.close()
@@ -142,9 +153,7 @@ def test_d72_migrate_via_spec_apply(tmp_path: Path) -> None:
     assert "pinned" in cols, "pinned column missing after v2 apply"
     indexes = [
         r[0]
-        for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sessions'"
-        ).fetchall()
+        for r in conn.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='sessions'").fetchall()
     ]
     assert "idx_sessions_started_at" in indexes
     assert "idx_sessions_pinned_started" in indexes
@@ -152,6 +161,7 @@ def test_d72_migrate_via_spec_apply(tmp_path: Path) -> None:
 
 
 # ─────────────────── list/count ───────────────────
+
 
 def test_d72_list_sessions_desc_order(tmp_path: Path) -> None:
     """T-D72-list: list_sessions returns sessions sorted by started_at DESC."""
@@ -161,10 +171,7 @@ def test_d72_list_sessions_desc_order(tmp_path: Path) -> None:
     assert len(sessions) == 3
     assert sessions[0]["started_at"] > sessions[2]["started_at"]
     for s in sessions:
-        assert {
-            "session_id", "campaign_id", "commit_hash",
-            "started_at", "pinned"
-        } <= set(s.keys())
+        assert {"session_id", "campaign_id", "commit_hash", "started_at", "pinned"} <= set(s.keys())
     store.close()
 
 
@@ -177,6 +184,7 @@ def test_d72_count_sessions(tmp_path: Path) -> None:
 
 
 # ─────────────────── pin/unpin ───────────────────
+
 
 def test_d72_pin_unpin_idempotent(tmp_path: Path) -> None:
     """T-D72-pin: pin sets pinned=1, unpin sets 0; both idempotent."""
@@ -202,6 +210,7 @@ def test_d72_pin_nonexistent(tmp_path: Path) -> None:
 
 
 # ─────────────────── prune ───────────────────
+
 
 def test_d72_prune_basic(tmp_path: Path) -> None:
     """T-D72-prune-basic: keep_last=2, 5 sessions removes 3 oldest."""
@@ -263,8 +272,11 @@ def test_d72_prune_fk_cleanup_all_tables(tmp_path: Path) -> None:
     for s in store.list_sessions():
         _add_all_dependent_rows(store, s["session_id"], tick_id=1)
     dependent_tables = [
-        "tick_snapshots", "interventions", "llm_calls",
-        "causal_probes", "scene_changes",
+        "tick_snapshots",
+        "interventions",
+        "llm_calls",
+        "causal_probes",
+        "scene_changes",
     ]
     for table in dependent_tables:
         n = store.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -365,18 +377,20 @@ def test_d72_prune_atomicity_on_error(tmp_path: Path) -> None:
         store.conn = real_conn  # type: ignore[method-assign]
     assert store.count_sessions() == 5, "atomicity broken: sessions deleted"
     dependent_tables = [
-        "tick_snapshots", "interventions", "llm_calls",
-        "causal_probes", "scene_changes",
+        "tick_snapshots",
+        "interventions",
+        "llm_calls",
+        "causal_probes",
+        "scene_changes",
     ]
     for table in dependent_tables:
-        n = store.conn.execute(
-            f"SELECT COUNT(*) FROM {table}"
-        ).fetchone()[0]
+        n = store.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         assert n == 5, f"atomicity broken: {table} has {n} rows, expected 5"
     store.close()
 
 
 # ─────────────────── wiring ───────────────────
+
 
 def test_d72_wiring_zero_no_prune(tmp_path: Path) -> None:
     """T-D72-wire-zero: keep_last=0 means prune NOT called (logic guard).
@@ -413,14 +427,9 @@ def test_d72_wiring_source_guard_exists() -> None:
     """
     # __file__ = backend/tests/micro/test_d72_replay_budget.py
     # parents[0]=micro, [1]=tests, [2]=backend, [3]=Enigma (project root)
-    _source_path = (
-        Path(__file__).resolve().parents[3]
-        / "backend" / "app" / "services" / "game_loop" / "game_loop.py"
-    )
+    _source_path = Path(__file__).resolve().parents[3] / "backend" / "app" / "services" / "game_loop" / "game_loop.py"
     source = _source_path.read_text(encoding="utf-8")
     assert "settings.replay_budget_keep_last > 0" in source, (
         "game_loop.py missing 'if settings.replay_budget_keep_last > 0' guard"
     )
-    assert "prune_old_sessions" in source, (
-        "game_loop.py missing prune_old_sessions call"
-    )
+    assert "prune_old_sessions" in source, "game_loop.py missing prune_old_sessions call"

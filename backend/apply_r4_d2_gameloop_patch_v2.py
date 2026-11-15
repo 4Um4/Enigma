@@ -1,4 +1,4 @@
-﻿"""
+"""
 R4/GATE-9A D2 — patch game_loop.py v2 (corrected run_turn wrap)
 3 edits:
   Edit 1: skip_time — add except before finally (text replace)
@@ -7,15 +7,17 @@ R4/GATE-9A D2 — patch game_loop.py v2 (corrected run_turn wrap)
 
 Fix vs v1: Edit 3 starts wrap AFTER early return check, not after execute opening paren.
 """
-import sys
+
 import shutil
+import sys
 from pathlib import Path
 
 GL_PATH = Path("app/services/game_loop/game_loop.py")
 BACKUP_PATH = Path("app/services/game_loop/game_loop.py.r4_backup")
 
 if not GL_PATH.exists():
-    print(f"ERROR: {GL_PATH} not found"); sys.exit(1)
+    print(f"ERROR: {GL_PATH} not found")
+    sys.exit(1)
 
 if not BACKUP_PATH.exists():
     shutil.copy2(GL_PATH, BACKUP_PATH)
@@ -41,8 +43,8 @@ def wrap_range(lines_list, name, start_0, end_0, except_body_lines, finally_body
     Indents wrapped by +4. Inserts try: before start_0, except/finally after end_0.
     """
     before = lines_list[:start_0]
-    wrapped = lines_list[start_0:end_0 + 1]
-    after = lines_list[end_0 + 1:]
+    wrapped = lines_list[start_0 : end_0 + 1]
+    after = lines_list[end_0 + 1 :]
 
     new_wrapped = []
     for ln in wrapped:
@@ -62,7 +64,7 @@ def wrap_range(lines_list, name, start_0, end_0, except_body_lines, finally_body
         out.append("            " + fl + "\n")
     out.extend(after)
 
-    print(f"[OK] {name}: wrapped lines {start_0+1}..{end_0+1} ({end_0 - start_0 + 1} lines)")
+    print(f"[OK] {name}: wrapped lines {start_0 + 1}..{end_0 + 1} ({end_0 - start_0 + 1} lines)")
     return out
 
 
@@ -98,7 +100,8 @@ for i, ln in enumerate(lines):
         lock_all_idx = i
         break
 if lock_all_idx is None:
-    print("[FAIL] Edit 2: lock_all_for_tick not found"); sys.exit(4)
+    print("[FAIL] Edit 2: lock_all_for_tick not found")
+    sys.exit(4)
 
 # Find unlock_tick(campaign_id) in idle_tick (the one after lock_all)
 unlock_idle_idx = None
@@ -107,7 +110,8 @@ for i in range(lock_all_idx + 1, len(lines)):
         unlock_idle_idx = i
         break
 if unlock_idle_idx is None:
-    print("[FAIL] Edit 2: idle_tick unlock not found"); sys.exit(5)
+    print("[FAIL] Edit 2: idle_tick unlock not found")
+    sys.exit(5)
 
 # Wrap [lock_all_idx+1 .. unlock_idle_idx-1]
 except_idle = [
@@ -122,9 +126,14 @@ finally_idle = [
     "# unlock_tick сохраняет его на диск (если тик НЕ помечен aborted).",
     "self.scene_manager.unlock_tick(campaign_id)",
 ]
-lines = wrap_range(lines, "Edit 2: idle_tick",
-                  start_0=lock_all_idx + 1, end_0=unlock_idle_idx - 1,
-                  except_body_lines=except_idle, finally_body_lines=finally_idle)
+lines = wrap_range(
+    lines,
+    "Edit 2: idle_tick",
+    start_0=lock_all_idx + 1,
+    end_0=unlock_idle_idx - 1,
+    except_body_lines=except_idle,
+    finally_body_lines=finally_idle,
+)
 
 
 # ─── Edit 3 (corrected): run_turn — wrap AFTER early return ────────────
@@ -138,7 +147,8 @@ for i, ln in enumerate(lines):
         execute_idx = i
         break
 if execute_idx is None:
-    print("[FAIL] Edit 3: execute line not found"); sys.exit(6)
+    print("[FAIL] Edit 3: execute line not found")
+    sys.exit(6)
 
 # Find early return: `return state` after execute_idx
 early_return_idx = None
@@ -147,7 +157,8 @@ for i in range(execute_idx + 1, len(lines)):
         early_return_idx = i
         break
 if early_return_idx is None:
-    print("[FAIL] Edit 3: 'return state' (early return) not found"); sys.exit(7)
+    print("[FAIL] Edit 3: 'return state' (early return) not found")
+    sys.exit(7)
 
 # Find unlock_tick(req.campaign_id) after early_return_idx
 unlock_rt_idx = None
@@ -156,7 +167,8 @@ for i in range(early_return_idx + 1, len(lines)):
         unlock_rt_idx = i
         break
 if unlock_rt_idx is None:
-    print("[FAIL] Edit 3: run_turn unlock not found"); sys.exit(8)
+    print("[FAIL] Edit 3: run_turn unlock not found")
+    sys.exit(8)
 
 # Wrap [early_return_idx+1 .. unlock_rt_idx-1]
 except_rt = [
@@ -170,9 +182,14 @@ finally_rt = [
     "# (если тик НЕ помечен aborted).",
     "self.scene_manager.unlock_tick(req.campaign_id)",
 ]
-lines = wrap_range(lines, "Edit 3: run_turn (after early return)",
-                  start_0=early_return_idx + 1, end_0=unlock_rt_idx - 1,
-                  except_body_lines=except_rt, finally_body_lines=finally_rt)
+lines = wrap_range(
+    lines,
+    "Edit 3: run_turn (after early return)",
+    start_0=early_return_idx + 1,
+    end_0=unlock_rt_idx - 1,
+    except_body_lines=except_rt,
+    finally_body_lines=finally_rt,
+)
 
 
 # ─── Write result ───────────────────────────────────────────────────────

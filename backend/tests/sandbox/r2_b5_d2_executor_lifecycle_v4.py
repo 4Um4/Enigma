@@ -20,6 +20,7 @@ v4 strategy:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -118,7 +119,8 @@ _TARGET_LOGGERS = [
     "app.services.game_loop.game_loop",
     "app.services.world.world_tick_engine",
     "app.services.npc.state_applicator",
-    "app", "",
+    "app",
+    "",
 ]
 
 
@@ -190,6 +192,7 @@ class _InstanceSpy:
       - Each call to ANY instance will go through our spy
       - Spy captures instance id + call details
     """
+
     def __init__(self):
         self.calls: List[Dict[str, Any]] = []
         self._installed = False
@@ -202,6 +205,7 @@ class _InstanceSpy:
             return True
         try:
             from app.services.execution.dialogue_executor import DialogueExecutor
+
             self._class = DialogueExecutor
             # Save original class method
             self._orig_execute = DialogueExecutor.execute
@@ -291,6 +295,7 @@ class _MaterializerSpy:
             return True
         try:
             from app.services.execution.dialogue_materializer import DialogueMaterializer
+
             self._class = DialogueMaterializer
             self._orig = DialogueMaterializer.materialize
             DialogueMaterializer.materialize = self._spy
@@ -348,6 +353,7 @@ class _AdapterSpy:
             return True
         try:
             from app.services.events.intent_event_adapter import IntentEventAdapter
+
             self._adapter_class = IntentEventAdapter
             self._orig_to_event = IntentEventAdapter.to_event
             IntentEventAdapter.to_event = staticmethod(self._spy_to_event)
@@ -393,6 +399,7 @@ _adapter_spy = _AdapterSpy()
 def _find_all_dialogue_executors() -> List[Tuple[int, Any]]:
     """Find ALL DialogueExecutor instances via gc.get_objects()."""
     import gc as _gc
+
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
     except Exception:
@@ -492,9 +499,10 @@ def main() -> int:
             print(f"    id={inst_id}, router={router}, router_type={type(router).__name__}")
 
         # Also find DialogueMaterializer instances
-        print(f"\n  --- Find ALL DialogueMaterializer instances ---")
+        print("\n  --- Find ALL DialogueMaterializer instances ---")
         try:
             from app.services.execution.dialogue_materializer import DialogueMaterializer
+
             mat_instances = []
             for obj in gc.get_objects():
                 try:
@@ -513,24 +521,29 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 2: install CLASS-LEVEL spies")
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         _instance_spy.install()
-        print(f"  DialogueExecutor CLASS spy installed")
+        print("  DialogueExecutor CLASS spy installed")
 
         _materializer_spy.install()
-        print(f"  DialogueMaterializer CLASS spy installed")
+        print("  DialogueMaterializer CLASS spy installed")
 
         _adapter_spy.install()
-        print(f"  IntentEventAdapter CLASS spy installed")
+        print("  IntentEventAdapter CLASS spy installed")
 
         # Verify class-level replacement worked
         from app.services.execution.dialogue_executor import DialogueExecutor
-        print(f"\n  Verify class-level replacement:")
-        print(f"    DialogueExecutor.execute is _instance_spy._spy_execute: "
-              f"{DialogueExecutor.execute == _instance_spy._spy_execute}")
-        print(f"    DialogueExecutor._generate_with_router is _instance_spy._spy_gen: "
-              f"{DialogueExecutor._generate_with_router == _instance_spy._spy_gen}")
+
+        print("\n  Verify class-level replacement:")
+        print(
+            f"    DialogueExecutor.execute is _instance_spy._spy_execute: "
+            f"{DialogueExecutor.execute == _instance_spy._spy_execute}"
+        )
+        print(
+            f"    DialogueExecutor._generate_with_router is _instance_spy._spy_gen: "
+            f"{DialogueExecutor._generate_with_router == _instance_spy._spy_gen}"
+        )
 
         # =====================================================================
         # STEP 3: capture PRE-EXISTING Tornin beliefs
@@ -540,9 +553,11 @@ def main() -> int:
             tornin_pre = store.get_all_for_agent("tavern_keeper_tornin") or []
             print(f"  Tornin pre-existing records: {len(tornin_pre)}")
             for r in tornin_pre:
-                print(f"    prop={str(getattr(r, 'proposition', None))[:80]} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"    prop={str(getattr(r, 'proposition', None))[:80]} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
         # =====================================================================
         # STEP 4: publish PLAYER_INSULTS
@@ -579,11 +594,12 @@ def main() -> int:
         _install_log_capture()
 
         # Re-verify spies are still installed
-        print(f"  Re-verify spies after reset:")
-        print(f"    DialogueExecutor.execute is _spy_execute: "
-              f"{DialogueExecutor.execute == _instance_spy._spy_execute}")
-        print(f"    DialogueMaterializer.materialize is _spy: "
-              f"{DialogueMaterializer.materialize == _materializer_spy._spy}")
+        print("  Re-verify spies after reset:")
+        print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute == _instance_spy._spy_execute}")
+        print(
+            f"    DialogueMaterializer.materialize is _spy: "
+            f"{DialogueMaterializer.materialize == _materializer_spy._spy}"
+        )
 
         try:
             result = loop.idle_tick("Open_road", "tavern")
@@ -600,14 +616,14 @@ def main() -> int:
         _print_section("STEP 6: spy results")
 
         # 6a. ALL DialogueExecutor.execute() calls (with instance_id)
-        print(f"\n  === DialogueExecutor.execute() calls ===")
+        print("\n  === DialogueExecutor.execute() calls ===")
         print(f"  Total calls: {len(_instance_spy.calls)}")
         # Group by instance_id
         by_instance: Dict[int, List[Dict]] = {}
         for call in _instance_spy.calls:
             inst_id = call.get("instance_id")
             by_instance.setdefault(inst_id, []).append(call)
-        print(f"  Calls by instance:")
+        print("  Calls by instance:")
         for inst_id, calls in by_instance.items():
             print(f"    instance id={inst_id}: {len(calls)} call(s)")
             for i, c in enumerate(calls[:3]):
@@ -623,7 +639,7 @@ def main() -> int:
         # Already captured above
 
         # 6c. DialogueMaterializer.materialize calls
-        print(f"\n  === DialogueMaterializer.materialize() calls ===")
+        print("\n  === DialogueMaterializer.materialize() calls ===")
         print(f"  Total calls: {len(_materializer_spy.calls)}")
         for i, call in enumerate(_materializer_spy.calls[:10]):
             print(f"  [{i}] instance_id={call.get('instance_id')}")
@@ -636,11 +652,13 @@ def main() -> int:
                     print(f"      result count: {call['result_count']}")
 
         # 6d. IntentEventAdapter.to_event calls
-        print(f"\n  === IntentEventAdapter.to_event() calls ===")
+        print("\n  === IntentEventAdapter.to_event() calls ===")
         print(f"  Total calls: {len(_adapter_spy.calls)}")
         for i, call in enumerate(_adapter_spy.calls[:10]):
-            print(f"  [{i}] speaker={call.get('intent_speaker')} target={call.get('intent_target')} "
-                  f"type={call.get('intent_type')}")
+            print(
+                f"  [{i}] speaker={call.get('intent_speaker')} target={call.get('intent_target')} "
+                f"type={call.get('intent_type')}"
+            )
             print(f"      proposition: {call.get('intent_proposition', 'N/A')[:120]}")
             if call.get("exception"):
                 print(f"      EXCEPTION: {call['exception']}")
@@ -648,7 +666,7 @@ def main() -> int:
                 print(f"      return_event_type: {call.get('return_event_type', 'N/A')}")
 
         # 6e. EventBus events
-        print(f"\n  === EventBus.publish() calls ===")
+        print("\n  === EventBus.publish() calls ===")
         print(f"  Total events: {len(_event_bus_spy.published_events)}")
         ev_type_counter: Dict[str, int] = {}
         for ev_type, _ in _event_bus_spy.published_events:
@@ -657,16 +675,18 @@ def main() -> int:
             print(f"    {ev_type}: {count}")
 
         # Show all events with their details
-        print(f"\n  --- ALL events with details ---")
+        print("\n  --- ALL events with details ---")
         for i, (ev_type, ev) in enumerate(_event_bus_spy.published_events):
             p = getattr(ev, "payload", {}) or {}
-            print(f"    [{i}] type={ev_type} source={getattr(ev, 'source', '?')} "
-                  f"target={p.get('target_id', '?')} intent={p.get('intent_type', '?')}")
+            print(
+                f"    [{i}] type={ev_type} source={getattr(ev, 'source', '?')} "
+                f"target={p.get('target_id', '?')} intent={p.get('intent_type', '?')}"
+            )
             if p.get("proposition"):
                 print(f"         proposition: {str(p.get('proposition'))[:200]}")
 
         # 6f. ALL DialogueExecutor logs
-        print(f"\n  === ALL DialogueExecutor logs ===")
+        print("\n  === ALL DialogueExecutor logs ===")
         all_logs = _log_capture.messages()
         de_logs = [l for l in all_logs if "dialogue_executor" in l.lower() or "DIALOGUE_EXEC" in l]
         print(f"  Total: {len(de_logs)}")
@@ -674,35 +694,35 @@ def main() -> int:
             print(f"    {l[:300]}")
 
         # 6g. ALL task_scheduler logs
-        print(f"\n  === ALL task_scheduler logs (no filter) ===")
+        print("\n  === ALL task_scheduler logs (no filter) ===")
         ts_logs = [l for l in all_logs if "task_scheduler" in l.lower() or "TASK_SCHED" in l or "[SCHEDULER]" in l]
         print(f"  Total: {len(ts_logs)}")
         for l in ts_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6h. ALL DialogueMaterializer logs
-        print(f"\n  === ALL DialogueMaterializer logs ===")
+        print("\n  === ALL DialogueMaterializer logs ===")
         dm_logs = [l for l in all_logs if "dialogue_materializer" in l.lower() or "Materializer" in l]
         print(f"  Total: {len(dm_logs)}")
         for l in dm_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6i. ERROR logs
-        print(f"\n  === ALL ERROR level logs ===")
+        print("\n  === ALL ERROR level logs ===")
         err_logs = [l for l in all_logs if l.startswith("[ERROR]")]
         print(f"  Total: {len(err_logs)}")
         for l in err_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6j. WARN logs
-        print(f"\n  === ALL WARN level logs ===")
+        print("\n  === ALL WARN level logs ===")
         warn_logs = [l for l in all_logs if l.startswith("[WARNING]")]
         print(f"  Total: {len(warn_logs)}")
         for l in warn_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6k. ALL DialogueExecutor instances AFTER spy
-        print(f"\n  === ALL DialogueExecutor instances AFTER spy ===")
+        print("\n  === ALL DialogueExecutor instances AFTER spy ===")
         gc.collect()
         instances_after = _find_all_dialogue_executors()
         print(f"  Found {len(instances_after)} DialogueExecutor instance(s) AFTER:")
@@ -719,13 +739,14 @@ def main() -> int:
             print(f"  Tornin total records: {len(tornin_after)}")
             for r in tornin_after:
                 print(f"    prop={str(getattr(r, 'proposition', None))[:80]}")
-                print(f"      conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -738,8 +759,9 @@ def main() -> int:
         executor_calls = len(_instance_spy.calls)
         materializer_calls = len(_materializer_spy.calls)
         adapter_calls = len(_adapter_spy.calls)
-        npc_spoke_count = sum(1 for t, _ in _event_bus_spy.published_events
-                              if "npc_spoke" in t.lower() or "spread_rumor" in t.lower())
+        npc_spoke_count = sum(
+            1 for t, _ in _event_bus_spy.published_events if "npc_spoke" in t.lower() or "spread_rumor" in t.lower()
+        )
 
         print(f"  DialogueExecutor.execute() called (CLASS spy): {executor_calls}")
         print(f"  DialogueMaterializer.materialize() called: {materializer_calls}")
@@ -747,27 +769,27 @@ def main() -> int:
         print(f"  NPC_SPOKE/SPREAD_RUMOR published: {npc_spoke_count}")
 
         if new_borko_belief:
-            print(f"\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif executor_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — execute() still NOT captured by class-level spy")
-            print(f"  >>> This means [DIALOGUE_EXEC] log comes from somewhere else")
-            print(f"  >>> Check if logs are from PREVIOUS runs (stale log capture)")
-            print(f"  >>> OR: execute() is called via a different code path")
+            print("\n  >>> VERDICT: BREAK — execute() still NOT captured by class-level spy")
+            print("  >>> This means [DIALOGUE_EXEC] log comes from somewhere else")
+            print("  >>> Check if logs are from PREVIOUS runs (stale log capture)")
+            print("  >>> OR: execute() is called via a different code path")
         elif executor_calls > 0 and materializer_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — execute() called, materializer NOT called")
-            print(f"  >>> Likely: artifact.success=False (error branch)")
+            print("\n  >>> VERDICT: BREAK — execute() called, materializer NOT called")
+            print("  >>> Likely: artifact.success=False (error branch)")
             if _instance_spy.calls:
                 last = _instance_spy.calls[-1]
                 if last.get("exception"):
                     print(f"  >>> Last exception: {last['exception']}")
         elif materializer_calls > 0 and adapter_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — materializer called, adapter NOT called")
-            print(f"  >>> Materializer creates events directly, not via IntentEventAdapter")
-            print(f"  >>> Check materializer result count")
+            print("\n  >>> VERDICT: BREAK — materializer called, adapter NOT called")
+            print("  >>> Materializer creates events directly, not via IntentEventAdapter")
+            print("  >>> Check materializer result count")
         elif adapter_calls > 0 and npc_spoke_count == 0:
-            print(f"\n  >>> VERDICT: BREAK — adapter called, NPC_SPOKE not published")
+            print("\n  >>> VERDICT: BREAK — adapter called, NPC_SPOKE not published")
         else:
-            print(f"\n  >>> VERDICT: INCONCLUSIVE — needs manual inspection")
+            print("\n  >>> VERDICT: INCONCLUSIVE — needs manual inspection")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()
@@ -782,6 +804,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:

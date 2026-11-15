@@ -27,8 +27,5 @@ def tick_world_proactive(
     economy_tracker: Any = None,
 ) -> None:
     """Stub: Параллельный WorldTick-путь закрыт (Stage 0 Task 0.10)."""
-    logger.debug(
-        f"[STAGE_0] tick_world_proactive disabled for {campaign_id} "
-        f"(phase_2_world_tick.py bypassed)"
-    )
+    logger.debug(f"[STAGE_0] tick_world_proactive disabled for {campaign_id} (phase_2_world_tick.py bypassed)")
     return

@@ -39,9 +39,7 @@ class PatternDetector:
     def __init__(self, chronicle: Optional[object] = None):
         self._chronicle = chronicle
 
-    def query_evidence(
-        self, npc_id: str, source_id: str = ""
-    ) -> List[EvidenceOfPersistence]:
+    def query_evidence(self, npc_id: str, source_id: str = "") -> List[EvidenceOfPersistence]:
         """S-93: Возвращает evidence для NPC из L1Chronicle.
         Читает L1, передаёт в detect().
         """
@@ -75,9 +73,7 @@ class PatternDetector:
         for event in events:
             # ADR-O-305: Защита от скалярного страха
             if event.source_id in _INVALID_SOURCES:
-                raise ValueError(
-                    f"Нарушение ADR-O-305: Событие с невалидным source_id='{event.source_id}'"
-                )
+                raise ValueError(f"Нарушение ADR-O-305: Событие с невалидным source_id='{event.source_id}'")
 
             # ADR-O-305A: Hard Guard. event_type - это provenance.
             # Мы намеренно игнорируем это поле, чтобы предотвратить будущий backdoor.
@@ -96,15 +92,11 @@ class PatternDetector:
 
             # Математика L1.5 (без event_type)
             # 1. cumulative_effect с учётом observation_weight
-            cumulative_effect = sum(
-                e.effect_value * e.observation_weight for e in source_events
-            )
+            cumulative_effect = sum(e.effect_value * e.observation_weight for e in source_events)
 
             # 2. behavior_variance (комбинированная метрика: дисперсия + временная осцилляция)
             effects = [e.effect_value for e in source_events]
-            statistical_variance = (
-                statistics.variance(effects) if len(effects) > 1 else 0.0
-            )
+            statistical_variance = statistics.variance(effects) if len(effects) > 1 else 0.0
 
             # Временная осцилляция: подсчёт смен знака (sign-flips)
             sign_flips = 0
@@ -116,9 +108,7 @@ class PatternDetector:
                         sign_flips += 1
 
             # Нормализация осцилляций к доле (0.0 - 1.0)
-            temporal_instability = (
-                sign_flips / (len(effects) - 1) if len(effects) > 1 else 0.0
-            )
+            temporal_instability = sign_flips / (len(effects) - 1) if len(effects) > 1 else 0.0
 
             # Комбинированная variance: произведение стат. разброса и временной нестабильности.
             # Если поток стабилен (temporal_instability = 0), variance = 0.

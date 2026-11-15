@@ -22,6 +22,7 @@ SCOPE (Master verdict variant C — partial 2/4, diagnostic-only):
 Only 2 producers patched; 2 replacements made. Not full-layer ablation.
 S2 is ALLIES PROPAGATION DIAGNOSTIC, does NOT enter S0/S1 scoring matrix.
 """
+
 import hashlib
 import shutil
 from pathlib import Path
@@ -29,7 +30,7 @@ from typing import NamedTuple, Optional
 
 
 _PROUDUCER_MARKERS = (
-    ("ThreatDesiredChangeProducer.resolve(",    "threat"),
+    ("ThreatDesiredChangeProducer.resolve(", "threat"),
     ("GrievanceDesiredChangeProducer.resolve(", "grievance"),
 )
 _ALLIES_MARKER = "allies=0,"
@@ -69,11 +70,11 @@ def _find_block_end(patched: str, open_paren_pos: int) -> int:
 def _build_injection(indent_str: str, tag: str) -> str:
     return (
         f'{indent_str}_a6_allies = len(getattr(_epistemic_ctx, "perceived_allies", ())) if _epistemic_ctx else 0\n'
-        f'{indent_str}logger.info(\n'
-        f'{indent_str}    f"[A6-S2] {tag} npc={{npc_id}} tick={{getattr(state, \'tick_id\', \'NA\')}} "\n'
-        f'{indent_str}    f"agent={{getattr(_epistemic_ctx, \'agent_id\', \'None\') if _epistemic_ctx else \'None\'}} "\n'
+        f"{indent_str}logger.info(\n"
+        f"{indent_str}    f\"[A6-S2] {tag} npc={{npc_id}} tick={{getattr(state, 'tick_id', 'NA')}} \"\n"
+        f"{indent_str}    f\"agent={{getattr(_epistemic_ctx, 'agent_id', 'None') if _epistemic_ctx else 'None'}} \"\n"
         f'{indent_str}    f"allies={{_a6_allies}}"\n'
-        f'{indent_str})\n'
+        f"{indent_str})\n"
     )
 
 
@@ -87,14 +88,13 @@ def apply_patch(
         raise RuntimeError(f"missing: {target_path}")
     if backup_dir is None:
         import tempfile
+
         backup_dir = Path(tempfile.gettempdir())
     backup_path = Path(backup_dir) / "npc_tick_pipeline.s2_pre.bak"
     shutil.copy2(target_path, backup_path)
     sha_pre = _sha256(target_path)
     if _sha256(backup_path) != sha_pre:
-        raise RuntimeError(
-            f"backup copy mismatch: pre={sha_pre} backup={_sha256(backup_path)}"
-        )
+        raise RuntimeError(f"backup copy mismatch: pre={sha_pre} backup={_sha256(backup_path)}")
     raw = target_path.read_text(encoding="utf-8")
     patched = raw
     for marker, tag in _PROUDUCER_MARKERS:
@@ -106,8 +106,7 @@ def apply_patch(
         window = patched[idx:window_end]
         if window.count(_ALLIES_MARKER) != 1:
             raise RuntimeError(
-                f"expected exactly 1 {_ALLIES_MARKER!r} in window after {marker!r}, "
-                f"got {window.count(_ALLIES_MARKER)}"
+                f"expected exactly 1 {_ALLIES_MARKER!r} in window after {marker!r}, got {window.count(_ALLIES_MARKER)}"
             )
         allies_in_window = window.find(_ALLIES_MARKER)
         allies_abs = idx + allies_in_window
@@ -118,26 +117,15 @@ def apply_patch(
         injection = _build_injection(indent_str, tag)
         patched = patched[:line_start] + injection + patched[line_start:]
         allies_abs += len(injection)
-        patched = (
-            patched[:allies_abs]
-            + _PATCHED_ALLIES
-            + patched[allies_abs + len(_ALLIES_MARKER):]
-        )
+        patched = patched[:allies_abs] + _PATCHED_ALLIES + patched[allies_abs + len(_ALLIES_MARKER) :]
     if patched.count(_INJECTION_TOKEN) != _REPLACED_COUNT:
-        raise RuntimeError(
-            f"expected {_REPLACED_COUNT} _a6_allies injections, "
-            f"got {patched.count(_INJECTION_TOKEN)}"
-        )
+        raise RuntimeError(f"expected {_REPLACED_COUNT} _a6_allies injections, got {patched.count(_INJECTION_TOKEN)}")
     if patched.count(_PATCHED_ALLIES) != _REPLACED_COUNT:
         raise RuntimeError(
-            f"expected {_REPLACED_COUNT} {_PATCHED_ALLIES!r} replacements, "
-            f"got {patched.count(_PATCHED_ALLIES)}"
+            f"expected {_REPLACED_COUNT} {_PATCHED_ALLIES!r} replacements, got {patched.count(_PATCHED_ALLIES)}"
         )
     if patched.count(_ALLIES_MARKER) != 0:
-        raise RuntimeError(
-            f"expected 0 remaining {_ALLIES_MARKER!r}, "
-            f"got {patched.count(_ALLIES_MARKER)}"
-        )
+        raise RuntimeError(f"expected 0 remaining {_ALLIES_MARKER!r}, got {patched.count(_ALLIES_MARKER)}")
     target_path.write_bytes(patched.encode("utf-8"))
     sha_patched = _sha256(target_path)
     if sha_patched == sha_pre:
@@ -157,9 +145,7 @@ def restore_patch(state: PatchState) -> str:
         shutil.copy2(state.backup_path, state.path)
         post = _sha256(state.path)
         if post != state.sha_pre:
-            raise RuntimeError(
-                f"restore produced wrong sha: expected {state.sha_pre}, got {post}"
-            )
+            raise RuntimeError(f"restore produced wrong sha: expected {state.sha_pre}, got {post}")
         return post
     if current == state.sha_pre:
         return current

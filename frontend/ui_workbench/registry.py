@@ -4,6 +4,7 @@ path: /frontend/ui_workbench/registry.py
 Зависимости: ui_workbench.manifests
 Основные сущности: WindowRegistry
 """
+
 from typing import Dict, List, Optional
 
 from ui_workbench.manifests import WindowManifest, WindowState
@@ -28,9 +29,7 @@ class WindowRegistry:
         try:
             state = WindowState(state_value)
         except ValueError:
-            raise ValueError(
-                f"WindowRegistry[{window_id}]: неизвестное состояние '{state_value}'"
-            )
+            raise ValueError(f"WindowRegistry[{window_id}]: неизвестное состояние '{state_value}'")
         self._states[window_id] = state
 
     def __init__(self) -> None:
@@ -55,9 +54,7 @@ class WindowRegistry:
         """Единственный легальный FSM-переход. Незаконный = ValueError (громко)."""
         current = self._states[window_id]
         if new_state not in self._LEGAL_TRANSITIONS[current]:
-            raise ValueError(
-                f"WindowRegistry[{window_id}]: {current.value} → {new_state.value} запрещён"
-            )
+            raise ValueError(f"WindowRegistry[{window_id}]: {current.value} → {new_state.value} запрещён")
         self._states[window_id] = new_state
 
     def toggle(self, window_id: str) -> None:
@@ -69,9 +66,9 @@ class WindowRegistry:
     def visible_ids(self, layers: Optional[List[int]] = None) -> List[str]:
         """id видимых окон (COLLAPSED или FULL), отсортированных по z_order — порядок рендера."""
         out = [
-            wid for wid, st in self._states.items()
-            if st != WindowState.HIDDEN
-            and (layers is None or self._manifests[wid].layer in layers)
+            wid
+            for wid, st in self._states.items()
+            if st != WindowState.HIDDEN and (layers is None or self._manifests[wid].layer in layers)
         ]
         return sorted(out, key=lambda wid: self._manifests[wid].z_order)
 

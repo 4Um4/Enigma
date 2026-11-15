@@ -98,9 +98,7 @@ class PlayerSessionService:
 
                     campaign_id = data["campaign_id"]
                     self._sessions[campaign_id] = session
-                    logger.info(
-                        f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}"
-                    )
+                    logger.info(f"[SESSION_LOADED] Campaign: {campaign_id}, Player: {session.player_name}")
                 except Exception as e:
                     logger.debug(f"[SESSION_LOAD_ERROR] File: {filename}, Error: {e}")
         except Exception as e:
@@ -124,9 +122,7 @@ class PlayerSessionService:
         # Удаляем старую сессию (если была)
         if campaign_id in self._sessions:
             old_session = self._sessions[campaign_id]
-            logger.debug(
-                f"[PLAYER_SESSION_REPLACED] Campaign: {campaign_id}, Old player: {old_session.player_name}"
-            )
+            logger.debug(f"[PLAYER_SESSION_REPLACED] Campaign: {campaign_id}, Old player: {old_session.player_name}")
             # Сброс session_flag делается через game_loop.reset_session_flag() в routes.py
 
         # Создаем новую сессию
@@ -173,9 +169,7 @@ class PlayerSessionService:
             # Обновляем существующую сессию
             existing.last_heartbeat = datetime.now()
             existing.active = True
-            logger.debug(
-                f"[PLAYER_HEARTBEIT] Campaign: {campaign_id}, Player: {player_name}"
-            )
+            logger.debug(f"[PLAYER_HEARTBEIT] Campaign: {campaign_id}, Player: {player_name}")
             return existing
         else:
             # Сессия не существует, создаем новую (для обратной совместимости)
@@ -187,9 +181,7 @@ class PlayerSessionService:
                 session_id=str(uuid.uuid4()),
             )
             self._sessions[campaign_id] = session
-            logger.debug(
-                f"[PLAYER_SESSION_CREATED] Campaign: {campaign_id}, Player: {player_name} (from heartbeat)"
-            )
+            logger.debug(f"[PLAYER_SESSION_CREATED] Campaign: {campaign_id}, Player: {player_name} (from heartbeat)")
             return session
 
     def is_player_active(self, campaign_id: str, player_name: Optional[str] = None) -> bool:
@@ -223,9 +215,7 @@ class PlayerSessionService:
         if campaign_id in self._sessions:
             self._sessions[campaign_id].active = False
             player_name = self._sessions[campaign_id].player_name
-            logger.debug(
-                f"[PLAYER_DEACTIVATED] Campaign: {campaign_id}, Player: {player_name}"
-            )
+            logger.debug(f"[PLAYER_DEACTIVATED] Campaign: {campaign_id}, Player: {player_name}")
             return True
         return False
 
@@ -239,9 +229,7 @@ class PlayerSessionService:
         for campaign_id, session in self._sessions.items():
             if not session.is_active(self.ttl_seconds):
                 expired_keys.append(campaign_id)
-                logger.debug(
-                    f"[PLAYER_SESSION_EXPIRED] Campaign: {campaign_id}, Player: {session.player_name}"
-                )
+                logger.debug(f"[PLAYER_SESSION_EXPIRED] Campaign: {campaign_id}, Player: {session.player_name}")
 
         for campaign_id in expired_keys:
             del self._sessions[campaign_id]

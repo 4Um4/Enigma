@@ -12,6 +12,7 @@
 5. RESOLVED с valence=neutral → skip (invalid valence)
 6. object_id=None → skip (неразрешённая сущность)
 """
+
 from __future__ import annotations
 
 from app.domain.chronicle import (
@@ -59,15 +60,18 @@ def _make_rel(
 
 def test_resolved_relationship_seeded():
     """RESOLVED с npc_id → материализуется в relationship_cache (positive)."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_001",
-            "npc_a",
-            EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_b"),
-            "positive",
-            target_hint="NPC B",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_001",
+                "npc_a",
+                EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_b"),
+                "positive",
+                target_hint="NPC B",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert "npc_b" in result
     assert result["npc_b"]["trust"] == SEED_TRUST_POSITIVE
@@ -76,77 +80,93 @@ def test_resolved_relationship_seeded():
 
 def test_unknown_person_not_seeded():
     """UNKNOWN_PERSON → skip. Не становится известной сущностью."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_002",
-            "npc_a",
-            EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="stranger"),
-            "positive",
-            target_hint="stranger",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_002",
+                "npc_a",
+                EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="stranger"),
+                "positive",
+                target_hint="stranger",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert result == {}, "UNKNOWN_PERSON не должна материализоваться"
 
 
 def test_white_spot_not_seeded():
     """WHITE_SPOT → skip. Намеренно неопределённая сущность не становится известной."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_003",
-            "npc_a",
-            EntityRef(ref_kind=EntityRefKind.WHITE_SPOT, white_spot_id="ws_001"),
-            "positive",
-            target_hint="mystery",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_003",
+                "npc_a",
+                EntityRef(ref_kind=EntityRefKind.WHITE_SPOT, white_spot_id="ws_001"),
+                "positive",
+                target_hint="mystery",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert result == {}, "WHITE_SPOT не должна материализоваться"
 
 
 def test_self_link_not_seeded():
     """RESOLVED с target==subject → skip. Self-link не сеется."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_004",
-            "npc_a",
-            EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_a"),
-            "positive",
-            target_hint="self",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_004",
+                "npc_a",
+                EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_a"),
+                "positive",
+                target_hint="self",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert result == {}, "Self-link не должен материализоваться"
 
 
 def test_neutral_valence_not_seeded():
     """RESOLVED с valence=neutral → skip. Только positive/negative допустимы."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_005",
-            "npc_a",
-            EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_b"),
-            "neutral",
-            target_hint="NPC B",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_005",
+                "npc_a",
+                EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="npc_b"),
+                "neutral",
+                target_hint="NPC B",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert result == {}, "neutral valence не должен материализоваться"
 
 
 def test_null_object_id_not_seeded():
     """object_id=None → skip. Неразрешённая сущность не материализуется."""
-    doc = _make_doc("npc_a", (
-        _make_rel(
-            "rel_006",
-            "npc_a",
-            None,
-            "positive",
-            target_hint="someone",
+    doc = _make_doc(
+        "npc_a",
+        (
+            _make_rel(
+                "rel_006",
+                "npc_a",
+                None,
+                "positive",
+                target_hint="someone",
+            ),
         ),
-    ))
+    )
     result = build_seed_relationships("npc_a", doc)
     assert result == {}, "object_id=None не должен материализоваться"
+
 
 # ── COV-10.4: гарантии на границе normalizer (roster matching) ──────────────
 # Эти тесты проверяют, что target_hint НЕ превращается в object_id автоматически
@@ -198,4 +218,3 @@ def test_roster_non_string_hint_no_match():
     assert _matches_roster_exact(None, roster) is False
     assert _matches_roster_exact(42, roster) is False
     assert _matches_roster_exact("", roster) is False
-

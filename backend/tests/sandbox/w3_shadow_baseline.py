@@ -15,6 +15,7 @@ path: backend/tests/sandbox/w3_shadow_baseline.py
 
 Запуск: cd backend; python -m tests.sandbox.w3_shadow_baseline; cd ..
 """
+
 from __future__ import annotations
 
 import os
@@ -57,8 +58,7 @@ def run_profile(label: str, shadow_on: bool) -> dict:
         DriftLaboratory,
     )
 
-    profile: dict = {"label": label, "crash": None, "real_errors": 0,
-                     "first_error": None}
+    profile: dict = {"label": label, "crash": None, "real_errors": 0, "first_error": None}
     lab = DriftLaboratory(DriftConfig())
     try:
         lab._setup()
@@ -67,11 +67,7 @@ def run_profile(label: str, shadow_on: bool) -> dict:
         os.environ.pop(SHADOW_ENV, None)
         return profile
     try:
-        scene = (
-            lab._scene_manager.get_scene_state(
-                lab.config.campaign_id, lab.config.location_id)
-            or {}
-        )
+        scene = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
         before = _snapshot_positions(scene)
 
         ticks_with_traversals = 0
@@ -84,31 +80,25 @@ def run_profile(label: str, shadow_on: bool) -> dict:
                 profile["real_errors"] += 1
                 if profile["first_error"] is None:
                     profile["first_error"] = f"{type(_e).__name__}: {_e}"
-            scene = (
-                lab._scene_manager.get_scene_state(
-                    lab.config.campaign_id, lab.config.location_id)
-                or {}
-            )
+            scene = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
             _travs = scene.get("active_traversals") or {}
             if _travs:
                 ticks_with_traversals += 1
                 max_trav = max(max_trav, len(_travs))
 
         after = _snapshot_positions(scene)
-        terminals = [
-            _t for _bucket in (scene.get("commitment_history") or {}).values()
-            for _t in _bucket
-        ]
-        profile.update({
-            "positions_after": after,
-            "moved": sorted(_n for _n in before if before[_n] != after.get(_n)),
-            "ticks_with_traversals": ticks_with_traversals,
-            "max_trav": max_trav,
-            "terminals_total": len(terminals),
-            "status_counts": dict(
-                Counter(_t.get("status") for _t in terminals)),
-            "actives": len(scene.get("active_commitments") or {}),
-        })
+        terminals = [_t for _bucket in (scene.get("commitment_history") or {}).values() for _t in _bucket]
+        profile.update(
+            {
+                "positions_after": after,
+                "moved": sorted(_n for _n in before if before[_n] != after.get(_n)),
+                "ticks_with_traversals": ticks_with_traversals,
+                "max_trav": max_trav,
+                "terminals_total": len(terminals),
+                "status_counts": dict(Counter(_t.get("status") for _t in terminals)),
+                "actives": len(scene.get("active_commitments") or {}),
+            }
+        )
     except Exception as _e:
         profile["crash"] = f"run: {_e!r}"
     finally:
@@ -123,16 +113,13 @@ def run_profile(label: str, shadow_on: bool) -> dict:
 def compare_profiles(a: dict, b: dict) -> list:
     """Diff по осям GORAN beta G1 (пусто = поведение идентично)."""
     _diffs: list = []
-    for _key in ("crash", "real_errors", "ticks_with_traversals",
-                 "max_trav", "terminals_total", "actives"):
+    for _key in ("crash", "real_errors", "ticks_with_traversals", "max_trav", "terminals_total", "actives"):
         if a.get(_key) != b.get(_key):
             _diffs.append(f"{_key}: {a.get(_key)!r} vs {b.get(_key)!r}")
     if a.get("moved") != b.get("moved"):
         _diffs.append(f"moved: {a.get('moved')} vs {b.get('moved')}")
     if a.get("status_counts") != b.get("status_counts"):
-        _diffs.append(
-            f"status_counts: {a.get('status_counts')} "
-            f"vs {b.get('status_counts')}")
+        _diffs.append(f"status_counts: {a.get('status_counts')} vs {b.get('status_counts')}")
     _pa = a.get("positions_after") or {}
     _pb = b.get("positions_after") or {}
     if set(_pa) != set(_pb):
@@ -140,48 +127,51 @@ def compare_profiles(a: dict, b: dict) -> list:
     else:
         for _nid in sorted(_pa):
             if _pa[_nid] != _pb[_nid]:
-                _diffs.append(
-                    f"POSITION[{_nid}]: {_pa[_nid]} vs {_pb[_nid]}")
+                _diffs.append(f"POSITION[{_nid}]: {_pa[_nid]} vs {_pb[_nid]}")
     return _diffs
 
 
 def main() -> int:
-    print(f"[W3_SHADOW_BASELINE] GORAN beta G1 v3 (контроль OFF-vs-OFF): "
-          f"{TICKS} ticks x3")
+    print(f"[W3_SHADOW_BASELINE] GORAN beta G1 v3 (контроль OFF-vs-OFF): {TICKS} ticks x3")
     _a = run_profile("A/OFF", shadow_on=False)
     _b = run_profile("B/ON", shadow_on=True)
     _c = run_profile("C/OFF-control", shadow_on=False)  # дискриминатор фона
     for _p in (_a, _b, _c):
-        print(f"[W3_SHADOW_BASELINE] {_p['label']}: crash={_p['crash']} "
-              f"real_errors={_p['real_errors']} "
-              f"npcs={len(_p.get('positions_after') or {})}")
+        print(
+            f"[W3_SHADOW_BASELINE] {_p['label']}: crash={_p['crash']} "
+            f"real_errors={_p['real_errors']} "
+            f"npcs={len(_p.get('positions_after') or {})}"
+        )
 
-    _invalid = [f"{_p['label']} crash={_p['crash']}"
-                for _p in (_a, _b, _c) if _p["crash"] is not None]
+    _invalid = [f"{_p['label']} crash={_p['crash']}" for _p in (_a, _b, _c) if _p["crash"] is not None]
     if _invalid:
         print(f"[W3_SHADOW_BASELINE] VERDICT: INVALID RUN — {_invalid}")
         return 2
 
-    _diffs_ab = compare_profiles(_a, _b)   # кандидат теневого эффекта
-    _diffs_ac = compare_profiles(_a, _c)   # фоновой недетерминизм
-    print(f"[W3_SHADOW_BASELINE] DIFF(A|B)={len(_diffs_ab)} "
-          f"DIFF(A|C)={len(_diffs_ac)}")
+    _diffs_ab = compare_profiles(_a, _b)  # кандидат теневого эффекта
+    _diffs_ac = compare_profiles(_a, _c)  # фоновой недетерминизм
+    print(f"[W3_SHADOW_BASELINE] DIFF(A|B)={len(_diffs_ab)} DIFF(A|C)={len(_diffs_ac)}")
     for _d in _diffs_ab:
         print(f"  AB - {_d}")
     for _d in _diffs_ac:
         print(f"  AC - {_d}")
 
     if not _diffs_ab:
-        print("[W3_SHADOW_BASELINE] VERDICT: GREEN — тень невидима "
-              f"(фон: {'стабилен' if not _diffs_ac else 'нестабилен, но A==B'})")
+        print(
+            "[W3_SHADOW_BASELINE] VERDICT: GREEN — тень невидима "
+            f"(фон: {'стабилен' if not _diffs_ac else 'нестабилен, но A==B'})"
+        )
         return 0
     if not _diffs_ac:
-        print("[W3_SHADOW_BASELINE] VERDICT: RED — дрейф коррелирует "
-              "с тенью при стабильном фоне; стоп, археология до ADR")
+        print(
+            "[W3_SHADOW_BASELINE] VERDICT: RED — дрейф коррелирует с тенью при стабильном фоне; стоп, археология до ADR"
+        )
         return 1
-    print("[W3_SHADOW_BASELINE] VERDICT: INCONCLUSIVE-AMBIENT — A≠C "
-          "при обоих OFF: фоновой дрейф подтверждён, теневой вклад не "
-          "выделяется; диапазонный критерий S216 / ретрансляция Мастеру")
+    print(
+        "[W3_SHADOW_BASELINE] VERDICT: INCONCLUSIVE-AMBIENT — A≠C "
+        "при обоих OFF: фоновой дрейф подтверждён, теневой вклад не "
+        "выделяется; диапазонный критерий S216 / ретрансляция Мастеру"
+    )
     return 3
 
 

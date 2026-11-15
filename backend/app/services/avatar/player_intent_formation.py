@@ -86,7 +86,7 @@ def store_player_intent(
     uuids = IdentityUUIDs.from_dict(uuids_data) if uuids_data else None
     if uuids is not None:
         owner_id = uuids.player_consciousness  # UUID-P
-        body_id = uuids.body                    # UUID-B
+        body_id = uuids.body  # UUID-B
     else:
         # Backward compat: legacy string-based identity (tests, old saves)
         owner_id = player_name or "player"
@@ -104,7 +104,7 @@ def store_player_intent(
         "action": action,
         "target": target or "",
         "desire_ref": None,  # Player intent не порождён Desire
-        "urgency": None,     # НЕ urgency=1.0 автоматически (Master test 9)
+        "urgency": None,  # НЕ urgency=1.0 автоматически (Master test 9)
         "lifecycle_state": "ACTIVE",
         "arbitration_result": "PENDING",
         "execution_status": "NOT_EXECUTED",

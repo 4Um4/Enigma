@@ -17,6 +17,7 @@ class FateTrajectory(str, Enum):
     IMPROVING = "improving"
     CRITICAL = "critical"
 
+
 class FateOutcome(str, Enum):
     ESCAPE = "escape"
     DEATH = "death"
@@ -25,21 +26,25 @@ class FateOutcome(str, Enum):
     EMPOWERED = "empowered"
     IMPRISONED = "imprisoned"
 
+
 @dataclass(frozen=True)
 class FateState:
     """Судьба NPC — кумулятивный результат всех воздействий.
     Шкалы нормализованы: 0..1 (в отличие от 0..100 в SocialFabric).
     """
+
     npc_id: str
-    stability: float          # 0..1
-    threat_level: float       # 0..1
+    stability: float  # 0..1
+    threat_level: float  # 0..1
     fate_trajectory: FateTrajectory
     resolved_fate: Optional[FateOutcome] = None
     fate_tick: Optional[int] = None
 
+
 @dataclass(frozen=True)
 class FateEvent:
     """Судьбоносное событие, наступившее с NPC."""
+
     npc_id: str
     event_type: FateOutcome
     tick: int

@@ -18,6 +18,7 @@ Usage:
     python -m scripts.chronicle_audit blacksmith_orm
     python -m scripts.chronicle_audit blacksmith_orm --json
 """
+
 from __future__ import annotations
 
 import json
@@ -127,15 +128,17 @@ def _entries_summary(doc: Any) -> Dict[str, Any]:
             payload_keys: List[str] = []
             if isinstance(e.payload, dict):
                 payload_keys = sorted(e.payload.keys())
-            samples.append({
-                "entry_id": e.entry_id,
-                "kind": kind_str,
-                "historical_age": e.historical_age,
-                "object_id": obj_str,
-                "open_questions_count": len(e.open_questions),
-                "payload_keys": payload_keys,
-                "provenance": prov_str,
-            })
+            samples.append(
+                {
+                    "entry_id": e.entry_id,
+                    "kind": kind_str,
+                    "historical_age": e.historical_age,
+                    "object_id": obj_str,
+                    "open_questions_count": len(e.open_questions),
+                    "payload_keys": payload_keys,
+                    "provenance": prov_str,
+                }
+            )
     return {
         "total": len(doc.entries),
         "by_kind": by_kind,
@@ -157,73 +160,91 @@ def _missing_links(npc_id: str, doc: Any) -> List[Dict[str, str]]:
     drafts_dir = BASE_DIR / "saves"
     draft_paths = list(drafts_dir.rglob(f"chronicle_drafts/{npc_id}.json"))
     if not draft_paths:
-        missing.append({
-            "link": "draft",
-            "status": "absent",
-            "fact": f"no chronicle_drafts/{npc_id}.json under {drafts_dir}",
-            "file": str(drafts_dir / "**" / "chronicle_drafts" / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "draft",
+                "status": "absent",
+                "fact": f"no chronicle_drafts/{npc_id}.json under {drafts_dir}",
+                "file": str(drafts_dir / "**" / "chronicle_drafts" / f"{npc_id}.json"),
+            }
+        )
     else:
         for p in draft_paths:
-            missing.append({
-                "link": "draft",
-                "status": "present",
-                "fact": f"draft file exists ({p.stat().st_size} bytes)",
-                "file": str(p),
-            })
+            missing.append(
+                {
+                    "link": "draft",
+                    "status": "present",
+                    "fact": f"draft file exists ({p.stat().st_size} bytes)",
+                    "file": str(p),
+                }
+            )
     has_open_q = any(e.open_questions for e in doc.entries)
     if not has_open_q:
-        missing.append({
-            "link": "open_questions",
-            "status": "absent",
-            "fact": "0 entries with non-empty open_questions in canonical doc",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "open_questions",
+                "status": "absent",
+                "fact": "0 entries with non-empty open_questions in canonical doc",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
     rq_stats = _resolved_questions_stats(doc)
     if rq_stats["entries_with_nonempty_history"] == 0:
-        missing.append({
-            "link": "resolved_history",
-            "status": "absent",
-            "fact": "0 entries with non-empty _resolved_questions in payload",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "resolved_history",
+                "status": "absent",
+                "fact": "0 entries with non-empty _resolved_questions in payload",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
     else:
-        missing.append({
-            "link": "resolved_history",
-            "status": "present",
-            "fact": f"{rq_stats['entries_with_nonempty_history']} entries with "
-                    f"{rq_stats['total_resolved_records']} resolved records",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "resolved_history",
+                "status": "present",
+                "fact": f"{rq_stats['entries_with_nonempty_history']} entries with "
+                f"{rq_stats['total_resolved_records']} resolved records",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
     if not doc.white_spots:
-        missing.append({
-            "link": "white_spots",
-            "status": "absent",
-            "fact": "0 white_spots in canonical doc",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "white_spots",
+                "status": "absent",
+                "fact": "0 white_spots in canonical doc",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
     has_llm_draft = any(e.provenance.value == "LLM_DRAFT" for e in doc.entries)
     if not has_llm_draft:
-        missing.append({
-            "link": "llm_draft_provenance",
-            "status": "absent",
-            "fact": "0 entries with provenance=LLM_DRAFT in canonical doc",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
+        missing.append(
+            {
+                "link": "llm_draft_provenance",
+                "status": "absent",
+                "fact": "0 entries with provenance=LLM_DRAFT in canonical doc",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
     if doc.canonical_version <= 1:
-        missing.append({
-            "link": "canonical_version_increment",
-            "status": "absent",
-            "fact": f"canonical_version={doc.canonical_version} (no re-canonization)",
-            "file": str(canon_dir / f"{npc_id}.json"),
-        })
-    missing.append({
-        "link": "runtime_npcstate",
-        "status": "not_observable_in_cli",
-        "fact": "CLI cannot probe NPCState.episodic_memory/relationship_cache/"
-                "affective_imprints/psyche.beliefs without running GameLoop",
-        "file": "character_debug endpoint (requires HTTP server + GameLoop)",
-    })
+        missing.append(
+            {
+                "link": "canonical_version_increment",
+                "status": "absent",
+                "fact": f"canonical_version={doc.canonical_version} (no re-canonization)",
+                "file": str(canon_dir / f"{npc_id}.json"),
+            }
+        )
+    missing.append(
+        {
+            "link": "runtime_npcstate",
+            "status": "not_observable_in_cli",
+            "fact": "CLI cannot probe NPCState.episodic_memory/relationship_cache/"
+            "affective_imprints/psyche.beliefs without running GameLoop",
+            "file": "character_debug endpoint (requires HTTP server + GameLoop)",
+        }
+    )
     return missing
 
 
@@ -325,9 +346,7 @@ def _render_human(audit: Dict[str, Any]) -> str:
         if skipped:
             lines.append("    skipped (first 5):")
             for e in [x for x in sr["entries"] if x["seed_result"] == "SKIPPED"][:5]:
-                lines.append(
-                    f"      {e['entry_id'][:12]} [{e['source_kind']}] reason={e['skip_reason']}"
-                )
+                lines.append(f"      {e['entry_id'][:12]} [{e['source_kind']}] reason={e['skip_reason']}")
     lines.append("  [5] RUNTIME CONSUMER (not observable in CLI; requires GameLoop)")
     lines.append(f"    status: {audit['link_5_runtime']['status']}")
     for c in audit["link_5_runtime"]["consumers"]:

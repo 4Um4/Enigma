@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/app/services/events/rules_subscriber.py
 Назначение: Rules agent as PURE REDUCER. function(event, snapshot) → delta.
 Зависимости: стандартная библиотека Python.
@@ -8,6 +8,7 @@ path: backend/app/services/events/rules_subscriber.py
 Rules = pure function (event, snapshot) → delta.
 ЗАПРЕЩЕНО: mutation, запуск фаз, доступ к прошлому тику, cache, state.
 """
+
 from __future__ import annotations
 
 import logging
@@ -99,8 +100,14 @@ class RulesSubscriber:
     _TRADE_ACTIONS = {"купить", "торгов", "сделка", "эль", "пиво"}
     # Priority 2: keyword → GOODS_PRICES key (good extraction for create_order)
     _GOOD_KEYWORDS: Dict[str, str] = {
-        "эль": "ale", "пиво": "ale", "кружку": "ale", "выпить": "ale",
-        "еда": "food", "хлеб": "food", "похлёбку": "food", "обед": "food",
+        "эль": "ale",
+        "пиво": "ale",
+        "кружку": "ale",
+        "выпить": "ale",
+        "еда": "food",
+        "хлеб": "food",
+        "похлёбку": "food",
+        "обед": "food",
     }
 
     def __init__(self) -> None:
@@ -199,9 +206,7 @@ class RulesSubscriber:
             logger.error(f"[RULES_REDUCER] failed: {e}", exc_info=True)
             return None
 
-    def _handle_social(
-        self, event: Any, target_id: str, snapshot: Dict[str, Any]
-    ) -> Optional[RulesDelta]:
+    def _handle_social(self, event: Any, target_id: str, snapshot: Dict[str, Any]) -> Optional[RulesDelta]:
         """Обработка социальных действий (SOCIAL/LOVE/TRADE) без LLM."""
         _raw_input = snapshot.get("raw_input", "").lower()
         _semantic_action = event.payload.get("semantic_action", "")
@@ -286,9 +291,7 @@ class RulesSubscriber:
         if hasattr(event, "payload"):
             payload = event.payload
             if isinstance(payload, dict):
-                return payload.get("target_id") or payload.get(
-                    "target_reference"
-                )
+                return payload.get("target_id") or payload.get("target_reference")
             return None
         if isinstance(event, dict):
             return event.get("target_id") or event.get("target_reference")

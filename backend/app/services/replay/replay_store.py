@@ -4,6 +4,7 @@ path: backend/app/services/replay/replay_store.py
 Назначение: SQLite хранилище для записи и воспроизведения сессий (Подсистема 2, Этап 2.1).
 Зависимости: sqlite3, json, zlib
 """
+
 import json
 import logging
 import sqlite3
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
 
 class ReplayStore:
     """Управляет записью сессии в SQLite (WAL mode)."""
@@ -97,7 +99,7 @@ class ReplayStore:
         """Сериализует объект в JSON и сжимает через zlib."""
         try:
             json_str = json.dumps(obj, default=str, ensure_ascii=False)
-            return zlib.compress(json_str.encode('utf-8'))
+            return zlib.compress(json_str.encode("utf-8"))
         except Exception as e:
             logger.error(f"[REPLAY_STORE] JSON serialization failed: {e}")
             return zlib.compress(b'{"error": "serialization_failed"}')
@@ -106,7 +108,7 @@ class ReplayStore:
         if not data:
             return None
         try:
-            return json.loads(zlib.decompress(data).decode('utf-8'))
+            return json.loads(zlib.decompress(data).decode("utf-8"))
         except Exception as e:
             logger.error(f"[REPLAY_STORE] JSON deserialization failed: {e}")
             return None
@@ -116,7 +118,7 @@ class ReplayStore:
         session_id = str(uuid.uuid4())
         self.conn.execute(
             "INSERT INTO sessions (session_id, campaign_id, commit_hash, started_at) VALUES (?, ?, ?, ?)",
-            (session_id, campaign_id, commit_hash, time.time())
+            (session_id, campaign_id, commit_hash, time.time()),
         )
         self.conn.commit()
         return session_id
@@ -128,10 +130,7 @@ class ReplayStore:
         строку в sessions независимо от тиков). Единственный честный
         признак записи — счёт строк tick_snapshots.
         """
-        _row = self.conn.execute(
-            "SELECT COUNT(*) FROM tick_snapshots WHERE session_id = ?",
-            (session_id,)
-        ).fetchone()
+        _row = self.conn.execute("SELECT COUNT(*) FROM tick_snapshots WHERE session_id = ?", (session_id,)).fetchone()
         return int(_row[0]) if _row else 0
 
     def record_tick(
@@ -141,7 +140,7 @@ class ReplayStore:
         game_time_seconds: float,
         tick_state: Any,
         tick_mutation: Any = None,
-        world_snapshot: Any = None
+        world_snapshot: Any = None,
     ) -> None:
         """Записывает срез тика (вход, выход, проекция)."""
         with self._lock:
@@ -150,7 +149,7 @@ class ReplayStore:
                 """INSERT OR IGNORE INTO tick_snapshots
                    (session_id, tick_id, game_time_seconds, tick_state_json, tick_mutation_json, world_snapshot_json)
                    VALUES (?, ?, ?, ?, ?, ?)""",
-                (session_id, tick_id, game_time_seconds, b'{}', b'{}', b'{}')
+                (session_id, tick_id, game_time_seconds, b"{}", b"{}", b"{}"),
             )
             # 2. Точечно обновляем только переданные поля
             self.conn.execute(
@@ -165,24 +164,20 @@ class ReplayStore:
                     self._to_json_bytes(tick_state) if tick_state is not None else None,  # noqa: ENIGMA001
                     self._to_json_bytes(tick_mutation) if tick_mutation is not None else None,  # noqa: ENIGMA001
                     self._to_json_bytes(world_snapshot) if world_snapshot is not None else None,  # noqa: ENIGMA001
-                    session_id, tick_id
-                )
+                    session_id,
+                    tick_id,
+                ),
             )
             self.conn.commit()
 
     def record_intervention(
-        self,
-        session_id: str,
-        tick_id: int,
-        source: str,
-        payload: Any,
-        intent_compression: Any = None
+        self, session_id: str, tick_id: int, source: str, payload: Any, intent_compression: Any = None
     ) -> None:
         """Записывает InterventionEvent."""
         self.conn.execute(
             """INSERT INTO interventions (session_id, tick_id, source, payload_json, intent_compression_json)
                VALUES (?, ?, ?, ?, ?)""",
-            (session_id, tick_id, source, self._to_json_bytes(payload), self._to_json_bytes(intent_compression))
+            (session_id, tick_id, source, self._to_json_bytes(payload), self._to_json_bytes(intent_compression)),
         )
         self.conn.commit()
 
@@ -196,47 +191,46 @@ class ReplayStore:
         model_name: str,
         latency_ms: int,
         system_prompt: Optional[str] = None,
-        params: Any = None
+        params: Any = None,
     ) -> None:
         """Записывает вызов LLM для кэширования при replay."""
         from app.services.replay.llm_cache import compute_prompt_hash
+
         prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
         with self._lock:
             self.conn.execute(
                 """INSERT INTO llm_calls (session_id, tick_id, agent_name, prompt_hash, prompt_json, response_json, model_name, latency_ms)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (session_id, tick_id, agent_name, prompt_hash, self._to_json_bytes(prompt), self._to_json_bytes(response), model_name, latency_ms)
+                (
+                    session_id,
+                    tick_id,
+                    agent_name,
+                    prompt_hash,
+                    self._to_json_bytes(prompt),
+                    self._to_json_bytes(response),
+                    model_name,
+                    latency_ms,
+                ),
             )
             self.conn.commit()
 
     def record_causal_probe(
-        self,
-        session_id: str,
-        tick_id: int,
-        probe_name: str,
-        status: str,
-        details: Any = None
+        self, session_id: str, tick_id: int, probe_name: str, status: str, details: Any = None
     ) -> None:
         """Записывает результат пробы Causal Probes."""
         self.conn.execute(
             """INSERT INTO causal_probes (session_id, tick_id, probe_name, status, details_json)
                VALUES (?, ?, ?, ?, ?)""",
-            (session_id, tick_id, probe_name, status, self._to_json_bytes(details))
+            (session_id, tick_id, probe_name, status, self._to_json_bytes(details)),
         )
         self.conn.commit()
 
-    def record_scene_change(
-        self,
-        session_id: str,
-        tick_id: int,
-        change: Any,
-        applied: bool
-    ) -> None:
+    def record_scene_change(self, session_id: str, tick_id: int, change: Any, applied: bool) -> None:
         """Записывает SceneChange."""
         self.conn.execute(
             """INSERT INTO scene_changes (session_id, tick_id, change_json, applied)
                VALUES (?, ?, ?, ?)""",
-            (session_id, tick_id, self._to_json_bytes(change), applied)
+            (session_id, tick_id, self._to_json_bytes(change), applied),
         )
         self.conn.commit()
 
@@ -247,13 +241,10 @@ class ReplayStore:
             with self._lock:
                 row = self.conn.execute(
                     "SELECT response_json, model_name FROM llm_calls WHERE session_id = ? AND agent_name = ? AND prompt_hash = ? ORDER BY call_id DESC LIMIT 1",
-                    (session_id, agent_name, prompt_hash)
+                    (session_id, agent_name, prompt_hash),
                 ).fetchone()
             if row:
-                return {
-                    "response": self._from_json_bytes(row["response_json"]),
-                    "model_name": row["model_name"]
-                }
+                return {"response": self._from_json_bytes(row["response_json"]), "model_name": row["model_name"]}
             return None
         except Exception as e:
             logger.error(f"[REPLAY_STORE] Failed to get LLM call: {e}")
@@ -265,9 +256,7 @@ class ReplayStore:
     # (settings.replay_budget_keep_last=0). Активация — отдельный вердикт
     # Мастера. Pinned-сессии ADR-O-351 защищены ВСЕГДА (проверяется тестом).
 
-    def list_sessions(
-        self, limit: int = 100, offset: int = 0
-    ) -> list[dict[str, Any]]:
+    def list_sessions(self, limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
         """Возвращает сессии, отсортированные по started_at DESC.
 
         Поля: session_id, campaign_id, commit_hash, started_at, pinned.
@@ -313,9 +302,7 @@ class ReplayStore:
             self.conn.commit()
             return cur.rowcount > 0
 
-    def prune_old_sessions(
-        self, keep_last: int, dry_run: bool = False
-    ) -> list[str]:
+    def prune_old_sessions(self, keep_last: int, dry_run: bool = False) -> list[str]:
         """D72: удаляет unpinned-сессии сверх keep_last (по started_at DESC).
 
         Pinned-сессии ADR-O-351 защищены ВСЕГДА — они не учитываются в
@@ -338,9 +325,7 @@ class ReplayStore:
         фактического удаления (для observation и тестов).
         """
         if keep_last < 0:
-            raise ValueError(
-                f"keep_last must be >= 0, got {keep_last}"
-            )
+            raise ValueError(f"keep_last must be >= 0, got {keep_last}")
         with self._lock:
             # Кандидаты на удаление: unpinned, отсортированные от старых к
             # новым, начиная с позиции keep_last. LIMIT -1 = все строки

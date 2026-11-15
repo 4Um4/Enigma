@@ -13,6 +13,7 @@ SUPERBOX-OBSERVATION (Phase C, ADR-O-360): прямой канал убежде�
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_observation_test.py
 """
+
 import sys
 from pathlib import Path
 
@@ -39,9 +40,7 @@ def _make_pipe(positions):
     store = EpistemicStore()
     engine = BeliefRevisionEngine(reliability_provider=provider)
     sq = SpatialQueryService(npc_positions=positions)
-    sub = ObservationSubscriber(engine=engine, store=store,
-                                spatial_query_provider=lambda: sq,
-                                tick_provider=lambda: 1)
+    sub = ObservationSubscriber(engine=engine, store=store, spatial_query_provider=lambda: sq, tick_provider=lambda: 1)
     return store, sub
 
 
@@ -49,8 +48,7 @@ def _theft_event(target_id="gold_chest"):
     return EventDTO.create(
         event_type=EventType.THEFT.value,
         source="player",
-        payload={"target_id": target_id, "action_type": "player_steals",
-                 "intensity": 0.6, "raw_input": "steal"},
+        payload={"target_id": target_id, "action_type": "player_steals", "intensity": 0.6, "raw_input": "steal"},
     )
 
 
@@ -67,56 +65,57 @@ def main():
     scene_state = {}
     positions = {
         "player": {"local_position": {"x": 2.0, "y": 0.0}},
-        "goran":  {"local_position": {"x": 3.0, "y": 0.0}},    # дистанция 1.0 — свидетель
-        "lusya":  {"local_position": {"x": 15.0, "y": 0.0}},   # дистанция 13.0 — вне радиуса
+        "goran": {"local_position": {"x": 3.0, "y": 0.0}},  # дистанция 1.0 — свидетель
+        "lusya": {"local_position": {"x": 15.0, "y": 0.0}},  # дистанция 13.0 — вне радиуса
     }
     sq = SpatialQueryService(npc_positions=positions, scene_state=scene_state)
     # DEBT-R6-паттерн: реальный RelationshipStore в tempfile (изоляция прогонов)
     # — T5 получает настоящую вражескую reliability, а не unknown-prior.
     import tempfile
+
     _rel_dir = Path(tempfile.mkdtemp(prefix="obs_test_"))
     rel_store = RelationshipStore(data_dir=str(_rel_dir))
     rel_store.update(CAMPAIGN_ID, "goran", "npc_enemy", {"trust": -50.0})
     provider = TrustBasedReliabilityProvider(rel_store, CAMPAIGN_ID)
     store = EpistemicStore()
     engine = BeliefRevisionEngine(reliability_provider=provider)
-    sub = ObservationSubscriber(engine=engine, store=store,
-                                spatial_query_provider=lambda: sq,
-                                tick_provider=lambda: 1)
+    sub = ObservationSubscriber(engine=engine, store=store, spatial_query_provider=lambda: sq, tick_provider=lambda: 1)
 
     sub.on_world_event(_theft_event())
 
     goran_belief = store.get("goran")
     lusya_belief = store.get("lusya")
 
-    print(f"\n[T1] Goran (LOS=True): belief={'есть' if goran_belief else 'НЕТ'}"
-          f", conf={goran_belief.confidence if goran_belief else '-'}")
+    print(
+        f"\n[T1] Goran (LOS=True): belief={'есть' if goran_belief else 'НЕТ'}"
+        f", conf={goran_belief.confidence if goran_belief else '-'}"
+    )
     if goran_belief and goran_belief.confidence == DIRECT_OBSERVATION_RELIABILITY:
         print("    ✅ Наблюдение создало убеждение с direct reliability.")
     else:
-        print("    ❌ FAIL"); ok = False
+        print("    ❌ FAIL")
+        ok = False
 
     print(f"[T2] Lusya (дистанция 13.0 > 10.0): belief={'есть' if lusya_belief else 'НЕТ'}")
     if lusya_belief is None:
         print("    ✅ No telepathy: вне радиуса наблюдения убеждение не создаётся.")
     else:
-        print("    ❌ FAIL"); ok = False
+        print("    ❌ FAIL")
+        ok = False
 
     # ── T2b: блокировка стеной (spatial_walls, верифицированный контракт) ──
-    scene_state_wall = {
-        "spatial_walls": [{"x1": 5.0, "y1": -5.0, "x2": 5.0, "y2": 5.0}]
-    }
+    scene_state_wall = {"spatial_walls": [{"x1": 5.0, "y1": -5.0, "x2": 5.0, "y2": 5.0}]}
     positions_wall = {
         "player": {"local_position": {"x": 2.0, "y": 0.0}},
-        "orm":    {"local_position": {"x": 8.0, "y": 0.0}},  # дистанция 6.0 < 10, но за стеной
+        "orm": {"local_position": {"x": 8.0, "y": 0.0}},  # дистанция 6.0 < 10, но за стеной
     }
     sq_wall = SpatialQueryService(npc_positions=positions_wall, scene_state=scene_state_wall)
     provider_w = TrustBasedReliabilityProvider(None, CAMPAIGN_ID)
     store_w = EpistemicStore()
     engine_w = BeliefRevisionEngine(reliability_provider=provider_w)
-    sub_w = ObservationSubscriber(engine=engine_w, store=store_w,
-                                  spatial_query_provider=lambda: sq_wall,
-                                  tick_provider=lambda: 1)
+    sub_w = ObservationSubscriber(
+        engine=engine_w, store=store_w, spatial_query_provider=lambda: sq_wall, tick_provider=lambda: 1
+    )
     sub_w.on_world_event(_theft_event())
     orm_belief = store_w.get("orm")
     print(f"[T2b] Orm (дист. 6.0, за стеной): belief={'есть' if orm_belief else 'НЕТ'}")
@@ -140,29 +139,32 @@ def main():
     goran2 = store.get("goran")
     conf2 = goran2.confidence
     expected = round(min(1.0, conf1 + DIRECT_OBSERVATION_RELIABILITY * 0.2), 4)
-    print(f"\n[T4] Повторное наблюдение: {conf1:.4f} → {conf2:.4f} "
-          f"(ожид. {expected:.4f}, same-source буст)")
+    print(f"\n[T4] Повторное наблюдение: {conf1:.4f} → {conf2:.4f} (ожид. {expected:.4f}, same-source буст)")
     if abs(conf2 - expected) < 0.001:
         print("    ✅ Усиление, не дубль.")
     else:
-        print("    ❌ FAIL"); ok = False
+        print("    ❌ FAIL")
+        ok = False
 
     # ── T5: observation vs вражеское testimony ──────────────────────
     # тот же store/engine; публикуем testimony от врага на ту же пропозицию
     # (через прямой вызов engine, минуя шину — шинный путь уже покрыт IPT)
     from app.domain.epistemology import ClaimEvent, Predicate, Proposition
-    prop = Proposition(subject_id="player", predicate=Predicate.STOLE,
-                       object_id="gold_chest", polarity=True)
-    enemy_claim = ClaimEvent(event_id="e1", claim_id="c1", speaker_id="npc_enemy",
-                             listener_id="goran", proposition=prop, tick=2)
+
+    prop = Proposition(subject_id="player", predicate=Predicate.STOLE, object_id="gold_chest", polarity=True)
+    enemy_claim = ClaimEvent(
+        event_id="e1", claim_id="c1", speaker_id="npc_enemy", listener_id="goran", proposition=prop, tick=2
+    )
     record = engine.revise("goran", enemy_claim, store.get("goran", prop))
     store.upsert(record)
     # Кросс-подтверждение от врага: source отличается от goran → cross-ветка:
     # conf = max(0.0, min(1.0, conf2 + (-0.2857))) = conf2 - 0.2857
     _expected_t5 = round(max(0.0, min(1.0, conf2 - 0.2857)), 4)
-    print(f"\n[T5] Вражеское testimony (trust=-50, rel=-0.2857) поверх "
-          f"наблюдения: {conf2:.4f} → {record.confidence:.4f} "
-          f"(ожид. {_expected_t5:.4f})")
+    print(
+        f"\n[T5] Вражеское testimony (trust=-50, rel=-0.2857) поверх "
+        f"наблюдения: {conf2:.4f} → {record.confidence:.4f} "
+        f"(ожид. {_expected_t5:.4f})"
+    )
     if abs(record.confidence - _expected_t5) < 0.001:
         print("    ✅ Testimony врага ослабляет убеждение точной формулой ADR-O-357.")
     else:

@@ -29,7 +29,7 @@ def _make_test_proposal(npc_id="test_npc", topology_version=0, distance=14.14) -
 def test_traversal_proposal_is_immutable():
     """ADR-O-323: TraversalProposal должен быть immutable (frozen dataclass)."""
     proposal = _make_test_proposal()
-    
+
     with pytest.raises(AttributeError):
         proposal.npc_id = "hack"
 
@@ -77,7 +77,7 @@ def test_proposal_topology_revision_is_required():
 def test_scene_change_carries_traversal_proposal():
     """ADR-O-323: SceneChange должен переносить TraversalProposal без модификаций."""
     proposal = _make_test_proposal()
-    
+
     change = SceneChange(
         type=ChangeType.NPC_POSITION,
         target="test_npc",
@@ -89,7 +89,7 @@ def test_scene_change_carries_traversal_proposal():
         target_local_xy=(10.0, 10.0),  # Совпадает с последним waypoint proposal
         traversal_proposal=proposal,
     )
-    
+
     assert change.traversal_proposal is not None
     assert change.traversal_proposal.npc_id == "test_npc"
     assert change.target_local_xy == (10.0, 10.0)
@@ -98,10 +98,10 @@ def test_scene_change_carries_traversal_proposal():
 def test_scene_manager_materializes_exact_proposal():
     """ADR-O-323: SceneStateManager материализует traversal_dict строго из proposal."""
     proposal = _make_test_proposal()
-    
+
     # Симулируем материализацию (без вызова всего SSM)
     _traversal_dict = build_traversal_dict(proposal)
-    
+
     assert _traversal_dict["npc_id"] == proposal.npc_id
     assert _traversal_dict["from_node"] == proposal.source_node
     assert _traversal_dict["target_node"] == proposal.target_node
@@ -126,10 +126,10 @@ def test_shadow_validator_rejects_invalid_distance():
     prop_wps = [list(wp) for wp in proposal.path_waypoints]
     calc_distance = 0.0
     for i in range(len(prop_wps) - 1):
-        dx = prop_wps[i][0] - prop_wps[i+1][0]
-        dy = prop_wps[i][1] - prop_wps[i+1][1]
+        dx = prop_wps[i][0] - prop_wps[i + 1][0]
+        dy = prop_wps[i][1] - prop_wps[i + 1][1]
         calc_distance += math.hypot(dx, dy)
-    
+
     assert abs(proposal.distance - calc_distance) > 1.0  # Должен быть отклонён
 
 

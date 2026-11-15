@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 HEARING_RADIUS = 10.0
 
+
 class ClaimEventSubscriber:
     """
     Слушает COMMUNICATION_CLAIM и NPC_SPOKE на EventBus.
@@ -28,6 +29,7 @@ class ClaimEventSubscriber:
     S192: Observation Divergence — фильтрует слушателей через пространственную мембрану (SpatialQueryService).
     S199 (Фаза 8.3): Поддержка игрока как наблюдателя (observer_id="player").
     """
+
     def __init__(
         self,
         engine: BeliefRevisionEngine,
@@ -45,7 +47,7 @@ class ClaimEventSubscriber:
         """
         import dataclasses
 
-        if not hasattr(event, 'payload'):
+        if not hasattr(event, "payload"):
             return
 
         payload = event.payload
@@ -77,7 +79,7 @@ class ClaimEventSubscriber:
                 "subject_id": prop.subject_id,
                 "predicate": prop.predicate.value,
                 "object_id": prop.object_id,
-                "polarity": True
+                "polarity": True,
             }
             new_payload.setdefault("claim_id", f"fallback-{event.id}")
             new_payload.setdefault("speech_act", "assert")
@@ -176,7 +178,7 @@ class ClaimEventSubscriber:
             self.on_claim_event(new_event)
 
     def on_claim_event(self, event: Any) -> None:
-        if not hasattr(event, 'payload'):
+        if not hasattr(event, "payload"):
             logger.warning("[CLAIM_SUB] Event has no payload")
             return
 
@@ -191,7 +193,7 @@ class ClaimEventSubscriber:
                 subject_id=prop_data.get("subject_id"),
                 predicate=Predicate(prop_data.get("predicate")),
                 object_id=prop_data.get("object_id"),
-                polarity=prop_data.get("polarity", True)
+                polarity=prop_data.get("polarity", True),
             )
 
             # Proposition-guard (Understanding research, очередь №3, вердикт Мастера):
@@ -219,15 +221,17 @@ class ClaimEventSubscriber:
                 # легальный subject (NPC верят про игрока). Fail-closed:
                 # мусорный claim не доходит до веры НИКОГДА.
                 from app.domain.sanity_membrane import can_address
+
                 if not can_address(event.source, str(prop.subject_id)) and str(prop.subject_id) != "player":
                     _guard_reason = (
-                        f"non-actor subject_id={prop.subject_id!r} "
-                        f"(sanity_membrane: claim о не-акторе не создаёт веру)"
+                        f"non-actor subject_id={prop.subject_id!r} (sanity_membrane: claim о не-акторе не создаёт веру)"
                     )
             if _guard_reason:
-                print(f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
-                      f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "
-                      f"source={getattr(event, 'source', '?')})")  # временный зонд исследования
+                print(
+                    f"[CLAIM_GUARD] proposition REJECTED: {_guard_reason} "
+                    f"(predicate={getattr(prop.predicate, 'value', prop.predicate)}, "
+                    f"source={getattr(event, 'source', '?')})"
+                )  # временный зонд исследования
                 return
 
             # S192.1: Perception Membrane Hardening.
@@ -252,6 +256,7 @@ class ClaimEventSubscriber:
                             _listeners.add(_primary_target)
                     else:
                         from app.models.npc_state import PerceptualKernel
+
                         for _nid in _npc_positions.keys():
                             # S199 (Фаза 8.3): Игрок больше не исключается — он полноправный наблюдатель.
                             if _nid == _origin_id:
@@ -295,7 +300,7 @@ class ClaimEventSubscriber:
                         # R4 (Claim Bridge): событийное время — event_tick
                         # (ADR-O-399, ставится drain'ом в payload), fallback
                         # на legacy "tick". Неверный ноль устранён.
-                        tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0)
+                        tick=int(payload.get("event_tick", 0) or payload.get("tick", 0) or 0),
                     )
                     existing = self._store.get(_listener_id, prop)
                     # COGNITIVE-CONTINUITY-01: provenance chain — original_source_id
@@ -303,8 +308,10 @@ class ClaimEventSubscriber:
                     _speaker_record = self._store.get(event.source, prop)
                     _speaker_orig = _speaker_record.original_source_id if _speaker_record else event.source
                     updated_record = self._engine.revise(
-                        _listener_id, claim, existing,
-                        reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig}
+                        _listener_id,
+                        claim,
+                        existing,
+                        reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig},
                     )
                     self._store.upsert(updated_record)
                 except Exception as _listener_err:

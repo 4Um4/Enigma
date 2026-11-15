@@ -66,9 +66,7 @@ class ContextualExpectationStore:
         if _caller not in self._APPLY_ALLOWED_WRITERS:
             from app.errors import ArchitecturalViolationError
 
-            raise ArchitecturalViolationError(
-                f"expectation_store.apply({record.owner_id})", _caller
-            )
+            raise ArchitecturalViolationError(f"expectation_store.apply({record.owner_id})", _caller)
 
         eid = record.expectation_id()
         bucket = self._expectations.setdefault(record.owner_id, {})
@@ -76,10 +74,7 @@ class ContextualExpectationStore:
 
         if existing is None:
             bucket[eid] = record
-            logger.debug(
-                f"[EXPECTATION_STORE] formed {eid} "
-                f"pred={record.predicate.value} conf={record.confidence:.2f}"
-            )
+            logger.debug(f"[EXPECTATION_STORE] formed {eid} pred={record.predicate.value} conf={record.confidence:.2f}")
             return ExpectationApplyResult.CREATED
 
         bucket[eid] = ExpectationRecord(
@@ -93,10 +88,7 @@ class ContextualExpectationStore:
             predicted_context=existing.predicted_context,
             status=existing.status,
         )
-        logger.debug(
-            f"[EXPECTATION_STORE] reinforced {eid} "
-            f"conf={bucket[eid].confidence:.2f}"
-        )
+        logger.debug(f"[EXPECTATION_STORE] reinforced {eid} conf={bucket[eid].confidence:.2f}")
         return ExpectationApplyResult.REINFORCED
 
     def get_all(
@@ -179,21 +171,13 @@ class ContextualExpectationStore:
                     expected_object=str(item.get("expected_object", "")),
                     confidence=max(0.0, min(1.0, float(item.get("confidence", 0.0)))),
                     formed_tick=int(item.get("formed_tick", 0)),
-                    causal_parent_conclusion_id=str(
-                        item.get("causal_parent_conclusion_id", "")
-                    ),
+                    causal_parent_conclusion_id=str(item.get("causal_parent_conclusion_id", "")),
                     predicted_context=str(item.get("predicted_context", "")),
-                    status=ExpectationStatus(
-                        item.get("status", ExpectationStatus.ACTIVE.value)
-                    ),
+                    status=ExpectationStatus(item.get("status", ExpectationStatus.ACTIVE.value)),
                 )
                 if not record.owner_id or not record.subject:
                     raise ValueError("пустые owner_id/subject")
-                store._expectations.setdefault(record.owner_id, {})[
-                    record.expectation_id()
-                ] = record
+                store._expectations.setdefault(record.owner_id, {})[record.expectation_id()] = record
             except Exception as e:  # noqa: ENIGMA001
-                logger.warning(
-                    f"[EXPECTATION_STORE] Failed to deserialize record: {e}"
-                )
+                logger.warning(f"[EXPECTATION_STORE] Failed to deserialize record: {e}")
         return store

@@ -180,9 +180,7 @@ class ReactionSubscriber:
         PerceptionSubscriber) или fallback на всех NPC.
         """
         if not events:
-            logger.warning(
-                "[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick"
-            )
+            logger.warning("[REACTION_SUB] handle() called with 0 events — no emotional reactions this tick")
             return Phase8Result(perceiving_npc_ids=set())
 
         logger.warning(
@@ -192,16 +190,10 @@ class ReactionSubscriber:
         # Извлекаем физический шок из материализованного Physical Layer (t)
         shock_by_npc: dict[str, float] = {}
         for delta in ctx.physical_deltas_materialized:
-            if (
-                delta.npc_id
-                and delta.domain == DeltaDomain.PHYSIOLOGY
-                and isinstance(delta.payload, PhysiologyPayload)
-            ):
+            if delta.npc_id and delta.domain == DeltaDomain.PHYSIOLOGY and isinstance(delta.payload, PhysiologyPayload):
                 imp = delta.payload.shock_impulse
                 if imp > 0:
-                    shock_by_npc[delta.npc_id] = max(
-                        shock_by_npc.get(delta.npc_id, 0.0), imp
-                    )
+                    shock_by_npc[delta.npc_id] = max(shock_by_npc.get(delta.npc_id, 0.0), imp)
 
         # Определяем реагирующих NPC
         # G3-A FIX: perceiving вычисляется из ФАКТИЧЕСКИХ событий этого тика
@@ -212,9 +204,7 @@ class ReactionSubscriber:
         # замкнутый круг через tick boundary). Детерминизм: per event →
         # same event + same world state → same witness set.
         _npc_ids = [
-            str(n.get("id") or n.get("npc_id"))
-            for n in (ctx.all_npcs_raw or [])
-            if n.get("id") or n.get("npc_id")
+            str(n.get("id") or n.get("npc_id")) for n in (ctx.all_npcs_raw or []) if n.get("id") or n.get("npc_id")
         ]
         _spatial_q = (
             getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA001,ENIGMA002
@@ -224,6 +214,7 @@ class ReactionSubscriber:
         perceiving_ids: set[str] = set()
         if _spatial_q is not None:
             from app.services.npc.perception_filter import filter_perceiving_npcs
+
             for event in events:
                 perceiving_ids.update(
                     filter_perceiving_npcs(
@@ -257,9 +248,7 @@ class ReactionSubscriber:
                 f"[REACTION_SUB] perceiving_ids EMPTY — no NPC to react. all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
             )
             return Phase8Result(perceiving_npc_ids=set())
-        logger.warning(
-            f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}"
-        )
+        logger.warning(f"[REACTION_SUB] perceiving_ids count={len(perceiving_ids)} ids={list(perceiving_ids)[:5]}")
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -418,8 +407,7 @@ class ReactionSubscriber:
                     _authorized = _gate.validate(_proposal)
                     if _authorized is None:
                         logger.info(
-                            "[REACTION_SUB] witness-дельта не авторизована "
-                            f"({_proposal.trace_id}) — событие {event.id}"
+                            f"[REACTION_SUB] witness-дельта не авторизована ({_proposal.trace_id}) — событие {event.id}"
                         )
                     else:
                         _gate.apply(_proposal)  # публикация трассы
@@ -464,24 +452,18 @@ class ReactionSubscriber:
                             "trust_delta": trust_delta,
                             # v2 domain-tagged payload
                             "domain": DeltaDomain.SOCIAL,
-                            "payload": SocialPayload(
-                                fear_delta=fear_delta, trust_delta=trust_delta
-                            ),
+                            "payload": SocialPayload(fear_delta=fear_delta, trust_delta=trust_delta),
                             "source": "reaction",
                         }
                         if trust_delta != 0.0:
-                            social_kwargs[trust_target_key] = (
-                                trust_target_val  # v1 compat
-                            )
+                            social_kwargs[trust_target_key] = trust_target_val  # v1 compat
                             social_kwargs["target"] = trust_target_val  # v2 compat
 
                         deltas.append(StateDeltas(**social_kwargs))
 
                 except ValueError as e:
                     # Невалидная дельта (конфликт таргетов) — логируем и пропускаем
-                    logger.warning(
-                        f"[REACTION_SUB] невалидная дельта для {npc_id}: {e}"
-                    )
+                    logger.warning(f"[REACTION_SUB] невалидная дельта для {npc_id}: {e}")
 
         if deltas:
             # ADR-116: Диагностика — какие дельты и emotion_tag генерируются
@@ -527,7 +509,5 @@ class ReactionSubscriber:
             f"all_npcs_raw={len(ctx.all_npcs_raw) if ctx.all_npcs_raw else 0}"
         )
         return {
-            str(npc.get("id") or npc.get("npc_id"))
-            for npc in ctx.all_npcs_raw
-            if npc.get("id") or npc.get("npc_id")
+            str(npc.get("id") or npc.get("npc_id")) for npc in ctx.all_npcs_raw if npc.get("id") or npc.get("npc_id")
         }

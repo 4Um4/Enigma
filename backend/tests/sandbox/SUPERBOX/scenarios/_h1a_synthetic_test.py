@@ -14,6 +14,7 @@ H1a синтетические тесты — 6 сценариев для _Execu
 Все моки передают обязательные позиционные аргументы. Wrapper не зависит
 от их типов — он только читает state.npc_id из args[0] и stash-ит результат.
 """
+
 from __future__ import annotations
 
 import sys
@@ -33,6 +34,7 @@ from behavior_mask_closure_test import _ExecuteTap
 
 # === Mock objects ===
 
+
 class MockState:
     """Мок NPCState с минимальным набором полей для _score_all.
 
@@ -41,9 +43,11 @@ class MockState:
     методе _score_all (но используются в _score_components, который мы
     не вызываем — поведение подменяется wrapper-ом на мок-функцию).
     """
+
     def __init__(self, npc_id: str):
         self.npc_id = npc_id
         self.intent = None  # _intent_inertia читает state.intent
+
 
 def _make_decision_hub_with_behavior(behavior_fn):
     """Создаёт НАСТОЯЩИЙ DecisionHub instance, но подменяет его _score_all
@@ -53,6 +57,7 @@ def _make_decision_hub_with_behavior(behavior_fn):
     DecisionHub.__init__ требует rng или seed. Используем seed=42 для детерминизма.
     """
     from app.services.npc.decision_hub import DecisionHub
+
     dh = DecisionHub(seed=42)
     # Подменяем _score_all на уровне instance (не класса!) —
     # wrapper _ExecuteTap патчит _score_all на уровне класса, поэтому
@@ -69,6 +74,7 @@ def _make_decision_hub_with_behavior(behavior_fn):
     # а behavior_fn подменить через monkey-patch на instance.
     dh._score_all = behavior_fn  # instance override
     return dh
+
 
 class MockTickOrchestrator:
     def __init__(self, execute_behavior):
@@ -89,6 +95,7 @@ _orig_score_all_real = dh_module.DecisionHub._score_all
 
 class MockState:
     """Мок NPCState с npc_id (всё, что читает wrapper из args[0])."""
+
     def __init__(self, npc_id: str):
         self.npc_id = npc_id
 
@@ -100,6 +107,7 @@ class _AnyObject:
     tap._orig_score_all(dh_self, *a, **k). Если tap._orig_score_all
     подменён на мок-функцию (см. ниже), dh_self не используется.
     """
+
     pass
 
 
@@ -121,7 +129,8 @@ def _call_score_all_on_mock(npc_id: str, tap, behavior):
         state = MockState(npc_id)
         dh_self = _AnyObject()
         dh_module.DecisionHub._score_all(
-            dh_self, state,
+            dh_self,
+            state,
             "personality_mock",
             "event_mock",
             ["attack", "flee"],

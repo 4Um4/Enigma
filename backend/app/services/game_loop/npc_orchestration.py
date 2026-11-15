@@ -319,7 +319,7 @@ def run_npc_orchestration(
             )
             _ue_ready = getattr(_ue_ready, "intent_readiness", None)  # noqa: ENIGMA002
             if _ue_ready and _ue_ready != "RESOLVED":
-                logger.warning(f"[UE-GATE-L1] attack/damage-дрифт подавлен " f"(intent_readiness={_ue_ready})")
+                logger.warning(f"[UE-GATE-L1] attack/damage-дрифт подавлен (intent_readiness={_ue_ready})")
             else:
                 _l1_events.append(
                     TraitDriftEvent(

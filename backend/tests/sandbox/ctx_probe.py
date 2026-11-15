@@ -1,5 +1,6 @@
 """S266-финал: dump ctx.scene_state в момент терминала (прямой в файл,
 без логгеров): location_id, world_objects, есть ли TARGET."""
+
 import logging
 import os
 import shutil
@@ -12,8 +13,7 @@ sys.path.insert(0, ".")
 from app.core.config import settings
 
 _d = Path(tempfile.mkdtemp(prefix="ctxp_"))
-shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 settings.data_dir = str(_d)
 settings.saves_dir = tempfile.mkdtemp()
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
@@ -26,6 +26,7 @@ LOG = Path("C:/DDD/Codex/VSC_Enigma/Enigma/ctx_diag.txt")
 
 _orig_term = als._terminate
 
+
 def spy_terminate(ctx, orchestrator, npc, state, *, success, reason):
     if reason == "target_vanished":
         _ss = ctx.scene_state
@@ -37,6 +38,7 @@ def spy_terminate(ctx, orchestrator, npc, state, *, success, reason):
                 f"ss_type={type(_ss).__name__}\n"
             )
     return _orig_term(ctx, orchestrator, npc, state, success=success, reason=reason)
+
 
 als._terminate = spy_terminate
 

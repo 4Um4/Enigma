@@ -10,6 +10,7 @@ path: backend/tests/sandbox/micro/test_attention_evidence.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_attention_evidence.py -v; cd ..
 """
+
 import math
 
 import pytest
@@ -33,16 +34,24 @@ LAMBDA, RAD_W, AL_W, TURN_W = 0.85, 0.5, 0.35, 0.3
 STILL, REF, TURN_MIN, SCALE = 0.15, 1.0, 0.2, 2.5
 
 _KW = dict(
-    radial_w=RAD_W, align_w=AL_W, turn_w=TURN_W,
-    still_penalty=STILL, radial_ref=REF, approach_scale_m=SCALE,
+    radial_w=RAD_W,
+    align_w=AL_W,
+    turn_w=TURN_W,
+    still_penalty=STILL,
+    radial_ref=REF,
+    approach_scale_m=SCALE,
 )
 
 
 def _win(pts, start_tick=100):
     return [
         AttentionObservation(
-            tick=start_tick + i, distance=math.hypot(x, y), bearing=0.0,
-            subject_heading=0.0, rel_dx=x, rel_dy=y,
+            tick=start_tick + i,
+            distance=math.hypot(x, y),
+            bearing=0.0,
+            subject_heading=0.0,
+            rel_dx=x,
+            rel_dy=y,
         )
         for i, (x, y) in enumerate(pts)
     ]
@@ -78,9 +87,7 @@ def test_pass_by_with_turn_toward_accumulates() -> None:
     # Проход-мимо, но субъект ПОВЕРНУЛСЯ к наблюдателю на последнем тике:
     # интенция-канал независим от траектории → E растёт.
     e_no, _ = _accumulate([(3.0, 8.0 - 2.0 * i) for i in range(4)])
-    e_turn, _ = _accumulate(
-        [(3.0, 8.0 - 2.0 * i) for i in range(4)], turned_last=True
-    )
+    e_turn, _ = _accumulate([(3.0, 8.0 - 2.0 * i) for i in range(4)], turned_last=True)
     assert e_turn > e_no + 0.2
 
 
@@ -89,8 +96,11 @@ def test_standing_still_decays() -> None:
     e, _ = _accumulate([(8 - i, 0.0) for i in range(6)])
     assert e > 0.8
     still = ApproachInference(
-        speed=0.0, radial_speed=0.0, alignment_to_me=None,
-        time_to_closest=None, predicted_min_distance=None,
+        speed=0.0,
+        radial_speed=0.0,
+        alignment_to_me=None,
+        time_to_closest=None,
+        predicted_min_distance=None,
     )
     e2 = max(0.0, min(1.0, LAMBDA * e + evidence_delta(still, False, **_KW)))
     assert e2 < e  # затухание
@@ -111,9 +121,9 @@ def test_subject_turned_toward_detection() -> None:
     # функция смотрит только на ПОСЛЕДНЮЮ пару — и должна увидеть поворот
     # (1.14→0.64 ≥ 0.2) уже на паре (0,1).
     obs = [
-        AttentionObservation(tick=100 + i, distance=3.0, bearing=math.pi,
-                             subject_heading=2.0 + 0.5 * i,
-                             rel_dx=3.0, rel_dy=0.0)
+        AttentionObservation(
+            tick=100 + i, distance=3.0, bearing=math.pi, subject_heading=2.0 + 0.5 * i, rel_dx=3.0, rel_dy=0.0
+        )
         for i in range(3)
     ]
     assert subject_turned_toward(obs, min_rad=TURN_MIN)
@@ -125,18 +135,19 @@ def test_subject_turned_away_not_flagged() -> None:
     # поворот к наблюдателю не детектируется (урок красного теста:
     # to_obs = π при rel_dx=+3, направление поворота значимо).
     obs = [
-        AttentionObservation(tick=100 + i, distance=3.0, bearing=math.pi,
-                             subject_heading=2.0 - 0.5 * i,
-                             rel_dx=3.0, rel_dy=0.0)
+        AttentionObservation(
+            tick=100 + i, distance=3.0, bearing=math.pi, subject_heading=2.0 - 0.5 * i, rel_dx=3.0, rel_dy=0.0
+        )
         for i in range(3)
     ]
     assert not subject_turned_toward(obs, min_rad=TURN_MIN)
 
 
 def test_evidence_roundtrip_and_bounds() -> None:
-    st = create_attention_state("a", __import__("app.domain.attention", fromlist=["AttentionPhase"]).AttentionPhase.DETECTED, 5)
-    obs = AttentionObservation(tick=6, distance=4.0, bearing=0.1,
-                               subject_heading=0.0, rel_dx=4.0, rel_dy=0.0)
+    st = create_attention_state(
+        "a", __import__("app.domain.attention", fromlist=["AttentionPhase"]).AttentionPhase.DETECTED, 5
+    )
+    obs = AttentionObservation(tick=6, distance=4.0, bearing=0.1, subject_heading=0.0, rel_dx=4.0, rel_dy=0.0)
     st = with_observation(st, st.phase, 6, obs, approach_evidence=0.77)
     restored = attention_from_dict(attention_to_dict(st))
     assert restored.approach_evidence == pytest.approx(0.77)
@@ -173,9 +184,7 @@ def test_fast_vs_slow_intensity_and_threshold() -> None:
         e_first = 0.0
         hit = -1
         for k in range(2, 13):
-            inf = infer_approach(
-                win[:k], rel_dx=win[k - 1].rel_dx, rel_dy=win[k - 1].rel_dy
-            )
+            inf = infer_approach(win[:k], rel_dx=win[k - 1].rel_dx, rel_dy=win[k - 1].rel_dy)
             e_t = evidence_delta(inf, False, **_KW)
             if k == 2:
                 e_first = e_t

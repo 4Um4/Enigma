@@ -40,6 +40,7 @@ path: backend/app/domain/object_fsms.py
 Основные сущности: TransitionVerdict, TransitionResult,
     transition_object, damage_object
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -58,8 +59,9 @@ from app.domain.world_object import (
 
 class TransitionVerdict(str, Enum):
     """Вердикты доменного FSM-перехода (О7: структура, не bool)."""
+
     PASS = "PASS"
-    NO_OP = "NO_OP"    # О1: действие легально, состояние уже целевое
+    NO_OP = "NO_OP"  # О1: действие легально, состояние уже целевое
     REJECT = "REJECT"  # всегда с непустой reason (L4)
 
 
@@ -73,6 +75,7 @@ class TransitionResult:
     old_state + topology_effect. W3 НЕ перестраивает spatial graph —
     он порождает факт; invalidate/recompile решает spatial-слой (W5).
     Граница сохранена: FSM-семантика не знает о графе."""
+
     verdict: TransitionVerdict
     reason: str = ""
     new_obj: Optional[WorldObject] = None
@@ -84,11 +87,7 @@ class TransitionResult:
         (door — wall openings, graph_compiler). NO_OP/REJECT мир не
         меняют. Консервативен (LOCK/UNLOCK тоже помечены): релевантность
         решает spatial-потребитель, не источник факта."""
-        return (
-            self.verdict is TransitionVerdict.PASS
-            and self.new_obj is not None
-            and self.new_obj.archetype == "door"
-        )
+        return self.verdict is TransitionVerdict.PASS and self.new_obj is not None and self.new_obj.archetype == "door"
 
 
 # ── FSM-таблицы ТЗ §22.1 (state-based архетипы) ─────────────────────
@@ -111,7 +110,7 @@ _DOOR_FSM: Dict[str, Dict[WorldActionType, str]] = {
         WorldActionType.BREAK: "BROKEN",
     },
     "BROKEN": {
-        WorldActionType.OPEN: "OPEN",      # ТЗ: BROKEN→{OPEN, CLOSED}
+        WorldActionType.OPEN: "OPEN",  # ТЗ: BROKEN→{OPEN, CLOSED}
         WorldActionType.REPAIR: "CLOSED",  # CLOSED-цель из BROKEN = REPAIR
     },
 }
@@ -161,29 +160,21 @@ def _transition_simple_fsm(
     физикой: BREAK ставит damage=1.0, REPAIR сбрасывает в 0.0.
     """
     if obj.state == "OPEN" and action is WorldActionType.OPEN:
-        return TransitionResult(
-            TransitionVerdict.NO_OP, reason="ALREADY_OPEN", new_obj=obj)
+        return TransitionResult(TransitionVerdict.NO_OP, reason="ALREADY_OPEN", new_obj=obj)
 
     allowed = fsm.get(obj.state, {})
     target = allowed.get(action)
     if target is None:
         return TransitionResult(
-            TransitionVerdict.REJECT,
-            reason=f"INVALID_TRANSITION({obj.archetype}:{obj.state}"
-                   f"+{action.value})")
+            TransitionVerdict.REJECT, reason=f"INVALID_TRANSITION({obj.archetype}:{obj.state}+{action.value})"
+        )
     if action is WorldActionType.BREAK:
         # Слом согласован с законом О6: damage-track = 1.0.
-        return TransitionResult(
-            TransitionVerdict.PASS,
-            new_obj=dataclass_replace(obj, state=target, damage=1.0))
+        return TransitionResult(TransitionVerdict.PASS, new_obj=dataclass_replace(obj, state=target, damage=1.0))
     if action is WorldActionType.REPAIR:
         # Починка восстанавливает и физический track (damage=0.0).
-        return TransitionResult(
-            TransitionVerdict.PASS,
-            new_obj=dataclass_replace(obj, state=target, damage=0.0))
-    return TransitionResult(
-        TransitionVerdict.PASS,
-        new_obj=dataclass_replace(obj, state=target))
+        return TransitionResult(TransitionVerdict.PASS, new_obj=dataclass_replace(obj, state=target, damage=0.0))
+    return TransitionResult(TransitionVerdict.PASS, new_obj=dataclass_replace(obj, state=target))
 
 
 def _transition_chair(
@@ -212,84 +203,63 @@ def _transition_chair(
             # Отношения сохраняются: held-сломанный-починенный
             # проецируется как HELD (модель W1 богаче ТЗ, О2).
             return TransitionResult(
-                TransitionVerdict.PASS,
-                new_obj=dataclass_replace(
-                    obj, state="AVAILABLE", damage=0.0))
-        return TransitionResult(
-            TransitionVerdict.REJECT,
-            reason=f"IS_BROKEN({action.value} недоступен)")
+                TransitionVerdict.PASS, new_obj=dataclass_replace(obj, state="AVAILABLE", damage=0.0)
+            )
+        return TransitionResult(TransitionVerdict.REJECT, reason=f"IS_BROKEN({action.value} недоступен)")
 
     if action is WorldActionType.BREAK:
         # ТЗ §22.1: OCCUPIED→{AVAILABLE} — ломать занятое нельзя.
         if obj.occupancy is not None:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="OCCUPIED_NO_BREAK")
+            return TransitionResult(TransitionVerdict.REJECT, reason="OCCUPIED_NO_BREAK")
         # holder сохраняется: auto-release запрещён (ADR-O-371);
         # effective_state приоритизирует BROKEN (ADR-O-372).
-        return TransitionResult(
-            TransitionVerdict.PASS,
-            new_obj=dataclass_replace(obj, state="BROKEN", damage=1.0))
+        return TransitionResult(TransitionVerdict.PASS, new_obj=dataclass_replace(obj, state="BROKEN", damage=1.0))
 
     if action is WorldActionType.SIT:
         if not actor_id:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="ACTOR_REQUIRED")
+            return TransitionResult(TransitionVerdict.REJECT, reason="ACTOR_REQUIRED")
         if obj.occupancy is not None:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="ALREADY_OCCUPIED")
+            return TransitionResult(TransitionVerdict.REJECT, reason="ALREADY_OCCUPIED")
         if obj.carrier_mode is not CarrierMode.FREE:
-            return TransitionResult(
-                TransitionVerdict.REJECT,
-                reason=f"NOT_FREE({obj.carrier_mode.value})")
+            return TransitionResult(TransitionVerdict.REJECT, reason=f"NOT_FREE({obj.carrier_mode.value})")
         return TransitionResult(
             TransitionVerdict.PASS,
-            new_obj=apply_relation_transition(
-                obj, ObjectRelationKind.OCCUPIED_BY, target_id=actor_id))
+            new_obj=apply_relation_transition(obj, ObjectRelationKind.OCCUPIED_BY, target_id=actor_id),
+        )
 
     if action is WorldActionType.TAKE:
         if not actor_id:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="ACTOR_REQUIRED")
+            return TransitionResult(TransitionVerdict.REJECT, reason="ACTOR_REQUIRED")
         if obj.occupancy is not None:
             # ТЗ §22.1: OCCUPIED→{AVAILABLE} — взять занятое нельзя.
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="OCCUPIED_NO_TAKE")
+            return TransitionResult(TransitionVerdict.REJECT, reason="OCCUPIED_NO_TAKE")
         if obj.carrier_mode is not CarrierMode.FREE:
-            return TransitionResult(
-                TransitionVerdict.REJECT,
-                reason=f"NOT_FREE({obj.carrier_mode.value})")
+            return TransitionResult(TransitionVerdict.REJECT, reason=f"NOT_FREE({obj.carrier_mode.value})")
         return TransitionResult(
             TransitionVerdict.PASS,
-            new_obj=apply_relation_transition(
-                obj, ObjectRelationKind.HELD_BY, target_id=actor_id))
+            new_obj=apply_relation_transition(obj, ObjectRelationKind.HELD_BY, target_id=actor_id),
+        )
 
     if action is WorldActionType.STAND_UP:
         if obj.occupancy is None:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="NOT_OCCUPIED")
+            return TransitionResult(TransitionVerdict.REJECT, reason="NOT_OCCUPIED")
         return TransitionResult(
             TransitionVerdict.PASS,
-            new_obj=apply_relation_transition(
-                obj, ObjectRelationKind.OCCUPIED_BY, target_id=None))
+            new_obj=apply_relation_transition(obj, ObjectRelationKind.OCCUPIED_BY, target_id=None),
+        )
 
-    if action in (WorldActionType.PLACE, WorldActionType.DROP,
-                  WorldActionType.THROW):
+    if action in (WorldActionType.PLACE, WorldActionType.DROP, WorldActionType.THROW):
         if obj.holder is None:
-            return TransitionResult(
-                TransitionVerdict.REJECT, reason="NOT_HELD")
+            return TransitionResult(TransitionVerdict.REJECT, reason="NOT_HELD")
         return TransitionResult(
-            TransitionVerdict.PASS,
-            new_obj=apply_relation_transition(
-                obj, ObjectRelationKind.HELD_BY, target_id=None))
+            TransitionVerdict.PASS, new_obj=apply_relation_transition(obj, ObjectRelationKind.HELD_BY, target_id=None)
+        )
 
     if action is WorldActionType.MOVE:
         # О3: MOVED — legacy; перемещение = relocate (исполнитель).
-        return TransitionResult(
-            TransitionVerdict.REJECT, reason="SPATIAL_OPERATION")
+        return TransitionResult(TransitionVerdict.REJECT, reason="SPATIAL_OPERATION")
 
-    return TransitionResult(
-        TransitionVerdict.REJECT,
-        reason=f"INVALID_TRANSITION(chair:{action.value})")
+    return TransitionResult(TransitionVerdict.REJECT, reason=f"INVALID_TRANSITION(chair:{action.value})")
 
 
 def transition_object(
@@ -306,9 +276,7 @@ def transition_object(
         _result = _transition_chair(obj, action, actor_id)
     else:
         # О4: bed и прочие — до W4 нет ни реестра, ни потребителя.
-        _result = TransitionResult(
-            TransitionVerdict.REJECT,
-            reason=f"UNKNOWN_ARCHETYPE({obj.archetype})")
+        _result = TransitionResult(TransitionVerdict.REJECT, reason=f"UNKNOWN_ARCHETYPE({obj.archetype})")
     # О8: факт перехода несёт происхождение (old_state); заполняется
     # в единой точке диспетчера — фабрики не дублируют.
     if _result.old_state is None:
@@ -327,12 +295,11 @@ def damage_object(obj: WorldObject, amount: float) -> WorldObject:
     """
     if amount < 0.0:
         raise ValueError(
-            f"damage_object {obj.object_id}: отрицательный amount "
-            f"({amount}) — лечение не через damage (REPAIR)")
+            f"damage_object {obj.object_id}: отрицательный amount ({amount}) — лечение не через damage (REPAIR)"
+        )
     new_damage = min(1.0, obj.damage + amount)
     if new_damage >= 1.0:
-        new_state = _DAMAGE_TERMINAL_STATE.get(
-            obj.archetype, _DAMAGE_TERMINAL_DEFAULT)
+        new_state = _DAMAGE_TERMINAL_STATE.get(obj.archetype, _DAMAGE_TERMINAL_DEFAULT)
     else:
         new_state = obj.state
     return dataclass_replace(obj, damage=new_damage, state=new_state)

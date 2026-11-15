@@ -8,6 +8,7 @@
 - clear флага в run_turn finally (даже при exception) → idle_tick возобновляется
 - per-campaign изоляция: флаг для A не блокирует idle_tick B
 """
+
 import asyncio
 from unittest.mock import MagicMock, patch
 
@@ -16,21 +17,21 @@ import pytest
 
 def _make_minimal_game_loop():
     """Минимальный GameLoop-mock: только поле _player_turn_in_flight + idle_tick.
-    
+
     Не зависит от тяжёлых сервисов; проверяет ТОЛЬКО контракт time-gate
     (не каузальный путь — для каузального пути есть SUPERBOX/GC-*).
     """
     from app.services.game_loop.game_loop import GameLoop
-    
+
     # Минимальный объект-заглушка: создаём через __new__ чтобы обойти __init__
     gl = GameLoop.__new__(GameLoop)
     gl._player_turn_in_flight = set()
-    
+
     # Мокаем тяжелые атрибуты, к которым idle_tick может обратиться до early-return
     gl.scene_manager = MagicMock()
     gl.scene_manager.get_scene_state.return_value = MagicMock()
     gl._svc = MagicMock()
-    
+
     return gl
 
 
@@ -41,10 +42,9 @@ class TestPlayerTurnTimeGate:
         """Поле _player_turn_in_flight объявлено в __init__."""
         from app.services.game_loop.game_loop import GameLoop
         import inspect
+
         src = inspect.getsource(GameLoop.__init__)
-        assert "self._player_turn_in_flight" in src, (
-            "ADR-O-407: поле _player_turn_in_flight не объявлено в __init__"
-        )
+        assert "self._player_turn_in_flight" in src, "ADR-O-407: поле _player_turn_in_flight не объявлено в __init__"
 
     def test_run_turn_adds_campaign_to_set(self):
         """run_turn try добавляет campaign_id в _player_turn_in_flight."""
@@ -65,9 +65,7 @@ class TestPlayerTurnTimeGate:
             pass
         finally:
             gl._player_turn_in_flight.discard("campaign_A")
-        assert "campaign_A" not in gl._player_turn_in_flight, (
-            "ADR-O-407: finally не сбросил флаг при exception"
-        )
+        assert "campaign_A" not in gl._player_turn_in_flight, "ADR-O-407: finally не сбросил флаг при exception"
 
     def test_discard_idempotent_when_not_present(self):
         """discard идемпотентен — safe при отсутствии в сете (возможно при timeout-abort)."""

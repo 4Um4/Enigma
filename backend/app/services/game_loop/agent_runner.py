@@ -107,9 +107,7 @@ async def run_agent_safe(agent_name: str, agent: Any, args: tuple, kwargs: dict)
 
     except Exception as e:
         duration = round((time.perf_counter() - start) * 1000)
-        human_msg, fix = error_interpreter.handle(
-            e, {"agent": agent_name}, agent_name, agent_name
-        )
+        human_msg, fix = error_interpreter.handle(e, {"agent": agent_name}, agent_name, agent_name)
         jsonl_log(
             {
                 "level": "ERROR",

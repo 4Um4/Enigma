@@ -100,7 +100,7 @@ class ReputationEngine:
         self._factions: Dict[str, Faction] = {}
         self._states: Dict[str, FactionState] = {}
         self._npc_to_faction: Dict[str, str] = {}
-        self._lock = threading.RLock() # H-25 FIX: Потокобезопасность apply_deltas
+        self._lock = threading.RLock()  # H-25 FIX: Потокобезопасность apply_deltas
 
         if config_path:
             self._load_factions(config_path)
@@ -196,11 +196,7 @@ class ReputationEngine:
         # Влияние на союзников актёра (ослабленное)
         if actor_faction:
             for ally_id in actor_faction.allies:
-                ally_nature = (
-                    self._factions[ally_id].nature
-                    if ally_id in self._factions
-                    else "neutral"
-                )
+                ally_nature = self._factions[ally_id].nature if ally_id in self._factions else "neutral"
                 ally_delta = impact_rules.get(ally_nature, 0.0) * 0.3
                 if abs(ally_delta) > 0.1:
                     deltas.append(
@@ -227,11 +223,7 @@ class ReputationEngine:
 
             # H-23 FIX: Влияние на rivals цели (противоположный знак)
             for rival_id in target_faction.rivals:
-                rival_nature = (
-                    self._factions[rival_id].nature
-                    if rival_id in self._factions
-                    else "neutral"
-                )
+                rival_nature = self._factions[rival_id].nature if rival_id in self._factions else "neutral"
                 rival_delta = -impact_rules.get(rival_nature, 0.0) * 0.3
                 if abs(rival_delta) > 0.1:
                     deltas.append(
@@ -266,10 +258,7 @@ class ReputationEngine:
                 continue
 
             # Closing drift: закрываем разрыв вместо forced epsilon
-            if (
-                abs(faction.base_reputation - state.reputation)
-                < REPUTATION_DECAY_EPSILON
-            ):
+            if abs(faction.base_reputation - state.reputation) < REPUTATION_DECAY_EPSILON:
                 drift = faction.base_reputation - state.reputation
 
             results.append(
@@ -287,7 +276,9 @@ class ReputationEngine:
 
         return results
 
-    def apply_deltas(self, deltas: List[Any]) -> None:  # S313: legacy dict-формат легален (apply_event_impact возвращает List[dict])
+    def apply_deltas(
+        self, deltas: List[Any]
+    ) -> None:  # S313: legacy dict-формат легален (apply_event_impact возвращает List[dict])
         """Единственная точка мутации FactionState.
         Вызывается ТОЛЬКО из StateApplicator._apply_faction_delta().
 
@@ -295,7 +286,7 @@ class ReputationEngine:
         """
         from app.models.state_delta import StateDeltas
 
-        with self._lock: # H-25 FIX: Потокобезопасная мутация состояния
+        with self._lock:  # H-25 FIX: Потокобезопасная мутация состояния
             for d in deltas:
                 if not isinstance(d, StateDeltas):
                     # Обратная совместимость: legacy dict-формат от apply_event_impact
@@ -331,9 +322,7 @@ class ReputationEngine:
                 )
                 if len(state.recent_actions) > 50:
                     state.recent_actions = state.recent_actions[-50:]
-                logger.debug(
-                    f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})"
-                )
+                logger.debug(f"[REPUTATION] {d.faction_id}: {state.reputation:+.1f} ({d.source})")
 
     def compute_reputation_modifier(self, npc_id: str) -> Dict[str, float]:
         """

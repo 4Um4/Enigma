@@ -13,9 +13,7 @@ from typing import Any, cast
 logger = logging.getLogger(__name__)
 
 
-def _find_editor_location(
-    campaigns_dir: Path, campaign_id: str, location_id: str
-) -> dict | None:
+def _find_editor_location(campaigns_dir: Path, campaign_id: str, location_id: str) -> dict | None:
     """Ищет editor JSON с совпадающим location_id.
     Поддерживает: точное совпадение, частичное совпадение label, пустой location_id."""
     search_dirs = [
@@ -39,21 +37,15 @@ def _find_editor_location(
                 label = data.get("label", "")
                 # Точное совпадение
                 if lid == location_id or label == location_id:
-                    logger.info(
-                        f"[SCENE] Найден editor JSON: {json_file} для location_id={location_id}"
-                    )
+                    logger.info(f"[SCENE] Найден editor JSON: {json_file} для location_id={location_id}")
                     return data
                 # Частичное совпадение label (в одну сторону)
                 if label and location_id and (location_id.lower() in label.lower()):
-                    logger.info(
-                        f"[SCENE] Найден editor JSON по частичному label: {json_file}"
-                    )
+                    logger.info(f"[SCENE] Найден editor JSON по частичному label: {json_file}")
                     return data
                 # Пустой location_id в файле — берём первую попавшуюся с rooms
                 if not lid and location_id and data.get("rooms"):
-                    logger.info(
-                        f"[SCENE] Fallback на первый файл с rooms: {json_file}"
-                    )
+                    logger.info(f"[SCENE] Fallback на первый файл с rooms: {json_file}")
                     return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.debug(f"[SCENE] Пропуск невалидного editor JSON {json_file}: {e}")

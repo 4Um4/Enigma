@@ -4,6 +4,7 @@
 на несуществующего канонного NPC). Все остальные Finding.kind — диагностические
 (не блокирующие). Техническая ошибка сервиса → 500, не 200.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,6 +33,7 @@ from app.services.chronicle.consistency_service import (
 
 # ---- helpers ----
 
+
 def _entry(npc: str, **kw) -> ChronicleEntry:
     base = dict(
         entry_id=kw.pop("eid"),
@@ -46,8 +48,12 @@ def _entry(npc: str, **kw) -> ChronicleEntry:
 
 def _doc(npc: str, entries) -> ChronicleDocument:
     return ChronicleDocument(
-        chronicle_id=f"c_{npc}", npc_ref=npc, entries=tuple(entries),
-        game_start_age=20, canonical=True, canonical_version=1,
+        chronicle_id=f"c_{npc}",
+        npc_ref=npc,
+        entries=tuple(entries),
+        game_start_age=20,
+        canonical=True,
+        canonical_version=1,
     )
 
 
@@ -60,24 +66,40 @@ REG_OK = CanonicalRegistry(
 
 # ---- СЛУЧАЙ 1: согласованный объект проходит ----
 
+
 def test_case1_consistent_document_passes():
     """Документ без CONTRADICTION → гейт пропускает (нет ValueError)."""
-    doc = _doc("maid_lusya", [
-        _entry("maid_lusya", eid="e1", historical_age=10,
-               object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="guard_borko")),
-    ])
+    doc = _doc(
+        "maid_lusya",
+        [
+            _entry(
+                "maid_lusya",
+                eid="e1",
+                historical_age=10,
+                object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="guard_borko"),
+            ),
+        ],
+    )
     with patch("app.api.routes_chronicle._build_registry_for_canonize", return_value=REG_OK):
         _check_canonical_consistency(doc)  # не должно бросить
 
 
 # ---- СЛУЧАЙ 2: CONTRADICTION canon-level блокирует ----
 
+
 def test_case2_contradiction_blocks_with_fix_hint():
     """RESOLVED EntityRef на несуществующего NPC → ValueError с fix_hint."""
-    doc = _doc("maid_lusya", [
-        _entry("maid_lusya", eid="e1", historical_age=10,
-               object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none")),
-    ])
+    doc = _doc(
+        "maid_lusya",
+        [
+            _entry(
+                "maid_lusya",
+                eid="e1",
+                historical_age=10,
+                object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none"),
+            ),
+        ],
+    )
     with patch("app.api.routes_chronicle._build_registry_for_canonize", return_value=REG_OK):
         with pytest.raises(ValueError, match="Semantic validation"):
             _check_canonical_consistency(doc)
@@ -92,19 +114,24 @@ def test_case2_contradiction_blocks_with_fix_hint():
 
 # ---- СЛУЧАЙ 3: диагностическое нарушение НЕ блокирует ----
 
+
 def test_case3_diagnostic_finding_does_not_block():
     """GAP/MERGE_CANDIDATE/QUESTION/QUESTION/CANON_SYNC/INFO — не блокируют."""
     # Документ с GAP (событие без даты между якорями) — не CONTRADICTION
-    doc = _doc("maid_lusya", [
-        _entry("maid_lusya", eid="e1", historical_age=10, ordinal=0),
-        _entry("maid_lusya", eid="e2", ordinal=1),  # без даты → GAP
-        _entry("maid_lusya", eid="e3", historical_age=14, ordinal=2),
-    ])
+    doc = _doc(
+        "maid_lusya",
+        [
+            _entry("maid_lusya", eid="e1", historical_age=10, ordinal=0),
+            _entry("maid_lusya", eid="e2", ordinal=1),  # без даты → GAP
+            _entry("maid_lusya", eid="e3", historical_age=14, ordinal=2),
+        ],
+    )
     with patch("app.api.routes_chronicle._build_registry_for_canonize", return_value=REG_OK):
         _check_canonical_consistency(doc)  # GAP — диагностика, не блок
 
 
 # ---- СЛУЧАЙ 4: техническая ошибка сервиса → не маскируется под успех ----
+
 
 def test_case4_service_exception_not_masked():
     """Если ConsistencyService.check бросает Exception — пробрасывается как 500."""
@@ -122,6 +149,7 @@ def test_case4_service_exception_not_masked():
 
 # ---- СЛУЧАЙ 5: существующие допустимые входы сохраняют поведение ----
 
+
 def test_case5_existing_canons_pass_gate(tmp_path):
     """Все 6 существующих канонов должны проходить новый гейт (обратная совместимость).
     Реальная проверка: загружаем каждый canon из config/npc/chronicles/ и зовём гейт."""
@@ -130,8 +158,10 @@ def test_case5_existing_canons_pass_gate(tmp_path):
         pytest.skip("canon dir not found")
     # Реальный registry (без мока) — production path
     from app.services.chronicle.registry_builder import build_canonical_registry
+
     reg = build_canonical_registry()
     from app.services.chronicle.chronicle_store import document_from_dict
+
     for canon_file in sorted(canon_dir.glob("*.json")):
         raw = json.loads(canon_file.read_text(encoding="utf-8-sig"))
         doc = document_from_dict(raw)
@@ -141,6 +171,7 @@ def test_case5_existing_canons_pass_gate(tmp_path):
 
 
 # ---- СЛУЧАЙ 6: ответ API и диагностика соответствуют контракту ----
+
 
 @pytest.mark.asyncio
 async def test_case6_api_response_422_with_diagnostics(tmp_path, monkeypatch):
@@ -154,11 +185,19 @@ async def test_case6_api_response_422_with_diagnostics(tmp_path, monkeypatch):
     store = ChronicleStore(canon_dir, drafts_dir)
 
     # Draft с CONTRADICTION
-    bad_doc = _doc("maid_lusya", [
-        _entry("maid_lusya", eid="e1", historical_age=10,
-               object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none")),
-    ])
+    bad_doc = _doc(
+        "maid_lusya",
+        [
+            _entry(
+                "maid_lusya",
+                eid="e1",
+                historical_age=10,
+                object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="ghost_none"),
+            ),
+        ],
+    )
     import dataclasses
+
     bad_doc = dataclasses.replace(bad_doc, canonical=False, canonical_version=0)
     store.save_draft(bad_doc, "silver_wolf")
 
@@ -167,6 +206,7 @@ async def test_case6_api_response_422_with_diagnostics(tmp_path, monkeypatch):
     monkeypatch.setattr(routes_chronicle, "_build_registry_for_canonize", lambda: REG_OK)
 
     from app.api.routes_chronicle import CanonizeRequest
+
     req = CanonizeRequest(campaign_id="silver_wolf")
     with pytest.raises(HTTPException) as exc_info:
         await canonize_chronicle("silver_wolf", "maid_lusya", req)

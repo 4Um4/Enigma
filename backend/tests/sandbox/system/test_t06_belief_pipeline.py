@@ -27,11 +27,7 @@ def test_belief_modifies_decision():
     from app.services.npc.decision_hub import DecisionHub
 
     # 1. Формируем убеждения (L2.5)
-    beliefs = [
-        CrystallizedBelief(
-            source_id="player", trait="fear", weight=0.8, last_updated_tick=1
-        )
-    ]
+    beliefs = [CrystallizedBelief(source_id="player", trait="fear", weight=0.8, last_updated_tick=1)]
     mods = CrystallizedBeliefModifierResolver().resolve(beliefs)
 
     # 2. Мокаем state для DecisionHub
@@ -59,19 +55,22 @@ def test_belief_modifies_decision():
     event.target_id = None
 
     # 3. Патчим DecisionHub. Возвращаем значения enum (строчные строки).
-    with patch(
-        "app.services.npc.decision_hub.evaluate_vital_state",
-        return_value=LifeStatus.ALIVE,
-    ), patch(
-        "app.services.npc.decision_hub.is_conscious", return_value=True
-    ), patch.object(
-        DecisionHub,
-        "_get_possible_intents",
-        return_value=[Intent.APPROACH.value, Intent.FLEE.value],
-    ), patch.object(
-        DecisionHub,
-        "_score_all",
-        return_value=({Intent.APPROACH.value: 1.0, Intent.FLEE.value: 1.0}, {}),
+    with (
+        patch(
+            "app.services.npc.decision_hub.evaluate_vital_state",
+            return_value=LifeStatus.ALIVE,
+        ),
+        patch("app.services.npc.decision_hub.is_conscious", return_value=True),
+        patch.object(
+            DecisionHub,
+            "_get_possible_intents",
+            return_value=[Intent.APPROACH.value, Intent.FLEE.value],
+        ),
+        patch.object(
+            DecisionHub,
+            "_score_all",
+            return_value=({Intent.APPROACH.value: 1.0, Intent.FLEE.value: 1.0}, {}),
+        ),
     ):
         hub = DecisionHub(rng=MagicMock())
 
@@ -97,12 +96,6 @@ def test_belief_modifies_decision():
         )
 
     # 4. Проверяем контракт T-06
-    assert decision_mod.decision.intent == Intent.FLEE, (
-        "DecisionHub must choose FLEE when fear modifier is applied"
-    )
-    assert decision_mod.decision.score > 1.0, (
-        "FLEE score must be boosted by modifier"
-    )
-    assert decision_base.decision.intent != Intent.FLEE, (
-        "Baseline decision should not be FLEE without modifiers"
-    )
+    assert decision_mod.decision.intent == Intent.FLEE, "DecisionHub must choose FLEE when fear modifier is applied"
+    assert decision_mod.decision.score > 1.0, "FLEE score must be boosted by modifier"
+    assert decision_base.decision.intent != Intent.FLEE, "Baseline decision should not be FLEE without modifiers"

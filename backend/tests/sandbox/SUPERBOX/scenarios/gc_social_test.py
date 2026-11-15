@@ -20,6 +20,7 @@
 #
 # Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.gc_social_test; cd ..
 """
+
 import logging
 import sys
 import time
@@ -68,21 +69,23 @@ def _npc_pos(scene, npc_id):
 
 def _dist(ax, ay, bx, by):
     import math
+
     return math.hypot(ax - bx, ay - by)
 
 
 def _place_player(h, x, y):
     """П. 0.5: размещение игрока production B1.4-приёмником (S244)."""
-    h.game_loop.save_scene_state(CAMPAIGN, {
-        "location_id": LOC_FALLBACK,
-        "npc_positions": {"player": {"local_position": {"x": x, "y": y}}},
-    })
+    h.game_loop.save_scene_state(
+        CAMPAIGN,
+        {
+            "location_id": LOC_FALLBACK,
+            "npc_positions": {"player": {"local_position": {"x": x, "y": y}}},
+        },
+    )
 
 
 def _stm(h, npc_id):
-    return h.game_loop.memory_manager.get_stm_prompt_block_pair(
-        CAMPAIGN, npc_id, "player"
-    )
+    return h.game_loop.memory_manager.get_stm_prompt_block_pair(CAMPAIGN, npc_id, "player")
 
 
 def main() -> int:
@@ -122,18 +125,20 @@ def main() -> int:
             print(f"[S0] ❌ мало NPC: ids={_ids}")
             return 1
         _ax, _ay = _npc_pos(scene, _addressee)
-        print(f"[S1-SETUP] addressee={_addressee} witness={_witness} "
-              f"target_of_claim={_target} addressee_pos=({_ax:.1f},{_ay:.1f})")
+        print(
+            f"[S1-SETUP] addressee={_addressee} witness={_witness} "
+            f"target_of_claim={_target} addressee_pos=({_ax:.1f},{_ay:.1f})"
+        )
 
         # Игрок вплотную к адресату (п. 4: адресат в радиусе гарантированно)
         _place_player(h, _ax + 1.0, _ay)
         _sc_chk = h.game_loop.scene_manager.get_scene_state(CAMPAIGN, LOC_FALLBACK) or {}
         _px, _py = _npc_pos(_sc_chk, "player")
-        print(f"[S1-SETUP] player=({_px:.1f},{_py:.1f}) dist={_dist(_px,_py,_ax,_ay):.2f} (цель <= 6.0)")
+        print(f"[S1-SETUP] player=({_px:.1f},{_py:.1f}) dist={_dist(_px, _py, _ax, _ay):.2f} (цель <= 6.0)")
 
         _mark_s1 = len(SPY["events"])
         _resp = h.player_action(f"{_addressee}, привет! Как дела?")
-        print(f"[S1-DM] dm_response={str(getattr(_resp,'dm_response',''))[:100]!r}")
+        print(f"[S1-DM] dm_response={str(getattr(_resp, 'dm_response', ''))[:100]!r}")
         _ps = [e for e in SPY["events"][_mark_s1:] if e.type == EventType.PLAYER_SPOKE.value]
         s1a = bool(_ps)
         print(f"[S1.1-2] PLAYER_SPOKE (TAB+адресация) — {'✅' if s1a else '❌ (см. DM/LLM)'}")
@@ -149,7 +154,8 @@ def main() -> int:
             _sched.execute_pending(_sc, CAMPAIGN)
             time.sleep(0.6)
             _addr_reply = [
-                e for e in SPY["events"][_mark_s1:]
+                e
+                for e in SPY["events"][_mark_s1:]
                 if e.type == EventType.NPC_SPOKE.value
                 and getattr(e, "source", "") == _addressee
                 and (getattr(e, "payload", {}) or {}).get("target_id") == "player"
@@ -180,10 +186,9 @@ def main() -> int:
         try:
             from app.models.intent_dto import IntentParametersDTO
             from app.services.state.context_builder import build_context
+
             _shared2 = build_context()
-            _shared2.scene_state = h.game_loop.scene_manager.get_scene_state(
-                CAMPAIGN, LOC_FALLBACK
-            ) or {}
+            _shared2.scene_state = h.game_loop.scene_manager.get_scene_state(CAMPAIGN, LOC_FALLBACK) or {}
             _shared2.player_target_id = _addressee
             _shared2.intent_resolution = SimpleNamespace(
                 original_intent=SimpleNamespace(
@@ -196,6 +201,7 @@ def main() -> int:
             )
             _shared2.action_type = "dialogue"
             from app.services.game_loop.phase_1_input import publish_classified_player_event
+
             publish_classified_player_event(_shared2, LOC_FALLBACK, CAMPAIGN, _text_s2)
             print("[S2.5-DIAG] ACCUSE-вектор авторингом DM-входа (build_context + publisher)")
         except Exception as _vec_err:
@@ -212,8 +218,7 @@ def main() -> int:
             # Приемлемая альтернатива: witness не имел belief — проверим, что
             # коммуник. событие вообще дошло (свидетель молчал, но слушал)
             _w_lines = [ln for ln in _bt.lines if "hearing" in ln or "listener" in ln]
-        print(f"[S2.6] witness({_witness}) belief-трасса: "
-              f"{'✅ ' + _w_lines[0][:80] if _w_lines else '❌ НЕТ ТРАССЫ'}")
+        print(f"[S2.6] witness({_witness}) belief-трасса: {'✅ ' + _w_lines[0][:80] if _w_lines else '❌ НЕТ ТРАССЫ'}")
         ok = ok and bool(_w_lines) and s2_belief
 
         # П. 7-8: реакция свидетеля и сдвиг адресата — по DecisionHub-трейсам
@@ -223,14 +228,12 @@ def main() -> int:
             h.advance_ticks(1)
             time.sleep(1.2)
         _w_reacted = any(
-            ln for ln in _bt.lines
-            if _witness in ln and any(k in ln for k in ("fear", "threat", "belief", "REVISE"))
+            ln for ln in _bt.lines if _witness in ln and any(k in ln for k in ("fear", "threat", "belief", "REVISE"))
         )
         print(f"[S2.7] witness-реакция (epistemic trace) — {'✅' if _w_reacted else '❌'}")
         # S2.8: trust-сдвиг адресата (до/после через read_trust харнесса)
         _trust_after = h.read_trust(_addressee, "player")  # до S3 фиксируем
-        print(f"[S2.8] trust({_addressee}→player)={_trust_after} "
-              f"(сдвиг меряется против S1-базлайна в отчёте)")
+        print(f"[S2.8] trust({_addressee}→player)={_trust_after} (сдвиг меряется против S1-базлайна в отчёте)")
 
         # ── C1/C2/C3: контрольные плечи ─────────────────────────────
         # C1: реплика о target, witness за радиусом — тишина. Реализуем
@@ -252,21 +255,28 @@ def main() -> int:
 
             from app.domain.communication import CommunicationIntent, ExposureLevel
             from app.services.phases.post_decision import run_phase_6_post_decision
+
             _sc3 = h.game_loop.scene_manager.get_scene_state(CAMPAIGN, LOC_FALLBACK) or {}
             _intent = CommunicationIntent(
-                speaker=_attacker, audience=_addressee, topic="combat",
-                intent_type="attack", emotional_state="angry",
+                speaker=_attacker,
+                audience=_addressee,
+                topic="combat",
+                intent_type="attack",
+                emotional_state="angry",
                 exposure_level=ExposureLevel.from_semantic("shout"),
                 target_id=_addressee,
             )
-            run_phase_6_post_decision(_types.SimpleNamespace(
-                communication_intents=[_intent],
-                campaign_id=CAMPAIGN,
-                tick_number=int(_sc3.get("tick", 0)) + 1,
-                scene_state=_sc3,
-                npc_services=None,
-                all_npcs_raw=list((_sc3.get("npc_positions") or {}).keys()),
-            ), h.game_loop._tick_orch)
+            run_phase_6_post_decision(
+                _types.SimpleNamespace(
+                    communication_intents=[_intent],
+                    campaign_id=CAMPAIGN,
+                    tick_number=int(_sc3.get("tick", 0)) + 1,
+                    scene_state=_sc3,
+                    npc_services=None,
+                    all_npcs_raw=list((_sc3.get("npc_positions") or {}).keys()),
+                ),
+                h.game_loop._tick_orch,
+            )
             h.game_loop.scene_manager.save_scene_state(CAMPAIGN, _sc3)
             for _ in range(4):
                 h.advance_ticks(1)
@@ -314,6 +324,7 @@ def main() -> int:
         _ts_log.addHandler(_ts_cap)
         # прямая задача адресата → гейт (прецедент GC-01 C-fix7)
         from tests.sandbox.SUPERBOX.scenarios.gc_dialogue_test import _task_dict_fixture
+
         _sc_d3 = dict(h.get_scene_fresh() or {})
         _sc_d3["pending_tasks"] = [_task_dict_fixture(_addressee)]
         _sc_d3["campaign_id"] = CAMPAIGN
@@ -323,9 +334,7 @@ def main() -> int:
         _sched._dialogue_queue._recent_npc_speak.pop(_addressee, None)
         _sched.execute_pending(_sc_d3, CAMPAIGN)
         time.sleep(0.5)
-        _gate_hit = any(
-            "liveness-gate" in m and _addressee in m for m in _ts_cap.lines
-        )
+        _gate_hit = any("liveness-gate" in m and _addressee in m for m in _ts_cap.lines)
         print(f"[S3.13] liveness-гейт адресата — {'✅' if _gate_hit else '❌'}")
         ok = ok and _gate_hit
 
@@ -334,18 +343,18 @@ def main() -> int:
         for _ in range(2):
             h.advance_ticks(1)
             time.sleep(0.8)
-        print(f"[S3.14-15] мир после смерти — ticks={h.counters.ticks - _t_before}, "
-              f"moved={h.counters.npc_moved} (продолжение > 0)")
+        print(
+            f"[S3.14-15] мир после смерти — ticks={h.counters.ticks - _t_before}, "
+            f"moved={h.counters.npc_moved} (продолжение > 0)"
+        )
         ok = ok and h.counters.ticks > _t_before
 
         # П. 16-17: STM и последствия переживают
         _stm_after = _stm(h, _addressee)
         _stm_ok = bool(_stm_after) and len(_stm_after) > 0
         _trust_after2 = h.read_trust(_addressee, "player")
-        print(f"[S3.16] STM адресата жив — {'✅' if _stm_ok else '❌'} "
-              f"({len(_stm_after)} симв.)")
-        print(f"[S3.17] trust и belief пережили смерть — trust={_trust_after2}, "
-              f"belief-трасс={len(_bt.lines)}")
+        print(f"[S3.16] STM адресата жив — {'✅' if _stm_ok else '❌'} ({len(_stm_after)} симв.)")
+        print(f"[S3.17] trust и belief пережили смерть — trust={_trust_after2}, belief-трасс={len(_bt.lines)}")
         ok = ok and _stm_ok and _trust_after2 is not None
 
     print("=" * 64)

@@ -6,6 +6,7 @@ path: backend/tests/sandbox/lab_r003_diff_analysis.py
 Основные сущности: main
 Запуск: python backend/tests/sandbox/lab_r003_diff_analysis.py
 """
+
 from __future__ import annotations
 
 import json

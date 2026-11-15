@@ -39,11 +39,11 @@ class DisclosureLevel(Enum):
     P7 вербализует КАК; LLM не решает. DENY = «не раскрываю», не «сообщаю
     ложь» (V1 без лжи — fabricate-структуры не существует)."""
 
-    DENY = "deny"           # знание не передаётся
-    REDIRECT = "redirect"   # знание не передаётся; разговор уходит в сторону
-    HINT = "hint"           # информация о факте утекает; факт не идентифицирован
-    PARTIAL = "partial"     # строгое подмножество; fraction ограничивает
-    REVEAL = "reveal"       # знание передано
+    DENY = "deny"  # знание не передаётся
+    REDIRECT = "redirect"  # знание не передаётся; разговор уходит в сторону
+    HINT = "hint"  # информация о факте утекает; факт не идентифицирован
+    PARTIAL = "partial"  # строгое подмножество; fraction ограничивает
+    REVEAL = "reveal"  # знание передано
 
 
 class InteractionPressure(Enum):

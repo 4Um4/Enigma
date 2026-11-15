@@ -20,8 +20,13 @@ Probe v3 отслеживает:
 
 READ-ONLY. Никаких production-изменений, JSON правок, новых выходов.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy
+import os
+import sys
+import json
+import traceback
+import copy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -34,6 +39,7 @@ if str(_BACKEND) not in sys.path:
 
 try:
     from app.core.config import settings, BASE_DIR
+    from app.models.spatial_contracts import NodeRole
 except Exception as e:
     print(f"[FATAL] Cannot import app.core.config: {e}")
     sys.exit(2)
@@ -97,16 +103,16 @@ def check1_nodes_raw_before_loop() -> Tuple[Dict, Dict[str, Any]]:
     disk_data = json.loads(raw_disk_text)
     disk_nodes = disk_data.get("nodes", {})
 
-    print(f"\n--- Источник: tavern.json на диске ---")
+    print("\n--- Источник: tavern.json на диске ---")
     print(f"  Файл: {TAVERN_FILE}")
     print(f"  Размер: {len(raw_disk_text)} chars")
     print(f"  nodes dict size: {len(disk_nodes)}")
-    print(f"  nodes dict keys (sorted):")
+    print("  nodes dict keys (sorted):")
     for k in sorted(disk_nodes.keys()):
         print(f"    '{k}'")
 
     # Specifically check exit_east and node_17
-    print(f"\n--- exit_east в disk_nodes ---")
+    print("\n--- exit_east в disk_nodes ---")
     exit_east_disk = disk_nodes.get("exit_east")
     print(f"  Есть в disk_nodes: {exit_east_disk is not None}")
     if exit_east_disk is not None:
@@ -115,7 +121,7 @@ def check1_nodes_raw_before_loop() -> Tuple[Dict, Dict[str, Any]]:
         if isinstance(exit_east_disk, dict):
             print(f"  Full content: {json.dumps(exit_east_disk, ensure_ascii=False, indent=2)}")
 
-    print(f"\n--- node_17 в disk_nodes ---")
+    print("\n--- node_17 в disk_nodes ---")
     node_17_disk = disk_nodes.get("node_17")
     print(f"  Есть в disk_nodes: {node_17_disk is not None}")
     if node_17_disk is not None:
@@ -161,7 +167,7 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
 
     try:
         # Call compile_graph with disk_data
-        result = gc_module.compile_graph(disk_data, location_id="tavern")
+        gc_module.compile_graph(disk_data, location_id="tavern")
     except Exception as e:
         print(f"[compile error: {e}]")
         traceback.print_exc()
@@ -176,16 +182,16 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
     editor_data_received = captured_editor_data[1]  # deep copy
     nodes_raw_received = editor_data_received.get("nodes", {})
 
-    print(f"\n--- editor_data, переданный в compile_graph ---")
+    print("\n--- editor_data, переданный в compile_graph ---")
     print(f"  type: {type(editor_data_received).__name__}")
     print(f"  top-level keys: {list(editor_data_received.keys())}")
     print(f"  nodes_raw size: {len(nodes_raw_received)}")
-    print(f"  nodes_raw keys (sorted):")
+    print("  nodes_raw keys (sorted):")
     for k in sorted(nodes_raw_received.keys()):
         print(f"    '{k}'")
 
     # Compare with disk
-    print(f"\n--- Сравнение disk_nodes vs nodes_raw_received ---")
+    print("\n--- Сравнение disk_nodes vs nodes_raw_received ---")
     disk_keys = set(disk_nodes.keys())
     received_keys = set(nodes_raw_received.keys())
     print(f"  disk_nodes keys: {len(disk_keys)}")
@@ -194,8 +200,8 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
     print(f"  Keys in received but NOT in disk: {sorted(received_keys - disk_keys)}")
 
     # Now trace each iteration of the L94 loop manually
-    print(f"\n--- Ручная трассировка цикла L94-127 для каждого node_id ---")
-    print(f"  Цикл: for node_id, node_data in nodes_raw.items():")
+    print("\n--- Ручная трассировка цикла L94-127 для каждого node_id ---")
+    print("  Цикл: for node_id, node_data in nodes_raw.items():")
 
     trace_results: List[Dict[str, Any]] = []
 
@@ -250,7 +256,7 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
 
         # Step 6: NodeRef creation (L111-125)
         try:
-            node_ref = NodeRef(
+            NodeRef(
                 node_id=canonical_id,
                 x=nx,
                 y=ny,
@@ -294,7 +300,7 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
         print(f"      node_ref_created: {t.get('node_ref_created', '?')}")
 
     # Check for canonical_id collisions
-    print(f"\n--- Проверка коллизий canonical_id ---")
+    print("\n--- Проверка коллизий canonical_id ---")
     canonical_ids = [t.get("canonical_id") for t in trace_results if t.get("canonical_id")]
     seen = set()
     duplicates = []
@@ -308,7 +314,7 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
         print(f"  Коллизий canonical_id нет — все {len(canonical_ids)} уникальны")
 
     # Check: were exit_east and node_17 iterated?
-    print(f"\n--- Судьба exit_east и node_17 в цикле ---")
+    print("\n--- Судьба exit_east и node_17 в цикле ---")
     for target in ("exit_east", "node_17"):
         # Find in trace_results
         trace_target = next((t for t in trace_results if t["node_id"] == target), None)
@@ -334,12 +340,12 @@ def check2_trace_loop(disk_data: Dict, disk_nodes: Dict) -> Dict[str, Any]:
 def check3_editor_data_source(disk_data: Dict, editor_data_received: Dict) -> None:
     _print_section("ПРОВЕРКА 3: Источник editor_data — нормализация/фильтрация")
 
-    print(f"""
+    print("""
 Вопрос: передаётся ли editor_data в compile_graph БЕЗ изменений,
         или есть нормализация/фильтрация между disk и compile_graph?
 """)
 
-    print(f"\n--- Сравнение disk_data vs editor_data_received ---")
+    print("\n--- Сравнение disk_data vs editor_data_received ---")
     disk_keys = set(disk_data.keys())
     received_keys = set(editor_data_received.keys())
     print(f"  disk top-level keys: {sorted(disk_keys)}")
@@ -361,23 +367,24 @@ def check3_editor_data_source(disk_data: Dict, editor_data_received: Dict) -> No
         print(f"    in disk: {d is not None} (type={type(d).__name__})")
         print(f"    in received: {r is not None} (type={type(r).__name__})")
         if d is not None and r is not None:
-            same = (d == r)
+            same = d == r
             print(f"    same content: {same}")
             if not same:
                 print(f"    disk: {json.dumps(d, ensure_ascii=False)[:200]}")
                 print(f"    received: {json.dumps(r, ensure_ascii=False)[:200]}")
 
     # Check who calls compile_graph — trace the caller
-    print(f"\n--- Кто вызывает compile_graph? ---")
-    print(f"  В нашем probe: gc_module.compile_graph(disk_data, location_id='tavern')")
-    print(f"  → disk_data передаётся напрямую, без нормализации")
-    print(f"  → editor_data IS disk_data (same Python object)")
-    print(f"  → Если в production вызывается по-другому, нужно проверить вызов из SpatialService")
+    print("\n--- Кто вызывает compile_graph? ---")
+    print("  В нашем probe: gc_module.compile_graph(disk_data, location_id='tavern')")
+    print("  → disk_data передаётся напрямую, без нормализации")
+    print("  → editor_data IS disk_data (same Python object)")
+    print("  → Если в production вызывается по-другому, нужно проверить вызов из SpatialService")
 
     # Inspect how SpatialService loads and passes editor_data
-    print(f"\n--- Как SpatialService загружает editor_data? ---")
+    print("\n--- Как SpatialService загружает editor_data? ---")
     try:
         from app.services.spatial import spatial_service as ss_module
+
         ss_path = Path(ss_module.__file__)
         ss_src = ss_path.read_text(encoding="utf-8", errors="replace")
         # Find compile_graph calls in spatial_service
@@ -399,20 +406,21 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
     _print_section("ПРОВЕРКА 4: Итоговый контроль — 18 исходных vs canonical IDs")
 
     disk_nodes = disk_data.get("nodes", {})
-    print(f"\n--- Все 18 исходных node_id из JSON ---")
+    print("\n--- Все 18 исходных node_id из JSON ---")
     disk_ids = sorted(disk_nodes.keys())
     print(f"  Count: {len(disk_ids)}")
     for nid in disk_ids:
         print(f"    '{nid}'")
 
-    print(f"\n--- Все canonical_ids, созданные в цикле ---")
-    canonical_ids = [t.get("canonical_id") for t in trace_results
-                     if t.get("canonical_id") and t.get("node_ref_created", False)]
+    print("\n--- Все canonical_ids, созданные в цикле ---")
+    canonical_ids = [
+        t.get("canonical_id") for t in trace_results if t.get("canonical_id") and t.get("node_ref_created", False)
+    ]
     print(f"  Count: {len(canonical_ids)}")
     for cid in canonical_ids:
         print(f"    '{cid}'")
 
-    print(f"\n--- Аудит: какие node_id не попали в canonical_ids ---")
+    print("\n--- Аудит: какие node_id не попали в canonical_ids ---")
     expected_canonical = {f"tavern:{nid}" for nid in disk_ids}
     actual_canonical = set(canonical_ids)
     missing = expected_canonical - actual_canonical
@@ -422,7 +430,7 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
     print(f"  Missing (in disk but NOT in graph): {sorted(missing)}")
     print(f"  Extra (in graph but NOT in disk): {sorted(extra)}")
 
-    print(f"\n--- Точная судьба отсутствующих узлов ---")
+    print("\n--- Точная судьба отсутствующих узлов ---")
     for missing_id in sorted(missing):
         # Strip "tavern:" prefix
         short_id = missing_id.split(":", 1)[1] if ":" in missing_id else missing_id
@@ -430,11 +438,11 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
         # Find in trace_results
         trace = next((t for t in trace_results if t["node_id"] == short_id), None)
         if trace is None:
-            print(f"    НЕ ИТЕРИРОВАЛСЯ В ЦИКЛЕ — отсутствует в nodes_raw")
-            print(f"    → Узел отсутствует в editor_data['nodes']")
-            print(f"    → Нужно проверить: загружается ли JSON корректно?")
+            print("    НЕ ИТЕРИРОВАЛСЯ В ЦИКЛЕ — отсутствует в nodes_raw")
+            print("    → Узел отсутствует в editor_data['nodes']")
+            print("    → Нужно проверить: загружается ли JSON корректно?")
         else:
-            print(f"    iterated: True")
+            print("    iterated: True")
             print(f"    is_dict: {trace.get('is_dict')}")
             print(f"    canonical_id: '{trace.get('canonical_id', '?')}'")
             print(f"    resolved_role: {trace.get('resolved_role', '?')}")
@@ -443,21 +451,23 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
             if "node_ref_error" in trace:
                 print(f"    NodeRef ERROR: {trace['node_ref_error']}")
             if trace.get("node_ref_created") is False:
-                print(f"    node_ref creation FAILED — node not added to graph")
+                print("    node_ref creation FAILED — node not added to graph")
             elif trace.get("node_ref_created") is True:
-                print(f"    node_ref created successfully — но отсутствует в graph")
-                print(f"    → Возможно, canonical_id коллизия (другой узел перезаписал)")
+                print("    node_ref created successfully — но отсутствует в graph")
+                print("    → Возможно, canonical_id коллизия (другой узел перезаписал)")
                 # Check trace_results for duplicate canonical_id
-                others = [t for t in trace_results
-                          if t.get("canonical_id") == trace.get("canonical_id")
-                          and t["node_id"] != short_id]
+                others = [
+                    t
+                    for t in trace_results
+                    if t.get("canonical_id") == trace.get("canonical_id") and t["node_id"] != short_id
+                ]
                 if others:
                     print(f"    → Конфликт с другими node_id: {[t['node_id'] for t in others]}")
                 else:
-                    print(f"    → Коллизий нет — загадка")
+                    print("    → Коллизий нет — загадка")
 
     # Final verdict
-    print(f"\n--- ФИНАЛЬНЫЙ ВЕРДИКТ ---")
+    print("\n--- ФИНАЛЬНЫЙ ВЕРДИКТ ---")
     if missing:
         print(f"  ОТСУТСТВУЮТ в graph: {sorted(missing)}")
         # Determine the reason
@@ -466,11 +476,11 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
             trace = next((t for t in trace_results if t["node_id"] == short_id), None)
             if trace is None:
                 print(f"    {missing_id}: отсутствует в nodes_raw (не итерировался)")
-                print(f"      → Причина: узел отсутствует в editor_data['nodes']")
-                print(f"      → Действие: исследовать источник editor_data (ПРОВЕРКА 3)")
+                print("      → Причина: узел отсутствует в editor_data['nodes']")
+                print("      → Действие: исследовать источник editor_data (ПРОВЕРКА 3)")
             elif not trace.get("is_dict", False):
                 print(f"    {missing_id}: node_data не dict (type={type(trace.get('node_data'))})")
-                print(f"      → Причина: не проходит проверку isinstance на L95")
+                print("      → Причина: не проходит проверку isinstance на L95")
             elif "resolved_role_error" in trace:
                 print(f"    {missing_id}: EXCEPTION в resolve_role")
                 print(f"      → Причина: {trace['resolved_role_error']}")
@@ -481,10 +491,10 @@ def check4_final_audit(disk_data: Dict, trace_results: List[Dict]) -> None:
                 print(f"    {missing_id}: NodeRef creation failed")
             else:
                 print(f"    {missing_id}: iterated, created, но отсутствует в graph")
-                print(f"      → Загадка — нужно дополнительное расследование")
+                print("      → Загадка — нужно дополнительное расследование")
     else:
-        print(f"  ВСЕ 18 узлов в graph — загадка отсутствия exit_east/node_17 не подтверждена")
-        print(f"  Возможно, предыдущие probe показывали другое состояние данных")
+        print("  ВСЕ 18 узлов в graph — загадка отсутствия exit_east/node_17 не подтверждена")
+        print("  Возможно, предыдущие probe показывали другое состояние данных")
 
 
 # ============================================================================

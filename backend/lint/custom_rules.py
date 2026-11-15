@@ -6,6 +6,7 @@ path: backend/lint/custom_rules.py
   ENIGMA002: Запрет `getattr(X, "y", None)` без логирования (§1.2)
   ENIGMA003: Запрет `in locals()` / `in globals()` (§1.3)
 """
+
 from __future__ import annotations
 
 import ast
@@ -14,6 +15,7 @@ from typing import Any, Generator, List, Tuple, Type
 
 class EnigmaCustomRules:
     """Точка входа для Flake8."""
+
     name = "enigma-custom-rules"
     version = "1.0.0"
 
@@ -27,6 +29,7 @@ class EnigmaCustomRules:
         for line, col, msg in visitor.violations:
             yield line, col, msg, type(self)
 
+
 class EnigmaVisitor(ast.NodeVisitor):
     """AST-визитёр для поиска нарушений."""
 
@@ -36,10 +39,13 @@ class EnigmaVisitor(ast.NodeVisitor):
     def visit_IfExp(self, node: ast.IfExp) -> None:
         """ENIGMA001: Запрет `X if cond else None`"""
         if isinstance(node.orelse, ast.Constant) and node.orelse.value is None:
-            self.violations.append((
-                node.lineno, node.col_offset,
-                "ENIGMA001: Silent failure `X if cond else None`. Use explicit raise or logging_tools.fail_loud() (§1.1)",
-            ))
+            self.violations.append(
+                (
+                    node.lineno,
+                    node.col_offset,
+                    "ENIGMA001: Silent failure `X if cond else None`. Use explicit raise or logging_tools.fail_loud() (§1.1)",
+                )
+            )
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -51,14 +57,20 @@ class EnigmaVisitor(ast.NodeVisitor):
                 is_silent = False
                 if isinstance(default, ast.Constant) and default.value in (None, "", [], {}):
                     is_silent = True
-                elif isinstance(default, (ast.List, ast.Dict)) and len(getattr(default, 'elts', getattr(default, 'keys', []))) == 0:
+                elif (
+                    isinstance(default, (ast.List, ast.Dict))
+                    and len(getattr(default, "elts", getattr(default, "keys", []))) == 0
+                ):
                     is_silent = True
 
                 if is_silent:
-                    self.violations.append((
-                        node.lineno, node.col_offset,
-                        "ENIGMA002: Silent getattr default. If default is valid state, log first occurrence (§1.2)",
-                    ))
+                    self.violations.append(
+                        (
+                            node.lineno,
+                            node.col_offset,
+                            "ENIGMA002: Silent getattr default. If default is valid state, log first occurrence (§1.2)",
+                        )
+                    )
         self.generic_visit(node)
 
     def visit_Compare(self, node: ast.Compare) -> None:
@@ -67,8 +79,11 @@ class EnigmaVisitor(ast.NodeVisitor):
             if isinstance(comparator, ast.Call):
                 if isinstance(comparator.func, ast.Name):
                     if comparator.func.id in ("locals", "globals"):
-                        self.violations.append((
-                            node.lineno, node.col_offset,
-                            "ENIGMA003: Forbidden `in locals()` or `in globals()`. Use explicit state or DTO (§1.3)",
-                        ))
+                        self.violations.append(
+                            (
+                                node.lineno,
+                                node.col_offset,
+                                "ENIGMA003: Forbidden `in locals()` or `in globals()`. Use explicit state or DTO (§1.3)",
+                            )
+                        )
         self.generic_visit(node)

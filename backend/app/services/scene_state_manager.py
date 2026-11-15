@@ -27,7 +27,6 @@ SceneState хранится в:
   backend/data/logs/scene_changes_YYYYMMDD.jsonl
 """
 
-
 from __future__ import annotations
 
 import json
@@ -58,9 +57,7 @@ _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _scene_log_file() -> Path:
-    return (
-        _LOG_DIR / "scene_changes.jsonl"
-    )  # §15.2: Logging/telemetry
+    return _LOG_DIR / "scene_changes.jsonl"  # §15.2: Logging/telemetry
 
 
 def _log_change(change: SceneChange, campaign_id: str, applied: bool) -> None:
@@ -259,9 +256,7 @@ class SceneStateManager:
         Владелец операции — PersistencePort через SSM (DEGOD Phase3B.0-Seam1;
         ранее new_game обращался к self._persistence напрямую)."""
         if self._persistence is None:
-            logger.warning(
-                "[SCENE] reset_campaign_persistence: PersistencePort отсутствует — пропуск"
-            )
+            logger.warning("[SCENE] reset_campaign_persistence: PersistencePort отсутствует — пропуск")
             return False
         self._persistence.delete_campaign(campaign_id)
         return True
@@ -318,11 +313,7 @@ class SceneStateManager:
                     if self._persistence and self._tick_scenes:
                         # Проверяем первую попавшуюся сцену из кэша
                         _verify = self._persistence.load_scene(campaign_id)
-                        _trav_after = (
-                            list(_verify.get("active_traversals", {}).keys())
-                            if _verify
-                            else "LOAD_FAILED"
-                        )
+                        _trav_after = list(_verify.get("active_traversals", {}).keys()) if _verify else "LOAD_FAILED"
                         logger.debug(f"[UNLOCK_TRACE] AFTER LOAD: traversals={_trav_after}")
                 # else: тик помечен aborted — пропускаем persist и round-trip verify.
                 # _tick_scenes остаётся в памяти (SSE bridge может читать); следующий
@@ -351,9 +342,7 @@ class SceneStateManager:
         import copy
 
         _trav_keys = (
-            list(result_snapshot.get("active_traversals", {}).keys())
-            if isinstance(result_snapshot, dict)
-            else []
+            list(result_snapshot.get("active_traversals", {}).keys()) if isinstance(result_snapshot, dict) else []
         )
         _time_in = result_snapshot.get("game_time_seconds", "MISSING")
         logger.debug(
@@ -371,6 +360,7 @@ class SceneStateManager:
             # OFF = legacy-броня (поведение байт-в-байт); ON = 0 копий
             # (ownership-move; доказанная миграция → дефолт ON, мандат XIII)
             import os as _os
+
             if _os.environ.get("EPOCH_OWNERSHIP_ENFORCEMENT", "0") == "1":
                 self._tick_scenes[_loc_id] = result_snapshot
             else:
@@ -386,17 +376,11 @@ class SceneStateManager:
             logger.debug(
                 f"[COMMIT_TRACE] _tick_scenes[{_loc_id}] updated, trav_keys_after={list(self._tick_scenes[_loc_id].get('active_traversals', {}).keys())}"
             )
-            logger.debug(
-                f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}:{_loc_id}"
-            )
+            logger.debug(f"[S83.1] commit_tick_result: persistence target updated for {campaign_id}:{_loc_id}")
         else:
-            logger.warning(
-                f"[S83.1] commit_tick_result: campaign mismatch {campaign_id} vs {self._tick_campaign_id}"
-            )
+            logger.warning(f"[S83.1] commit_tick_result: campaign mismatch {campaign_id} vs {self._tick_campaign_id}")
 
-    def get_scene_state_uncached(
-        self, campaign_id: str, location_id: str
-    ) -> dict | None:
+    def get_scene_state_uncached(self, campaign_id: str, location_id: str) -> dict | None:
         """Загружает scene_state из persistence БЕЗ кэша.
         Используется внутри lock_for_tick() для первичной загрузки."""
         if self._persistence:
@@ -426,9 +410,7 @@ class SceneStateManager:
         # в обоих режимах (strict/soft) без type: ignore.
         scene_any: Any = scene
         if not isinstance(scene_any, dict):
-            logger.warning(
-                f"[SCENE_CONTRACT] get_scene_state_uncached: тип={type(scene).__name__}, ожидается dict"
-            )
+            logger.warning(f"[SCENE_CONTRACT] get_scene_state_uncached: тип={type(scene).__name__}, ожидается dict")
             return None
         if location_id and scene.get("location_id") != location_id:
             return None
@@ -455,9 +437,7 @@ class SceneStateManager:
                 f"получен {type(campaign_id).__name__}: {campaign_id!r:.80}"
             )
         if Path(campaign_id).name != campaign_id or campaign_id in {".", ".."}:
-            raise ValueError(
-                f"[SSM-GUARD] campaign_id не должен быть путём: {campaign_id!r:.80}"
-            )
+            raise ValueError(f"[SSM-GUARD] campaign_id не должен быть путём: {campaign_id!r:.80}")
         saves_path = self._saves_dir / campaign_id / "campaign_state.json"
         if saves_path.exists():
             return saves_path
@@ -468,9 +448,7 @@ class SceneStateManager:
             import shutil
 
             shutil.copy2(legacy_path, saves_path)
-            logger.info(
-                f"[SCENE] Миграция campaign_state: {legacy_path} → {saves_path}"
-            )
+            logger.info(f"[SCENE] Миграция campaign_state: {legacy_path} → {saves_path}")
             return saves_path
         # Новое сохранение — в saves_dir
         saves_path.parent.mkdir(parents=True, exist_ok=True)
@@ -496,9 +474,7 @@ class SceneStateManager:
 
     def _write_campaign_json(self, campaign_id: str, data: dict) -> None:
         path = self._state_file(campaign_id)
-        path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # ─────────────────────────────────────────────────────────────────────────
     # get_scene_state
@@ -507,11 +483,7 @@ class SceneStateManager:
     def get_scene_state(self, campaign_id: str, location_id: str) -> dict | None:
         # TICK-SCOPED IDENTITY: Если тик заблокирован, возвращаем ТОТ ЖЕ объект.
         # Без этого каждый вызов создаёт НОВЫЙ dict из persistence → traversals теряются.
-        if (
-            self._tick_locked
-            and self._tick_campaign_id == campaign_id
-            and location_id in self._tick_scenes
-        ):
+        if self._tick_locked and self._tick_campaign_id == campaign_id and location_id in self._tick_scenes:
             return self._tick_scenes[location_id]
         # Устав 4.2.1: читаем из порта (SQLite) если доступен
         if self._persistence:
@@ -531,11 +503,7 @@ class SceneStateManager:
 
                 _frame = inspect.currentframe()
                 _caller = _frame.f_back if _frame else None  # noqa: ENIGMA001
-                _caller_info = (
-                    f"{_caller.f_code.co_filename}:{_caller.f_lineno}"
-                    if _caller
-                    else "unknown"
-                )
+                _caller_info = f"{_caller.f_code.co_filename}:{_caller.f_lineno}" if _caller else "unknown"
                 logger.debug(
                     f"[SCENE_REHYDRATE] NEW dict id={id(scene)} from persistence caller={_caller_info} trav_keys={list(scene.get('active_traversals', {}).keys())[:5]}"
                 )
@@ -554,9 +522,7 @@ class SceneStateManager:
         # в обоих режимах (strict/soft) без type: ignore.
         scene_any: Any = scene
         if not isinstance(scene_any, dict):
-            logger.warning(
-                f"[SCENE_CONTRACT] get_scene_state: тип={type(scene).__name__}, ожидается dict"
-            )
+            logger.warning(f"[SCENE_CONTRACT] get_scene_state: тип={type(scene).__name__}, ожидается dict")
             return None
         # Пустой location_id = без фильтра (для синхронизации позиции)
         if location_id and scene.get("location_id") != location_id:
@@ -587,7 +553,9 @@ class SceneStateManager:
                 if _pos and ":" in str(_pos):
                     _prefix = str(_pos).split(":")[0]
                     if _prefix != _loc_id:
-                        logger.warning(f"[SC-3-LOAD] NPC '{npc_id}' has foreign node '{_pos}' in loc '{_loc_id}'. Resetting.")
+                        logger.warning(
+                            f"[SC-3-LOAD] NPC '{npc_id}' has foreign node '{_pos}' in loc '{_loc_id}'. Resetting."
+                        )
                         pos_data["position"] = ""
                         pos_data["current_node"] = ""
         # ADR-102: Инжект campaign_id для SpatialService (замена мёртвого load_graph)
@@ -663,6 +631,7 @@ class SceneStateManager:
 
         # ADR-O-442: Spatial SSOT Adapter
         from app.services.spatial.spatial_persistence_adapter import SpatialPersistenceAdapter
+
         _loc_id = scene_state.get("location_id", "unknown")
         SpatialPersistenceAdapter.prepare_scene_for_save(scene_state, _loc_id)
         # TICK-SCOPED IDENTITY: Внутри тика обновляем кэш, НЕ пишем на диск.
@@ -673,22 +642,13 @@ class SceneStateManager:
             self._tick_scenes[_loc_id] = scene_state
             return
         # ДИАГНОСТИКА: Реальный персист — проверяем что traversals доходят
-        _trav_keys = (
-            list(scene_state.get("active_traversals", {}).keys())
-            if isinstance(scene_state, dict)
-            else []
-        )
-        logger.debug(
-            f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}"
-        )
+        _trav_keys = list(scene_state.get("active_traversals", {}).keys()) if isinstance(scene_state, dict) else []
+        logger.debug(f"[SAVE_TRACE] campaign={campaign_id} locked={self._tick_locked} traversals={_trav_keys}")
         if self._persistence:
             # Stage 0 Task 0.3: JSON as runtime truth FORBIDDEN.
             # Делегируем в atomic_commit_all (Устав §4.2.1) — единственный write-path.
             _loc_id = scene_state.get("location_id", "default")
-            self._persistence.atomic_commit_all(
-                campaign_id=campaign_id,
-                all_scenes={_loc_id: scene_state}
-            )
+            self._persistence.atomic_commit_all(campaign_id=campaign_id, all_scenes={_loc_id: scene_state})
         else:
             logger.error("[SCENE] PersistencePort missing! Cannot save scene state.")
         logger.debug(f"[SCENE] Сохранён SceneState: {scene_state.get('location_id')}")
@@ -737,8 +697,7 @@ class SceneStateManager:
 
         self.save_scene_state(campaign_id, scene_state)
         logger.info(
-            f"[SCENE S.0] player_target → npc={target_npc_name!r} "
-            f"obj={target_object_id!r} pos={player_position!r}"
+            f"[SCENE S.0] player_target → npc={target_npc_name!r} obj={target_object_id!r} pos={player_position!r}"
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -780,16 +739,13 @@ class SceneStateManager:
         """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
         return _find_editor_location_impl(self.campaigns_dir, campaign_id, location_id)
 
-
     def _find_first_editor_location(self, campaign_id: str) -> dict | None:
         """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
         return _find_first_editor_location_impl(self.campaigns_dir, campaign_id)
 
-
     def find_starting_location(self, campaign_id: str) -> str:
         """DEGOD ITER2: делегат — тело в scene_state/editor_locator.py."""
         return _find_starting_location_impl(self.campaigns_dir, campaign_id)
-
 
     def reinit_campaign(self, campaign_id: str) -> dict | None:
         """Переинициализация сцены кампании из editor JSON.
@@ -798,21 +754,20 @@ class SceneStateManager:
         # V8-SP-26 FIX: инвалидируем все кэши при переинициализации
         from app.services.spatial.spatial_factory import SpatialFactory
         from app.services.spatial.spatial_registry import SpatialRegistry
+
         SpatialFactory.invalidate_cache(campaign_id)
         if self._life_engine:
             self._life_engine.invalidate_cache(campaign_id)
         SpatialRegistry.invalidate_cache(campaign_id)
         starting_location = self.find_starting_location(campaign_id)
         scene = self.initialize_scene(campaign_id, starting_location)
-        logger.info(
-            f"[SCENE] Campaign '{campaign_id}' reinitialized from editor, "
-            f"location={starting_location}"
-        )
+        logger.info(f"[SCENE] Campaign '{campaign_id}' reinitialized from editor, location={starting_location}")
         return scene
 
     def _build_spatial_data(self, editor_data: dict) -> tuple[list[dict], list[dict]]:
         """Делегирует построение spatial_data в graph_compiler (SSOT, P4-02)."""
         from app.services.spatial.graph_compiler import _build_spatial_data
+
         return _build_spatial_data(editor_data)
 
     def _nearest_node_to_xy(self, editor_data: dict, x: float, y: float) -> str:
@@ -822,9 +777,7 @@ class SceneStateManager:
     # initialize_scene
     # ─────────────────────────────────────────────────────────────────────────
 
-    def initialize_scene(
-        self, campaign_id: str, location_id: str, time_of_day: str = "12:00"
-    ) -> dict:
+    def initialize_scene(self, campaign_id: str, location_id: str, time_of_day: str = "12:00") -> dict:
         """DEGOD ITER4: делегат — тело в scene_state/scene_factory.py."""
         from app.services.scene_state.scene_factory import build_initial_scene
 
@@ -857,18 +810,14 @@ class SceneStateManager:
     # validate_change
     # ─────────────────────────────────────────────────────────────────────────
 
-    def validate_change(
-        self, scene_state: dict, change: SceneChange
-    ) -> tuple[bool, str]:
+    def validate_change(self, scene_state: dict, change: SceneChange) -> tuple[bool, str]:
         return self.validator.validate(scene_state, change)
 
     # ─────────────────────────────────────────────────────────────────────────
     # apply_change
     # ─────────────────────────────────────────────────────────────────────────
 
-    def apply_change(
-        self, campaign_id: str, change: SceneChange, scene_state: dict
-    ) -> bool:
+    def apply_change(self, campaign_id: str, change: SceneChange, scene_state: dict) -> bool:
         """
         Применяет одно изменение к SceneState в памяти.
         Валидирует, применяет, логирует.
@@ -876,9 +825,7 @@ class SceneStateManager:
         """
         valid, reason = self.validate_change(scene_state, change)
         if not valid:
-            logger.warning(
-                f"[SCENE] Отклонено: {change.type.value} '{change.target}' — {reason}"
-            )
+            logger.warning(f"[SCENE] Отклонено: {change.type.value} '{change.target}' — {reason}")
             _log_change(change, campaign_id, applied=False)
             return False
 
@@ -887,9 +834,7 @@ class SceneStateManager:
         # Архитектурный guard: семантика и пространство неразделимы
         # MovementEngine меняет position → мы атомарно обновляем x,y через SpatialService
         if ct == ChangeType.NPC_POSITION and change.field == "position":
-            logger.debug(
-                f"[ARCH GUARD] Легитимное перемещение: npc={change.target} → {change.value}"
-            )
+            logger.debug(f"[ARCH GUARD] Легитимное перемещение: npc={change.target} → {change.value}")
 
         try:
             if ct == ChangeType.OBJECT_STATE:
@@ -923,11 +868,8 @@ class SceneStateManager:
                 # живой копии в city_gate, тики 33+). Легальный вход в новую
                 # локацию — только cross_loc_materialize (S186 INJECT пишет
                 # entry напрямую). Остальное — громкий отказ, NPC не трогаем.
-                if (
-                    change.target not in pos
-                    and not getattr(change, "cause", "").startswith(  # noqa: ENIGMA002
-                        ("cross_loc_materialize", "boundary_arrival")
-                    )
+                if change.target not in pos and not getattr(change, "cause", "").startswith(  # noqa: ENIGMA002
+                    ("cross_loc_materialize", "boundary_arrival")
                 ):
                     logger.error(
                         f"[ATOMIC_GUARD] npc={change.target} отсутствует в сцене "
@@ -956,7 +898,9 @@ class SceneStateManager:
                         # Обновляем локацию NPC ТОЛЬКО при фактическом материализации (cross_loc_materialize).
                         # Простое перемещение к boundary node не должно менять location_id,
                         # иначе NPC выпадает из scene_state текущей локации на следующем тике.
-                        if target_loc != location_id and getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
+                        if target_loc != location_id and getattr(change, "cause", "").startswith(
+                            "cross_loc_materialize"
+                        ):  # noqa: ENIGMA002
                             entry["location_id"] = target_loc
                             entry["location"] = target_loc
                         try:
@@ -969,22 +913,16 @@ class SceneStateManager:
                                 location_id=target_loc,
                                 scene_state=scene_state,
                             )
-                            if svc and (node := svc.get_node(change.value) or svc.get_node(
-                                f"{target_loc}:{change.value}"
-                            )):
+                            if svc and (
+                                node := svc.get_node(change.value) or svc.get_node(f"{target_loc}:{change.value}")
+                            ):
                                 # P2: Сохраняем старую позицию ДО перезаписи
-                                from_xy = entry.get(
-                                    "local_position", {"x": 0.0, "y": 0.0}
-                                )
+                                from_xy = entry.get("local_position", {"x": 0.0, "y": 0.0})
                                 if not isinstance(from_xy, dict):
                                     from_xy = {"x": 0.0, "y": 0.0}
 
                                 exact_xy = getattr(change, "target_local_xy", None)  # noqa: ENIGMA002
-                                if (
-                                    exact_xy
-                                    and isinstance(exact_xy, (tuple, list))
-                                    and len(exact_xy) == 2
-                                ):
+                                if exact_xy and isinstance(exact_xy, (tuple, list)) and len(exact_xy) == 2:
                                     entry["local_position"] = {
                                         "x": float(exact_xy[0]),
                                         "y": float(exact_xy[1]),
@@ -1001,8 +939,7 @@ class SceneStateManager:
                                     getattr(change, "cause", "") != "traversal_complete"  # noqa: ENIGMA002
                                     and (
                                         change.target not in _active_travs
-                                        or _active_travs[change.target].get("status")
-                                        != "MOVING"
+                                        or _active_travs[change.target].get("status") != "MOVING"
                                     )
                                 ):
                                     # ADR-O-323: Layer 1 Continuity. TraversalState создаётся
@@ -1020,6 +957,7 @@ class SceneStateManager:
                                             return False
                                         else:
                                             from app.domain.traversal_schema import build_traversal_dict
+
                                             _traversal_dict = build_traversal_dict(_proposal)
                                             _active_travs = scene_state.setdefault("active_traversals", {})
                                             _existing_trav = _active_travs.get(change.target)
@@ -1030,7 +968,8 @@ class SceneStateManager:
                                             if (
                                                 _existing_trav
                                                 and _existing_trav.get("status") == "MOVING"
-                                                and _existing_trav.get("target_node") == _traversal_dict.get("target_node")
+                                                and _existing_trav.get("target_node")
+                                                == _traversal_dict.get("target_node")
                                             ):
                                                 logger.debug(
                                                     f"[SSM] Traversal NEW suppressed (in-flight): "
@@ -1046,6 +985,7 @@ class SceneStateManager:
                                                 # срабатывает (двойной commit исключён guard'ом).
                                                 # Здесь — материализации, миновавшие shadow-компиляцию.
                                                 from app.services.action.commitment_registry import CommitmentRegistry
+
                                                 CommitmentRegistry.mirror_traversal_materialized(
                                                     scene_state=scene_state,
                                                     tick=change.tick,
@@ -1053,7 +993,11 @@ class SceneStateManager:
                                                     cause=getattr(change, "cause", ""),  # noqa: ENIGMA002
                                                     target_node=_traversal_dict.get("target_node"),
                                                 )
-                                    elif change.field == "position" and getattr(change, "cause", "") != "traversal_complete" and not getattr(change, "cause", "").startswith("cross_loc_materialize"):  # noqa: ENIGMA002
+                                    elif (
+                                        change.field == "position"
+                                        and getattr(change, "cause", "") != "traversal_complete"
+                                        and not getattr(change, "cause", "").startswith("cross_loc_materialize")
+                                    ):  # noqa: ENIGMA002
                                         # Контракт: macro relocation (field="position") обязан иметь proposal.
                                         # Исключение: traversal_complete и cross_loc_materialize (snap позиции, proposal не нужен).
                                         # Микро-перемещения (field="local_position") его не требуют.
@@ -1063,9 +1007,7 @@ class SceneStateManager:
                                             f"Macro movement without proposal (ADR-O-323 violation)"
                                         )
                         except (KeyError, ValueError, TypeError, AttributeError) as exc:
-                            logger.error(
-                                f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}"
-                            )
+                            logger.error(f"[PIPELINE][SCENE_CHANGE][APPLY_CRASH] npc={change.target} exc={exc}")
                             raise
 
                 elif change.field in (
@@ -1080,11 +1022,7 @@ class SceneStateManager:
             elif ct == ChangeType.NPC_STATE:
                 pos = scene_state.setdefault("npc_positions", {})
                 entry = pos.setdefault(change.target, {})
-                if (
-                    change.field == "visible_markers"
-                    and isinstance(change.value, str)
-                    and change.value.startswith("+")
-                ):
+                if change.field == "visible_markers" and isinstance(change.value, str) and change.value.startswith("+"):
                     marker = change.value[1:]
                     markers = entry.setdefault("visible_markers", [])
                     if marker not in markers:
@@ -1140,10 +1078,7 @@ class SceneStateManager:
             elif ct == ChangeType.EFFECT_REMOVE:
                 effects = scene_state.get("active_effects", [])
                 scene_state["active_effects"] = [
-                    e
-                    for e in effects
-                    if e.get("target") != change.target
-                    or e.get("field") != change.field
+                    e for e in effects if e.get("target") != change.target or e.get("field") != change.field
                 ]
 
         except (KeyError, ValueError, TypeError) as e:
@@ -1167,17 +1102,12 @@ class SceneStateManager:
         if not changes:
             return 0
         applied_count = sum(
-            1
-            for ch in changes
-            if isinstance(ch, SceneChange)
-            and self.apply_change(campaign_id, ch, scene_state)
+            1 for ch in changes if isinstance(ch, SceneChange) and self.apply_change(campaign_id, ch, scene_state)
         )
         # ADR-O-363 (S203.3, Ц1): zombie cleanup — SSM = SSOT owner.
         self.gc_traversals(scene_state)
         if applied_count:
-            logger.info(
-                f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)"
-            )
+            logger.info(f"[SCENE] Применено {applied_count}/{len(changes)} изменений (in-memory, persist=Phase10)")
         return applied_count
 
     def gc_traversals(self, scene_state: dict) -> int:
@@ -1200,9 +1130,7 @@ class SceneStateManager:
         for _zid in _zombie_ids:
             del _active_traversals[_zid]
         if _zombie_ids:
-            logger.debug(
-                f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}"
-            )
+            logger.debug(f"[GATE_ZOMBIE] SSM cleaned={len(_zombie_ids)} zombies remaining={len(_active_traversals)}")
         return len(_zombie_ids)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -1226,9 +1154,7 @@ class SceneStateManager:
         # Объекты появляются только через carried_objects при инициализации сцены.
         # NarrativeExtractor вправе только обновлять состояния существующих объектов.
         if extraction_result.new_objects:
-            logger.warning(
-                f"[R2.1] Заблокировано {len(extraction_result.new_objects)} TEXT→ENTITY попыток"
-            )
+            logger.warning(f"[R2.1] Заблокировано {len(extraction_result.new_objects)} TEXT→ENTITY попыток")
 
         # ── FSM: обновление состояний существующих объектов ───────────────
         from app.services.scene.narrative_extractor import STATE_PRIORITY
@@ -1241,9 +1167,7 @@ class SceneStateManager:
                 if new_prio >= old_prio:
                     objects[obj_id]["state"] = new_state
                     objects[obj_id]["last_tick"] = (
-                        extraction_result.new_events[0].tick
-                        if extraction_result.new_events
-                        else 0
+                        extraction_result.new_events[0].tick if extraction_result.new_events else 0
                     )
                     logger.debug(f"[R2.1] Состояние: {obj_id} → {new_state}")
                     changed = True
@@ -1269,9 +1193,7 @@ class SceneStateManager:
                     "happened": True,
                 }
             )
-            logger.debug(
-                f"[R2.1] Событие: {evt.event_type} / {evt.object_name} (tick={evt.tick})"
-            )
+            logger.debug(f"[R2.1] Событие: {evt.event_type} / {evt.object_name} (tick={evt.tick})")
             changed = True
 
         if len(events) > 30:
@@ -1281,9 +1203,7 @@ class SceneStateManager:
         npc_positions = scene_state.setdefault("npc_positions", {})
         for npc_id, npc_action in extraction_result.npc_actions.items():
             entry = npc_positions.setdefault(npc_id, {})
-            entry["current_action"] = (
-                f"{npc_action.action}_{npc_action.object_canonical}"
-            )
+            entry["current_action"] = f"{npc_action.action}_{npc_action.object_canonical}"
             entry["action_started_tick"] = npc_action.tick
             changed = True
 
@@ -1353,6 +1273,7 @@ class SceneStateManager:
 
             # PR-7/S268: тот же паттерн ownership-move (см. commit_tick_result)
             import os as _os
+
             if _os.environ.get("EPOCH_OWNERSHIP_ENFORCEMENT", "0") == "1":
                 self._tick_scenes[_loc_id] = scene_state
             else:
@@ -1389,8 +1310,11 @@ class SceneStateManager:
         if _cached is not None:
             return cast("list[dict]", _cached)
         import copy as _copy
+
         _copy_list = _copy.deepcopy(getattr(self, "_last_committed_npcs_src", []))  # noqa: ENIGMA002
-        object.__setattr__(self, "_last_committed_npcs", _copy_list) if hasattr(self, "__slots__") else setattr(self, "_last_committed_npcs", _copy_list)
+        object.__setattr__(self, "_last_committed_npcs", _copy_list) if hasattr(self, "__slots__") else setattr(
+            self, "_last_committed_npcs", _copy_list
+        )
         self._last_committed_npcs = _copy_list
         return _copy_list
 
@@ -1612,9 +1536,7 @@ class SceneStateManager:
                 scene_state=scene_state,
             )
         except Exception as e:
-            logger.error(
-                f"[SPATIAL_ENFORCEMENT] Ошибка сборки SpatialService для location_id={location_id}: {e}"
-            )
+            logger.error(f"[SPATIAL_ENFORCEMENT] Ошибка сборки SpatialService для location_id={location_id}: {e}")
             raise
 
         for npc_id, entry in npc_positions.items():
@@ -1631,7 +1553,9 @@ class SceneStateManager:
             if current_node and ":" in current_node:
                 _node_prefix = current_node.split(":")[0]
                 if _node_prefix != location_id:
-                    logger.warning(f"[SC-3] NPC '{npc_id}' has foreign node '{current_node}' in loc '{location_id}'. Resetting position.")
+                    logger.warning(
+                        f"[SC-3] NPC '{npc_id}' has foreign node '{current_node}' in loc '{location_id}'. Resetting position."
+                    )
                     entry["position"] = ""
                     entry["current_node"] = ""
                     current_node = ""
@@ -1647,10 +1571,7 @@ class SceneStateManager:
 
             # GAP12 FIX: Призрачная Позиция. Если NPC в LOD1-транзите, бэкенд-сервисы (CFRM/ImpactEngine)
             # видят его в стартовом узле. Это ложь. Вычисляем интерполированную позицию.
-            if (
-                npc_id in active_traversals
-                and active_traversals[npc_id].get("status") == "MOVING"
-            ):
+            if npc_id in active_traversals and active_traversals[npc_id].get("status") == "MOVING":
                 trav = active_traversals[npc_id]
                 wp = trav.get("path_waypoints", [])
                 if len(wp) >= 2:
@@ -1658,9 +1579,7 @@ class SceneStateManager:
                     _trav_started = int(trav.get("started_tick", 0))
                     _trav_dur = max(1, int(trav.get("duration_ticks", 1)))
                     _trav_prog = (
-                        min(1.0, max(0.0, (current_tick - _trav_started) / _trav_dur))
-                        if _trav_dur > 0
-                        else 1.0
+                        min(1.0, max(0.0, (current_tick - _trav_started) / _trav_dur)) if _trav_dur > 0 else 1.0
                     )
                     _num_seg = len(wp) - 1
                     _seg_prog = _trav_prog * _num_seg
@@ -1689,16 +1608,12 @@ class SceneStateManager:
                 lp = entry.get("local_position", {})
                 if isinstance(lp, dict) and isinstance(lp.get("x"), (int, float)):
                     continue
-                logger.warning(
-                    f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' в транзите без координат! Пробуем восстановить."
-                )
+                logger.warning(f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' в транзите без координат! Пробуем восстановить.")
 
             if not npc_moved and npc_id in editor_coords:
                 # LOD0: Не перезаписываем микро-перемещения, если координаты уже валидны
                 lp = entry.get("local_position", {})
-                if not isinstance(lp, dict) or not isinstance(
-                    lp.get("x"), (int, float)
-                ):
+                if not isinstance(lp, dict) or not isinstance(lp.get("x"), (int, float)):
                     entry["local_position"] = dict(editor_coords[npc_id])
             elif svc and current_node:
                 # ADR-072 FIX: Жёсткий LOD0 Guard.
@@ -1707,7 +1622,8 @@ class SceneStateManager:
                 lp = entry.get("local_position", {})
                 # S-03.2 FIX: ADR-121 запрещает (0,0). Старые сейвы могут содержать (0,0) — считаем их невалидными.
                 _is_valid = (
-                    isinstance(lp, dict) and isinstance(lp.get("x"), (int, float))
+                    isinstance(lp, dict)
+                    and isinstance(lp.get("x"), (int, float))
                     and not (lp.get("x") == 0.0 and lp.get("y") == 0.0)
                 )
                 if _is_valid:
@@ -1716,7 +1632,9 @@ class SceneStateManager:
                     _ly = lp.get("y", 0.0)
                     _inside_obstacle = False
                     for obs in scene_state.get("spatial_obstacles", []):
-                        if point_in_rect((_lx, _ly), obs.get("x", 0), obs.get("y", 0), obs.get("w", 0), obs.get("h", 0)):
+                        if point_in_rect(
+                            (_lx, _ly), obs.get("x", 0), obs.get("y", 0), obs.get("w", 0), obs.get("h", 0)
+                        ):
                             _inside_obstacle = True
                             break
                     if not _inside_obstacle:
@@ -1730,17 +1648,13 @@ class SceneStateManager:
             # ADR-121: (0,0) ЗАПРЕЩЁН — это за пределами карты, вызывает телепортацию.
             # Используем начальный узел NPC → вход → первый доступный узел графа.
             local_pos = entry.get("local_position", {})
-            if not isinstance(local_pos, dict) or not isinstance(
-                local_pos.get("x"), (int, float)
-            ):
+            if not isinstance(local_pos, dict) or not isinstance(local_pos.get("x"), (int, float)):
                 _fallback_node = None
                 if svc:
                     # 1. Начальный узел NPC из npc_defaults
                     _init = initial_nodes.get(npc_id, "")
                     if _init:
-                        _fallback_node = svc.get_node(_init) or svc.get_node(
-                            f"{location_id}:{_init}"
-                        )
+                        _fallback_node = svc.get_node(_init) or svc.get_node(f"{location_id}:{_init}")
                     # B2-FIX: убрать fallback на entrance (телепортация к двери).
                     # No fallback reality principle — если нет ноды, fail-fast к центру графа.
                     if not _fallback_node:
@@ -1774,9 +1688,7 @@ class SceneStateManager:
                         )
                         self._spatial_enforcement_logged.add(_dedup_key)
                 else:
-                    logger.error(
-                        f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ! NPC skipped."
-                    )
+                    logger.error(f"[SPATIAL_ENFORCEMENT] NPC '{npc_id}' — ГРАФ ПУСТ! NPC skipped.")
 
             # S-03: NPC Position Validation — если NPC оказался внутри walk=False объекта, вытаскиваем его
             _lp = entry.get("local_position", {})
@@ -1829,15 +1741,14 @@ class SceneStateManager:
         if location_id := scene_state.get("location_id", ""):
             try:
                 from app.services.spatial.spatial_factory import SpatialFactory
+
                 svc = SpatialFactory.build_for_campaign(
                     campaign_id=campaign_id,
                     location_id=location_id,
                     scene_state=scene_state,
                 )
                 if svc:
-                    node = svc.get_node(position) or svc.get_node(
-                        f"{location_id}:{position}"
-                    )
+                    node = svc.get_node(position) or svc.get_node(f"{location_id}:{position}")
                     if node:
                         entry["local_position"] = {"x": node.x, "y": node.y}
                     else:
@@ -1846,10 +1757,7 @@ class SceneStateManager:
                             f"для NPC {npc_id} — local_position не обновлён"
                         )
             except (KeyError, ValueError, AttributeError) as exc:
-                logger.error(
-                    f"[SPATIAL] Ошибка SpatialService для NPC {npc_id}: {exc} "
-                    f"— local_position не обновлён"
-                )
+                logger.error(f"[SPATIAL] Ошибка SpatialService для NPC {npc_id}: {exc} — local_position не обновлён")
                 raise
 
         if save_after:
@@ -1865,7 +1773,6 @@ class SceneStateManager:
         from app.services.scene_state.dm_presentation import get_scene_description
 
         return get_scene_description(scene_state)
-
 
     def _sync_relationship_directed(self, scenes: Dict[str, Dict[str, Any]]) -> None:
         """M1b.4.2: копия directed-поддерева из сцены-источника во все сцены.

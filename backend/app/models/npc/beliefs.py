@@ -34,6 +34,7 @@ class BeliefFragment:
 @dataclass(frozen=True)
 class BeliefDelta:
     """Delta для применения к BeliefState (SSOT epistemic)."""
+
     belief_type: BeliefType
     old_value: float
     new_value: float
@@ -100,7 +101,7 @@ class BeliefState:
     # ArchitecturalViolationError (замок экзамена).
     _UPDATE_ALLOWED_WRITERS = {
         "app.models.npc.beliefs",
-        "app.models.npc_state",          # загрузка psyche["beliefs"] (npc_state:1022)
+        "app.models.npc_state",  # загрузка psyche["beliefs"] (npc_state:1022)
         # E2.0-c/D3: загрузка персистенции — _beliefs_from_persistence
         # (npc_loader:583, вызовы 561/661) строит BeliefState из psyche["beliefs"]
         # через update(). Прецедент: npc_loader в _ALLOWED_WRITERS NPCState-guard.

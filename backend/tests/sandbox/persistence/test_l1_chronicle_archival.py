@@ -1,4 +1,4 @@
-﻿# backend/tests/sandbox/persistence/test_l1_chronicle_archival.py
+# backend/tests/sandbox/persistence/test_l1_chronicle_archival.py
 # ФАЗА -1: Проверка архивации L1Chronicle (R2 Z.ai Audit)
 
 import pytest
@@ -15,7 +15,7 @@ def memory_store():
 def test_archive_old_events_does_not_crash(memory_store):
     """Проверка R2: archive_old_events не должен падать с tuple index out of range."""
     chronicle = L1Chronicle(store=memory_store, campaign_id="test_camp")
-    
+
     # Добавляем 10 событий
     for i in range(10):
         evt = TraitDriftEvent(
@@ -27,11 +27,11 @@ def test_archive_old_events_does_not_crash(memory_store):
             event_type="player_attacks",
         )
         chronicle.append(evt)
-    
+
     # Архивируем события старше 5 тика
     # Ранее здесь падало: tuple index out of range
     chronicle.archive_old_events(current_tick=10, max_ticks_in_memory=5)
-    
+
     # Проверяем, что в RAM-кэше остались только события >= 5
     # Rule 28: L1Chronicle строго append-only, SQL-таблица не очищается, query_raw возвращает RAM+SQL.
     active_events = chronicle._events.get("npc_1", [])

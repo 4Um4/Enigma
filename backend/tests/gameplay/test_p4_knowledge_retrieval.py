@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p4_knowledge_retrieval.py
+# path: /project/backend/tests/gameplay/test_p4_knowledge_retrieval.py
 # Назначение: M1/P4 — гейт чистого reader над narrative_cache.
 #   Сквозной P1->P2->P3->P4: язык -> QUESTION + SubjectRef -> знание.
 #   Ключевой инвариант: TRUTH ≠ KNOWLEDGE (негатив-контроль владения).
@@ -94,16 +94,10 @@ def test_p4_shadow_knows_about_lusya(harness):
 def test_p4_l4_no_mutation(harness):
     """T5 (L-P4-гвард): retrieval не мутирует narrative_cache."""
     state = _state(harness, "guard_borko")
-    before = tuple(
-        (m.secret_id, m.summary, m.importance, m.stage, m.is_secret)
-        for m in state.narrative_cache
-    )
+    before = tuple((m.secret_id, m.summary, m.importance, m.stage, m.is_secret) for m in state.narrative_cache)
     subject = _p3_subject("Спросить Борко про караван")
     retrieve_knowledge(state, subject)
-    after = tuple(
-        (m.secret_id, m.summary, m.importance, m.stage, m.is_secret)
-        for m in state.narrative_cache
-    )
+    after = tuple((m.secret_id, m.summary, m.importance, m.stage, m.is_secret) for m in state.narrative_cache)
     assert before == after, "L-P4: retrieval мутировал narrative_cache"
 
 

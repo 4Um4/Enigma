@@ -20,6 +20,7 @@ ALSO: wrap logger.debug to add another stack capture point.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -107,13 +108,15 @@ class _LogCapture(logging.Handler):
                 stack = inspect.stack()
                 stack_info = []
                 for i, frame in enumerate(stack):
-                    stack_info.append({
-                        "index": i,
-                        "filename": frame.filename,
-                        "lineno": frame.lineno,
-                        "function": frame.function,
-                        "code_context": frame.code_context[0].strip() if frame.code_context else "",
-                    })
+                    stack_info.append(
+                        {
+                            "index": i,
+                            "filename": frame.filename,
+                            "lineno": frame.lineno,
+                            "function": frame.function,
+                            "code_context": frame.code_context[0].strip() if frame.code_context else "",
+                        }
+                    )
                 self.de_log_stack_traces.append(stack_info)
         except Exception:
             pass
@@ -245,7 +248,7 @@ def main() -> int:
                 break
         store = getattr(sub, "_store", None) if sub else None
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # Publish PLAYER_INSULTS
         payload = {
@@ -266,7 +269,7 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  PLAYER_INSULTS published")
+        print("  PLAYER_INSULTS published")
 
         # Clear state
         _reset_log_capture()
@@ -343,12 +346,13 @@ def main() -> int:
             print(f"  Tornin total records: {len(tornin_after)}")
             for r in tornin_after:
                 print(f"    prop={str(getattr(r, 'proposition', None))[:80]}")
-                print(f"      conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -371,9 +375,19 @@ def main() -> int:
         all_logs = _log_capture.messages()
         print(f"  Total log records: {len(all_logs)}")
         # Filter to relevant
-        relevant_keywords = ["DIALOGUE_EXEC", "TASK_SCHED", "SCHEDULER", "materializer",
-                             "Materializer", "intent_event_adapter", "INTENT_EVENT_ADAPTER",
-                             "execute", "spread_rumor", "NPC_SPOKE", "npc_spoke"]
+        relevant_keywords = [
+            "DIALOGUE_EXEC",
+            "TASK_SCHED",
+            "SCHEDULER",
+            "materializer",
+            "Materializer",
+            "intent_event_adapter",
+            "INTENT_EVENT_ADAPTER",
+            "execute",
+            "spread_rumor",
+            "NPC_SPOKE",
+            "npc_spoke",
+        ]
         relevant_logs = [l for l in all_logs if any(kw in l for kw in relevant_keywords)]
         print(f"  Relevant logs: {len(relevant_logs)}")
         for l in relevant_logs[:50]:
@@ -385,10 +399,10 @@ def main() -> int:
         _print_section("STEP 6: VERDICT")
 
         if new_borko_belief:
-            print(f"  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif not _log_capture.de_log_stack_traces:
-            print(f"  >>> VERDICT: No [DIALOGUE_EXEC] log captured")
-            print(f"  >>> execute() was NOT called during idle_tick")
+            print("  >>> VERDICT: No [DIALOGUE_EXEC] log captured")
+            print("  >>> execute() was NOT called during idle_tick")
         else:
             # Find caller of execute()
             stack = _log_capture.de_log_stack_traces[0]
@@ -404,14 +418,16 @@ def main() -> int:
 
             if execute_frame and caller_frame:
                 print(f"  >>> execute() called at: {execute_frame['filename']}:{execute_frame['lineno']}")
-                print(f"  >>> CALLED BY: {caller_frame['filename']}:{caller_frame['lineno']} in {caller_frame['function']}")
+                print(
+                    f"  >>> CALLED BY: {caller_frame['filename']}:{caller_frame['lineno']} in {caller_frame['function']}"
+                )
                 if caller_frame["code_context"]:
                     print(f"  >>> Caller code: {caller_frame['code_context'][:300]}")
-                print(f"\n  >>> This identifies WHO calls execute() — bypassing spy issue")
-                print(f"  >>> Next: investigate why spy doesn't trigger from this call path")
+                print("\n  >>> This identifies WHO calls execute() — bypassing spy issue")
+                print("  >>> Next: investigate why spy doesn't trigger from this call path")
             else:
-                print(f"  >>> execute() not found in stack — see Step 2")
-                print(f"  >>> Full stack shown in Step 1")
+                print("  >>> execute() not found in stack — see Step 2")
+                print("  >>> Full stack shown in Step 1")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()

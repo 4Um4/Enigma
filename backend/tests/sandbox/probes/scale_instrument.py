@@ -31,12 +31,20 @@ _YELLOW_MS_P95 = 100.0
 
 def _ws_mb() -> float:
     """WorkingSet текущего процесса (MB) — Windows, без psutil."""
+
     class _PMC(ctypes.Structure):
-        _fields_ = [("cb", ctypes.c_ulong), ("PageFaultCount", ctypes.c_ulong),
-                    ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
-                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                    ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+        _fields_ = [
+            ("cb", ctypes.c_ulong),
+            ("PageFaultCount", ctypes.c_ulong),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+        ]
 
     pmc = _PMC()
     pmc.cb = ctypes.sizeof(_PMC)
@@ -54,8 +62,7 @@ def _ws_mb() -> float:
 class ScaleInstrument:
     """Обёртки-счётчики вокруг живого прогона. Все патчи восстанавливаются в restore()."""
 
-    def __init__(self, lab: DriftLaboratory, step: str, out_path: Path,
-                 population: int = 0) -> None:
+    def __init__(self, lab: DriftLaboratory, step: str, out_path: Path, population: int = 0) -> None:
         self._lab = lab
         self._step = step
         self._out = out_path
@@ -159,17 +166,19 @@ class ScaleInstrument:
     def _emit(self, ms: float) -> None:
         dlg = -1
         try:
-            scene = self._lab._scene_manager.get_scene_state(
-                self._lab.config.campaign_id, self._lab.config.location_id
-            )
+            scene = self._lab._scene_manager.get_scene_state(self._lab.config.campaign_id, self._lab.config.location_id)
             if scene:
                 dlg = len(scene.get("recent_dialogues", []))
         except Exception as exc:  # наблюдатель не роняет тик (Устав §11)
             print(f"  [SCALE_PROBE] scene read failed: {type(exc).__name__}: {exc}")
         row = {
-            "step": self._step, "tick": self._tick_no, "ms": round(ms, 3),
-            "events": self._events, "l1_calls": self._l1_calls,
-            "dialogues": dlg, "ws_mb": round(_ws_mb(), 1),
+            "step": self._step,
+            "tick": self._tick_no,
+            "ms": round(ms, 3),
+            "events": self._events,
+            "l1_calls": self._l1_calls,
+            "dialogues": dlg,
+            "ws_mb": round(_ws_mb(), 1),
         }
         self._rows.append(row)
         with self._out.open("a", encoding="utf-8") as f:
@@ -183,6 +192,7 @@ class ScaleInstrument:
             setattr(cls, name, orig)
         if self._npc_root_orig is not None:
             from app.services.npc import npc_loader
+
             npc_loader._CONFIG_NPC_ROOT = self._npc_root_orig
         if self._pop_dir is not None:
             shutil.rmtree(self._pop_dir, ignore_errors=True)
@@ -198,9 +208,7 @@ def _percentile(sorted_vals: list, q: float) -> float:
 def _report(rows: list, step: str, l1_by_name: dict, qraw_callers: dict) -> str:
     ms = sorted(r["ms"] for r in rows)
     # events в jsonl кумулятивен — для per-tick метрики берём дельты
-    _ev_deltas = [rows[0]["events"]] + [
-        rows[i]["events"] - rows[i - 1]["events"] for i in range(1, len(rows))
-    ]
+    _ev_deltas = [rows[0]["events"]] + [rows[i]["events"] - rows[i - 1]["events"] for i in range(1, len(rows))]
     events = sorted(_ev_deltas)
     dlg_last = rows[-1]["dialogues"] if rows else -1
     p95 = _percentile(ms, 0.95)
@@ -208,25 +216,24 @@ def _report(rows: list, step: str, l1_by_name: dict, qraw_callers: dict) -> str:
     # Экспериментальный манифест: воспроизводимость через полгода (решение Мастера)
     import platform
     import subprocess as _sp
+
     try:
         _commit = _sp.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
     except Exception:
         _commit = "unknown"
     lines = [
-        f"# SCALE MAP — {step}", "",
+        f"# SCALE MAP — {step}",
+        "",
         f"- manifest: python={platform.python_version()} os={platform.system()} "
         f"commit={_commit} stamp={time.strftime('%Y-%m-%d %H:%M')}",
         f"- ticks: {len(rows)}",
-        f"- ms/tick: mean={sum(ms)/max(1, len(ms)):.2f} p50={_percentile(ms, 0.5):.2f} "
+        f"- ms/tick: mean={sum(ms) / max(1, len(ms)):.2f} p50={_percentile(ms, 0.5):.2f} "
         f"p95={p95:.2f} max={ms[-1] if ms else 0:.2f}",
-        f"- EventBus events/tick: mean={sum(events)/max(1, len(events)):.1f} max={events[-1] if events else 0}",
+        f"- EventBus events/tick: mean={sum(events) / max(1, len(events)):.1f} max={events[-1] if events else 0}",
         f"- L1 calls (total): {rows[-1]['l1_calls'] if rows else 0}",
-        "- L1 attribution: " + ", ".join(
-            f"{k}={v}" for k, v in sorted(l1_by_name.items(), key=lambda kv: -kv[1])
-        ),
-        "- query_raw callers (top-5): " + ", ".join(
-            f"{k}={v}" for k, v in sorted(qraw_callers.items(), key=lambda kv: -kv[1])[:5]
-        ),
+        "- L1 attribution: " + ", ".join(f"{k}={v}" for k, v in sorted(l1_by_name.items(), key=lambda kv: -kv[1])),
+        "- query_raw callers (top-5): "
+        + ", ".join(f"{k}={v}" for k, v in sorted(qraw_callers.items(), key=lambda kv: -kv[1])[:5]),
         f"- recent_dialogues (final len): {dlg_last}",
         f"- WS MB (final): {rows[-1]['ws_mb'] if rows else -1}",
         f"- RED ZONE (p95: yellow>{_YELLOW_MS_P95}, red>{_RED_MS_P95}): **{zone}**",
@@ -238,9 +245,12 @@ def _report(rows: list, step: str, l1_by_name: dict, qraw_callers: dict) -> str:
     for r in rows[:: max(1, len(rows) // 20)]:
         lines.append(f"| {r['tick']} | {r['ms']} | {r['events']} | {r['dialogues']} | {r['ws_mb']} |")
     lines += [
-        "", "## TOP MULTIPLIERS",
+        "",
+        "## TOP MULTIPLIERS",
         "Сравни с предыдущей ступенью вручную или через diff jsonl (>=2 ступени).",
-        "", "## RED ZONES", f"- ms/tick p95: {zone}",
+        "",
+        "## RED ZONES",
+        f"- ms/tick p95: {zone}",
     ]
     return "\n".join(lines)
 

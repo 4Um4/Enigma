@@ -9,6 +9,7 @@
 
 Чистый micro: decomposer и store подменяются, LLM/uvicorn не нужны.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -61,9 +62,7 @@ def _fake_result(n_items: int) -> SimpleNamespace:
         )
         for i in range(n_items)
     ]
-    return SimpleNamespace(
-        ok=True, items=items, age_anchors=[], error=None, raw_response=""
-    )
+    return SimpleNamespace(ok=True, items=items, age_anchors=[], error=None, raw_response="")
 
 
 def _install_decomposer(monkeypatch: pytest.MonkeyPatch, n_items: int) -> None:
@@ -71,9 +70,7 @@ def _install_decomposer(monkeypatch: pytest.MonkeyPatch, n_items: int) -> None:
         async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
             return _fake_result(n_items)
 
-    monkeypatch.setattr(
-        routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer()
-    )
+    monkeypatch.setattr(routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer())
 
 
 async def _decompose(fragment_ord: int) -> dict:
@@ -98,11 +95,7 @@ def _load_doc(store: ChronicleStore) -> ChronicleDocument:
 
 def _fragment_draft_ids(doc: ChronicleDocument, fragment_ord: int) -> set[str]:
     lo = fragment_ord * 100
-    return {
-        e.entry_id
-        for e in doc.entries
-        if e.provenance is EntryProvenance.LLM_DRAFT and lo <= e.ordinal < lo + 100
-    }
+    return {e.entry_id for e in doc.entries if e.provenance is EntryProvenance.LLM_DRAFT and lo <= e.ordinal < lo + 100}
 
 
 def test_shrink_removes_stale_draft(tmp_path, monkeypatch):
@@ -131,9 +124,7 @@ def test_author_confirmed_slot_survives(tmp_path, monkeypatch):
         ordinal=301,
     )
     store.save_draft(
-        ChronicleDocument(
-            chronicle_id=_NPC, npc_ref=_NPC, entries=(confirmed,), canonical=False
-        ),
+        ChronicleDocument(chronicle_id=_NPC, npc_ref=_NPC, entries=(confirmed,), canonical=False),
         _CAMPAIGN,
     )
 
@@ -148,9 +139,7 @@ def test_author_confirmed_slot_survives(tmp_path, monkeypatch):
     draft_ids = _fragment_draft_ids(doc, 3)
     assert len(doc.entries) == 3
     assert confirmed_id not in draft_ids
-    assert len(set(e.entry_id for e in doc.entries)) == len(doc.entries), (
-        "дубликатов entry_id быть не может"
-    )
+    assert len(set(e.entry_id for e in doc.entries)) == len(doc.entries), "дубликатов entry_id быть не может"
 
 
 def test_other_fragment_drafts_untouched(tmp_path, monkeypatch):

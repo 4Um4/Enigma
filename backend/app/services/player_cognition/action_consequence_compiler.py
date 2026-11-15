@@ -1,4 +1,4 @@
-﻿"""
+"""
 Файл: backend/app/services/player_cognition/action_consequence_compiler.py
 Назначение: Маршрутизация действия игрока во все слои симуляции.
 Зависимости: typing, app.models.player_action, app.services.*
@@ -120,13 +120,10 @@ class ActionConsequenceCompiler:
         if action.action_type == ActionType.ACCUSE:
             if self._epistemic_resolver is None:
                 logger.warning(
-                    "[ACC_GATE] EpistemicResolver не инжектирован — "
-                    "ACCUSE без гейта (конфигурация GameLoop, см. §18)"
+                    "[ACC_GATE] EpistemicResolver не инжектирован — ACCUSE без гейта (конфигурация GameLoop, см. §18)"
                 )
             else:
-                _conf = self._epistemic_resolver.get_confidence_for_subject(
-                    "player", action.target_id
-                )
+                _conf = self._epistemic_resolver.get_confidence_for_subject("player", action.target_id)
                 if _conf < _ACCUSE_CONFIDENCE_THRESHOLD:
                     _reason = (
                         f"epistemic gate: player belief о '{action.target_id}' "
@@ -137,13 +134,15 @@ class ActionConsequenceCompiler:
                     return _reason
 
         # 1. Формируем сыное наблюдение
-        obs_content = action.description or f"{action.actor_id} совершил {action.action_type.value} к {action.target_id}"
+        obs_content = (
+            action.description or f"{action.actor_id} совершил {action.action_type.value} к {action.target_id}"
+        )
         obs = self._log.add(
             tick=action.tick,
             observation_type=action.action_type.value,
             content=obs_content,
             source_id=action.target_id,
-            source_type=ObservationSourceType.NPC
+            source_type=ObservationSourceType.NPC,
         )
 
         # 2. Обработка специфичных последствий
@@ -153,7 +152,7 @@ class ActionConsequenceCompiler:
                 observation_id=obs.observation_id,
                 secret_id=action.secret_id,
                 evidence_strength=1.0,
-                polarity=EvidencePolarity.SUPPORTS
+                polarity=EvidencePolarity.SUPPORTS,
             )
             self._beliefs.update_from_evidence(obs, ev)
 
@@ -167,7 +166,7 @@ class ActionConsequenceCompiler:
                 fear_delta=30.0,
                 trust_delta=-30.0,
                 cause=f"action:{action.action_type.value}",
-                description=f"{action.target_id} боится {action.actor_id} после шантажа"
+                description=f"{action.target_id} боится {action.actor_id} после шантажа",
             )
             # P2 FIX: Проброс дельты в SSOT ядра симуляции (через WriteGate — M1b.2.2)
             if self._write_gate and self._campaign_id:
@@ -191,7 +190,7 @@ class ActionConsequenceCompiler:
                 observation_id=obs.observation_id,
                 secret_id=action.secret_id,
                 evidence_strength=0.5,  # dialogue = weaker than blackmail
-                polarity=EvidencePolarity.SUPPORTS
+                polarity=EvidencePolarity.SUPPORTS,
             )
             self._beliefs.update_from_evidence(obs, ev)
             # P6/E3 (S255): discovery — через Bridge (владелец перехода).
@@ -205,7 +204,7 @@ class ActionConsequenceCompiler:
                 trust_delta=20.0,
                 fear_delta=-10.0,
                 cause=f"action:{action.action_type.value}",
-                description=f"{action.target_id} благодарен {action.actor_id} за помощь"
+                description=f"{action.target_id} благодарен {action.actor_id} за помощь",
             )
             # P2 FIX: Проброс дельты в SSOT ядра симуляции (через WriteGate — M1b.2.2)
             if self._write_gate and self._campaign_id:
@@ -234,7 +233,7 @@ class ActionConsequenceCompiler:
                 fear_delta=25.0,
                 trust_delta=-15.0,
                 cause=f"action:{action.action_type.value}",
-                description=f"{action.target_id} обвинён {action.actor_id}"
+                description=f"{action.target_id} обвинён {action.actor_id}",
             )
             if self._write_gate and self._campaign_id:
                 self._write_gate.apply(
@@ -258,7 +257,7 @@ class ActionConsequenceCompiler:
             "merchant": "торговая_гильдия",
             "thief": "гильдия_воров",
             "tavern_keeper": "таверна_серебряный_волк",
-            "maid": "таверна_серебряный_волк"
+            "maid": "таверна_серебряный_волк",
         }
         _parts = target_id.split("_")
         if len(_parts) > 1:

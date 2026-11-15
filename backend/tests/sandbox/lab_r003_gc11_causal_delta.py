@@ -190,9 +190,9 @@ def main() -> int:
     # Детерминизм: B ≡ B2 (полные мировые таймлайны)
     b_eq_b2 = b["world_timeline"] == b2["world_timeline"]
 
-    l3_pass = (
-        world_diverge is not None and world_diverge > _K_HELP
-    ) or (goran_diverge is not None and goran_diverge > _K_HELP)
+    l3_pass = (world_diverge is not None and world_diverge > _K_HELP) or (
+        goran_diverge is not None and goran_diverge > _K_HELP
+    )
 
     verdict = {
         "L1_store_delta": l1,
@@ -202,9 +202,7 @@ def main() -> int:
         "L3_goran_first_diverge_tick": goran_diverge,
         "determinism_B_eq_B2": b_eq_b2,
     }
-    verdict["GREEN"] = bool(
-        l1["pass"] and l2["pass"] and l3_pass and pre_help_diverge is None and b_eq_b2
-    )
+    verdict["GREEN"] = bool(l1["pass"] and l2["pass"] and l3_pass and pre_help_diverge is None and b_eq_b2)
     if l1["pass"] and l2["pass"] and not l3_pass:
         verdict["GAP_DIAGNOSIS"] = (
             "RE-D2-класс: дельта в V2-RAM и гидратация кэша есть, "

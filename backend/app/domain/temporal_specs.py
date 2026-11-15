@@ -26,6 +26,7 @@ path: backend/app/domain/temporal_specs.py
 Основные сущности: TemporalSpec, TemporalContext, TEMPORAL_SPECS,
     VALIDITY_RULES, SUCCESS_RULES
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ from typing import Any, Callable, Dict, Optional, cast
 class TemporalContext:
     """Lightweight pure-data context for temporal checks.
     No services — just data snapshots. Deterministic."""
+
     spatial_query: Optional[Any] = None  # SpatialQueryService (read-only)
     scene_state: Optional[Dict[str, Any]] = None
     tick: int = 0
@@ -46,9 +48,10 @@ class TemporalSpec:
     """Temporal contract for a specific Intent type.
     DecisionHub produces Intent → registry lookup → TemporalSpec →
     TemporalCommitment. Temporal layer does NOT invent predictions."""
-    validity_rule: str        # named rule ID (resolved via VALIDITY_RULES)
-    success_rule: str         # named rule ID (resolved via SUCCESS_RULES)
-    max_duration_ticks: int   # calibratable (CalibrationProfile)
+
+    validity_rule: str  # named rule ID (resolved via VALIDITY_RULES)
+    success_rule: str  # named rule ID (resolved via SUCCESS_RULES)
+    max_duration_ticks: int  # calibratable (CalibrationProfile)
     prediction_description: str  # human-readable, NOT executed
 
 
@@ -58,6 +61,7 @@ class TemporalSpec:
 # Does NOT re-check opportunity (that's OpportunityProducer's job).
 # Reactive events (player approach, attack received) are handled by
 # reactive preemption in Phase 4.5, NOT by validity rules.
+
 
 def _body_state(npc_state: Any) -> Dict[str, Any]:
     """§1.2 Silent Failure Eradication: явное чтение body_state.
@@ -80,6 +84,7 @@ def _steal_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     Player approach = reactive preemption (Phase 4.5), NOT validity.
     Opportunity score = OpportunityProducer's job, NOT duplicated here."""
     from app.domain.vital_state import is_conscious
+
     _body = _body_state(npc_state)
     return is_conscious(_body)
 
@@ -97,6 +102,7 @@ def _eat_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     """EAT commitment valid while hungry AND conscious.
     hunger > 0.3 = still needs food (hasn't eaten yet)."""
     from app.domain.vital_state import is_conscious
+
     _body = _body_state(npc_state)
     _hunger = float(_body.get("hunger", 1.0))
     return _hunger > 0.3 and is_conscious(_body)
@@ -114,6 +120,7 @@ def _approach_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     Destination reachability = existing TraversalState (Phase 7 checks).
     If traversal fails (blocked, target gone) → existing CANCELLED path."""
     from app.domain.vital_state import is_conscious
+
     _body = _body_state(npc_state)
     return is_conscious(_body)
 
@@ -130,6 +137,7 @@ def _attack_validity(npc_state: Any, ctx: TemporalContext) -> bool:
     Target alive = Phase 7 Stale Intent Validation (existing).
     Temporal validity does NOT duplicate target-alive check."""
     from app.domain.vital_state import is_conscious
+
     _body = _body_state(npc_state)
     return is_conscious(_body)
 
@@ -207,17 +215,27 @@ def check_success(rule_id: str, npc_state: Any, ctx: TemporalContext) -> bool:
         return False
     return fn(npc_state, ctx)
 
+
 # ── Reactive preemption events ──
 # NOT all non-WORLD_TICK — only physical threats, player intervention,
 # proximity changes. NPC_SPOKE, NPC_MOVED, COMMUNICATION_CLAIM — do NOT.
 # Extension requires explicit ADR.
-REACTIVE_PREEMPTION_EVENTS: frozenset[str] = frozenset({
-    "combat", "actor_attacks",
-    "player_attacks", "player_attack", "player_interacts",
-    "player_threatens", "player_insults", "player_used_item",
-    "player_cast_spell", "player_moved",
-    "npc_proximity_close", "proximity_close",
-})
+REACTIVE_PREEMPTION_EVENTS: frozenset[str] = frozenset(
+    {
+        "combat",
+        "actor_attacks",
+        "player_attacks",
+        "player_attack",
+        "player_interacts",
+        "player_threatens",
+        "player_insults",
+        "player_used_item",
+        "player_cast_spell",
+        "player_moved",
+        "npc_proximity_close",
+        "proximity_close",
+    }
+)
 
 
 def is_reactive_preemption(event_type: str) -> bool:

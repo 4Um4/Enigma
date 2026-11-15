@@ -17,6 +17,7 @@ SUPERBOX-COGNITION-P3D (санкция Мастера): перцептивное
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/cognition_p3d_test.py
 """
+
 import asyncio
 import math
 import os
@@ -51,6 +52,7 @@ atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 # llama-server lifecycle (принцип Мастера: идентификация ≠ владение).
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="cog_p3d")
 except Exception as _e:
     # P1-fix (ТЗДНЯ) preserved: любой отказ (CI без Models LLM/, OSError,
@@ -68,7 +70,7 @@ WORLD_ID = "default"
 
 _EXPERIMENT_ATTEMPTS = 4
 _STEP_DEPTS = (2.95, 2.4, 2.0)  # шаги внутри периферийной зоны (≤3.0 м)
-_PHASE2_DEPT = 4.5              # уход: за FOV/периферию, но резолвится узлами
+_PHASE2_DEPT = 4.5  # уход: за FOV/периферию, но резолвится узлами
 
 
 def _xy(entry) -> tuple:
@@ -109,12 +111,7 @@ def _orm_intent(world, npc_id) -> str:
         eng = world.game_loop._get_life_engine()
         states = eng.get_npc_states(CAMPAIGN) or []
         st = next(
-            (
-                s
-                for s in states
-                if isinstance(s, dict)
-                and (s.get("id") or s.get("npc_id")) == npc_id
-            ),
+            (s for s in states if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc_id),
             None,
         )
         if st is None:
@@ -136,11 +133,7 @@ def _pick_stationary(world, prev_pos, exclude=None):
     детерминированно трижды — p3d10), не пробованный (ретрай-контур)."""
     ss = _scene(world) or {}
     pos = ss.get("npc_positions") or {}
-    moving = {
-        nid
-        for nid, tr in (ss.get("active_traversals") or {}).items()
-        if (tr or {}).get("status") == "MOVING"
-    }
+    moving = {nid for nid, tr in (ss.get("active_traversals") or {}).items() if (tr or {}).get("status") == "MOVING"}
     pxy = _xy(pos.get("player"))
     best, best_d = None, -1.0
     for nid, entry in pos.items():
@@ -189,9 +182,7 @@ async def main_async() -> int:
 
     initialize_model_pool()
 
-    world = types.SimpleNamespace(
-        game_loop=build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    )
+    world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data")))
 
     def idle(n=1):
         for _ in range(n):
@@ -251,10 +242,7 @@ async def main_async() -> int:
         nxy = _xy(pos.get(target))
         h = _heading(pos.get(target))
         baseline_intent = _orm_intent(world, target)
-        print(
-            f"[PICK] попытка {attempt}: цель {target} "
-            f"(intent='{baseline_intent}')"
-        )
+        print(f"[PICK] попытка {attempt}: цель {target} (intent='{baseline_intent}')")
 
         # ── Фаза 0: pass-by (сбоку-сзади 5 м, стоит → v̂=0 → E≈0) ──
         print("--- Фаза 0: проходит мимо ---")
@@ -265,10 +253,7 @@ async def main_async() -> int:
         e0, _hit0 = _evidence(world, target)
         _g0 = e0 < ATTENTION_EVIDENCE_THRESHOLD
         g0 = g0 and _g0
-        print(
-            f"[G0] {'PASS' if _g0 else 'FAIL'}: evidence={e0:.3f} < порога "
-            f"— «прошёл мимо, никто не среагировал»"
-        )
+        print(f"[G0] {'PASS' if _g0 else 'FAIL'}: evidence={e0:.3f} < порога — «прошёл мимо, никто не среагировал»")
         if not _g0:
             continue
 
@@ -294,15 +279,8 @@ async def main_async() -> int:
                 idle(1)
                 continue
             # Цель ушла в traversal → попытка неинформативна → ретрай.
-            if (
-                ((_ss.get("active_traversals") or {}).get(target) or {})
-                .get("status")
-                == "MOVING"
-            ):
-                print(
-                    f"[PICK] попытка {attempt}: {target} ушёл в движение "
-                    f"— ретрай с новой целью"
-                )
+            if ((_ss.get("active_traversals") or {}).get(target) or {}).get("status") == "MOVING":
+                print(f"[PICK] попытка {attempt}: {target} ушёл в движение — ретрай с новой целью")
                 break
             _d = math.hypot(_txy[0] - _pxy[0], _txy[1] - _pxy[1])
             if _d <= _STOP:
@@ -317,10 +295,7 @@ async def main_async() -> int:
             )
             e, _ = _evidence(world, target)
             evidence_peak = max(evidence_peak, e)
-            print(
-                f"[APPROACH] t={_tick_i + 1} dist={_d:.2f} "
-                f"E={e:.3f} intent='{_orm_intent(world, target)}'"
-            )
+            print(f"[APPROACH] t={_tick_i + 1} dist={_d:.2f} E={e:.3f} intent='{_orm_intent(world, target)}'")
             if e >= ATTENTION_EVIDENCE_THRESHOLD:
                 became_attentive = True
             # Данные p3d17 (Задача 5): после пробоя СТАГНАЦИЯ гасит E за
@@ -334,9 +309,7 @@ async def main_async() -> int:
             # тики при became_attentive (E≥порога). Иначе чужой базлайн
             # ('observe' у borko до всякого приближения) засчитывался как
             # победа внимания (p3d19-загрязнение отчётности).
-            _saw_observe = _saw_observe or (
-                became_attentive and _it_now in ("observe", "idle")
-            )
+            _saw_observe = _saw_observe or (became_attentive and _it_now in ("observe", "idle"))
             if became_attentive and _it_now in ("observe", "idle"):
                 break
         if became_attentive:
@@ -390,8 +363,12 @@ async def main_async() -> int:
         _inf = _ia(
             [
                 AttentionObservation(
-                    tick=o[0], distance=o[1], bearing=o[2],
-                    subject_heading=o[3], rel_dx=o[4], rel_dy=o[5],
+                    tick=o[0],
+                    distance=o[1],
+                    bearing=o[2],
+                    subject_heading=o[3],
+                    rel_dx=o[4],
+                    rel_dy=o[5],
                 )
                 for o in _win
             ],
@@ -426,9 +403,7 @@ async def main_async() -> int:
     # Intent потиковый (хаб пересчитывает каждый тик) — наблюдаемый факт
     # победы внимания: hub выбрал observe/idle В ЛЮБОЙ тик внимательного
     # окна (полл + winner=-трейс COG_UTIL) ИЛИ держит его финально.
-    g2 = became_attentive and (
-        _saw_observe or _intent_now in ("observe", "idle")
-    )
+    g2 = became_attentive and (_saw_observe or _intent_now in ("observe", "idle"))
     ok = ok and g2
     print(
         f"[G2] {'PASS' if g2 else 'FAIL'}: intent='{_intent_now}' "
@@ -453,8 +428,7 @@ async def main_async() -> int:
 
     # ── Фаза 2: УХОД → LOST-затухание → возврат к жизни ───────────────
     print("--- Фаза 2: она уходит ---")
-    await _put_player(nxy[0] - _PHASE2_DEPT * math.cos(h),
-                      nxy[1] - _PHASE2_DEPT * math.sin(h))
+    await _put_player(nxy[0] - _PHASE2_DEPT * math.cos(h), nxy[1] - _PHASE2_DEPT * math.sin(h))
     idle(8)  # пик 0.8: 0.85⁸≈0.27 → hit=False; cog={} → инерция
     # observe демпфируется каноном → хаб возвращает baseline-интент
     # (сценарий Д: «постепенно возвращается к своей жизни»)
@@ -462,10 +436,7 @@ async def main_async() -> int:
     intent2 = _orm_intent(world, target)
     g4 = (not hit2) and (intent2 != "observe" or intent2 == baseline_intent)
     ok = ok and bool(g4)
-    print(
-        f"[G4] {'PASS' if g4 else 'FAIL'}: evidence={e2:.3f} (угасла), "
-        f"intent='{intent2}' — «вернулся к наковальне»"
-    )
+    print(f"[G4] {'PASS' if g4 else 'FAIL'}: evidence={e2:.3f} (угасла), intent='{intent2}' — «вернулся к наковальне»")
 
     print("=" * 64)
     print(f"P3D ИТОГО: {'GREEN' if ok else 'RED'}")

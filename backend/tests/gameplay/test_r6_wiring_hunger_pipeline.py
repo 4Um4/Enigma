@@ -42,9 +42,7 @@ def _state(hunger=0.8, merchant_goods=None, with_merchant=True):
         )
     s.campaign_id = "test"
     s.relationship_store = MagicMock()
-    s.relationship_store.get = MagicMock(
-        return_value={f"{A}→{MERCHANT}": {"trust": 60.0}}
-    )
+    s.relationship_store.get = MagicMock(return_value={f"{A}→{MERCHANT}": {"trust": 60.0}})
     s.spatial_query = MagicMock()
     s.spatial_query.distance = MagicMock(return_value=3.0)
     s.will_state = "free"
@@ -121,6 +119,7 @@ class TestPipelineBlock:
         received = {}
 
         original_resolve = HungerDesiredChangeProducer.resolve
+
         # Симуляция проводки: ровно тот контракт, который добавит
         # GREEN-патч в npc_tick_pipeline (см. патч ниже)
         def _pipeline_wiring(state, npc, npc_id, profile_l0, rel_view):
@@ -183,20 +182,20 @@ class TestPipelineBlock:
         fallback. Закрывает двухисточниковую правду приоритетом."""
         # 80/100 = 0.8 ≥ 0.5: сток есть → канал жив
         dc = HungerDesiredChangeProducer.resolve(
-            who=A, hunger=80.0 / 100.0,
+            who=A,
+            hunger=80.0 / 100.0,
             own_profile=_profile(A, goods={}),
-            profiles={A: _profile(A, goods={}),
-                      MERCHANT: _profile(MERCHANT, goods={"food": 5})},
+            profiles={A: _profile(A, goods={}), MERCHANT: _profile(MERCHANT, goods={"food": 5})},
             distances={MERCHANT: 3.0},
             rel={MERCHANT: {"trust": 60.0}},
         )
         assert dc is not None
         # 30/100 = 0.3 < 0.5: гейт закрыт
         dc2 = HungerDesiredChangeProducer.resolve(
-            who=A, hunger=30.0 / 100.0,
+            who=A,
+            hunger=30.0 / 100.0,
             own_profile=_profile(A, goods={}),
-            profiles={A: _profile(A, goods={}),
-                      MERCHANT: _profile(MERCHANT, goods={"food": 5})},
+            profiles={A: _profile(A, goods={}), MERCHANT: _profile(MERCHANT, goods={"food": 5})},
             distances={MERCHANT: 3.0},
             rel={MERCHANT: {"trust": 60.0}},
         )

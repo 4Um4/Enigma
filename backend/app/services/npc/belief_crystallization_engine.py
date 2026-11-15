@@ -97,9 +97,7 @@ class BeliefCrystallizationEngine:
             else:
                 target_trait = "trust"
                 # Модуляция личностью: высокий significance или desire делает NPC ценящим помощь
-                sensitivity = drives_base.get("significance", 0.25) + drives_base.get(
-                    "desire", 0.25
-                )
+                sensitivity = drives_base.get("significance", 0.25) + drives_base.get("desire", 0.25)
                 # Позитивный эффект не имеет множителя
                 _effect_magnitude = evidence.cumulative_effect
 
@@ -123,7 +121,9 @@ class BeliefCrystallizationEngine:
                     weight=new_weight,
                     last_updated_tick=current_tick,
                 )
-                logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+                logger.info(
+                    f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}"
+                )
             elif opposite_belief:
                 # Опровержение: вес старого убеждения падает в 6 раз быстрее
                 # И если он падает до нуля, может сформироваться новое
@@ -141,7 +141,9 @@ class BeliefCrystallizationEngine:
                             weight=new_weight,
                             last_updated_tick=current_tick,
                         )
-                        logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}")
+                        logger.info(
+                            f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={new_weight:.2f}"
+                        )
                 else:
                     # Убеждение ещё держится, но ослабло
                     new_weight = decayed_weight
@@ -151,7 +153,9 @@ class BeliefCrystallizationEngine:
                         weight=new_weight,
                         last_updated_tick=current_tick,
                     )
-                    logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={opposite_trait} weight={new_weight:.2f} (weakened)")
+                    logger.info(
+                        f"[L2.5] Crystallized: npc={evidence.source_id} trait={opposite_trait} weight={new_weight:.2f} (weakened)"
+                    )
             else:
                 # Формирование нового убеждения
                 if base_weight > 0.05:  # Порог кристаллизации
@@ -161,6 +165,8 @@ class BeliefCrystallizationEngine:
                         weight=base_weight,
                         last_updated_tick=current_tick,
                     )
-                    logger.info(f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={base_weight:.2f}")
+                    logger.info(
+                        f"[L2.5] Crystallized: npc={evidence.source_id} trait={target_trait} weight={base_weight:.2f}"
+                    )
 
         return list(updated_beliefs.values())

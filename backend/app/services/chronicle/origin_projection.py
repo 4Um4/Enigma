@@ -16,6 +16,7 @@
 - kind-семантика (EFFECT/BELIEF_SEED) НЕ выводится здесь — opaque payload,
   декомпозитор CCH-2 классифицирует новый авторский текст.
 """
+
 from __future__ import annotations
 
 from copy import deepcopy

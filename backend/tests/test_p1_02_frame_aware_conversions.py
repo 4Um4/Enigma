@@ -7,6 +7,7 @@
 
 ROADMAP: P1-02, §D.1.2 W3.
 """
+
 import sys
 from pathlib import Path
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ for _p in (str(_ROOT), str(_BACKEND), str(_FRONTEND)):
 @dataclass(frozen=True)
 class _MockChunk:
     """Mock ChunkDescriptor для тестов (с global_coords)."""
+
     location_id: str
     origin_x: float
     origin_y: float
@@ -30,6 +32,7 @@ class _MockChunk:
 
 class _MockRegistry:
     """Минимальный registry: get_chunk возвращает mock или None."""
+
     def __init__(self, chunks_dict):
         self._chunks = chunks_dict
 
@@ -40,6 +43,7 @@ class _MockRegistry:
 def _make_resolver(chunks_dict):
     """Создать ContextResolver с mock registry (loader не нужен для конверсий)."""
     from world_context import ContextResolver
+
     return ContextResolver(_MockRegistry(chunks_dict), data_loader=None)
 
 
@@ -90,12 +94,12 @@ def test_real_tavern_global_coords_true():
 
     sr_path = _FRONTEND / "map_editor" / "campaigns" / "Open_road" / "compiled" / "spatial_registry.json"
     import json
+
     data = json.loads(sr_path.read_text(encoding="utf-8"))
 
     for chunk_dict in data["chunks"]:
         assert chunk_dict.get("global_coords") is True, (
-            f"Chunk {chunk_dict['location_id']} should have global_coords=true, "
-            f"got {chunk_dict.get('global_coords')}"
+            f"Chunk {chunk_dict['location_id']} should have global_coords=true, got {chunk_dict.get('global_coords')}"
         )
 
 
@@ -123,6 +127,4 @@ def test_real_tavern_local_to_world_identity():
 
     # local_to_world — identity (т.к. global_coords=true)
     wx, wy = resolver.local_to_world(8.18, 10.70, "tavern")
-    assert (wx, wy) == (8.18, 10.70), (
-        f"Expected identity (global_coords=true), got ({wx}, {wy})"
-    )
+    assert (wx, wy) == (8.18, 10.70), f"Expected identity (global_coords=true), got ({wx}, {wy})"

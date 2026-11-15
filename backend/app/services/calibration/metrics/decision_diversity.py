@@ -7,6 +7,7 @@ path: backend/app/services/calibration/metrics/decision_diversity.py
 Зависимости: .base, ..observability_tap.DECISION_EVENT_VALUES.
 Основные сущности: DecisionDiversity.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Set
@@ -38,11 +39,7 @@ class DecisionDiversity(CalibrationMetric):
             self._totals[source] = self._totals.get(source, 0) + 1
 
     def compute(self) -> Optional[float]:
-        ratios = [
-            len(self._seen[npc]) / total
-            for npc, total in self._totals.items()
-            if total > 0
-        ]
+        ratios = [len(self._seen[npc]) / total for npc, total in self._totals.items() if total > 0]
         if not ratios:
             return None
         return sum(ratios) / len(ratios)

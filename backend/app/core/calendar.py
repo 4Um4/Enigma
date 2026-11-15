@@ -15,6 +15,7 @@
 - Часы: 0–23 (вариант А, стандарт цифровых часов)
 - Месяц: GameMonth (1–12) или None для межсезонья
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -136,6 +137,7 @@ class Calendar:
         При ошибке возвращает дефолт (07:00 = 25200).
         """
         import logging
+
         logger = logging.getLogger(__name__)
         try:
             parts = time_str.strip().split(":")

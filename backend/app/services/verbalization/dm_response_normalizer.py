@@ -15,6 +15,7 @@ from app.services.npc.kernel_rng import KernelRNG
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class DMOutput:
     """Структурированный результат нормализации ответа LLM."""
@@ -54,6 +55,7 @@ class DMResponseNormalizer:
     def _apply_content_policy_filter(cls, text: str) -> str:
         """Детерминированный пост-фильтр мата, если ContentPolicy запрещает (OFF)."""
         from app.core.config import settings
+
         policy = settings.content_policy
 
         # Если мат разрешен, пропускаем
@@ -71,11 +73,15 @@ class DMResponseNormalizer:
                 logger.info(f"[CONTENT_POLICY] Profanity detected (root='{root}'). Replacing with fallback.")
                 # BUG-CORE-025 FIX: Детерминированный выбор через KernelRNG (salt=text для уникальности).
                 _rng = KernelRNG(tick=0, npc_id="dm_normalizer", salt=text)
-                return str(_rng.choice([
-                    "Происходит неловкое молчание.",
-                    "Собеседник замолкает, подбирая слова.",
-                    "В воздухе повисает напряжение."
-                ]))
+                return str(
+                    _rng.choice(
+                        [
+                            "Происходит неловкое молчание.",
+                            "Собеседник замолкает, подбирая слова.",
+                            "В воздухе повисает напряжение.",
+                        ]
+                    )
+                )
 
         return text
 
@@ -87,9 +93,7 @@ class DMResponseNormalizer:
 
             _cleaned_raw = raw.strip()
             # Надёжно снимаем открывающий тег (``` или ```json)
-            _cleaned_raw = re.sub(
-                r"^```(?:json)?\s*", "", _cleaned_raw, flags=re.IGNORECASE
-            )
+            _cleaned_raw = re.sub(r"^```(?:json)?\s*", "", _cleaned_raw, flags=re.IGNORECASE)
             # Надёжно снимаем закрывающий тег (```), даже если есть пробелы перед ним
             _cleaned_raw = re.sub(r"\s*```\s*$", "", _cleaned_raw).strip()
 
@@ -122,9 +126,7 @@ class DMResponseNormalizer:
 
         if "dm_response" in result:
             _text = result["dm_response"].strip()
-            return DMOutput(
-                dm_text=DMResponseNormalizer._apply_content_policy_filter(_text), schema_type="dm_response"
-            )
+            return DMOutput(dm_text=DMResponseNormalizer._apply_content_policy_filter(_text), schema_type="dm_response")
 
         # ADR-O-322: Восстановление npc_schema (speech/text)
         if "speech" in result or "text" in result or "narrative" in result:

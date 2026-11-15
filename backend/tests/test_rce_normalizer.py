@@ -36,4 +36,6 @@ def test_rce_blocks_narrative_without_quotes():
     # 4. Нарратив без кавычек НЕ должен записываться как речь (защита от ложной памяти D-A01)
     dm_text_normal = "Торнин молча смотрит на тебя."
     reactions2 = extract_speech_events(dm_text=dm_text_normal, target_npc_id="tavern_keeper_tornin", all_npcs_raw=npcs)
-    assert len(reactions2) == 0, f"Fail 4: Нарратив без кавычек не должен извлекаться как речь, но получилось {reactions2}"
+    assert len(reactions2) == 0, (
+        f"Fail 4: Нарратив без кавычек не должен извлекаться как речь, но получилось {reactions2}"
+    )

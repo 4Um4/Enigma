@@ -7,6 +7,7 @@ path: /project/frontend/ui_workbench/fonts.py
 Зависимости: pygame, pathlib, typing
 Основные сущности: FontProvider
 """
+
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -18,8 +19,8 @@ _BASE_SIZES = {"title": 16, "text": 14, "ui": 12}
 
 class FontProvider:
     def __init__(self) -> None:
-        self._files: Dict[str, Path] = {}          # имя → путь
-        self._cyr_cache: Dict[str, bool] = {}      # имя → умеет ли кириллицу
+        self._files: Dict[str, Path] = {}  # имя → путь
+        self._cyr_cache: Dict[str, bool] = {}  # имя → умеет ли кириллицу
         self._cache: Dict[Tuple[str, int, bool, bool], pygame.font.Font] = {}
         self.scan()
 
@@ -39,7 +40,7 @@ class FontProvider:
             self._files[name] = f
 
     def names(self) -> list:
-        return [""] + sorted(self._files.keys())   # "" = системный consolas
+        return [""] + sorted(self._files.keys())  # "" = системный consolas
 
     def supports_cyrillic(self, font_file: str) -> bool:
         """S2: есть ли у шрифта кириллица — по cmap TTF (авторитетный
@@ -56,6 +57,7 @@ class FontProvider:
         if path:
             try:
                 import freetype
+
                 face = freetype.Face(str(path))
                 # Без выбранного charmap get_char_index возвращает 0 на всё
                 # (симптом «у всех нет кириллицы») — выбираем Unicode-таблицу.
@@ -65,16 +67,16 @@ class FontProvider:
                         break
                     except Exception:
                         continue
-                _need = [ord(c) for c in
-                         "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя"]
+                _need = [ord(c) for c in "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя"]
                 ok = all(face.get_char_index(cp) != 0 for cp in _need)
             except Exception:
                 ok = False
         self._cyr_cache[font_file] = ok
         return ok
 
-    def get(self, role: str, font_file: str = "", size_delta: int = 0,
-            bold: bool = False, italic: bool = False) -> pygame.font.Font:
+    def get(
+        self, role: str, font_file: str = "", size_delta: int = 0, bold: bool = False, italic: bool = False
+    ) -> pygame.font.Font:
         base = _BASE_SIZES.get(role, 14)
         size = max(8, base + size_delta)
         path = self._files.get(font_file) if font_file else None

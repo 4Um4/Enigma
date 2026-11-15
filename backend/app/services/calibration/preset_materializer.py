@@ -16,6 +16,7 @@ path: backend/app/services/calibration/preset_materializer.py
 Основные сущности: MaterializationError, MaterializedNpcConfig,
     materialize_preset (context manager).
 """
+
 from __future__ import annotations
 
 import json
@@ -74,9 +75,7 @@ def _identity_bindings(target: object) -> List[Tuple[types.ModuleType, str]]:
     return found
 
 
-def _effective_override(
-    npc_id: Optional[str], preset: Preset
-) -> Optional[NpcOverride]:
+def _effective_override(npc_id: Optional[str], preset: Preset) -> Optional[NpcOverride]:
     """Единственный источник семантики приоритетов оверрайдов:
     wildcard "*" применяется первым, точечный npc_id перекрывает
     (psyche — по-ключевое слияние, drives — точечный целиком, иначе
@@ -121,9 +120,7 @@ def _patch_individuals(temp_root: Path, preset: Preset) -> Tuple[Set[str], int]:
             # Замена ЦЕЛИКОМ: частичная сломала бы sum=1.0
             # (полнота и сумма валидированы в preset_io).
             data["drives"] = dict(override.drives)
-        json_file.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        json_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         files_patched += 1
         if npc_id is not None:
             patched_ids.add(npc_id)
@@ -146,8 +143,7 @@ def _verify_through_loader(preset: Preset) -> None:
             continue
         _verify(
             by_id.get(npc_key) is not None,
-            f"npc_overrides: NPC {npc_key!r} не найден в кампании "
-            f"(доступные: {sorted(i for i in by_id if i)})",
+            f"npc_overrides: NPC {npc_key!r} не найден в кампании (доступные: {sorted(i for i in by_id if i)})",
         )
     # 2) Каждый NPC — против ЭФФЕКТИВНОГО оверрайда (тот же резолвер,
     # что и у патчера: точечный перекрывает wildcard).
@@ -159,8 +155,7 @@ def _verify_through_loader(preset: Preset) -> None:
         for key, expected in override.psyche.items():
             _verify(
                 psyche.get(key) == expected,
-                f"верификация: {npc.get('id')}.psyche.{key}: ожидалось "
-                f"{expected!r}, получено {psyche.get(key)!r}",
+                f"верификация: {npc.get('id')}.psyche.{key}: ожидалось {expected!r}, получено {psyche.get(key)!r}",
             )
         if override.drives is not None:
             _verify(
@@ -180,9 +175,7 @@ def _restore(original_root: Path, temp_root: Path) -> None:
     remaining = _identity_bindings(temp_root)
     if remaining:
         broken = [f"{m.__name__}.{a}" for m, a in remaining]
-        raise MaterializationError(
-            f"восстановление config/npc неполное, temp держат: {broken}"
-        )
+        raise MaterializationError(f"восстановление config/npc неполное, temp держат: {broken}")
 
 
 @contextmanager

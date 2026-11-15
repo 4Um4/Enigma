@@ -44,6 +44,7 @@ def check_llm_alive():
     """Проверяет, что LLM сервер запущен перед тестами."""
     # Этап 4.1.13: migrated to Host broker SDK. ensure_llm handles start.
     from app.services.llm.runtime.client import ensure_llm
+
     try:
         ensure_llm(label="directive_obedience")
     except Exception as _e:

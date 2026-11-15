@@ -9,6 +9,7 @@ API Character Chronicle (ADR-O-420, CCH-2).
 ГРАНИЦА: это внеигровой инструмент (layer 4 UI Doctrine). Эндпоинты НЕ входят
 в тик-контур; NPCState/ядро не трогают (запрет 10 ADR-O-420).
 """
+
 from __future__ import annotations
 
 import logging
@@ -62,9 +63,6 @@ def _get_decomposer() -> BiographyDecomposer:
     if _decomposer is None:
         _decomposer = BiographyDecomposer()
     return _decomposer
-
-
-
 
 
 class DecomposeRequest(BaseModel):
@@ -180,19 +178,16 @@ async def trait_gaps_export(campaign_id: str, format: str = "md") -> Dict[str, A
         if draft is not None:
             docs[npc_id] = draft
     rep = trait_gap_detector.build_report(docs, campaign_id)
-    text = (
-        trait_gap_detector.render_json(rep)
-        if format == "json"
-        else trait_gap_detector.render_markdown(rep)
-    )
+    text = trait_gap_detector.render_json(rep) if format == "json" else trait_gap_detector.render_markdown(rep)
     return {"status": "OK", "format": format, "count": rep["total"], "text": text}
+
 
 # ── CCH-4.5: отчёт понимания «поняла / не поняла» по каждому пункту ────────
 router = chronicle_router
 
+
 @router.get("/chronicle/{campaign}/understanding")
-def get_understanding(campaign: str, source: str = "drafts",
-                      format: str = "md") -> dict:
+def get_understanding(campaign: str, source: str = "drafts", format: str = "md") -> dict:
     """Каждый пункт author_text -> поняла/частично/не поняла.
 
     Конверт как у trait-gaps/beliefs-export: status/text/count.
@@ -220,11 +215,9 @@ def get_understanding(campaign: str, source: str = "drafts",
             "source": source,
             "problems": problems,
             "empty_reason": (
-                "Канон пуст: сеялке пока нечего грузить — пункты ещё "
-                "не приняты в канон (F9)."
+                "Канон пуст: сеялке пока нечего грузить — пункты ещё не приняты в канон (F9)."
                 if source == "canon"
-                else "Черновики не найдены: сохрани авторский текст и "
-                "прогони разбор (Ctrl+G) хотя бы для одного NPC."
+                else "Черновики не найдены: сохрани авторский текст и прогони разбор (Ctrl+G) хотя бы для одного NPC."
             ),
         }
     rep = build_report(docs, campaign)
@@ -258,12 +251,9 @@ def _build_prior_context(doc: Optional["ChronicleDocument"], current_fragment_or
     if doc is None or not doc.entries:
         return ""
     from app.domain.chronicle import EntryKind
+
     cutoff = current_fragment_ord * 100
-    relevant = [
-        e for e in doc.entries
-        if e.ordinal < cutoff
-        and e.kind in (EntryKind.EVENT, EntryKind.RELATIONSHIP)
-    ]
+    relevant = [e for e in doc.entries if e.ordinal < cutoff and e.kind in (EntryKind.EVENT, EntryKind.RELATIONSHIP)]
     if not relevant:
         return ""
     # Сортируем по убыванию ordinal — самые свежие в начале
@@ -307,7 +297,9 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     _prior_doc = store.load_draft(req.campaign_id, req.npc_id)
     _prior_context = _build_prior_context(_prior_doc, req.fragment_ord)
     result = await _get_decomposer().decompose(
-        req.npc_id, req.fragment_ord, req.fragment,
+        req.npc_id,
+        req.fragment_ord,
+        req.fragment,
         prior_context=_prior_context,
     )
     if not result.ok:
@@ -344,8 +336,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             return {
                 "status": "NOT_DECOMPOSED",
                 "error": (
-                    "draft not initialized: missing author_text_full; "
-                    "call PUT /draft first or pass author_text_full"
+                    "draft not initialized: missing author_text_full; call PUT /draft first or pass author_text_full"
                 ),
                 "age_anchors": [],
                 "raw_response": None,
@@ -368,10 +359,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     if len(result.items) >= 100:
         return {
             "status": "NOT_DECOMPOSED",
-            "error": (
-                f"too many items ({len(result.items)}): лимит 99 на фрагмент "
-                "(ordinal = fragment_ord*100 + idx)"
-            ),
+            "error": (f"too many items ({len(result.items)}): лимит 99 на фрагмент (ordinal = fragment_ord*100 + idx)"),
             "age_anchors": result.age_anchors or [],
             "raw_response": result.raw_response,
         }
@@ -381,11 +369,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     # id слотов, занятых авторскими решениями (confirm сохраняет entry_id):
     # свежий черновик не может претендовать на тот же id — иначе повторный
     # разбор молча удалял бы подтверждённое автором.
-    _author_ids = {
-        e.entry_id
-        for e in doc.entries
-        if e.provenance is not EntryProvenance.LLM_DRAFT
-    }
+    _author_ids = {e.entry_id for e in doc.entries if e.provenance is not EntryProvenance.LLM_DRAFT}
     # CCH-12 Point 1 Этап 4: game_start_age для производного historical_age.
     # Источник: doc.game_start_age (если draft уже имеет), иначе NPCProfileL0.
     # age_at_game_start через готовый mapping (load_npc_profiles_from_config).
@@ -394,6 +378,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     if _game_start_age is None:
         try:
             from app.services.npc.npc_loader import load_npc_profiles_from_config
+
             _profiles = load_npc_profiles_from_config()
             _profile = _profiles.get(req.npc_id)
             if _profile is not None:
@@ -405,7 +390,8 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
             # ValueError = JSON-разбор. Прочие исключения пробрасываются (не маскировать).
             logging.getLogger(__name__).warning(
                 "routes_chronicle: game_start_age fallback failed for npc_id=%s: %s",
-                req.npc_id, _exc,
+                req.npc_id,
+                _exc,
             )
     new_entries = []
     for _idx, _it in enumerate(result.items):
@@ -413,9 +399,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         _salt = 0
         while _eid in _author_ids:
             _salt += 1
-            _eid = make_entry_id(
-                f"{doc.chronicle_id}:redraft{_salt}", req.fragment_ord, _idx
-            )
+            _eid = make_entry_id(f"{doc.chronicle_id}:redraft{_salt}", req.fragment_ord, _idx)
         _age = _it.draft_payload.get("age", _it.draft_payload.get("historical_age"))
         # §1.1: однострочное «X if cond else None» = тихий отказ — развёрнуто
         _age_value = None
@@ -461,12 +445,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
         # Множественность якорей или событий → неопределённость, не выдумываем
         # (§ENIGMA-003). Не применяется к RELATIONSHIP/EFFECT (контракт: age только
         # для событий). Не использует day/строки — отдельная дыра, не S368.
-        if (
-            _age_value is None
-            and _it.kind is EntryKind.EVENT
-            and result.age_anchors
-            and len(result.age_anchors) == 1
-        ):
+        if _age_value is None and _it.kind is EntryKind.EVENT and result.age_anchors and len(result.age_anchors) == 1:
             _event_count = sum(1 for x in result.items if x.kind is EntryKind.EVENT)
             if _event_count == 1:
                 _age_value = result.age_anchors[0]
@@ -512,12 +491,7 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
     # осиротевшие записи при сокращении items, напр. 4→3); авторские записи
     # в диапазоне сохраняются, прочие фрагменты не затрагиваются.
     _kept = [
-        e
-        for e in doc.entries
-        if not (
-            e.provenance is EntryProvenance.LLM_DRAFT
-            and _frag_lo <= e.ordinal < _frag_hi
-        )
+        e for e in doc.entries if not (e.provenance is EntryProvenance.LLM_DRAFT and _frag_lo <= e.ordinal < _frag_hi)
     ]
     _merged = tuple(sorted(_kept + new_entries, key=lambda e: e.ordinal))
     store.save_draft(replace(doc, entries=_merged), req.campaign_id)
@@ -530,7 +504,9 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
                 "draft_payload": i.draft_payload,
                 "confidence": i.confidence,
                 "needs_confirmation": i.needs_confirmation,
-                "question": None if i.question is None else {
+                "question": None
+                if i.question is None
+                else {
                     "question_id": i.question.question_id,
                     "target_span": i.question.target_span,
                     "options": [o.value for o in i.question.options],
@@ -557,9 +533,17 @@ async def decompose_fragment(campaign_id: str, npc_id: str, req: DecomposeReques
                 and any(
                     m in req.fragment.lower()
                     for m in (
-                        "насил", "изнасил", "шантаж", "донос", "предал",
-                        "предательство", "убил", "убийств", "измен",
-                        "преступл", "контрабанд",
+                        "насил",
+                        "изнасил",
+                        "шантаж",
+                        "донос",
+                        "предал",
+                        "предательство",
+                        "убил",
+                        "убийств",
+                        "измен",
+                        "преступл",
+                        "контрабанд",
                     )
                 )
                 else None
@@ -582,6 +566,7 @@ async def put_draft(campaign_id: str, npc_id: str, body: Dict[str, Any]) -> Dict
     doc = document_from_dict({**body, "schema_version": body.get("schema_version", SCHEMA_VERSION)})
     if doc.npc_ref != npc_id:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail="npc_ref не совпадает с {npc_id}")
     path = _get_store().save_draft(doc, campaign_id)
     return {"status": "OK", "path": str(path)}
@@ -595,6 +580,7 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
     from dataclasses import replace as _replace
 
     from app.domain.chronicle import EntryProvenance
+
     store = _get_store()
     doc = store.load_draft(campaign_id, npc_id)
     if doc is None:
@@ -641,6 +627,7 @@ async def confirm_author_entries(campaign_id: str, npc_id: str) -> Dict[str, Any
 class CanonizeRequest(BaseModel):
     campaign_id: str = Field(..., min_length=1)
 
+
 def _check_canonical_consistency(doc: ChronicleDocument) -> None:
     """CCH-7 Semantic Validation Gate (ADR-O-422, T-CCH-SV-01).
 
@@ -660,30 +647,27 @@ def _check_canonical_consistency(doc: ChronicleDocument) -> None:
     """
     registry = _build_registry_for_canonize()
     report = ConsistencyService().check([doc], registry)
-    contradictions = [
-        f for f in report.findings
-        if f.kind == "CONTRADICTION" and f.level == "canon"
-    ]
+    contradictions = [f for f in report.findings if f.kind == "CONTRADICTION" and f.level == "canon"]
     if contradictions:
         # Диагностируемый первый finding (детерминированно — по entry_id)
         c = contradictions[0]
-        detail = (
-            f"Semantic validation (CCH-7): {c.message} "
-            f"[entry_id={c.doc_refs[0][1] if c.doc_refs else 'unknown'}]"
-        )
+        detail = f"Semantic validation (CCH-7): {c.message} [entry_id={c.doc_refs[0][1] if c.doc_refs else 'unknown'}]"
         raise ValueError(detail)
     # Диагностические (не блокирующие) — логируем
     for f in report.findings:
         if f.kind != "CONTRADICTION":
             logger.info(
                 "CCH-7 diagnostic (non-blocking): [%s/%s] %s",
-                f.kind, f.level, f.message,
+                f.kind,
+                f.level,
+                f.message,
             )
 
 
 def _build_registry_for_canonize() -> "CanonicalRegistry":
     """Точка для monkeypatch в тестах. Делегирует в прод-модуль registry_builder."""
     from app.services.chronicle.registry_builder import build_canonical_registry
+
     return build_canonical_registry()
 
 
@@ -768,9 +752,7 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
 
     # SELECT_EXISTING_NPC требует selected_value (npc_id)
     if opt is ClarificationOption.SELECT_EXISTING_NPC and not req.selected_value:
-        raise HTTPException(
-            status_code=422, detail="SELECT_EXISTING_NPC требует selected_value (npc_id)"
-        )
+        raise HTTPException(status_code=422, detail="SELECT_EXISTING_NPC требует selected_value (npc_id)")
 
     # Найти entry с этим question + сам question
     target_entry_idx: Optional[int] = None
@@ -801,7 +783,9 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
         logger.warning(
             "resolve_question[%s]: target_span='%s' совпал и с subject_id, и с object_id "
             "в entry %s — выбираю subject_id",
-            req.question_id, target_span, target_entry.entry_id,
+            req.question_id,
+            target_span,
+            target_entry.entry_id,
         )
 
     # Создать WhiteSpot для LEAVE_WHITE_SPOT (idempotent — не дублировать)
@@ -842,7 +826,8 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
         logger.warning(
             "resolve_question[%s]: CREATE_NEW_NPC selected_value='%s' — "
             "создание NPC вне скоупа, перелинковка на UNKNOWN_PERSON (placeholder)",
-            req.question_id, req.selected_value,
+            req.question_id,
+            req.selected_value,
         )
         return EntityRef(
             ref_kind=EntityRefKind.UNKNOWN_PERSON,
@@ -857,11 +842,13 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
 
     _remaining = tuple(q for q in e.open_questions if q.question_id != req.question_id)
     _resolved_old = e.payload.get("_resolved_questions", [])
-    _resolved_new = list(_resolved_old) + [{
-        "question_id": req.question_id,
-        "selected_option": req.selected_option,
-        "selected_value": req.selected_value,
-    }]
+    _resolved_new = list(_resolved_old) + [
+        {
+            "question_id": req.question_id,
+            "selected_option": req.selected_option,
+            "selected_value": req.selected_value,
+        }
+    ]
     _new_payload = {**e.payload, "_resolved_questions": _resolved_new}
 
     e = _replace(
@@ -882,11 +869,13 @@ async def resolve_question(campaign_id: str, npc_id: str, req: ResolveRequest) -
         "selected_option": req.selected_option,
     }
 
+
 # ── CCH-5: экспорт-проекции канон-хроник ─────────────────────────────────────
 # Артефакты аудита в config/npc/chronicles/_projections/. НЕ источник истины
 # для рантайма (npc_loader/chronicle_seeder не читают проекции). Канон —
 # единственный SSOT. Атомарная публикация через поколение + current.json (A3).
 # EXPLICIT: секретность — только payload['is_secret'] is True на kind=EVENT.
+
 
 @chronicle_router.get("/chronicle/{campaign_id}/{npc_id}/debug")
 async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -> Dict[str, Any]:
@@ -969,20 +958,12 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
                 "ledger_size": len(ledger_raw),
                 # B1: runtime memory/cache/imprints/beliefs observability (COV-11).
                 # null = field absent in npc_dict; counts/lists = field present.
-                "episodic_memory_count": (
-                    len(_narrative_cache) if _narrative_cache is not None else None
-                ),
+                "episodic_memory_count": (len(_narrative_cache) if _narrative_cache is not None else None),
                 "relationship_cache_targets": (
-                    sorted(_relationship_cache.keys())
-                    if isinstance(_relationship_cache, dict) else None
+                    sorted(_relationship_cache.keys()) if isinstance(_relationship_cache, dict) else None
                 ),
-                "affective_imprints_count": (
-                    len(_affective_imprints) if _affective_imprints is not None else None
-                ),
-                "psyche_beliefs_types": (
-                    sorted(_psyche_beliefs.keys())
-                    if isinstance(_psyche_beliefs, dict) else None
-                ),
+                "affective_imprints_count": (len(_affective_imprints) if _affective_imprints is not None else None),
+                "psyche_beliefs_types": (sorted(_psyche_beliefs.keys()) if isinstance(_psyche_beliefs, dict) else None),
             }
 
     # ── ИСТОЧНИКИ — канон-хроника ──────────────────────────────────────────
@@ -1008,7 +989,9 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
                             "npc_id": e.subject_id.npc_id,
                             "white_spot_id": e.subject_id.white_spot_id,
                             "name_hint": e.subject_id.name_hint,
-                        } if e.subject_id else None
+                        }
+                        if e.subject_id
+                        else None
                     ),
                     "object_id": (
                         {
@@ -1016,14 +999,13 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
                             "npc_id": e.object_id.npc_id,
                             "white_spot_id": e.object_id.white_spot_id,
                             "name_hint": e.object_id.name_hint,
-                        } if e.object_id else None
+                        }
+                        if e.object_id
+                        else None
                     ),
                     "historical_age": e.historical_age,
                     "kind_value": e.kind.value,
-                    "causes": [
-                        {"cause_kind": c.cause_kind.value, "origin_ref": c.origin_ref}
-                        for c in e.causes
-                    ],
+                    "causes": [{"cause_kind": c.cause_kind.value, "origin_ref": c.origin_ref} for c in e.causes],
                     "provenance": e.provenance.value,
                 }
                 for e in canon_doc.entries
@@ -1046,6 +1028,7 @@ async def get_character_debug(campaign_id: str, npc_id: str, request: Request) -
         # EventMemory в NpcState — только то, что seeder смог бы произвести
         # из текущего канона. Read-only: build_seed_report — pure function.
         from app.services.chronicle.chronicle_seeder import build_seed_report
+
         _sr = build_seed_report(npc_id)
         response["seed_summary"] = {
             "available": _sr is not None,
@@ -1081,6 +1064,7 @@ async def export_projections(campaign_id: str) -> Dict[str, Any]:
     не создаётся).
     """
     from app.services.chronicle.chronicle_projections import export_all_projections
+
     return export_all_projections(campaign_id)
 
 
@@ -1092,6 +1076,7 @@ async def get_current_projection() -> Dict[str, Any]:
         list_generations,
         read_current_pointer,
     )
+
     current = read_current_pointer()
     return {
         "current": current,
@@ -1193,9 +1178,7 @@ async def link_causes(campaign_id: str, npc_id: str) -> Dict[str, Any]:
 
 
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/resolve-cause-candidate")
-async def resolve_cause_candidate(
-    campaign_id: str, npc_id: str, req: ResolveCandidateRequest
-) -> Dict[str, Any]:
+async def resolve_cause_candidate(campaign_id: str, npc_id: str, req: ResolveCandidateRequest) -> Dict[str, Any]:
     """S366: явное решение автора по кандидату.
     - ACCEPT → добавляет CauseRef(cause_kind, origin_ref=candidate_entry_id) в effect.causes.
     - REJECT_SILENT → кандидат → REJECTED, ничего больше.
@@ -1225,7 +1208,10 @@ async def resolve_cause_candidate(
         if req.resolution == "ACCEPT":
             return {"status": "OK", "already": "ACCEPTED", "updated_entry_id": cand.effect_entry_id}
         else:
-            return {"status": "BAD_REQUEST", "error": f"candidate {req.candidate_id} already ACCEPTED, cannot REJECT_SILENT"}
+            return {
+                "status": "BAD_REQUEST",
+                "error": f"candidate {req.candidate_id} already ACCEPTED, cannot REJECT_SILENT",
+            }
     if cand.status is CandidateStatus.REJECTED:
         if req.resolution == "REJECT_SILENT":
             return {"status": "OK", "already": "REJECTED"}
@@ -1252,8 +1238,7 @@ async def resolve_cause_candidate(
             new_causes = effect.causes + (new_cause,)
         # Заменить entry в документе
         new_entries = tuple(
-            _dc_replace(e, causes=new_causes) if e.entry_id == effect.entry_id else e
-            for e in doc.entries
+            _dc_replace(e, causes=new_causes) if e.entry_id == effect.entry_id else e for e in doc.entries
         )
         # Пометить кандидатa ACCEPTED
         new_cands = tuple(
@@ -1280,9 +1265,7 @@ async def resolve_cause_candidate(
 
 
 @chronicle_router.post("/chronicle/{campaign_id}/{npc_id}/record-npc-belief")
-async def record_npc_belief(
-    campaign_id: str, npc_id: str, req: RecordBeliefRequest
-) -> Dict[str, Any]:
+async def record_npc_belief(campaign_id: str, npc_id: str, req: RecordBeliefRequest) -> Dict[str, Any]:
     """S366: явная запись NPC-убеждения о причинной связи.
     НЕ мутирует ChronicleEntry.causes (СЛОЙ 1). Записывает в doc.npc_beliefs (СЛОЙ 2).
     MISTAKEN — только явное решение автора (запрет 3: не выводится автоматически из отсутствия CauseRef).
@@ -1311,7 +1294,10 @@ async def record_npc_belief(
     if req.effect_entry_id not in entry_ids:
         return {"status": "BAD_REQUEST", "error": f"effect_entry_id {req.effect_entry_id} not in document"}
     if req.alleged_cause_entry_id not in entry_ids:
-        return {"status": "BAD_REQUEST", "error": f"alleged_cause_entry_id {req.alleged_cause_entry_id} not in document"}
+        return {
+            "status": "BAD_REQUEST",
+            "error": f"alleged_cause_entry_id {req.alleged_cause_entry_id} not in document",
+        }
 
     # Минимальная believer-валидация: believer_id не пустой (full roster-check — за пределами S366)
     if not req.believer_id:
@@ -1337,9 +1323,11 @@ async def record_npc_belief(
     existing_beliefs = list(doc.npc_beliefs)
     replaced = False
     for i, b in enumerate(existing_beliefs):
-        if (b.believer_id == req.believer_id
-                and b.effect_entry_id == req.effect_entry_id
-                and b.alleged_cause_entry_id == req.alleged_cause_entry_id):
+        if (
+            b.believer_id == req.believer_id
+            and b.effect_entry_id == req.effect_entry_id
+            and b.alleged_cause_entry_id == req.alleged_cause_entry_id
+        ):
             existing_beliefs[i] = new_belief
             replaced = True
             break

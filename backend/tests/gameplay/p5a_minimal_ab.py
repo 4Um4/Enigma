@@ -41,6 +41,7 @@ Isolation:
   - p5a_minimal_ab_summary.json — combined + verdict
   - p5a_minimal_ab_A.log, p5a_minimal_ab_B.log — raw subprocess stdout/stderr
 """
+
 from __future__ import annotations
 
 # === sys.path bootstrap (must precede any project imports) ===
@@ -71,6 +72,7 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ============================================================================
 
+
 def _divider(title: str) -> None:
     print(f"\n{'=' * 70}\n{title}\n{'=' * 70}", flush=True)
 
@@ -96,11 +98,7 @@ def _describe_record(record: Any) -> dict:
 
 def _is_target_insulted(record: Any) -> bool:
     _d = _describe_record(record)
-    return (
-        _d["subject_id"] == "player"
-        and _d["predicate"] == "insulted"
-        and _d["object_id"] == "tavern_keeper_tornin"
-    )
+    return _d["subject_id"] == "player" and _d["predicate"] == "insulted" and _d["object_id"] == "tavern_keeper_tornin"
 
 
 def _get_epistemic_store(harness: Any) -> Any:
@@ -134,6 +132,7 @@ def _get_cognition_block(harness: Any) -> str:
 def _ensure_router() -> None:
     """Initialize ModelPool through production path (idempotent module-level)."""
     from app.services.llm.router import initialize_router
+
     initialize_router()
 
 
@@ -183,8 +182,7 @@ def _safe_serialize(obj: Any, depth: int = 0) -> Any:
             pass
     if hasattr(obj, "__dict__"):
         try:
-            _d = {k: _safe_serialize(v, depth + 1) for k, v in vars(obj).items()
-                  if not k.startswith("_")}
+            _d = {k: _safe_serialize(v, depth + 1) for k, v in vars(obj).items() if not k.startswith("_")}
             if _d:
                 return _d
         except Exception:
@@ -195,6 +193,7 @@ def _safe_serialize(obj: Any, depth: int = 0) -> Any:
 # ============================================================================
 # Single scenario execution (subprocess mode)
 # ============================================================================
+
 
 def run_scenario(scenario: str) -> dict:
     """Single A/B scenario. Returns JSON-serializable result dict."""
@@ -220,6 +219,7 @@ def run_scenario(scenario: str) -> dict:
     # 2. Harness + new_game
     print(f"[{scenario}] creating TavernGameplayHarness(seed=42, location='tavern')...", flush=True)
     from tests.gameplay.harness import TavernGameplayHarness
+
     _h = TavernGameplayHarness(seed=42, location="tavern")
     print(f"[{scenario}] new_game()...", flush=True)
     _h.new_game()
@@ -234,8 +234,9 @@ def run_scenario(scenario: str) -> dict:
         "target_belief_present": bool(_baseline_target),
         "records": [_describe_record(r) for r in _baseline_records],
     }
-    print(f"[{scenario}] baseline: records={len(_baseline_records)}, "
-          f"target_present={bool(_baseline_target)}", flush=True)
+    print(
+        f"[{scenario}] baseline: records={len(_baseline_records)}, target_present={bool(_baseline_target)}", flush=True
+    )
 
     if _baseline_target:
         result["errors"].append("BASELINE POLLUTED — target belief present before any event")
@@ -265,8 +266,7 @@ def run_scenario(scenario: str) -> dict:
         "target_record": _describe_record(_post_target[0]) if _post_target else None,
         "records": [_describe_record(r) for r in _post_records],
     }
-    print(f"[{scenario}] post-publish: records={len(_post_records)}, "
-          f"target_present={bool(_post_target)}", flush=True)
+    print(f"[{scenario}] post-publish: records={len(_post_records)}, target_present={bool(_post_target)}", flush=True)
 
     # 6. Cognition block capture
     print(f"[{scenario}] cognition block capture...", flush=True)
@@ -274,11 +274,13 @@ def run_scenario(scenario: str) -> dict:
     result["cognition_block"] = _cog
     result["cognition_block_length"] = len(_cog) if isinstance(_cog, str) else 0
     result["cognition_has_insult"] = (
-        ("оскорб" in _cog.lower() or "insult" in _cog.lower())
-        if isinstance(_cog, str) else False
+        ("оскорб" in _cog.lower() or "insult" in _cog.lower()) if isinstance(_cog, str) else False
     )
-    print(f"[{scenario}] cognition block length={result['cognition_block_length']}, "
-          f"has_insult={result['cognition_has_insult']}", flush=True)
+    print(
+        f"[{scenario}] cognition block length={result['cognition_block_length']}, "
+        f"has_insult={result['cognition_has_insult']}",
+        flush=True,
+    )
 
     # 7. Subscribe spy on NPC_SPOKE
     print(f"[{scenario}] subscribing NPC_SPOKE spy...", flush=True)
@@ -304,8 +306,11 @@ def run_scenario(scenario: str) -> dict:
             "captured_at_monotonic": time.monotonic(),
         }
         _npc_spoke_events.append(_entry)
-        print(f"[{scenario}] [NPC_SPOKE] speaker={_src} intent={_entry['intent_type']} "
-              f"tone={_entry['tone']} text={_entry['text'][:120]!r}", flush=True)
+        print(
+            f"[{scenario}] [NPC_SPOKE] speaker={_src} intent={_entry['intent_type']} "
+            f"tone={_entry['tone']} text={_entry['text'][:120]!r}",
+            flush=True,
+        )
 
     _bus = get_event_bus()
     _bus.subscribe(EventType.NPC_SPOKE, _spy)
@@ -332,8 +337,7 @@ def run_scenario(scenario: str) -> dict:
         "response": _safe_serialize(pa_response),
         "error": pa_error,
     }
-    print(f"[{scenario}] player_action done in {pa_duration:.2f}s "
-          f"(error={pa_error})", flush=True)
+    print(f"[{scenario}] player_action done in {pa_duration:.2f}s (error={pa_error})", flush=True)
 
     # 9. Capture NPC_SPOKE events (already captured by spy)
     # 10. Unsubscribe spy
@@ -345,24 +349,17 @@ def run_scenario(scenario: str) -> dict:
         print(f"[{scenario}] unsubscribe failed: {exc}", flush=True)
 
     result["all_npc_speeches"] = _npc_spoke_events
-    result["tornin_speeches"] = [
-        s for s in _npc_spoke_events if s["speaker_id"] == "tavern_keeper_tornin"
-    ]
+    result["tornin_speeches"] = [s for s in _npc_spoke_events if s["speaker_id"] == "tavern_keeper_tornin"]
 
     # Stub detection
     _stub_markers = ["[Заглушка]", "[stub]", "Fallback to stub", "ModelRouter is None"]
     result["stub_detected_in_speeches"] = any(
-        any(_m.lower() in s["text"].lower() for _m in _stub_markers)
-        for s in result["tornin_speeches"]
+        any(_m.lower() in s["text"].lower() for _m in _stub_markers) for s in result["tornin_speeches"]
     )
     # Also check log output for stub indicators (best-effort: check response)
     _pa_resp_str = json.dumps(_safe_serialize(pa_response), ensure_ascii=False).lower()
-    result["stub_detected_in_response"] = any(
-        _m.lower() in _pa_resp_str for _m in _stub_markers
-    )
-    result["stub_detected"] = (
-        result["stub_detected_in_speeches"] or result["stub_detected_in_response"]
-    )
+    result["stub_detected_in_response"] = any(_m.lower() in _pa_resp_str for _m in _stub_markers)
+    result["stub_detected"] = result["stub_detected_in_speeches"] or result["stub_detected_in_response"]
 
     # Check speaker identity
     result["all_speakers"] = sorted({s["speaker_id"] for s in _npc_spoke_events})
@@ -381,10 +378,9 @@ def run_scenario(scenario: str) -> dict:
     print(f"stub_detected: {result['stub_detected']}", flush=True)
     if result["tornin_speeches"]:
         for i, s in enumerate(result["tornin_speeches"]):
-            print(f"  #{i}: intent={s['intent_type']} tone={s['tone']} "
-                  f"text={s['text'][:200]!r}", flush=True)
+            print(f"  #{i}: intent={s['intent_type']} tone={s['tone']} text={s['text'][:200]!r}", flush=True)
     if result["errors"]:
-        print(f"errors:", flush=True)
+        print("errors:", flush=True)
         for e in result["errors"]:
             print(f"  - {e}", flush=True)
 
@@ -394,6 +390,7 @@ def run_scenario(scenario: str) -> dict:
 # ============================================================================
 # Verdict logic
 # ============================================================================
+
 
 def determine_verdict(a: dict, b: dict) -> tuple[str, str]:
     """GREEN / YELLOW / RED with reason."""
@@ -452,9 +449,15 @@ def determine_verdict(a: dict, b: dict) -> tuple[str, str]:
 
     # Stub detection
     if a.get("stub_detected", False):
-        return "YELLOW", f"A — stub/fallback text detected (stub_in_speeches={a.get('stub_detected_in_speeches')}, stub_in_response={a.get('stub_detected_in_response')})"
+        return (
+            "YELLOW",
+            f"A — stub/fallback text detected (stub_in_speeches={a.get('stub_detected_in_speeches')}, stub_in_response={a.get('stub_detected_in_response')})",
+        )
     if b.get("stub_detected", False):
-        return "YELLOW", f"B — stub/fallback text detected (stub_in_speeches={b.get('stub_detected_in_speeches')}, stub_in_response={b.get('stub_detected_in_response')})"
+        return (
+            "YELLOW",
+            f"B — stub/fallback text detected (stub_in_speeches={b.get('stub_detected_in_speeches')}, stub_in_response={b.get('stub_detected_in_response')})",
+        )
 
     # player_action errors
     a_pa_err = a.get("player_action", {}).get("error")
@@ -471,10 +474,10 @@ def determine_verdict(a: dict, b: dict) -> tuple[str, str]:
 # Runner (orchestrates A and B subprocesses)
 # ============================================================================
 
+
 def _run_subprocess(scenario: str, timeout_sec: int, out_dir: str) -> dict:
     """Run single scenario as subprocess, return parsed JSON result."""
-    print(f"\n[Runner] Starting subprocess for scenario {scenario} (timeout={timeout_sec}s)...",
-          flush=True)
+    print(f"\n[Runner] Starting subprocess for scenario {scenario} (timeout={timeout_sec}s)...", flush=True)
     out_path = os.path.join(out_dir, f"p5a_minimal_ab_{scenario}.json")
     log_path = os.path.join(out_dir, f"p5a_minimal_ab_{scenario}.log")
 
@@ -497,9 +500,11 @@ def _run_subprocess(scenario: str, timeout_sec: int, out_dir: str) -> dict:
             "stderr": (exc.stderr or "")[-2000:] if isinstance(exc.stderr, str) else "",
         }
         with open(log_path, "w", encoding="utf-8") as _f:
-            _f.write(f"=== TIMEOUT after {timeout_sec}s ===\n"
-                     f"STDOUT (tail):\n{(exc.stdout or '')[-3000:]}\n\n"
-                     f"STDERR (tail):\n{(exc.stderr or '')[-3000:]}")
+            _f.write(
+                f"=== TIMEOUT after {timeout_sec}s ===\n"
+                f"STDOUT (tail):\n{(exc.stdout or '')[-3000:]}\n\n"
+                f"STDERR (tail):\n{(exc.stderr or '')[-3000:]}"
+            )
         with open(out_path, "w", encoding="utf-8") as _f:
             json.dump(_result, _f, ensure_ascii=False, indent=2)
         return _result
@@ -553,10 +558,12 @@ def _print_summary(a: dict, b: dict, verdict: str, reason: str) -> None:
     a_rec = a.get("post_publish", {}).get("target_record") or {}
     print(f"A target_belief_present: {a.get('post_publish', {}).get('target_belief_present', '?')}")
     if a_rec:
-        print(f"  source_id={a_rec.get('source_id')!r}, "
-              f"predicate={a_rec.get('predicate')!r}, "
-              f"confidence={a_rec.get('confidence')!r}, "
-              f"polarity={a_rec.get('polarity')!r}")
+        print(
+            f"  source_id={a_rec.get('source_id')!r}, "
+            f"predicate={a_rec.get('predicate')!r}, "
+            f"confidence={a_rec.get('confidence')!r}, "
+            f"polarity={a_rec.get('polarity')!r}"
+        )
     print(f"B target_belief_present: {b.get('post_publish', {}).get('target_belief_present', '?')}")
 
     _divider("COGNITION BLOCK — A")
@@ -598,12 +605,16 @@ def _print_summary(a: dict, b: dict, verdict: str, reason: str) -> None:
         print(f"       text={s.get('text')!r}")
 
     _divider("STUB DETECTION")
-    print(f"A stub_detected: {a.get('stub_detected', '?')} "
-          f"(in_speeches={a.get('stub_detected_in_speeches', '?')}, "
-          f"in_response={a.get('stub_detected_in_response', '?')})")
-    print(f"B stub_detected: {b.get('stub_detected', '?')} "
-          f"(in_speeches={b.get('stub_detected_in_speeches', '?')}, "
-          f"in_response={b.get('stub_detected_in_response', '?')})")
+    print(
+        f"A stub_detected: {a.get('stub_detected', '?')} "
+        f"(in_speeches={a.get('stub_detected_in_speeches', '?')}, "
+        f"in_response={a.get('stub_detected_in_response', '?')})"
+    )
+    print(
+        f"B stub_detected: {b.get('stub_detected', '?')} "
+        f"(in_speeches={b.get('stub_detected_in_speeches', '?')}, "
+        f"in_response={b.get('stub_detected_in_response', '?')})"
+    )
 
     _divider("ALL SPEAKERS")
     print(f"A all_speakers: {a.get('all_speakers', [])}")
@@ -612,34 +623,27 @@ def _print_summary(a: dict, b: dict, verdict: str, reason: str) -> None:
     _divider("DIFFERENCES TABLE")
     print(f"{'Metric':<40} {'A':<35} {'B':<35}")
     print("-" * 110)
-    _row = lambda name, av, bv: print(f"{name:<40} {str(av)[:35]:<35} {str(bv)[:35]:<35}")
-    _row("baseline_target_present",
-         a.get("baseline", {}).get("target_belief_present", "?"),
-         b.get("baseline", {}).get("target_belief_present", "?"))
-    _row("post_publish_target_present",
-         a.get("post_publish", {}).get("target_belief_present", "?"),
-         b.get("post_publish", {}).get("target_belief_present", "?"))
-    _row("cognition_has_insult",
-         a.get("cognition_has_insult", "?"),
-         b.get("cognition_has_insult", "?"))
-    _row("cognition_block_length",
-         a.get("cognition_block_length", 0),
-         b.get("cognition_block_length", 0))
-    _row("player_action_duration_sec",
-         f"{a_pa.get('duration_sec', 0):.2f}",
-         f"{b_pa.get('duration_sec', 0):.2f}")
-    _row("player_action_error",
-         a_pa.get("error", "None"),
-         b_pa.get("error", "None"))
-    _row("tornin_speech_count",
-         a.get("tornin_speech_count", 0),
-         b.get("tornin_speech_count", 0))
-    _row("stub_detected",
-         a.get("stub_detected", "?"),
-         b.get("stub_detected", "?"))
-    _row("total_duration_sec",
-         f"{a.get('total_duration_sec', 0):.2f}",
-         f"{b.get('total_duration_sec', 0):.2f}")
+
+    def _row(name, av, bv):
+        return print(f"{name:<40} {str(av)[:35]:<35} {str(bv)[:35]:<35}")
+
+    _row(
+        "baseline_target_present",
+        a.get("baseline", {}).get("target_belief_present", "?"),
+        b.get("baseline", {}).get("target_belief_present", "?"),
+    )
+    _row(
+        "post_publish_target_present",
+        a.get("post_publish", {}).get("target_belief_present", "?"),
+        b.get("post_publish", {}).get("target_belief_present", "?"),
+    )
+    _row("cognition_has_insult", a.get("cognition_has_insult", "?"), b.get("cognition_has_insult", "?"))
+    _row("cognition_block_length", a.get("cognition_block_length", 0), b.get("cognition_block_length", 0))
+    _row("player_action_duration_sec", f"{a_pa.get('duration_sec', 0):.2f}", f"{b_pa.get('duration_sec', 0):.2f}")
+    _row("player_action_error", a_pa.get("error", "None"), b_pa.get("error", "None"))
+    _row("tornin_speech_count", a.get("tornin_speech_count", 0), b.get("tornin_speech_count", 0))
+    _row("stub_detected", a.get("stub_detected", "?"), b.get("stub_detected", "?"))
+    _row("total_duration_sec", f"{a.get('total_duration_sec', 0):.2f}", f"{b.get('total_duration_sec', 0):.2f}")
 
     _divider("INTERPRETATION (Master reads)")
     print("Single A/B pair proves contrast run only.")
@@ -652,14 +656,19 @@ def _print_summary(a: dict, b: dict, verdict: str, reason: str) -> None:
 # Entry point
 # ============================================================================
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="P5-A Minimal Real-LLM A/B Experiment")
-    parser.add_argument("--scenario", choices=["A", "B"], default=None,
-                        help="Run single scenario (subprocess mode). If omitted, runs both as subprocesses.")
-    parser.add_argument("--timeout", type=int, default=600,
-                        help="Per-scenario subprocess timeout in seconds (default: 600).")
-    parser.add_argument("--out-dir", default=".",
-                        help="Directory for JSON/log output files (default: cwd).")
+    parser.add_argument(
+        "--scenario",
+        choices=["A", "B"],
+        default=None,
+        help="Run single scenario (subprocess mode). If omitted, runs both as subprocesses.",
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=600, help="Per-scenario subprocess timeout in seconds (default: 600)."
+    )
+    parser.add_argument("--out-dir", default=".", help="Directory for JSON/log output files (default: cwd).")
     args = parser.parse_args()
 
     if args.scenario:
@@ -703,14 +712,20 @@ def main() -> int:
     # Save combined summary
     summary_path = os.path.join(out_dir, "p5a_minimal_ab_summary.json")
     with open(summary_path, "w", encoding="utf-8") as _f:
-        json.dump({
-            "verdict": verdict,
-            "reason": reason,
-            "timestamp": time.time(),
-            "timeout_sec": args.timeout,
-            "A": a,
-            "B": b,
-        }, _f, ensure_ascii=False, default=str, indent=2)
+        json.dump(
+            {
+                "verdict": verdict,
+                "reason": reason,
+                "timestamp": time.time(),
+                "timeout_sec": args.timeout,
+                "A": a,
+                "B": b,
+            },
+            _f,
+            ensure_ascii=False,
+            default=str,
+            indent=2,
+        )
     print(f"\n[Runner] Combined summary saved to {summary_path}", flush=True)
 
     sys.exit(0 if verdict == "GREEN" else 1)
@@ -718,4 +733,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

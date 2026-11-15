@@ -32,22 +32,17 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 
-from app.services.llm.server_lifecycle import _llama_state
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # CDS: Подключаем Uvicorn-подпроцесс к записи в общий лог-файл
-_CDS_LOG_PATH = (
-    Path(__file__).resolve().parents[2] / "backend" / "logs" / "cds_backend.log"
-)
+_CDS_LOG_PATH = Path(__file__).resolve().parents[2] / "backend" / "logs" / "cds_backend.log"
 if _CDS_LOG_PATH.exists():
     _cds_handler = logging.FileHandler(str(_CDS_LOG_PATH), encoding="utf-8")
     _cds_handler.setLevel(logging.DEBUG)
-    _cds_handler.setFormatter(
-        logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
-    )
+    _cds_handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s"))
     logging.getLogger().addHandler(_cds_handler)
     logging.getLogger().setLevel(logging.INFO)
 
@@ -93,14 +88,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Не трогает stdout, не ломает SSE. Уровень DEBUG ловит [DECISION_HUB] и [STATE_APPLIED].
     _logs_dir = Path(__file__).resolve().parents[2] / "backend" / "logs"
     _logs_dir.mkdir(exist_ok=True)
-    _cds_log_path = (
-        _logs_dir / f"cds_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    )
+    _cds_log_path = _logs_dir / f"cds_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     _cds_handler = logging.FileHandler(str(_cds_log_path), encoding="utf-8")
     _cds_handler.setLevel(logging.DEBUG)
-    _cds_handler.setFormatter(
-        logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
-    )
+    _cds_handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s"))
     logging.getLogger().addHandler(_cds_handler)
     logger.info(f"[CDS] FileHandler initialized: {_cds_log_path}")
 
@@ -238,6 +229,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             # Принцип Мастера: идентификация ≠ владение. Host broker owns lifecycle.
             try:
                 from app.services.llm.runtime.client import ensure_llm
+
                 ensure_llm(label="backend")
                 print(f"✓ llama-server обеспечен через Host broker ({settings.llama_cpp_server_url})")
                 app.state.startup_status["llm_server"] = "ready"
@@ -264,15 +256,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
             mode = "сервер" if provider.use_server else "CLI"
             icon = "✅" if is_available else "⚠️"
-            print(
-                f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}"
-            )
-            logger.info(
-                f"[STARTUP] LLM ({mode}): {'доступен' if is_available else 'недоступен'}"
-            )
-            app.state.startup_status["llm_health"] = (
-                "ready" if is_available else "unavailable"
-            )
+            print(f"  {icon} LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
+            logger.info(f"[STARTUP] LLM ({mode}): {'доступен' if is_available else 'недоступен'}")
+            app.state.startup_status["llm_health"] = "ready" if is_available else "unavailable"
             if not is_available:
                 print("  Игра запущена в offline-режиме. LLM ответы будут недоступны.")
         except asyncio.TimeoutError:
@@ -306,6 +292,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Вердикт Мастера: сервер переживает shutdown управляющего процесса.
     try:
         from app.services.llm.runtime.client import release_lease
+
         release_lease()
         print("✓ LLM lease released")
     except Exception as e:
@@ -318,7 +305,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         print("✓ VRAM session ended")
     except Exception as e:
         logger.warning(f"[B5-FIX] silent failure suppressed: {e}")
-
 
     # R5 (CCH-15 P4): гарантированная остановка WorldScheduler при shutdown.
     # Opt-in: по умолчанию фон не запущен, но если игрок включил —

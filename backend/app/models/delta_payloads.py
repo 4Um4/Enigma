@@ -106,9 +106,7 @@ class PhysiologyPayload:
     pain_delta: float = 0.0  # Боль (0-100)
     fatigue_delta: float = 0.0  # Усталость (0-100)
     blood_loss_delta: float = 0.0  # Кровопотеря (0-1.0 шкала)
-    shock_impulse: float = (
-        0.0  # Физический шок / болевой удар (0-1.0) — сигнал для EmotionSubscriber
-    )
+    shock_impulse: float = 0.0  # Физический шок / болевой удар (0-1.0) — сигнал для EmotionSubscriber
     # S2B.1: искусственный physiological variable — proof-of-concept для
     # pipeline BodyState → transition → StateDelta → Applicator → Cause.
     # Real hunger/fatigue — после контракта (S2B.2+).
@@ -123,6 +121,7 @@ class PhysiologyPayload:
 @dataclass(frozen=True)
 class EconomicPayload:
     """Дельты экономического состояния (деньги и товары)."""
+
     money_delta: float = 0.0
     goods_delta: Optional[Dict[str, float]] = None
 

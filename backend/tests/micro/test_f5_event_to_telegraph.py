@@ -18,6 +18,7 @@ F5 Cross-branch: Event → v1 dictionary → game_screen telemetry.
 - D. Изоляция: THEFT-событие НЕ матчится с activity (различимость источников)
 - E. game_screen-телеграф: _idle_events читается и логируется (структурная проверка)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -36,6 +37,7 @@ os.environ.setdefault("AIDM_DATA_DIR", _TEST_SAVES)
 os.environ.setdefault("AIDM_SAVES_DIR", _TEST_SAVES)
 
 # ── Группы тестов по режимам флагов ──────────────────────────────────────────
+
 
 def _setup_env(theft: bool = False, activity: bool = False, projection: bool = True) -> None:
     """Выставить env-флаги для теста. projection=False = OFF-контроль."""
@@ -59,6 +61,7 @@ def _publish_event(event_type: str, source: str, payload: Dict[str, Any]) -> Non
     """Прямая публикация EventDTO в шину — симуляция production-продюсера."""
     from app.domain.events import EventDTO
     from app.services.events.event_bus import get_event_bus
+
     bus = get_event_bus()
     evt = EventDTO.create(
         event_type=event_type,
@@ -90,6 +93,7 @@ def _capture_projection(captured_events: List[Dict[str, Any]]) -> Dict[str, Any]
         idle_events_projection_enabled,
         project_idle_events,
     )
+
     if not idle_events_projection_enabled():
         return {"events": []}
     sources = [e["source"] for e in captured_events]
@@ -98,15 +102,18 @@ def _capture_projection(captured_events: List[Dict[str, Any]]) -> Dict[str, Any]
     bus = None
     try:
         from app.services.events.event_bus import get_event_bus
+
         bus = get_event_bus()
         tap.subscribe(bus)
         # Публикуем события
         for evt_dict in captured_events:
-            bus.publish(EventDTO.create(
-                event_type=evt_dict["event_type"],
-                source=evt_dict["source"],
-                payload=evt_dict["payload"],
-            ))
+            bus.publish(
+                EventDTO.create(
+                    event_type=evt_dict["event_type"],
+                    source=evt_dict["source"],
+                    payload=evt_dict["payload"],
+                )
+            )
         # Проекция
         projections = project_idle_events(tap.captured, scene)
         return {"events": [p.to_front() for p in projections]}
@@ -117,14 +124,19 @@ def _capture_projection(captured_events: List[Dict[str, Any]]) -> Dict[str, Any]
 
 # ── Тесты: v1-словарь + projection ──────────────────────────────────────────
 
+
 def test_f5_theft_event_in_v1_dictionary():
     """A. THEFT-событие проходит через v1-словарь → cause='theft', value=target_id."""
     _setup_env(theft=True, activity=False, projection=True)
-    result = _capture_projection([{
-        "event_type": "theft",
-        "source": "thief_shadow",
-        "payload": {"target_id": "wo_gold_chest"},
-    }])
+    result = _capture_projection(
+        [
+            {
+                "event_type": "theft",
+                "source": "thief_shadow",
+                "payload": {"target_id": "wo_gold_chest"},
+            }
+        ]
+    )
     events = result["events"]
     assert len(events) == 1, f"Ожидалось 1 событие, получено {len(events)}: {events}"
     evt = events[0]
@@ -136,11 +148,15 @@ def test_f5_theft_event_in_v1_dictionary():
 def test_f5_activity_outcome_event_in_v1_dictionary():
     """B. ACTIVITY_OUTCOME-событие проходит через v1-словарь → cause='activity_outcome', value='eat:ok'/'eat:fail'."""
     _setup_env(theft=False, activity=True, projection=True)
-    result = _capture_projection([{
-        "event_type": "activity_outcome",
-        "source": "tavern_keeper_tornin",
-        "payload": {"activity_type": "eat", "success": True, "reason": ""},
-    }])
+    result = _capture_projection(
+        [
+            {
+                "event_type": "activity_outcome",
+                "source": "tavern_keeper_tornin",
+                "payload": {"activity_type": "eat", "success": True, "reason": ""},
+            }
+        ]
+    )
     events = result["events"]
     assert len(events) == 1, f"Ожидалось 1 событие, получено {len(events)}: {events}"
     evt = events[0]
@@ -152,11 +168,15 @@ def test_f5_activity_outcome_event_in_v1_dictionary():
 def test_f5_activity_outcome_fail_value():
     """B.2. ACTIVITY_OUTCOME с success=False → value='eat:fail'."""
     _setup_env(theft=False, activity=True, projection=True)
-    result = _capture_projection([{
-        "event_type": "activity_outcome",
-        "source": "tavern_keeper_tornin",
-        "payload": {"activity_type": "eat", "success": False, "reason": "no_food"},
-    }])
+    result = _capture_projection(
+        [
+            {
+                "event_type": "activity_outcome",
+                "source": "tavern_keeper_tornin",
+                "payload": {"activity_type": "eat", "success": False, "reason": "no_food"},
+            }
+        ]
+    )
     events = result["events"]
     assert len(events) == 1
     assert events[0]["value"] == "eat:fail"
@@ -166,29 +186,35 @@ def test_f5_off_control_projection_disabled():
     """C. OFF-контроль: IDLE_EVENTS_PROJECTION_ENABLED=0 → events=[] (события в шине есть, проекция отключена)."""
     _setup_env(theft=True, activity=True, projection=False)
     # При projection=False, _capture_projection возвращает {"events": []}
-    result = _capture_projection([{
-        "event_type": "theft",
-        "source": "thief_shadow",
-        "payload": {"target_id": "wo_gold"},
-    }])
+    result = _capture_projection(
+        [
+            {
+                "event_type": "theft",
+                "source": "thief_shadow",
+                "payload": {"target_id": "wo_gold"},
+            }
+        ]
+    )
     assert result["events"] == [], f"OFF-контроль: events должен быть пуст, получено {result['events']}"
 
 
 def test_f5_theft_and_activity_outcome_distinct():
     """D. Изоляция: THEFT-событие ≠ ACTIVITY_OUTCOME (различимость источников)."""
     _setup_env(theft=True, activity=True, projection=True)
-    result = _capture_projection([
-        {
-            "event_type": "theft",
-            "source": "thief_shadow",
-            "payload": {"target_id": "wo_gold"},
-        },
-        {
-            "event_type": "activity_outcome",
-            "source": "tavern_keeper_tornin",
-            "payload": {"activity_type": "eat", "success": True, "reason": ""},
-        },
-    ])
+    result = _capture_projection(
+        [
+            {
+                "event_type": "theft",
+                "source": "thief_shadow",
+                "payload": {"target_id": "wo_gold"},
+            },
+            {
+                "event_type": "activity_outcome",
+                "source": "tavern_keeper_tornin",
+                "payload": {"activity_type": "eat", "success": True, "reason": ""},
+            },
+        ]
+    )
     events = result["events"]
     assert len(events) == 2, f"Ожидалось 2 события, получено {len(events)}"
     causes = [e["cause"] for e in events]
@@ -206,11 +232,13 @@ def test_f5_theft_and_activity_outcome_distinct():
 def test_f5_v1_dictionary_excludes_other_event_types():
     """v1-словарь УЗКИЙ: NPC_MOVED, NPC_SPOKE и др. — НЕ входят в проекцию."""
     _setup_env(theft=True, activity=True, projection=True)
-    result = _capture_projection([
-        {"event_type": "npc_moved", "source": "test_npc", "payload": {"from": "a", "to": "b"}},
-        {"event_type": "npc_spoke", "source": "test_npc", "payload": {"text": "hello"}},
-        {"event_type": "theft", "source": "thief", "payload": {"target_id": "wo_x"}},
-    ])
+    result = _capture_projection(
+        [
+            {"event_type": "npc_moved", "source": "test_npc", "payload": {"from": "a", "to": "b"}},
+            {"event_type": "npc_spoke", "source": "test_npc", "payload": {"text": "hello"}},
+            {"event_type": "theft", "source": "thief", "payload": {"target_id": "wo_x"}},
+        ]
+    )
     events = result["events"]
     # Только theft — NPC_MOVED, NPC_SPOKE в EXCLUDED-реестре
     assert len(events) == 1
@@ -219,15 +247,18 @@ def test_f5_v1_dictionary_excludes_other_event_types():
 
 # ── Тесты: game_screen structural (без pygame) ──────────────────────────────
 
+
 def test_f5_game_screen_reads_events_key():
     """E. game_screen читает _tick_data.get("events") — структурная проверка."""
     import inspect
+
     _project_root = Path(__file__).resolve().parents[3]
     game_screen_path = _project_root / "frontend" / "game_screen.py"
     content = game_screen_path.read_text(encoding="utf-8")
     # Проверяем, что _idle_events = _tick_data.get("events") существует
-    assert '_idle_events = _tick_data.get("events")' in content, \
+    assert '_idle_events = _tick_data.get("events")' in content, (
         "game_screen должен читать _idle_events = _tick_data.get('events')"
+    )
     # Проверяем, что логирует [TELEGRAPH]
     assert "[TELEGRAPH]" in content, "game_screen должен логировать [TELEGRAPH]"
     # Проверяем cause/target/value
@@ -243,30 +274,36 @@ def test_f5_game_screen_telegraph_log_format():
     content = game_screen_path.read_text(encoding="utf-8")
     # Формат лога: f"[TELEGRAPH] cause={_cause} target={_target_name} value={_value}"
     assert 'f"[TELEGRAPH] cause={_cause}' in content
-    assert 'target={_target_name}' in content
-    assert 'value={_value}' in content
+    assert "target={_target_name}" in content
+    assert "value={_value}" in content
 
 
 # ── Тесты: IntentEventAdapter mapping (THEFT path) ─────────────────────────
+
 
 def test_f5_intent_event_adapter_maps_steal_to_theft():
     """THEFT path: IntentEventAdapter._INTENT_EVENT_MAP['steal'] = EventType.THEFT."""
     from app.services.events.intent_event_adapter import IntentEventAdapter
     from app.services.events.event_types import EventType
-    assert IntentEventAdapter._INTENT_EVENT_MAP.get("steal") is EventType.THEFT, \
+
+    assert IntentEventAdapter._INTENT_EVENT_MAP.get("steal") is EventType.THEFT, (
         "IntentEventAdapter должен мапить 'steal' → EventType.THEFT"
+    )
 
 
 def test_f5_activity_lifecycle_publishes_activity_outcome_event_type():
     """ACTIVITY_OUTCOME path: _publish_outcome публикует event_type='activity_outcome'."""
     import inspect
     from app.services.npc import activity_lifecycle_service
+
     source = inspect.getsource(activity_lifecycle_service)
-    assert 'event_type="activity_outcome"' in source, \
+    assert 'event_type="activity_outcome"' in source, (
         "activity_lifecycle_service._publish_outcome должен публиковать event_type='activity_outcome'"
+    )
 
 
 # ── Очистка env после тестов ──────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def _cleanup_env():

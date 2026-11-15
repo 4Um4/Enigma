@@ -51,6 +51,7 @@ CANON_PATH = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
 
 # ── Двойники (наследуют паттерны E1/E2; контракты подтверждены А8) ──────
 
+
 class _FakeRouter:
     """Захватывает промпт; контракт request_for_agent + _abort_generation."""
 
@@ -83,8 +84,7 @@ class _FakeAvatar:
         self.entries = []
 
     # ADR-O-409 / M17-этап-2: прод пробрасывает channel/event_id/tick/npc_id.
-    def append_journal(self, campaign_id, speaker, text, channel=None,
-                       event_id="", tick=0, npc_id=None) -> None:
+    def append_journal(self, campaign_id, speaker, text, channel=None, event_id="", tick=0, npc_id=None) -> None:
         self.entries.append((campaign_id, speaker, text))
 
 
@@ -108,6 +108,7 @@ class _FakeMemoryManager:
 
 
 # ── Фикстуры P7-A (executor; наследуют _rig E1) ─────────────────────────
+
 
 def _task(owner: str, topic: str, tick: int) -> QueuedTask:
     req = DialogueRequest(
@@ -155,6 +156,7 @@ def harness():
 
 # ── Фикстуры P7-B (subscriber; наследуют паттерн E2) ────────────────────
 
+
 def _spoke_event(target_id, exposure, radius, visibility, topic="караван"):
     return EventDTO.create(
         event_type="npc_spoke",
@@ -193,6 +195,7 @@ def _make_subscriber(bridge, dist, npc_states=None, resolver=None):
 
 
 # ── P7-A: вердикт до слов ───────────────────────────────────────────────
+
 
 def test_t_p7_1_reveal_directive_in_prompt(harness):
     """T-P7-1: REVEAL-условия → промпт содержит директиву раскрытия."""
@@ -279,6 +282,7 @@ def test_t_p7_7_router_none_still_emits_verdict(harness):
 
 # ── P7-B: метка по провенансу (production path) ─────────────────────────
 
+
 def test_t_p7_4_whisper_eavesdrop_full_identified(harness):
     """T-P7-4 (production path): whisper-реплика NPC→NPC, спикер обладает
     канон-знанием → secret_id проставлен, FULL → IDENTIFIED + mark (Р1)."""
@@ -287,7 +291,9 @@ def test_t_p7_4_whisper_eavesdrop_full_identified(harness):
     state = PlayerEpistemicState()
     spy = _SpyBridge(DiscoveryBridge(state, truth))
     sub = _make_subscriber(
-        spy, dist=2.0, npc_states=[borko_dict],
+        spy,
+        dist=2.0,
+        npc_states=[borko_dict],
         resolver=lambda t: extract_subject(f"про {t}"),
     )
 
@@ -309,7 +315,9 @@ def test_t_p7_5_normal_eavesdrop_clue(harness):
     state = PlayerEpistemicState()
     spy = _SpyBridge(DiscoveryBridge(state, truth))
     sub = _make_subscriber(
-        spy, dist=4.0, npc_states=[borko_dict],
+        spy,
+        dist=4.0,
+        npc_states=[borko_dict],
         resolver=lambda t: extract_subject(f"про {t}"),
     )
 
@@ -349,7 +357,9 @@ def test_t_p7_6b_no_knowledge_observation_only(harness):
     state = PlayerEpistemicState()
     spy = _SpyBridge(DiscoveryBridge(state, truth))
     sub = _make_subscriber(
-        spy, dist=2.0, npc_states=[borko_dict],
+        spy,
+        dist=2.0,
+        npc_states=[borko_dict],
         resolver=lambda t: extract_subject(f"про {t}"),
     )
 
@@ -371,7 +381,9 @@ def test_t_p7_8_two_channels_one_bridge_monotonic(harness):
     state = PlayerEpistemicState()
     spy = _SpyBridge(DiscoveryBridge(state, truth))
     sub = _make_subscriber(
-        spy, dist=2.0, npc_states=[borko_dict],
+        spy,
+        dist=2.0,
+        npc_states=[borko_dict],
         resolver=lambda t: extract_subject(f"про {t}"),
     )
     sub.on_npc_spoke(_spoke_event("maid_lusya", "whisper", 3.0, "whisper"))

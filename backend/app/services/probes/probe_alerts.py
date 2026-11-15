@@ -3,14 +3,17 @@
 Подсистема 3: Агрегатор результатов проб для Dashboard и алертов (Этап 3.6).
 Хранит последние 100 результатов в памяти. Singleton.
 """
+
 import logging
 from collections import deque
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 class ProbeAlertManager:
     """In-memory singleton для хранения истории проб."""
+
     _instance: Optional["ProbeAlertManager"] = None
     _history: deque
     _violations: Dict[str, int]
@@ -30,7 +33,7 @@ class ProbeAlertManager:
             "passed": sum(1 for r in results if r.passed),
             "failed": sum(1 for r in results if not r.passed),
             "errors": [r.details for r in results if not r.passed and r.severity == "ERROR"],
-            "warnings": [r.details for r in results if not r.passed and r.severity == "WARN"]
+            "warnings": [r.details for r in results if not r.passed and r.severity == "WARN"],
         }
         self._history.append(_tick_summary)
 
@@ -52,8 +55,9 @@ class ProbeAlertManager:
             "total_ticks_recorded": _total_ticks,
             "total_failed_probes": _total_errors,
             "top_violators": [{"name": v[0], "count": v[1]} for v in _top_violators],
-            "recent_history": _history_list[-10:]  # Последние 10 тиков
+            "recent_history": _history_list[-10:],  # Последние 10 тиков
         }
+
 
 # Глобальный экземпляр
 probe_alerts = ProbeAlertManager()

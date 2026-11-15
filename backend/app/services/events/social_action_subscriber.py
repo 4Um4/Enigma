@@ -13,6 +13,7 @@ from app.services.events.event_types import EventType
 
 logger = logging.getLogger(__name__)
 
+
 class SocialActionSubscriber:
     """Слушает SOCIAL_ACTION и генерирует проекции (COMMUNICATION_CLAIM, NPC_SPOKE, ACTOR_ATTACKS)."""
 
@@ -25,7 +26,7 @@ class SocialActionSubscriber:
         speech_act = payload.get("speech_act", "assert")
         prop = payload.get("proposition")
         target = payload.get("target", "")
-        text = payload.get("text", "") # Текст может приходить, если это реплика
+        text = payload.get("text", "")  # Текст может приходить, если это реплика
 
         logger.debug(f"[SOCIAL_ACTION_SUB] Received action={action} from={event.source} to={target}")
 
@@ -39,10 +40,10 @@ class SocialActionSubscriber:
                     "proposition": prop,
                     "speech_act": speech_act,
                     "claim_id": f"proj-{event.id}",
-                    "tick": payload.get("tick", 0)
+                    "tick": payload.get("tick", 0),
                 },
                 visibility=event.visibility,
-                radius=event.radius
+                radius=event.radius,
             )
             self._bus.publish(claim_event)
 
@@ -56,10 +57,10 @@ class SocialActionSubscriber:
                     "text": text,
                     "tone": payload.get("tone", "NEUTRAL"),
                     "topic": payload.get("topic", ""),
-                    "intent_type": payload.get("social_intent", "talk")
+                    "intent_type": payload.get("social_intent", "talk"),
                 },
                 visibility=event.visibility,
-                radius=event.radius
+                radius=event.radius,
             )
             self._bus.publish(spoke_event)
 
@@ -68,11 +69,8 @@ class SocialActionSubscriber:
             attack_event = EventDTO.create(
                 event_type=EventType.ACTOR_ATTACKS.value,
                 source=event.source,
-                payload={
-                    "target_id": target,
-                    "force": payload.get("physical_force", 0.8)
-                },
+                payload={"target_id": target, "force": payload.get("physical_force", 0.8)},
                 visibility=event.visibility,
-                radius=event.radius
+                radius=event.radius,
             )
             self._bus.publish(attack_event)

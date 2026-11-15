@@ -9,6 +9,7 @@ path: /project/backend/tests/test_routes_board.py
 
 Запуск: cd backend; python -m pytest tests/test_routes_board.py -v; cd ..
 """
+
 import sys
 from pathlib import Path
 
@@ -27,7 +28,8 @@ CAMPAIGN = "board_rest_test"
 def client(tmp_path, monkeypatch):
     # Изоляция: подменяем корень сервиса на tmp — реальные saves/ не пишутся
     monkeypatch.setattr(
-        routes_board, "player_board_service",
+        routes_board,
+        "player_board_service",
         routes_board.PlayerBoardService(root=str(tmp_path)),
     )
     _app = FastAPI()
@@ -46,8 +48,7 @@ def test_get_empty_board(client):
 def test_add_and_move_card_roundtrip(client):
     r = client.post(
         f"/api/board/{CAMPAIGN}/cards",
-        json={"op": "add", "ref_type": "journal", "ref_id": "evt-1",
-              "pos": [10.0, 20.0]},
+        json={"op": "add", "ref_type": "journal", "ref_id": "evt-1", "pos": [10.0, 20.0]},
     )
     assert r.status_code == 200
     card_id = r.json()["card_id"]
@@ -103,15 +104,13 @@ def test_link_unlink_roundtrip(client):
     # LINK
     _r = client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "link", "from": _ids[0], "to": _ids[1],
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "link", "from": _ids[0], "to": _ids[1], "kind": "PLAYER_SUPPORTS"},
     )
     assert _r.status_code == 200 and _r.json()["result"] == "linked"
     # idempotent: повтор → 'noop', дубля нет
     _r = client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "link", "from": _ids[0], "to": _ids[1],
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "link", "from": _ids[0], "to": _ids[1], "kind": "PLAYER_SUPPORTS"},
     )
     assert _r.status_code == 200 and _r.json()["result"] == "noop"
     _body = client.get(f"/api/board/{CAMPAIGN}").json()
@@ -120,8 +119,7 @@ def test_link_unlink_roundtrip(client):
     # UNLINK чужим kind: ребро живо, no-op
     _r = client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "unlink", "from": _ids[0], "to": _ids[1],
-              "kind": "PLAYER_CONTRADICTS"},
+        json={"op": "unlink", "from": _ids[0], "to": _ids[1], "kind": "PLAYER_CONTRADICTS"},
     )
     assert _r.status_code == 200 and _r.json()["result"] == "noop"
     assert len(client.get(f"/api/board/{CAMPAIGN}").json()["links"]) == 1
@@ -129,8 +127,7 @@ def test_link_unlink_roundtrip(client):
     # UNLINK точной тройкой: удаляет ровно это ребро
     _r = client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "unlink", "from": _ids[0], "to": _ids[1],
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "unlink", "from": _ids[0], "to": _ids[1], "kind": "PLAYER_SUPPORTS"},
     )
     assert _r.status_code == 200 and _r.json()["result"] == "unlinked"
     assert client.get(f"/api/board/{CAMPAIGN}").json()["links"] == []
@@ -139,8 +136,7 @@ def test_link_unlink_roundtrip(client):
 def test_link_nonexistent_card_422(client):
     _r = client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "link", "from": "board-card-999", "to": "board-card-998",
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "link", "from": "board-card-999", "to": "board-card-998", "kind": "PLAYER_SUPPORTS"},
     )
     assert _r.status_code == 422
 
@@ -171,8 +167,7 @@ def test_hypothesis_create_edit_delete(client):
     # EDIT text + status
     _r = client.post(
         f"/api/board/{CAMPAIGN}/hypotheses",
-        json={"op": "edit", "hyp_id": _hyp, "text": "Горан украл золото",
-              "status": "supports"},
+        json={"op": "edit", "hyp_id": _hyp, "text": "Горан украл золото", "status": "supports"},
     )
     assert _r.status_code == 200
     _body = client.get(f"/api/board/{CAMPAIGN}").json()
@@ -206,8 +201,7 @@ def test_delete_hypothesis_cascade_via_rest(client):
     ).json()["card_id"]
     client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "link", "from": _c_j, "to": _c_hyp,
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "link", "from": _c_j, "to": _c_hyp, "kind": "PLAYER_SUPPORTS"},
     )
 
     _r = client.post(
@@ -230,29 +224,45 @@ def test_delete_hypothesis_cascade_via_rest(client):
 
 def test_hypothesis_validation_422(client):
     # create без text
-    assert client.post(
-        f"/api/board/{CAMPAIGN}/hypotheses", json={"op": "create"},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/api/board/{CAMPAIGN}/hypotheses",
+            json={"op": "create"},
+        ).status_code
+        == 422
+    )
     # create с пустым текстом
-    assert client.post(
-        f"/api/board/{CAMPAIGN}/hypotheses",
-        json={"op": "create", "text": "   "},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/api/board/{CAMPAIGN}/hypotheses",
+            json={"op": "create", "text": "   "},
+        ).status_code
+        == 422
+    )
     # edit несуществующей
-    assert client.post(
-        f"/api/board/{CAMPAIGN}/hypotheses",
-        json={"op": "edit", "hyp_id": "hyp-999", "text": "x"},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/api/board/{CAMPAIGN}/hypotheses",
+            json={"op": "edit", "hyp_id": "hyp-999", "text": "x"},
+        ).status_code
+        == 422
+    )
     # delete несуществующей
-    assert client.post(
-        f"/api/board/{CAMPAIGN}/hypotheses",
-        json={"op": "delete", "hyp_id": "hyp-999"},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/api/board/{CAMPAIGN}/hypotheses",
+            json={"op": "delete", "hyp_id": "hyp-999"},
+        ).status_code
+        == 422
+    )
     # edit/delete без hyp_id
-    assert client.post(
-        f"/api/board/{CAMPAIGN}/hypotheses",
-        json={"op": "edit", "text": "x"},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/api/board/{CAMPAIGN}/hypotheses",
+            json={"op": "edit", "text": "x"},
+        ).status_code
+        == 422
+    )
     # файл не мутировал ни одной невалидной попыткой
     assert client.get(f"/api/board/{CAMPAIGN}").json()["hypotheses"] == []
 

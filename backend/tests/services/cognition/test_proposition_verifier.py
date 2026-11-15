@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/tests/services/cognition/test_proposition_verifier.py
 Назначение: P5-B4 — контракты семантической верификации Proposition ↔ LLM-текст.
 
@@ -13,6 +13,7 @@ path: /backend/tests/services/cognition/test_proposition_verifier.py
   C (отрицания в store): polarity=False корректно обрабатывается
   D (ошибка verifier): LLM failure / пустой ответ / неоднозначный verdict → NO
 """
+
 from __future__ import annotations
 
 import pytest
@@ -63,10 +64,7 @@ PROP_INSULT = {
 
 def test_correct_transmission_returns_true():
     """Master случай 1: LLM-реплика действительно сообщает proposition → YES."""
-    text = (
-        "Торнин, я слышала от Люси, что этот Open_road оскорбил вас "
-        "за спиной. Говорил неприятные вещи."
-    )
+    text = "Торнин, я слышала от Люси, что этот Open_road оскорбил вас за спиной. Говорил неприятные вещи."
     llm = _StubLLM("YES")
     verifier = PropositionVerifier(llm)
 
@@ -82,10 +80,7 @@ def test_correct_transmission_returns_true():
 
 def test_silence_returns_false():
     """Master случай 2: LLM-реплика говорит о погоде → proposition не затронут → NO."""
-    text = (
-        "Сегодня славная погода, не правда ли? "
-        "Я слышала, лорд мэр устраивает бал на следующей неделе."
-    )
+    text = "Сегодня славная погода, не правда ли? Я слышала, лорд мэр устраивает бал на следующей неделе."
     llm = _StubLLM("NO")
     verifier = PropositionVerifier(llm)
 
@@ -96,10 +91,7 @@ def test_silence_returns_false():
 
 def test_negation_returns_false():
     """Master случай 3: LLM-реплика явно отрицает proposition → NO."""
-    text = (
-        "Торнин, не верьте слухам. Ничего подобного не было — "
-        "Open_road вас не оскорблял, это кто-то напутал."
-    )
+    text = "Торнин, не верьте слухам. Ничего подобного не было — Open_road вас не оскорблял, это кто-то напутал."
     llm = _StubLLM("NO")
     verifier = PropositionVerifier(llm)
 

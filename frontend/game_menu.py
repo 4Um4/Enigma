@@ -75,8 +75,7 @@ class _MenuButton:
                 return True
         return False
 
-    def draw(self, screen: pygame.Surface, font: pygame.font.Font,
-             selected: bool = False) -> None:
+    def draw(self, screen: pygame.Surface, font: pygame.font.Font, selected: bool = False) -> None:
         # S3.16: selected — выбор клавиатурой: hover-цвет + акцентная рамка
         color = self.color_hover if (self.hovered or selected) else self.color
         pygame.draw.rect(screen, color, self.rect, border_radius=6)
@@ -118,9 +117,7 @@ class GameMenu:
             # Приоритет: JPG (оптимизированный) > PNG (оригинал)
             bg_path = Path(__file__).parent / "menu_bg.jpg"
             if not bg_path.exists():
-                bg_path = (
-                    Path(__file__).parent / "map_editor" / "pixels" / "game_menu.png"
-                )
+                bg_path = Path(__file__).parent / "map_editor" / "pixels" / "game_menu.png"
             if not bg_path.exists():
                 return None
             img = pygame.image.load(str(bg_path))
@@ -186,7 +183,6 @@ class GameMenu:
                 C["btn_secondary_hover"],
                 lambda: self._set_action(MenuAction.EDITOR),
             ),
-
             _MenuButton(
                 x,
                 start_y + 3 * (btn_h + gap),
@@ -222,25 +218,16 @@ class GameMenu:
                 if event.type == pygame.QUIT:
                     self._result = MenuAction.EXIT
                 elif event.type == pygame.VIDEORESIZE:
-                    self.screen = pygame.display.set_mode(
-                        (event.w, event.h), pygame.RESIZABLE
-                    )
+                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     self._build_buttons()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        self._selected_idx = (self._selected_idx - 1) % len(
-                            self._buttons
-                        )
+                        self._selected_idx = (self._selected_idx - 1) % len(self._buttons)
                     elif event.key == pygame.K_DOWN:
-                        self._selected_idx = (self._selected_idx + 1) % len(
-                            self._buttons
-                        )
+                        self._selected_idx = (self._selected_idx + 1) % len(self._buttons)
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         self._buttons[self._selected_idx].on_click()
-                    elif (
-                        event.key == pygame.K_F7
-                        and pygame.key.get_mods() & pygame.KMOD_SHIFT
-                    ):
+                    elif event.key == pygame.K_F7 and pygame.key.get_mods() & pygame.KMOD_SHIFT:
                         # Shift+F7 (вердикт владельца): скрытый вход в редактор
                         # хроник из меню; пункт из видимого списка убран.
                         self._result = MenuAction.CHRONICLE_EDITOR
@@ -274,9 +261,7 @@ class GameMenu:
             scale = max(w / bg_w, h / bg_h)
             scaled_w = int(bg_w * scale)
             scaled_h = int(bg_h * scale)
-            scaled_bg = pygame.transform.smoothscale(
-                self._bg_image, (scaled_w, scaled_h)
-            )
+            scaled_bg = pygame.transform.smoothscale(self._bg_image, (scaled_w, scaled_h))
             # Центрируем обрезку
             offset_x = (w - scaled_w) // 2
             offset_y = (h - scaled_h) // 2
@@ -300,9 +285,7 @@ class GameMenu:
         self.screen.blit(title_surf, title_rect)
 
         # Подзаголовок
-        sub_surf = self.font_subtitle.render(
-            "RPG Engine", True, _MENU_COLORS["text_dim"]
-        )
+        sub_surf = self.font_subtitle.render("RPG Engine", True, _MENU_COLORS["text_dim"])
         sub_rect = sub_surf.get_rect(centerx=w // 2, y=title_rect.bottom + 8)
         self.screen.blit(sub_surf, sub_rect)
 
@@ -314,8 +297,8 @@ class GameMenu:
             btn.draw(self.screen, self.font_button, selected=(i == _sel))
         # Подсказка управления
         _hint = self.font_small.render(
-            "↑/↓ — выбор · Enter — активировать · Esc — выход",
-            True, _MENU_COLORS["text_dim"])
+            "↑/↓ — выбор · Enter — активировать · Esc — выход", True, _MENU_COLORS["text_dim"]
+        )
         _hy = self._buttons[-1].rect.bottom + 18 if self._buttons else h - 60
         self.screen.blit(_hint, (w // 2 - _hint.get_width() // 2, _hy))
 
@@ -323,7 +306,5 @@ class GameMenu:
         # ИСПРАВЛЕНО: версия берётся из constants.py, а не хардкодится.
         from constants import PROJECT_VERSION
 
-        ver_surf = self.font_small.render(
-            PROJECT_VERSION, True, _MENU_COLORS["text_dim"]
-        )
+        ver_surf = self.font_small.render(PROJECT_VERSION, True, _MENU_COLORS["text_dim"])
         self.screen.blit(ver_surf, (w - ver_surf.get_width() - 12, h - 24))

@@ -67,8 +67,7 @@ class ThreatDesiredChangeProducer:
                     target_id = _best_tgt
             # Источник 2: belief (Proposition ATTACKED — subject_id)
             if target_id is None and belief_source is not None:
-                _pred = getattr(belief_source.predicate, "value",
-                                str(belief_source.predicate))
+                _pred = getattr(belief_source.predicate, "value", str(belief_source.predicate))
                 if str(_pred).upper() in ("ATTACKED", "OPPOSES"):
                     target_id = getattr(belief_source, "subject_id", None)  # noqa: ENIGMA002
 
@@ -97,13 +96,9 @@ class ThreatDesiredChangeProducer:
 
             w: Dict[str, float] = {}
             # Конфронтационное давление: контроль × легитимность натуры × тело
-            w["intimidate"] = round(
-                control_d * (0.5 + _disp_intim) * (0.5 + 0.5 * body_factor), 4
-            )
+            w["intimidate"] = round(control_d * (0.5 + _disp_intim) * (0.5 + 0.5 * body_factor), 4)
             # Привлечение силы: значимость × союзники × (слабость тела)
-            w["call_for_help"] = round(
-                signif_d * (0.3 + 0.7 * allies_factor) * (1.0 - 0.5 * body_factor), 4
-            )
+            w["call_for_help"] = round(signif_d * (0.3 + 0.7 * allies_factor) * (1.0 - 0.5 * body_factor), 4)
             # Физическое преграждение: контроль × тело (без союзников)
             w["block_path"] = round(control_d * body_factor * 0.6, 4)
             # Прямая конфронтация: сосуществует с превентивно-агрессивной
@@ -115,12 +110,13 @@ class ThreatDesiredChangeProducer:
             # дорого → изменить себя (дистанцию). Страх × слабость ×
             # одиночество; ОТРИЦАТЕЛЬНЫЙ вклад в конфликтные способы
             # формулируется как доминирующий flee-вес.
-            w["flee"] = round(
-                fear_d * (1.0 - 0.6 * body_factor) * (1.0 - 0.7 * allies_factor), 4
-            )
+            w["flee"] = round(fear_d * (1.0 - 0.6 * body_factor) * (1.0 - 0.7 * allies_factor), 4)
 
-            return stop_hostile(who=getattr(state, "npc_id", ""), target=target_id,  # noqa: ENIGMA002
-                                method_weights=w)
+            return stop_hostile(
+                who=getattr(state, "npc_id", ""),
+                target=target_id,  # noqa: ENIGMA002
+                method_weights=w,
+            )
         except Exception as _e:
             logger.warning(f"[CAUSAL_SLICE_THREAT] resolve failed: {_e}")
             return None

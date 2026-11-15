@@ -18,7 +18,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_PLAYER_TEST")
 logger.setLevel(logging.INFO)
 
@@ -36,22 +36,23 @@ CAMPAIGN_ID = "Open_road"
 NPC_A = "guard_borko"
 NPC_B = "thief_shadow"
 
+
 def run_test():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SUPERBOX-014: Эпистемическое замыкание для игрока")
-    print("="*60)
+    print("=" * 60)
 
     # 1. Инициализация изолированных сервисов
     rel_store = RelationshipStore(data_dir=str(BACKEND_ROOT.parent / "saves" / "test_sandbox"))
-    
+
     # Устанавливаем отношения игрока к NPC
     rel_store.update(CAMPAIGN_ID, "player", NPC_A, {"trust": 80.0})  # NPC_A - друг
-    rel_store.update(CAMPAIGN_ID, "player", NPC_B, {"trust": -50.0}) # NPC_B - враг
-    
+    rel_store.update(CAMPAIGN_ID, "player", NPC_B, {"trust": -50.0})  # NPC_B - враг
+
     reliability_provider = TrustBasedReliabilityProvider(rel_store, CAMPAIGN_ID)
     engine = BeliefRevisionEngine(reliability_provider=reliability_provider)
     store = EpistemicStore()
-    
+
     # Мокаем SpatialQueryService: игрок и оба NPC в радиусе 10.0
     mock_positions = {
         "player": {"local_position": {"x": 0.0, "y": 0.0}},
@@ -59,23 +60,15 @@ def run_test():
         NPC_B: {"local_position": {"x": 2.0, "y": 2.0}},
     }
     spatial_query = SpatialQueryService(npc_positions=mock_positions)
-    
-    subscriber = ClaimEventSubscriber(
-        engine=engine,
-        store=store,
-        spatial_query_provider=lambda: spatial_query
-    )
+
+    subscriber = ClaimEventSubscriber(engine=engine, store=store, spatial_query_provider=lambda: spatial_query)
 
     # 2. Публикуем NPC_SPOKE от друга (NPC_A) с intent_type="accuse"
     print("\n[1/2] Обработка реплики от друга (NPC_A, trust=80)...")
     event_friend = EventDTO.create(
         event_type=EventType.NPC_SPOKE.value,
         source=NPC_A,
-        payload={
-            "target_id": NPC_B,
-            "text": "Тень украл яблоко!",
-            "intent_type": "accuse"
-        }
+        payload={"target_id": NPC_B, "text": "Тень украл яблоко!", "intent_type": "accuse"},
     )
     subscriber.on_npc_spoke(event_friend)
 
@@ -84,11 +77,7 @@ def run_test():
     event_enemy = EventDTO.create(
         event_type=EventType.NPC_SPOKE.value,
         source=NPC_B,
-        payload={
-            "target_id": NPC_A,
-            "text": "Стражник украл золото!",
-            "intent_type": "accuse"
-        }
+        payload={"target_id": NPC_A, "text": "Стражник украл золото!", "intent_type": "accuse"},
     )
     subscriber.on_npc_spoke(event_enemy)
 
@@ -143,15 +132,16 @@ def run_test():
         print("  ❌ ОШИБКА: Сериализация не вернула ожидаемое количество убеждений!")
         success = False
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if success:
         print("🎉 ЭПИСТЕМИЧЕСКОЕ ЗАМЫКАНИЕ ДЛЯ ИГРОКА ДОКАЗАНО!")
         print("Игрок слышит реплики NPC и формирует убеждения в зависимости от доверия.")
-        print("="*60)
+        print("=" * 60)
     else:
         print("❌ ТЕСТ ЗАВЕРШЁН С ОШИБКАМИ.")
-        print("="*60)
+        print("=" * 60)
         raise AssertionError("SUPERBOX-014 FAILED: Epistemic closure test failed")
+
 
 if __name__ == "__main__":
     run_test()

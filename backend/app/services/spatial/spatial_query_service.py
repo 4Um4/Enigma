@@ -7,6 +7,7 @@ path: backend/app/services/spatial/spatial_query_service.py
 
 
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -91,8 +92,4 @@ class SpatialQueryService:
         # Соседство проверяем через граф кластеров
         _neighbors = self._cluster_occupancy.cluster_to_entities.get(cl_a, set())
         # Упрощённая эвристика: если есть хотя бы одна общая сущность в соседних кластерах
-        return (
-            "adjacent"
-            if cl_b in self._cluster_occupancy.cluster_to_entities
-            else "distant"
-        )
+        return "adjacent" if cl_b in self._cluster_occupancy.cluster_to_entities else "distant"

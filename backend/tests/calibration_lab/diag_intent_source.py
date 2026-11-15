@@ -11,6 +11,7 @@ path: backend/tests/calibration_lab/diag_intent_source.py
 Зависимости: app.services.calibration.experiment_runner.
 Основные сущности: main.
 """
+
 from __future__ import annotations
 
 import sys
@@ -31,16 +32,11 @@ def main() -> None:
 
     result = ExperimentRunner().run(
         ExperimentConfig(
-            preset_path=str(
-                _REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"
-            ),
+            preset_path=str(_REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"),
             duration_ticks=ticks,
         )
     )
-    per_tick = [
-        sum(1 for n in tick if n.get("intent") is not None)
-        for tick in result.npc_captures
-    ]
+    per_tick = [sum(1 for n in tick if n.get("intent") is not None) for tick in result.npc_captures]
     total_intents = sum(per_tick)
     l1 = result.l1_event_count
     events = sum(result.events_per_tick)

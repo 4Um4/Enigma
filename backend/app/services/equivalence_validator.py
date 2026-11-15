@@ -12,6 +12,7 @@ Rule 126: Drift Index с Class D (Causal) или E (Ontological) в production �
   0 Ontological + 0 Causal + 0 Topological drift
   за 100k+ тиков + 100% replay determinism.
 """
+
 from __future__ import annotations
 
 import logging
@@ -222,10 +223,7 @@ class EquivalenceValidator:
                     field="boundary",
                     legacy_value=legacy_is_boundary,
                     shadow_value=shadow_is_boundary,
-                    description=(
-                        f"Causal drift: boundary={legacy_is_boundary} "
-                        f"vs {shadow_is_boundary}"
-                    ),
+                    description=(f"Causal drift: boundary={legacy_is_boundary} vs {shadow_is_boundary}"),
                 )
             )
         elif legacy_is_boundary and shadow_is_boundary:
@@ -241,10 +239,7 @@ class EquivalenceValidator:
                         field="target_location",
                         legacy_value=legacy_target_location,
                         shadow_value=shadow_target_location,
-                        description=(
-                            f"Boundary target drift: {legacy_target_location} "
-                            f"vs {shadow_target_location}"
-                        ),
+                        description=(f"Boundary target drift: {legacy_target_location} vs {shadow_target_location}"),
                     )
                 )
 
@@ -266,13 +261,8 @@ class EquivalenceValidator:
         """
         drifts: List[DriftReport] = []
 
-        _legacy_active = bool(
-            legacy_traversal
-            and legacy_traversal.get("status") in ("MOVING", "COMPLETED")
-        )
-        _shadow_active = bool(
-            shadow_traversal and shadow_traversal.status in ("NEW", "COMPLETED")
-        )
+        _legacy_active = bool(legacy_traversal and legacy_traversal.get("status") in ("MOVING", "COMPLETED"))
+        _shadow_active = bool(shadow_traversal and shadow_traversal.status in ("NEW", "COMPLETED"))
 
         # L2 Causal: один создал traversal, другой — нет
         # ИСКЛЮЧЕНИЯ:
@@ -333,11 +323,7 @@ class EquivalenceValidator:
         # Target node (только для активных traversal)
         if _shadow_status == "NEW" and legacy_traversal:
             _legacy_target = legacy_traversal.get("target_node", "")
-            _shadow_target = (
-                shadow_traversal.fields.get("target_node", "")
-                if shadow_traversal
-                else ""
-            )
+            _shadow_target = shadow_traversal.fields.get("target_node", "") if shadow_traversal else ""
             if _legacy_target and _shadow_target and _legacy_target != _shadow_target:
                 drifts.append(
                     DriftReport(
@@ -349,20 +335,13 @@ class EquivalenceValidator:
                         field="traversal_target_node",
                         legacy_value=_legacy_target,
                         shadow_value=_shadow_target,
-                        description=(
-                            f"Traversal target drift: {_legacy_target} "
-                            f"vs {_shadow_target}"
-                        ),
+                        description=(f"Traversal target drift: {_legacy_target} vs {_shadow_target}"),
                     )
                 )
 
             # Duration ticks
             _legacy_dur = legacy_traversal.get("duration_ticks", 0)
-            _shadow_dur = (
-                shadow_traversal.fields.get("duration_ticks", 0)
-                if shadow_traversal
-                else 0
-            )
+            _shadow_dur = shadow_traversal.fields.get("duration_ticks", 0) if shadow_traversal else 0
             if _legacy_dur != _shadow_dur:
                 drifts.append(
                     DriftReport(
@@ -374,10 +353,7 @@ class EquivalenceValidator:
                         field="traversal_duration",
                         legacy_value=_legacy_dur,
                         shadow_value=_shadow_dur,
-                        description=(
-                            f"Traversal duration drift: "
-                            f"{_legacy_dur} vs {_shadow_dur} ticks"
-                        ),
+                        description=(f"Traversal duration drift: {_legacy_dur} vs {_shadow_dur} ticks"),
                     )
                 )
 
@@ -422,7 +398,5 @@ class EquivalenceValidator:
             else:
                 # Class D/E — ERROR + DEPRECATION (или FATAL для E)
                 _depr_key = f"{d.drift_class.value}:{d.field}"
-                _depr = self._DRIFT_DEPRECATIONS.get(
-                    _depr_key, "Unknown causal mutation"
-                )
+                _depr = self._DRIFT_DEPRECATIONS.get(_depr_key, "Unknown causal mutation")
                 logger.error(f"{_tag} {_base} | DEPRECATION: {_depr}")

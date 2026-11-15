@@ -85,9 +85,9 @@ def test_boundary_traversal_emits_transition_scene_change():
     ctx.scene_state = scene_state
     # S355-кандидат: анти-утечка — явные атрибуты вместо auto-child'ов
     # (mock.tick_snapshot.campaign_id становился путём на диске).
-    ctx.campaign_id = "test_campaign"   # tracked-фикстура, есть на любом чекауте
-    ctx.tick_number = 10                # совпадает с scene_state["tick"]
-    ctx.tick_snapshot = None            # явно нет снапшота → чистый fallback build_snapshot
+    ctx.campaign_id = "test_campaign"  # tracked-фикстура, есть на любом чекауте
+    ctx.tick_number = 10  # совпадает с scene_state["tick"]
+    ctx.tick_snapshot = None  # явно нет снапшота → чистый fallback build_snapshot
 
     orch._process_traversals(ctx)
 
@@ -207,7 +207,9 @@ def test_runtime_applies_boundary_snap():
     # (scene_state_manager.py:860-864) — патчить надо ФАБРИКУ, а не
     # SpatialService (прежний патч не пробивал: реальные графы "city_gate"
     # в чекауте нет → get_node None → snap тихо пропущен).
-    mock_node = NodeRef(node_id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate", tags=["entrance"])
+    mock_node = NodeRef(
+        node_id="city_gate:entry_west", x=20.0, y=15.0, role=NodeRole.ENTRANCE, zone_id="city_gate", tags=["entrance"]
+    )
     mock_svc_instance = MagicMock()
     mock_svc_instance.get_node = MagicMock(return_value=mock_node)
     mock_svc_instance.build_for_location = MagicMock(return_value=mock_svc_instance)

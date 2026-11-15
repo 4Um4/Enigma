@@ -27,14 +27,13 @@ class _FakeSpatial:
     # Контракты, используемые _can_hear/_can_see внутри filter:
     def player_distances(self, ids):
         import math
+
         px, py = self._pos["player"]
-        return {
-            i: round(math.hypot(self._p(i)[0] - px, self._p(i)[1] - py), 2)
-            for i in ids
-        }
+        return {i: round(math.hypot(self._p(i)[0] - px, self._p(i)[1] - py), 2) for i in ids}
 
     def distance(self, a, b):
         import math
+
         ax, ay = self._p(a)
         bx, by = self._p(b)
         return math.hypot(ax - bx, ay - by)
@@ -53,8 +52,10 @@ def test_witness_in_range():
     """ATTACK в 4м → maid_lusya ∈ witnesses (контракт Мастера)."""
     sp = _FakeSpatial({"maid_lusya": (4.0, 0.0)})
     out = filter_perceiving_npcs(
-        npc_ids=["maid_lusya"], event=_attack_event(),
-        scene_state={}, spatial_query=sp,
+        npc_ids=["maid_lusya"],
+        event=_attack_event(),
+        scene_state={},
+        spatial_query=sp,
     )
     assert "maid_lusya" in out
 
@@ -63,8 +64,10 @@ def test_witness_out_of_range():
     """NPC за радиусом → ∉ witnesses."""
     sp = _FakeSpatial({"far_npc": (40.0, 0.0)})
     out = filter_perceiving_npcs(
-        npc_ids=["far_npc"], event=_attack_event(radius=15.0),
-        scene_state={}, spatial_query=sp,
+        npc_ids=["far_npc"],
+        event=_attack_event(radius=15.0),
+        scene_state={},
+        spatial_query=sp,
     )
     assert "far_npc" not in out
 
@@ -74,10 +77,8 @@ def test_witness_set_deterministic():
     sp1 = _FakeSpatial({"a": (5.0, 1.0), "b": (12.0, 0.0)})
     sp2 = _FakeSpatial({"a": (5.0, 1.0), "b": (12.0, 0.0)})
     ids = ["a", "b"]
-    r1 = filter_perceiving_npcs(npc_ids=ids, event=_attack_event(),
-                                scene_state={}, spatial_query=sp1)
-    r2 = filter_perceiving_npcs(npc_ids=ids, event=_attack_event(),
-                                scene_state={}, spatial_query=sp2)
+    r1 = filter_perceiving_npcs(npc_ids=ids, event=_attack_event(), scene_state={}, spatial_query=sp1)
+    r2 = filter_perceiving_npcs(npc_ids=ids, event=_attack_event(), scene_state={}, spatial_query=sp2)
     assert r1 == r2
 
 

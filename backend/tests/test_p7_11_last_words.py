@@ -19,9 +19,13 @@ class TestP711LastWords:
     @pytest.fixture
     def fabric(self) -> SocialFabricTracker:
         f = SocialFabricTracker()
-        f.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-            source_id="maid_lusya", target_id="player", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
-        ))
+        f.set_baseline(
+            "maid_lusya",
+            "player",
+            RelationshipSnapshot(
+                source_id="maid_lusya", target_id="player", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+            ),
+        )
         return f
 
     def test_no_quote_for_unknown_fate(self, fabric):
@@ -40,14 +44,18 @@ class TestP711LastWords:
         """Тон отражает отношение к игроку."""
         system = LastWordsSystem()
         lw = system.get_last_word("maid_lusya", FateOutcome.ESCAPE, fabric)
-        assert lw.tone == LastWordTone.GRATEFUL # trust=80 -> grateful
+        assert lw.tone == LastWordTone.GRATEFUL  # trust=80 -> grateful
 
     def test_broken_tone_for_low_trust(self):
         """Тон broken при низком доверии."""
         fabric = SocialFabricTracker()
-        fabric.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-            source_id="maid_lusya", target_id="player", trust=-50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
-        ))
+        fabric.set_baseline(
+            "maid_lusya",
+            "player",
+            RelationshipSnapshot(
+                source_id="maid_lusya", target_id="player", trust=-50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+            ),
+        )
         system = LastWordsSystem()
         lw = system.get_last_word("maid_lusya", FateOutcome.BROKEN, fabric)
         assert lw.tone == LastWordTone.BROKEN

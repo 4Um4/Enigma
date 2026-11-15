@@ -28,6 +28,7 @@ Success criteria (corrected per Master):
   - OR: belief for Tornin with proposition sourced from spread_rumor event
   - Pre-existing belief with source_id='player' does NOT count as success
 """
+
 from __future__ import annotations
 
 import os
@@ -124,7 +125,8 @@ _TARGET_LOGGERS = [
     "app.services.game_loop.game_loop",
     "app.services.world.world_tick_engine",
     "app.services.npc.state_applicator",
-    "app", "",  # root + catch-all
+    "app",
+    "",  # root + catch-all
 ]
 
 
@@ -189,6 +191,7 @@ _event_bus_spy = _EventBusSpy()
 # ============================================================================
 class _ExecutorSpy:
     """Wrap DialogueExecutor.execute to capture input, return value, exception."""
+
     def __init__(self):
         self.calls: List[Dict[str, Any]] = []
         self._installed = False
@@ -244,6 +247,7 @@ _executor_spy = _ExecutorSpy()
 # ============================================================================
 class _AdapterSpy:
     """Wrap IntentEventAdapter.to_event to capture input/output."""
+
     def __init__(self):
         self.calls: List[Dict[str, Any]] = []
         self._installed = False
@@ -255,6 +259,7 @@ class _AdapterSpy:
             return True
         try:
             from app.services.events.intent_event_adapter import IntentEventAdapter
+
             self._adapter_class = IntentEventAdapter
             self._orig_to_event = IntentEventAdapter.to_event
             IntentEventAdapter.to_event = staticmethod(self._spy_to_event)
@@ -327,9 +332,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -347,9 +350,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 200) -> Non
         s, e = bounds
         # Limit max_lines
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -378,10 +381,10 @@ def _grep_in_file(path: Path, pattern: str, context: int = 3, max_matches: int =
     for i in matches[:max_matches]:
         ctx_start = max(0, i - context)
         ctx_end = min(len(lines), i + context + 1)
-        print(f"\n  >>> L{i+1}: {lines[i].rstrip()}")
+        print(f"\n  >>> L{i + 1}: {lines[i].rstrip()}")
         for j in range(ctx_start, ctx_end):
             marker = ">>>" if j + 1 == i + 1 else "   "
-            print(f"  {marker} L{j+1:4d}: {lines[j]}")
+            print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -418,7 +421,7 @@ def main() -> int:
         _read_function_full(de_path, "execute", max_lines=300)
 
         # Search for NPC_SPOKE / IntentEventAdapter / bus.publish / to_event
-        print(f"\n  --- search for NPC_SPOKE / publish / to_event / IntentEventAdapter ---")
+        print("\n  --- search for NPC_SPOKE / publish / to_event / IntentEventAdapter ---")
         _grep_in_file(de_path, "NPC_SPOKE", context=3, max_matches=10)
         _grep_in_file(de_path, "publish", context=3, max_matches=10)
         _grep_in_file(de_path, "to_event", context=3, max_matches=10)
@@ -433,9 +436,9 @@ def main() -> int:
         _read_function_full(ts_path, "_process_tasks_async", max_lines=200)
 
         # Also look for execute_pending and drain_commitment_outbox
-        print(f"\n  --- _execute_pending or execute_pending ---")
+        print("\n  --- _execute_pending or execute_pending ---")
         _read_function_full(ts_path, "execute_pending", max_lines=150)
-        print(f"\n  --- drain_commitment_outbox ---")
+        print("\n  --- drain_commitment_outbox ---")
         _read_function_full(ts_path, "drain_commitment_outbox", max_lines=150)
 
         # =====================================================================
@@ -444,9 +447,9 @@ def main() -> int:
         _print_section("STEP 3: idle_tick vs run_turn")
         gl_path = _BACKEND / "app" / "services" / "game_loop" / "game_loop.py"
         print(f"  file: {gl_path}")
-        print(f"\n  --- idle_tick ---")
+        print("\n  --- idle_tick ---")
         _read_function_full(gl_path, "idle_tick", max_lines=200)
-        print(f"\n  --- run_turn ---")
+        print("\n  --- run_turn ---")
         _read_function_full(gl_path, "run_turn", max_lines=150)
 
         # =====================================================================
@@ -504,11 +507,11 @@ def main() -> int:
 
         # Install EventBus spy
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # Install IntentEventAdapter spy
         _adapter_spy.install()
-        print(f"  IntentEventAdapter spy installed")
+        print("  IntentEventAdapter spy installed")
 
         # Find DialogueExecutor instance and install spy
         # Try loop._svc or task_scheduler
@@ -558,14 +561,16 @@ def main() -> int:
 
         if dialogue_executor is not None:
             _executor_spy.install(dialogue_executor)
-            print(f"  DialogueExecutor spy installed")
+            print("  DialogueExecutor spy installed")
         else:
-            print(f"  [DialogueExecutor not found in runtime — trying class-level]")
+            print("  [DialogueExecutor not found in runtime — trying class-level]")
             try:
                 from app.services.execution.dialogue_executor import DialogueExecutor
+
                 # Find any instance in loop
                 # Walk loop recursively
                 visited = set()
+
                 def _walk(obj, path, depth=0):
                     nonlocal dialogue_executor
                     if depth > 5 or id(obj) in visited:
@@ -584,10 +589,11 @@ def main() -> int:
                                 return
                     except Exception:
                         pass
+
                 _walk(loop, "loop")
                 if dialogue_executor:
                     _executor_spy.install(dialogue_executor)
-                    print(f"  DialogueExecutor spy installed (via walk)")
+                    print("  DialogueExecutor spy installed (via walk)")
             except Exception as e:
                 print(f"  [DialogueExecutor walk failed: {e}]")
 
@@ -601,9 +607,11 @@ def main() -> int:
             for r in tornin_pre_records:
                 prop = getattr(r, "proposition", None)
                 print(f"    proposition={str(prop)[:100]}")
-                print(f"      confidence={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"original_source_id={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      confidence={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"original_source_id={getattr(r, 'original_source_id', None)}"
+                )
 
         # =====================================================================
         # STEP 4c: Publish PLAYER_INSULTS
@@ -636,9 +644,11 @@ def main() -> int:
         )
         if store:
             tornin_after_publish = store.get("tavern_keeper_tornin", expected_prop)
-            print(f"  Tornin belief after publish: confidence={getattr(tornin_after_publish, 'confidence', None)} "
-                  f"source_id={getattr(tornin_after_publish, 'source_id', None)} "
-                  f"original_source_id={getattr(tornin_after_publish, 'original_source_id', None)}")
+            print(
+                f"  Tornin belief after publish: confidence={getattr(tornin_after_publish, 'confidence', None)} "
+                f"source_id={getattr(tornin_after_publish, 'source_id', None)} "
+                f"original_source_id={getattr(tornin_after_publish, 'original_source_id', None)}"
+            )
 
         # Clear spies
         _event_bus_spy.clear()
@@ -667,7 +677,7 @@ def main() -> int:
         _print_section("STEP 5: spy results")
 
         # 5a. DialogueExecutor calls
-        print(f"\n  === DialogueExecutor.execute() calls ===")
+        print("\n  === DialogueExecutor.execute() calls ===")
         print(f"  Total calls: {len(_executor_spy.calls)}")
         for i, call in enumerate(_executor_spy.calls):
             print(f"\n  Call [{i}]:")
@@ -675,14 +685,14 @@ def main() -> int:
             print(f"    kwargs: {call['kwargs_repr']}")
             if call.get("exception"):
                 print(f"    EXCEPTION: {call['exception']}")
-                print(f"    TRACEBACK:")
+                print("    TRACEBACK:")
                 print(call.get("exception_traceback", "")[:1500])
             else:
                 print(f"    return_type: {call.get('return_type', 'N/A')}")
                 print(f"    return_value: {call.get('return_value', 'N/A')[:300]}")
 
         # 5b. IntentEventAdapter calls
-        print(f"\n  === IntentEventAdapter.to_event() calls ===")
+        print("\n  === IntentEventAdapter.to_event() calls ===")
         print(f"  Total calls: {len(_adapter_spy.calls)}")
         for i, call in enumerate(_adapter_spy.calls):
             print(f"\n  Call [{i}]:")
@@ -697,7 +707,7 @@ def main() -> int:
                 print(f"    return_value: {call.get('return_value', 'N/A')[:200]}")
 
         # 5c. EventBus events
-        print(f"\n  === EventBus.publish() calls ===")
+        print("\n  === EventBus.publish() calls ===")
         print(f"  Total events published: {len(_event_bus_spy.published_events)}")
         ev_type_counter: Dict[str, int] = {}
         for ev_type, _ in _event_bus_spy.published_events:
@@ -717,16 +727,18 @@ def main() -> int:
                 print(f"\n  --- {ev_name} event details ---")
                 for i, e in enumerate(ev_list[:5]):
                     p = getattr(e, "payload", {}) or {}
-                    print(f"    [{i}] source={getattr(e, 'source', '?')} "
-                          f"target_id={p.get('target_id')} "
-                          f"intent_type={p.get('intent_type')} "
-                          f"topic={p.get('topic')} "
-                          f"has_proposition={bool(p.get('proposition'))}")
+                    print(
+                        f"    [{i}] source={getattr(e, 'source', '?')} "
+                        f"target_id={p.get('target_id')} "
+                        f"intent_type={p.get('intent_type')} "
+                        f"topic={p.get('topic')} "
+                        f"has_proposition={bool(p.get('proposition'))}"
+                    )
                     if p.get("proposition"):
                         print(f"         proposition: {p.get('proposition')}")
 
         # 5d. DecisionHub logs for guard_borko
-        print(f"\n  === DecisionHub logs for guard_borko ===")
+        print("\n  === DecisionHub logs for guard_borko ===")
         all_logs = _log_capture.messages()
         borko_logs = [l for l in all_logs if "guard_borko" in l and "DECISION_HUB" in l]
         for l in borko_logs[:15]:
@@ -734,28 +746,28 @@ def main() -> int:
         print(f"  total borko DH logs: {len(borko_logs)}")
 
         # 5e. DialogueExecutor logs
-        print(f"\n  === DialogueExecutor logs ===")
+        print("\n  === DialogueExecutor logs ===")
         de_logs = [l for l in all_logs if "dialogue_executor" in l.lower() or "DIALOGUE_EXEC" in l]
         for l in de_logs[:20]:
             print(f"    {l[:200]}")
         print(f"  total DE logs: {len(de_logs)}")
 
         # 5f. Adapter logs
-        print(f"\n  === IntentEventAdapter logs ===")
+        print("\n  === IntentEventAdapter logs ===")
         ad_logs = [l for l in all_logs if "intent_event_adapter" in l.lower() or "INTENT_EVENT_ADAPTER" in l]
         for l in ad_logs[:20]:
             print(f"    {l[:200]}")
         print(f"  total adapter logs: {len(ad_logs)}")
 
         # 5g. Task scheduler logs (borko-related)
-        print(f"\n  === Task scheduler logs (borko-related) ===")
+        print("\n  === Task scheduler logs (borko-related) ===")
         ts_logs = [l for l in all_logs if ("task_scheduler" in l.lower() or "TASK_SCHED" in l) and "guard_borko" in l]
         for l in ts_logs[:20]:
             print(f"    {l[:200]}")
         print(f"  total TS borko logs: {len(ts_logs)}")
 
         # 5h. NPC_SPOKE logs
-        print(f"\n  === NPC_SPOKE / spread_rumor logs ===")
+        print("\n  === NPC_SPOKE / spread_rumor logs ===")
         ns_logs = [l for l in all_logs if "NPC_SPOKE" in l or "spread_rumor" in l.lower()]
         for l in ns_logs[:20]:
             print(f"    {l[:200]}")
@@ -777,16 +789,15 @@ def main() -> int:
                 print(f"      confidence={conf} source_id={source_id} original_source_id={orig_source}")
 
             # NEW belief from guard_borko?
-            new_borko_belief = [
-                r for r in tornin_records_after
-                if getattr(r, "source_id", None) == "guard_borko"
-            ]
+            new_borko_belief = [r for r in tornin_records_after if getattr(r, "source_id", None) == "guard_borko"]
             print(f"\n  Tornin beliefs with source_id='guard_borko': {len(new_borko_belief)}")
             for r in new_borko_belief:
                 prop = getattr(r, "proposition", None)
                 print(f"    proposition={str(prop)[:120]}")
-                print(f"      confidence={getattr(r, 'confidence', None)} "
-                      f"original_source_id={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      confidence={getattr(r, 'confidence', None)} "
+                    f"original_source_id={getattr(r, 'original_source_id', None)}"
+                )
 
         # =====================================================================
         # STEP 7: VERDICT
@@ -799,8 +810,10 @@ def main() -> int:
         if store:
             tornin_records = store.get_all_for_agent("tavern_keeper_tornin") or []
             for r in tornin_records:
-                if (getattr(r, "source_id", None) == "guard_borko"
-                    and getattr(r, "original_source_id", None) == "player"):
+                if (
+                    getattr(r, "source_id", None) == "guard_borko"
+                    and getattr(r, "original_source_id", None) == "player"
+                ):
                     has_new_borko_belief = True
                     break
 
@@ -856,6 +869,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:

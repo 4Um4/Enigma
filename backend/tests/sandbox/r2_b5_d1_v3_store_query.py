@@ -30,6 +30,7 @@ Checks:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -98,8 +99,15 @@ def _print_section(title: str) -> None:
 def _dump_record(r: Any) -> Dict[str, Any]:
     """Extract printable fields from a belief record."""
     out: Dict[str, Any] = {}
-    for field in ("proposition", "confidence", "source_id", "original_source_id",
-                  "last_updated_tick", "tick", "reliability"):
+    for field in (
+        "proposition",
+        "confidence",
+        "source_id",
+        "original_source_id",
+        "last_updated_tick",
+        "tick",
+        "reliability",
+    ):
         try:
             val = getattr(r, field, None)
             if val is not None:
@@ -200,8 +208,8 @@ def main() -> int:
         npc_positions = scene.get("npc_positions", {}) or {}
         npc_ids = [nid for nid in npc_positions.keys() if nid != "player"]
         print(f"  NPCs (excluding player): {npc_ids}")
-        print(f"  target_id for PLAYER_INSULTS: tavern_keeper_tornin")
-        print(f"  expected proposition: Proposition(player, INSULTED, tavern_keeper_tornin)")
+        print("  target_id for PLAYER_INSULTS: tavern_keeper_tornin")
+        print("  expected proposition: Proposition(player, INSULTED, tavern_keeper_tornin)")
 
         # ---- 3. Capture store state BEFORE publish (baseline) ----
         _print_section("STEP 3: capture store state BEFORE publish (baseline)")
@@ -230,7 +238,7 @@ def main() -> int:
 
         # Also try get_all_for_agent
         print()
-        print(f"  --- store.get_all_for_agent for each NPC (BEFORE) ---")
+        print("  --- store.get_all_for_agent for each NPC (BEFORE) ---")
         baseline_all: Dict[str, int] = {}
         for nid in npc_ids + ["player"]:
             try:
@@ -266,9 +274,9 @@ def main() -> int:
         print(f"  payload.target_id={payload['target_id']}")
         print(f"  payload.radius={payload['radius']}")
         print()
-        print(f"  Publishing...")
+        print("  Publishing...")
         bus.publish(evt)
-        print(f"  Published.")
+        print("  Published.")
 
         # ---- 5. Capture store state AFTER publish ----
         _print_section("STEP 5: capture store state AFTER publish")
@@ -298,7 +306,7 @@ def main() -> int:
                 print(f"  [AFTER] {nid}: ERROR: {e}")
 
         print()
-        print(f"  --- store.get_all_for_agent for each NPC (AFTER) ---")
+        print("  --- store.get_all_for_agent for each NPC (AFTER) ---")
         after_all: Dict[str, int] = {}
         for nid in npc_ids + ["player"]:
             try:
@@ -316,14 +324,14 @@ def main() -> int:
         try:
             lusya_rec = store.get("maid_lusya", expected_prop)
             if lusya_rec is None:
-                print(f"  >>> maid_lusya has NO belief about Proposition(player, INSULTED, tavern_keeper_tornin)")
-                print(f"  >>> engine.revise was called (per v2), but belief was NOT created")
-                print(f"  >>> This means engine.revise either:")
-                print(f"        - raised an exception (caught by try/except at L310-315)")
-                print(f"        - returned None or invalid record")
-                print(f"        - store.upsert failed silently")
+                print("  >>> maid_lusya has NO belief about Proposition(player, INSULTED, tavern_keeper_tornin)")
+                print("  >>> engine.revise was called (per v2), but belief was NOT created")
+                print("  >>> This means engine.revise either:")
+                print("        - raised an exception (caught by try/except at L310-315)")
+                print("        - returned None or invalid record")
+                print("        - store.upsert failed silently")
             else:
-                print(f"  >>> maid_lusya HAS belief about Proposition(player, INSULTED, tavern_keeper_tornin)")
+                print("  >>> maid_lusya HAS belief about Proposition(player, INSULTED, tavern_keeper_tornin)")
                 dumped = _dump_record(lusya_rec)
                 for k, v in dumped.items():
                     print(f"    {k}: {v}")
@@ -332,9 +340,11 @@ def main() -> int:
                 if conf is not None:
                     print()
                     print(f"    confidence = {conf}")
-                    print(f"    REPORT_CONFIDENCE_THRESHOLD = 0.25")
+                    print("    REPORT_CONFIDENCE_THRESHOLD = 0.25")
                     print(f"    activates report_proposition (third-party spread): {conf >= 0.25}")
-                    print(f"    activates claims_about_self (Lusya as victim): N/A (Lusya != object_id=tavern_keeper_tornin)")
+                    print(
+                        "    activates claims_about_self (Lusya as victim): N/A (Lusya != object_id=tavern_keeper_tornin)"
+                    )
         except Exception as e:
             print(f"  ERROR querying maid_lusya: {e}")
             traceback.print_exc()
@@ -344,9 +354,9 @@ def main() -> int:
         try:
             tornin_rec = store.get("tavern_keeper_tornin", expected_prop)
             if tornin_rec is None:
-                print(f"  >>> tavern_keeper_tornin has NO belief (unexpected — he is the victim)")
+                print("  >>> tavern_keeper_tornin has NO belief (unexpected — he is the victim)")
             else:
-                print(f"  >>> tavern_keeper_tornin HAS belief:")
+                print("  >>> tavern_keeper_tornin HAS belief:")
                 dumped = _dump_record(tornin_rec)
                 for k, v in dumped.items():
                     print(f"    {k}: {v}")
@@ -375,30 +385,32 @@ def main() -> int:
         maid_lusya_count_delta = after_all.get("maid_lusya", 0) - baseline_all.get("maid_lusya", 0)
         tornin_belief_exists = after.get("tavern_keeper_tornin") is not None
 
-        print(f"  maid_lusya belief about (player, INSULTED, tavern_keeper_tornin): {'EXISTS' if maid_lusya_belief_exists else 'MISSING'}")
+        print(
+            f"  maid_lusya belief about (player, INSULTED, tavern_keeper_tornin): {'EXISTS' if maid_lusya_belief_exists else 'MISSING'}"
+        )
         print(f"  maid_lusya total records delta: {maid_lusya_count_delta}")
         print(f"  tavern_keeper_tornin belief: {'EXISTS' if tornin_belief_exists else 'MISSING'}")
         print()
 
         if maid_lusya_belief_exists:
-            print(f"  >>> VERDICT: B5-D1 IS NOT A DEFECT")
-            print(f"  >>> maid_lusya DID receive the belief after PLAYER_INSULTS")
-            print(f"  >>> engine.revise was called (v2 confirmed) AND store.upsert succeeded")
-            print(f"  >>> The B5 chain works at least to: PLAYER_INSULTS → maid_lusya belief")
-            print(f"  >>> The bug is DOWNSTREAM — investigate:")
-            print(f"        - EpistemicContextResolver: does it see maid_lusya's belief?")
-            print(f"        - DecisionHub: does SPREAD_RUMOR boost activate?")
-            print(f"        - Lusya's decision: does she choose SPREAD_RUMOR?")
-            print(f"        - NPC_SPOKE propagation to Tornin (B5-D2 territory)")
+            print("  >>> VERDICT: B5-D1 IS NOT A DEFECT")
+            print("  >>> maid_lusya DID receive the belief after PLAYER_INSULTS")
+            print("  >>> engine.revise was called (v2 confirmed) AND store.upsert succeeded")
+            print("  >>> The B5 chain works at least to: PLAYER_INSULTS → maid_lusya belief")
+            print("  >>> The bug is DOWNSTREAM — investigate:")
+            print("        - EpistemicContextResolver: does it see maid_lusya's belief?")
+            print("        - DecisionHub: does SPREAD_RUMOR boost activate?")
+            print("        - Lusya's decision: does she choose SPREAD_RUMOR?")
+            print("        - NPC_SPOKE propagation to Tornin (B5-D2 territory)")
         else:
-            print(f"  >>> VERDICT: BELIEF NOT CREATED despite engine.revise being called")
-            print(f"  >>> engine.revise was called for maid_lusya (v2 confirmed)")
-            print(f"  >>> But belief is NOT in EpistemicStore")
-            print(f"  >>> Possible causes:")
-            print(f"        - engine.revise raised exception (try/except at L310-315 swallowed it)")
-            print(f"        - engine.revise returned None (no belief created)")
-            print(f"        - store.upsert failed silently")
-            print(f"  >>> NEXT STEP: instrument engine.revise to capture return value + exceptions")
+            print("  >>> VERDICT: BELIEF NOT CREATED despite engine.revise being called")
+            print("  >>> engine.revise was called for maid_lusya (v2 confirmed)")
+            print("  >>> But belief is NOT in EpistemicStore")
+            print("  >>> Possible causes:")
+            print("        - engine.revise raised exception (try/except at L310-315 swallowed it)")
+            print("        - engine.revise returned None (no belief created)")
+            print("        - store.upsert failed silently")
+            print("  >>> NEXT STEP: instrument engine.revise to capture return value + exceptions")
 
         # ---- 10. Cleanup ----
         try:
@@ -409,8 +421,10 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

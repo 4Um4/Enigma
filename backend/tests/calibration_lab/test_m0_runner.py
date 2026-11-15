@@ -10,6 +10,7 @@ path: backend/tests/calibration_lab/test_m0_runner.py
 
 Запуск:
 """
+
 from pathlib import Path
 
 import pytest

@@ -55,10 +55,7 @@ def test_dto_frozen_and_identity():
     )
     with pytest.raises(Exception):
         e.confidence = 0.9  # frozen
-    assert e.expectation_id() == (
-        "maid_lusya:player:may_cause_physical_harm::"
-        ":cid_1"
-    )
+    assert e.expectation_id() == ("maid_lusya:player:may_cause_physical_harm:::cid_1")
     assert e.status == ExpectationStatus.ACTIVE
 
 
@@ -75,14 +72,10 @@ def test_bridge_physical_harm_requires_both_signals():
     ctx = ExpectationContext(subject_physical_strength=1.5)
     assert conclusion_to_expectations(c, ctx, current_tick=5) == []
     # Оба, но subject не превосходит по ratio — не достаточно.
-    ctx = ExpectationContext(
-        subject_physical_strength=1.0, owner_physical_strength=1.0
-    )
+    ctx = ExpectationContext(subject_physical_strength=1.0, owner_physical_strength=1.0)
     assert conclusion_to_expectations(c, ctx, current_tick=5) == []
     # Оба и subject > owner × 1.2 → 1 ожидание.
-    ctx = ExpectationContext(
-        subject_physical_strength=2.0, owner_physical_strength=1.0
-    )
+    ctx = ExpectationContext(subject_physical_strength=2.0, owner_physical_strength=1.0)
     out = conclusion_to_expectations(c, ctx, current_tick=5)
     assert len(out) == 1
     assert out[0].predicate == ExpectationPredicate.MAY_CAUSE_PHYSICAL_HARM
@@ -130,7 +123,7 @@ def test_bridge_max_count_5():
 
 
 def test_bridge_non_is_dangerous_returns_empty():
-    c = _concl(predicate=ConclusionPredicate.IS_DANGEROUS)  # единственный в MVP
+    _concl(predicate=ConclusionPredicate.IS_DANGEROUS)  # единственный в MVP
     # Расширение predicate-реестра — будущая задача; здесь демонстрируем,
     # что bridge работает по предикату Conclusion.
     # (Заглушка: если появятся другие ConclusionPredicate — они дадут [].)
@@ -146,9 +139,6 @@ def test_bridge_pure_same_input_same_output():
     out1 = conclusion_to_expectations(c, ctx, current_tick=5)
     out2 = conclusion_to_expectations(c, ctx, current_tick=5)
     assert [e.expectation_id() for e in out1] == [e.expectation_id() for e in out2]
-
-
-import pytest
 
 
 @pytest.fixture
@@ -200,7 +190,7 @@ def test_store_reinforcement_preserves_origin(store):
         predicate=ExpectationPredicate.MAY_CAUSE_PHYSICAL_HARM,
         expected_object="",
         confidence=0.9,  # выше
-        formed_tick=8,   # другой — не должен перезаписать
+        formed_tick=8,  # другой — не должен перезаписать
         causal_parent_conclusion_id="cid_1",
     )
     store.apply(e2)
@@ -223,9 +213,7 @@ def test_store_get_all_returns_multiple_for_same_predicate(store):
                 causal_parent_conclusion_id=cid,
             )
         )
-    recs = store.get_all(
-        "maid_lusya", "player", ExpectationPredicate.MAY_CAUSE_PHYSICAL_HARM
-    )
+    recs = store.get_all("maid_lusya", "player", ExpectationPredicate.MAY_CAUSE_PHYSICAL_HARM)
     assert len(recs) == 2
     parents = {r.causal_parent_conclusion_id for r in recs}
     assert parents == {"cid_1", "cid_2"}
@@ -277,7 +265,8 @@ def test_store_caller_guard():
     """INV-EXPECTATION-GATE: apply мимо разрешённого writer'а → ArchitecturalViolationError."""
     store = ContextualExpectationStore()
     e = ExpectationRecord(
-        owner_id="x", subject="y",
+        owner_id="x",
+        subject="y",
         predicate=ExpectationPredicate.MAY_CAUSE_PHYSICAL_HARM,
         expected_object="",
     )

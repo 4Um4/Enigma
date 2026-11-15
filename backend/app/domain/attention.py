@@ -20,6 +20,7 @@ path: backend/app/domain/attention.py
     create_attention_state, with_observation, attention_to_dict,
     attention_from_dict, ATTENTION_MAX_SUBJECTS, ATTENTION_OBS_WINDOW.
 """
+
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -98,9 +99,7 @@ class AttentionObservation:
             and math.isfinite(self.rel_dx)
             and math.isfinite(self.rel_dy)
         ):
-            raise ValueError(
-                "AttentionObservation: non-finite perception value — ontological violation"
-            )
+            raise ValueError("AttentionObservation: non-finite perception value — ontological violation")
         if self.tick < 0:
             raise ValueError("AttentionObservation: отрицательный tick")
         object.__setattr__(self, "distance", max(0.0, self.distance))
@@ -119,9 +118,7 @@ class AttentionObservation:
     @staticmethod
     def from_tuple(raw: Tuple[Any, ...]) -> "AttentionObservation":
         if len(raw) != 6:
-            raise ValueError(
-                f"AttentionObservation.from_tuple: ожидалось 6 полей, получено {len(raw)}"
-            )
+            raise ValueError(f"AttentionObservation.from_tuple: ожидалось 6 полей, получено {len(raw)}")
         return AttentionObservation(
             tick=int(raw[0]),
             distance=float(raw[1]),
@@ -170,9 +167,7 @@ def create_attention_state(
     if not subject_id:
         raise ValueError("create_attention_state: пустой subject_id")
     if observation is not None and observation.tick != tick:
-        raise ValueError(
-            "create_attention_state: tick наблюдения не совпадает с tick рождения"
-        )
+        raise ValueError("create_attention_state: tick наблюдения не совпадает с tick рождения")
     window = (observation,) if observation is not None else ()
     new_evidence = approach_evidence if approach_evidence is not None else 0.0
     if not (0.0 <= new_evidence <= 1.0):
@@ -212,9 +207,7 @@ def with_observation(
     наблюдение со tick < last_update_tick — отказ (Invariant III).
     """
     if observation.tick < prev.last_update_tick:
-        raise ValueError(
-            "with_observation: наблюдение в прошлом — нарушение Temporal Isolation"
-        )
+        raise ValueError("with_observation: наблюдение в прошлом — нарушение Temporal Isolation")
     window = (*prev.observation_window, observation)
     if len(window) > ATTENTION_OBS_WINDOW:
         window = window[-ATTENTION_OBS_WINDOW:]
@@ -304,9 +297,7 @@ def with_phase(
     память о наблюдаемом сохраняется, ТЗ сценарий H). Монохронность (Инвариант III)."""
     if tick < prev.last_update_tick:
         raise ValueError("with_phase: перевод фазы в прошлое — Temporal Isolation")
-    new_evidence = (
-        prev.approach_evidence if approach_evidence is None else approach_evidence
-    )
+    new_evidence = prev.approach_evidence if approach_evidence is None else approach_evidence
     if not (0.0 <= new_evidence <= 1.0):
         raise ValueError("with_phase: approach_evidence вне [0, 1]")
     return AttentionState(

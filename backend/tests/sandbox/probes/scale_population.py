@@ -55,9 +55,7 @@ def build_population(target_npcs: int) -> Path:
         (_NPC_SRC / "individuals").name  # noqa: B018 — якорь читаемости
         ind_dir = tmp / "npc" / "individuals"
         ind_dir.mkdir(parents=True, exist_ok=True)
-        (ind_dir / f"{nid}.json").write_text(
-            json.dumps(ind, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        (ind_dir / f"{nid}.json").write_text(json.dumps(ind, ensure_ascii=False, indent=2), encoding="utf-8")
         # 2б. запись npc_positions: клон пространственной записи + детерминированный сдвиг
         entry = json.loads(json.dumps(ref_entry))
         entry["name"] = f"Scale-{i:02d}"
@@ -70,9 +68,7 @@ def build_population(target_npcs: int) -> Path:
     # 3. выгрузка state-копии
     camp_dir = tmp / "campaigns" / "Open_road"
     camp_dir.mkdir(parents=True, exist_ok=True)
-    (camp_dir / "campaign_state.json").write_text(
-        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    (camp_dir / "campaign_state.json").write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
     # 4. архетипы/mixins/social — копируем как есть (загрузчик ожидает полную структуру)
     shutil.copytree(_NPC_SRC / "archetypes", tmp / "npc" / "archetypes")
     shutil.copytree(_NPC_SRC / "mixins", tmp / "npc" / "mixins")

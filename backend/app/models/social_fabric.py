@@ -12,13 +12,14 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class RelationshipSnapshot:
     """Снимок отношений между двумя сущностями в момент времени."""
-    source_id: str # кто чувствует
-    target_id: str # к кому
-    trust: float   # -100..100
-    fear: float    # 0..100
-    affection: float # -100..100
-    debt: float    # -100..100
-    respect: float # 0..100
+
+    source_id: str  # кто чувствует
+    target_id: str  # к кому
+    trust: float  # -100..100
+    fear: float  # 0..100
+    affection: float  # -100..100
+    debt: float  # -100..100
+    respect: float  # 0..100
 
     def __post_init__(self) -> None:
         if not self.source_id or not self.target_id:
@@ -36,14 +37,16 @@ class RelationshipSnapshot:
         if not -100.0 <= self.debt <= 100.0:
             raise ValueError("debt must be in [-100, 100]")
 
+
 @dataclass(frozen=True)
 class RelationshipDelta:
     """Одно изменение отношений."""
+
     tick: int
     source_id: str
     target_id: str
     trust_delta: float
     fear_delta: float
     affection_delta: float
-    cause: str # "player_action:blackmail", "npc_event:witnessed_violence"
-    description: str # "Люся начала бояться игрока после угрозы шантажом"
+    cause: str  # "player_action:blackmail", "npc_event:witnessed_violence"
+    description: str  # "Люся начала бояться игрока после угрозы шантажом"

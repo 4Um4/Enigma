@@ -11,6 +11,7 @@ path: backend/tests/sandbox/micro/test_cognition_modifiers.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_cognition_modifiers.py -v; cd ..
 """
+
 import pytest
 from app.services.npc import attention_reflex as ar
 from app.services.npc.decision_hub import DecisionHub
@@ -96,9 +97,7 @@ def test_weights_bounded_for_1000_characters() -> None:
 def test_max_over_pairs_not_sum() -> None:
     mods = ar.produce_cognition_modifiers([_snap(0.95), _snap(0.7)])
     # Салиентнейшая пара (0.95, полный рамп) определяет модификаторы.
-    assert mods["observe"] == pytest.approx(
-        0.5 * (0.25 + 0.65 / 3 + 0.15 / 3), abs=1e-3
-    )
+    assert mods["observe"] == pytest.approx(0.5 * (0.25 + 0.65 / 3 + 0.15 / 3), abs=1e-3)
 
 
 def test_sanction_bound_unreachable_by_construction() -> None:
@@ -118,9 +117,7 @@ def test_sanction_bound_unreachable_by_construction() -> None:
 def test_deterministic() -> None:
     s = [_snap(0.9)]
     d = {"fear": 0.4, "desire": 0.4, "control": 0.2}
-    assert ar.produce_cognition_modifiers(s, d) == ar.produce_cognition_modifiers(
-        list(s), dict(d)
-    )
+    assert ar.produce_cognition_modifiers(s, d) == ar.produce_cognition_modifiers(list(s), dict(d))
 
 
 def test_apply_modifiers_cognition_channel() -> None:

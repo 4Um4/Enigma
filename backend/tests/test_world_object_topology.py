@@ -16,6 +16,7 @@ path: /project/backend/tests/test_world_object_topology.py
 Основные сущности: TestDomainContract, TestStoreOperations,
     TestPersistenceDoD, TestSnapshotBridge
 """
+
 import tempfile
 from pathlib import Path
 
@@ -35,6 +36,7 @@ from app.services.world import WorldObjectStore
 
 # ═══ Fixtures: мини-мир таверны (только тестовые объекты) ═══
 
+
 def _spawn_tavern(scene: dict) -> dict:
     """Мини-мир: дверь, стол + миска (опора), сундук + монета (вложение),
     кружка (свободная). Рождение — ТОЛЬКО через фабрику стора."""
@@ -49,8 +51,8 @@ def _spawn_tavern(scene: dict) -> dict:
 
 # ═══ A. Domain-контракт (pure) ═══
 
-class TestDomainContract:
 
+class TestDomainContract:
     def test_birth_is_free(self):
         """Объект рождается в FREE без отношений — связывание отдельно."""
         obj = build_world_object("chair_1", "chair", "tavern", (5.0, 3.0))
@@ -62,9 +64,13 @@ class TestDomainContract:
         """Тест-цель — сам guard: мульти-carrier объект непостроим."""
         with pytest.raises(OntologyViolationError):
             WorldObject(
-                object_id="bad_1", archetype="chair", location_id="tavern",
-                position=(0.0, 0.0), state="INTACT",
-                holder="npc_1", container_id="chest_1",
+                object_id="bad_1",
+                archetype="chair",
+                location_id="tavern",
+                position=(0.0, 0.0),
+                state="INTACT",
+                holder="npc_1",
+                container_id="chest_1",
             )
 
     def test_empty_id_rejected(self):
@@ -80,8 +86,7 @@ class TestDomainContract:
         obj = build_world_object("sword_1", "sword", "tavern", (1.0, 1.0))
         with pytest.raises(OntologyViolationError):
             apply_relation_transition(obj, ObjectRelationKind.ATTACHED_TO, "npc_1")
-        ok = apply_relation_transition(
-            obj, ObjectRelationKind.ATTACHED_TO, "npc_1", slot="belt_sheath")
+        ok = apply_relation_transition(obj, ObjectRelationKind.ATTACHED_TO, "npc_1", slot="belt_sheath")
         assert ok.attachment == ("npc_1", "belt_sheath")
 
     def test_strict_release(self):
@@ -120,14 +125,11 @@ class TestDomainContract:
         restored = WorldObject.from_dict(obj.to_dict())
         assert restored == obj
         kinds = {r.kind for r in restored.project_relations()}
-        assert {ObjectRelationKind.LOCATED_AT,
-                ObjectRelationKind.SUPPORTED_BY,
-                ObjectRelationKind.USED_BY} <= kinds
+        assert {ObjectRelationKind.LOCATED_AT, ObjectRelationKind.SUPPORTED_BY, ObjectRelationKind.USED_BY} <= kinds
 
     def test_roundtrip_attachment(self):
         obj = build_world_object("sword_1", "sword", "tavern", (1.0, 1.0))
-        obj = apply_relation_transition(
-            obj, ObjectRelationKind.ATTACHED_TO, "npc_1", slot="belt_sheath")
+        obj = apply_relation_transition(obj, ObjectRelationKind.ATTACHED_TO, "npc_1", slot="belt_sheath")
         restored = WorldObject.from_dict(obj.to_dict())
         assert restored.attachment == ("npc_1", "belt_sheath")
         assert restored == obj
@@ -142,8 +144,8 @@ class TestDomainContract:
 
 # ═══ B. Store-операции ═══
 
-class TestStoreOperations:
 
+class TestStoreOperations:
     def test_duplicate_spawn(self):
         scene = _spawn_tavern({})
         with pytest.raises(OntologyViolationError):
@@ -152,32 +154,26 @@ class TestStoreOperations:
     def test_ghost_target(self):
         scene = _spawn_tavern({})
         with pytest.raises(OntologyViolationError):
-            WorldObjectStore.establish_relation(
-                scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "ghost_table")
+            WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "ghost_table")
 
     def test_cross_location_support(self):
         scene = _spawn_tavern({})
         WorldObjectStore.spawn(scene, "table_2", "table", "cellar", (1.0, 1.0))
         with pytest.raises(OntologyViolationError):
-            WorldObjectStore.establish_relation(
-                scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "table_2")
+            WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "table_2")
 
     def test_non_free_support_target(self):
         """Опора обязана владеть своей позицией (FREE)."""
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "chest_1", ObjectRelationKind.HELD_BY, "npc_17")
+        WorldObjectStore.establish_relation(scene, "chest_1", ObjectRelationKind.HELD_BY, "npc_17")
         with pytest.raises(OntologyViolationError):
-            WorldObjectStore.establish_relation(
-                scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "chest_1")
+            WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.SUPPORTED_BY, "chest_1")
 
     def test_cycle_rejected(self):
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+        WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
         with pytest.raises(OntologyViolationError):
-            WorldObjectStore.establish_relation(
-                scene, "chest_1", ObjectRelationKind.CONTAINED_BY, "coin_1")
+            WorldObjectStore.establish_relation(scene, "chest_1", ObjectRelationKind.CONTAINED_BY, "coin_1")
 
     def test_existing_cycle_detected_loud(self):
         """Уже существующий цикл (повреждение извне) — громко на следующей
@@ -190,17 +186,14 @@ class TestStoreOperations:
         scene["world_objects"]["b_1"]["container_id"] = "a_1"
         WorldObjectStore.spawn(scene, "c_1", "box", "tavern", (2.0, 2.0))
         with pytest.raises(OntologyViolationError):
-            WorldObjectStore.establish_relation(
-                scene, "c_1", ObjectRelationKind.CONTAINED_BY, "a_1")
+            WorldObjectStore.establish_relation(scene, "c_1", ObjectRelationKind.CONTAINED_BY, "a_1")
 
     def test_relocate_blocked_then_released(self):
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
+        WorldObjectStore.establish_relation(scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
         with pytest.raises(OntologyViolationError):
             WorldObjectStore.relocate(scene, "table_1", "tavern", (7.0, 7.0))
-        WorldObjectStore.release_relation(
-            scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY)
+        WorldObjectStore.release_relation(scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY)
         WorldObjectStore.relocate(scene, "table_1", "tavern", (7.0, 7.0))
         assert WorldObjectStore.get(scene, "table_1").position == (7.0, 7.0)
 
@@ -208,51 +201,41 @@ class TestStoreOperations:
         """Перенос сундука с содержимым легален: позиция вложенных —
         производная владельца (онтология carrier, ADR-O-371)."""
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+        WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
         WorldObjectStore.relocate(scene, "chest_1", "tavern", (8.0, 8.0))
         assert WorldObjectStore.get(scene, "chest_1").position == (8.0, 8.0)
         assert WorldObjectStore.get(scene, "coin_1").container_id == "chest_1"
 
     def test_query_objects_at_free_only(self):
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
-        WorldObjectStore.establish_relation(
-            scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+        WorldObjectStore.establish_relation(scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
+        WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
         at = WorldObjectStore.query_objects_at(scene, "tavern", (5.0, 3.0), radius=0.5)
         # bowl FREE+SUPPORTED — включён; coin CONTAINED — исключён
         assert "table_1" in at and "bowl_1" in at
         assert "coin_1" not in at
         # radius=0.0 — точное совпадение (контракт ТЗ §20.2)
-        assert WorldObjectStore.query_objects_at(
-            scene, "tavern", (5.0, 3.0), radius=0.0) == ("table_1",)
+        assert WorldObjectStore.query_objects_at(scene, "tavern", (5.0, 3.0), radius=0.0) == ("table_1",)
 
     def test_container_contents_inverse(self):
         """Содержимое контейнера — ЗАПРОС, не хранимое mirror-поле."""
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
-        assert [o.object_id for o in
-                WorldObjectStore.query_container_contents(scene, "chest_1")] == ["coin_1"]
+        WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+        assert [o.object_id for o in WorldObjectStore.query_container_contents(scene, "chest_1")] == ["coin_1"]
         assert WorldObjectStore.query_container_contents(scene, "table_1") == ()
 
     def test_used_by_atomic_transfer(self):
         """USED_BY — независимое отношение: атомарная замена = передача."""
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "cup_1", ObjectRelationKind.USED_BY, "npc_a")
-        WorldObjectStore.establish_relation(
-            scene, "cup_1", ObjectRelationKind.USED_BY, "npc_b")
+        WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.USED_BY, "npc_a")
+        WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.USED_BY, "npc_b")
         assert WorldObjectStore.get(scene, "cup_1").used_by == "npc_b"
 
     def test_used_by_compatible_with_held(self):
         """USED_BY совместим с carrier (онтология: независимая ось)."""
         scene = _spawn_tavern({})
-        WorldObjectStore.establish_relation(
-            scene, "cup_1", ObjectRelationKind.HELD_BY, "npc_a")
-        WorldObjectStore.establish_relation(
-            scene, "cup_1", ObjectRelationKind.USED_BY, "npc_a")
+        WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.HELD_BY, "npc_a")
+        WorldObjectStore.establish_relation(scene, "cup_1", ObjectRelationKind.USED_BY, "npc_a")
         obj = WorldObjectStore.get(scene, "cup_1")
         assert obj.holder == "npc_a" and obj.used_by == "npc_a"
 
@@ -275,8 +258,8 @@ class TestStoreOperations:
 
 # ═══ C. DoD-цикл Мастера: персистенция через реальный адаптер ═══
 
-class TestPersistenceDoD:
 
+class TestPersistenceDoD:
     def test_spawn_relation_save_load_same_object(self):
         """DoD W1: создали -> relation -> сохранили -> перезагрузили ->
         получили ТОТ ЖЕ семантический объект. Ноль специального
@@ -286,15 +269,11 @@ class TestPersistenceDoD:
             adapter = SqlitePersistenceAdapter(Path(tmp) / "w1_dod.sqlite")
             scene = {"location_id": "tavern", "tick": 7, "game_time_seconds": 70.0}
             _spawn_tavern(scene)
-            WorldObjectStore.establish_relation(
-                scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
-            WorldObjectStore.establish_relation(
-                scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
-            WorldObjectStore.establish_relation(
-                scene, "bowl_1", ObjectRelationKind.USED_BY, "npc_17")
+            WorldObjectStore.establish_relation(scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
+            WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+            WorldObjectStore.establish_relation(scene, "bowl_1", ObjectRelationKind.USED_BY, "npc_17")
 
-            assert adapter.atomic_commit_all(
-                campaign_id="w1_campaign", all_scenes={"tavern": scene})
+            assert adapter.atomic_commit_all(campaign_id="w1_campaign", all_scenes={"tavern": scene})
 
             loaded = adapter.load_scene_at("w1_campaign", "tavern")
             assert loaded is not None
@@ -305,8 +284,7 @@ class TestPersistenceDoD:
             assert WorldObjectStore.get(loaded, "coin_1").container_id == "chest_1"
             assert WorldObjectStore.get(loaded, "door_1").state == "CLOSED"
             # inverse-запрос работает на загруженной сцене
-            assert [o.object_id for o in WorldObjectStore.query_container_contents(
-                loaded, "chest_1")] == ["coin_1"]
+            assert [o.object_id for o in WorldObjectStore.query_container_contents(loaded, "chest_1")] == ["coin_1"]
             adapter.close()
 
     def test_mutation_survives_second_commit(self):
@@ -316,13 +294,11 @@ class TestPersistenceDoD:
             adapter = SqlitePersistenceAdapter(Path(tmp) / "w1_dod2.sqlite")
             scene = {"location_id": "tavern", "tick": 1}
             _spawn_tavern(scene)
-            WorldObjectStore.establish_relation(
-                scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
+            WorldObjectStore.establish_relation(scene, "coin_1", ObjectRelationKind.CONTAINED_BY, "chest_1")
             adapter.atomic_commit_all(campaign_id="w1_c2", all_scenes={"tavern": scene})
 
             loaded = adapter.load_scene_at("w1_c2", "tavern")
-            WorldObjectStore.release_relation(
-                loaded, "coin_1", ObjectRelationKind.CONTAINED_BY)
+            WorldObjectStore.release_relation(loaded, "coin_1", ObjectRelationKind.CONTAINED_BY)
             adapter.atomic_commit_all(campaign_id="w1_c2", all_scenes={"tavern": loaded})
 
             reloaded = adapter.load_scene_at("w1_c2", "tavern")
@@ -332,16 +308,14 @@ class TestPersistenceDoD:
 
 # ═══ D. Мост WorldSnapshot ═══
 
-class TestSnapshotBridge:
 
+class TestSnapshotBridge:
     def test_freeze_and_immutability(self):
         """Заморозка: мутация живой сцены после снимка не проходит."""
         scene = {"npc_positions": {}, "active_traversals": {}}
         _spawn_tavern(scene)
-        WorldObjectStore.establish_relation(
-            scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
-        snap = build_snapshot(tick=7, campaign_id="c", location_id="tavern",
-                              spatial_service=None, scene_state=scene)
+        WorldObjectStore.establish_relation(scene, "bowl_1", ObjectRelationKind.SUPPORTED_BY, "table_1")
+        snap = build_snapshot(tick=7, campaign_id="c", location_id="tavern", spatial_service=None, scene_state=scene)
         assert snap.world_objects is not None
         assert snap.world_objects["bowl_1"]["supported_by"] == "table_1"
         scene["world_objects"]["bowl_1"]["supported_by"] = "ghost"
@@ -349,6 +323,5 @@ class TestSnapshotBridge:
 
     def test_empty_scene_legitimate(self):
         """Production до спавнера: пустая сцена -> {} — честно."""
-        snap = build_snapshot(tick=1, campaign_id="c", location_id="tavern",
-                              spatial_service=None, scene_state={})
+        snap = build_snapshot(tick=1, campaign_id="c", location_id="tavern", spatial_service=None, scene_state={})
         assert snap.world_objects == {}

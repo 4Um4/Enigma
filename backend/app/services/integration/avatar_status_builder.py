@@ -4,6 +4,7 @@ path: /project/backend/app/services/integration/avatar_status_builder.py
 Зависимости: app.domain.presentation, app.models.economy, app.services.economy.need_presentation_mapper
 Основные сущности: AvatarStatusBuilder
 """
+
 from __future__ import annotations
 
 import logging
@@ -29,9 +30,7 @@ class AvatarStatusBuilder:
     ) -> EmbodiedStatusDTO:
         """Формирует DTO состояния аватара для фронтенда. Никогда не возвращает None."""
         if not eco_profile:
-            return EmbodiedStatusDTO(
-                gold=0.0, food_count=0.0, current_weight=0.0, max_weight=0.0, active_needs=[]
-            )
+            return EmbodiedStatusDTO(gold=0.0, food_count=0.0, current_weight=0.0, max_weight=0.0, active_needs=[])
 
         _gold = round(eco_profile.gold, 1)
         _food_count = self._extract_food_count(eco_profile)

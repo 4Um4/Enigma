@@ -7,8 +7,12 @@ R2-B5-D1 PLAYER SPATIAL OBSERVABILITY AUDIT.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -39,14 +43,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_b5_d1_player_spatial_audit.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -66,7 +76,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -113,22 +123,22 @@ def step1_spatial_query_service() -> None:
         print(f"L{i:4d}: {line}")
 
     # Find distance method
-    print(f"\n--- Поиск метода distance ---")
+    print("\n--- Поиск метода distance ---")
     bounds = _find_function_bounds(src, "distance")
     if bounds:
         start, end = bounds
-        print(f"\n  distance() at L{start+1}–L{end}:")
+        print(f"\n  distance() at L{start + 1}–L{end}:")
         for j in range(start, end):
-            print(f"  L{j+1}: {lines[j]}")
+            print(f"  L{j + 1}: {lines[j]}")
 
     # Find _npc_positions
-    print(f"\n--- Поиск _npc_positions ---")
+    print("\n--- Поиск _npc_positions ---")
     for i, line in enumerate(lines, 1):
         if "_npc_positions" in line:
             print(f"  L{i}: {line.rstrip()}")
 
     # Find player references
-    print(f"\n--- Поиск 'player' в SpatialQueryService ---")
+    print("\n--- Поиск 'player' в SpatialQueryService ---")
     for i, line in enumerate(lines, 1):
         if "player" in line.lower():
             print(f"  L{i}: {line.rstrip()}")
@@ -140,14 +150,14 @@ def step1_spatial_query_service() -> None:
 def step2_player_position_storage() -> None:
     _print_section("STEP 2: Где хранится позиция Player во время runtime")
 
-    print(f"""
+    print("""
 >>> Поиск player position в scene_state:
 
   В tavern.json есть:
-    player_spawn: {{x: 8.205, y: 11.910, z: 0}}
+    player_spawn: {x: 8.205, y: 11.910, z: 0}
 
   В runtime scene_state:
-    - npc_positions: dict npc_id → {{position, local_position, ...}}
+    - npc_positions: dict npc_id → {position, local_position, ...}
     - player_spawn: может быть в scene_state?
     - player_position: может быть отдельное поле?
 """)
@@ -161,12 +171,20 @@ def step2_player_position_storage() -> None:
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line for kw in ["player_position", "player_spawn",
-                                          "player_pos", "_player_pos",
-                                          "get_player_position", "player_local"]):
+            if any(
+                kw in line
+                for kw in [
+                    "player_position",
+                    "player_spawn",
+                    "player_pos",
+                    "_player_pos",
+                    "get_player_position",
+                    "player_local",
+                ]
+            ):
                 if "test" not in str(f).lower() and "sandbox" not in str(f).lower():
                     rel = f.relative_to(_BACKEND) if f.is_relative_to(_BACKEND) else f
                     print(f"  {rel} L{i}: {line.rstrip()}")
@@ -178,7 +196,7 @@ def step2_player_position_storage() -> None:
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         for i, line in enumerate(src.split("\n"), 1):
             if "scene_state" in line and "player" in line.lower() and "position" in line.lower():
@@ -205,21 +223,21 @@ def step3_claim_subscriber_spatial_wiring() -> None:
     if bounds:
         start, end = bounds
         for j in range(start, end):
-            print(f"L{j+1}: {lines[j]}")
+            print(f"L{j + 1}: {lines[j]}")
 
     # Show on_claim_event spatial section (L244-278)
-    print(f"\n--- on_claim_event — spatial membrane section (L244-278) ---")
+    print("\n--- on_claim_event — spatial membrane section (L244-278) ---")
     for line in _read_lines(ces_path, 244, 278):
         print(f"  {line}")
 
     # Search for where ClaimEventSubscriber is created
-    print(f"\n--- Где ClaimEventSubscriber создаётся (wiring) ---")
+    print("\n--- Где ClaimEventSubscriber создаётся (wiring) ---")
     for f in _BACKEND.rglob("*.py"):
         if any(part in {".venv", "node_modules", ".git", "__pycache__"} for part in f.parts):
             continue
         try:
             src2 = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         for i, line in enumerate(src2.split("\n"), 1):
             if "ClaimEventSubscriber(" in line or "claim_event_subscriber" in line.lower() and "import" in line.lower():
@@ -248,7 +266,7 @@ def step4_runtime_scene_state_check() -> None:
         if scene is None:
             scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
 
-        print(f"\n--- scene_state keys ---")
+        print("\n--- scene_state keys ---")
         for k in sorted(scene.keys()):
             v = scene[k]
             if isinstance(v, dict):
@@ -260,27 +278,27 @@ def step4_runtime_scene_state_check() -> None:
 
         # Check npc_positions
         npc_positions = scene.get("npc_positions", {})
-        print(f"\n--- npc_positions ---")
+        print("\n--- npc_positions ---")
         print(f"  Keys: {list(npc_positions.keys())}")
         for nid, pos_data in npc_positions.items():
             print(f"  {nid}: {pos_data}")
 
         # Check player_spawn
         player_spawn = scene.get("player_spawn")
-        print(f"\n--- player_spawn ---")
+        print("\n--- player_spawn ---")
         print(f"  {player_spawn}")
 
         # Check if player is in npc_positions
-        print(f"\n--- player in npc_positions? ---")
+        print("\n--- player in npc_positions? ---")
         print(f"  'player' in npc_positions: {'player' in npc_positions}")
 
         # Check for player_position field
         player_pos = scene.get("player_position")
-        print(f"\n--- player_position field ---")
+        print("\n--- player_position field ---")
         print(f"  {player_pos}")
 
         # Try to get SpatialQueryService
-        print(f"\n--- SpatialQueryService from loop ---")
+        print("\n--- SpatialQueryService from loop ---")
         spatial_svc = None
         for attr in ("spatial_service", "_spatial_service", "spatial"):
             if hasattr(loop, attr):
@@ -298,7 +316,7 @@ def step4_runtime_scene_state_check() -> None:
 
         if spatial_svc:
             # Try distance("player", "maid_lusya")
-            print(f"\n--- Testing distance('player', 'maid_lusya') ---")
+            print("\n--- Testing distance('player', 'maid_lusya') ---")
             try:
                 d = spatial_svc.distance("player", "maid_lusya")
                 print(f"  distance: {d}")
@@ -306,7 +324,7 @@ def step4_runtime_scene_state_check() -> None:
                 print(f"  ERROR: {e}")
 
             # Try distance("maid_lusya", "tavern_keeper_tornin")
-            print(f"\n--- Testing distance('maid_lusya', 'tavern_keeper_tornin') ---")
+            print("\n--- Testing distance('maid_lusya', 'tavern_keeper_tornin') ---")
             try:
                 d = spatial_svc.distance("maid_lusya", "tavern_keeper_tornin")
                 print(f"  distance: {d}")
@@ -315,7 +333,7 @@ def step4_runtime_scene_state_check() -> None:
 
             # Check _npc_positions in spatial_svc
             _npc_pos = getattr(spatial_svc, "_npc_positions", {})
-            print(f"\n--- spatial_svc._npc_positions ---")
+            print("\n--- spatial_svc._npc_positions ---")
             print(f"  Keys: {list(_npc_pos.keys()) if _npc_pos else 'empty'}")
             for nid, pos in (_npc_pos or {}).items():
                 print(f"  {nid}: {pos}")
@@ -330,18 +348,21 @@ def step4_runtime_scene_state_check() -> None:
                     except Exception as e:
                         print(f"  Called: ERROR {e}")
         else:
-            print(f"  SpatialQueryService not found")
+            print("  SpatialQueryService not found")
 
         # Cleanup
         try:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:
@@ -370,9 +391,19 @@ def step5_b4_harness_comparison() -> None:
         lines = src.split("\n")
         print(f"--- B4 test file ({len(lines)} lines) — player/spatial references ---")
         for i, line in enumerate(lines, 1):
-            if any(kw in line.lower() for kw in ["player", "spatial", "npc_positions",
-                                                   "distance", "claim_subscriber",
-                                                   "hearing", "perceive", "observe"]):
+            if any(
+                kw in line.lower()
+                for kw in [
+                    "player",
+                    "spatial",
+                    "npc_positions",
+                    "distance",
+                    "claim_subscriber",
+                    "hearing",
+                    "perceive",
+                    "observe",
+                ]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
     else:
         print(f"[B4 test file not found: {b4_path}]")
@@ -382,11 +413,12 @@ def step5_b4_harness_comparison() -> None:
     if harness_path.exists():
         src = harness_path.read_text(encoding="utf-8", errors="replace")
         lines = src.split("\n")
-        print(f"\n--- harness.py — player/spatial references ---")
+        print("\n--- harness.py — player/spatial references ---")
         for i, line in enumerate(lines, 1):
-            if any(kw in line.lower() for kw in ["player", "spatial", "npc_positions",
-                                                   "distance", "claim_subscriber",
-                                                   "hearing", "perceive"]):
+            if any(
+                kw in line.lower()
+                for kw in ["player", "spatial", "npc_positions", "distance", "claim_subscriber", "hearing", "perceive"]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
 
@@ -396,7 +428,7 @@ def step5_b4_harness_comparison() -> None:
 def step6_fix_proposal() -> None:
     _print_section("STEP 6: ИТОГ + минимальный fix proposal")
 
-    print(f"""
+    print("""
 =============================================================================
 ТОЧНАЯ ПРИЧИНА ДЕФЕКТА B5-D1
 =============================================================================
@@ -461,23 +493,41 @@ def main() -> int:
     print(f"OUT_FILE: {OUT_FILE}")
     print("=" * 78)
 
-    try: step1_spatial_query_service()
-    except Exception as e: print(f"[step1 error: {e}]"); traceback.print_exc()
+    try:
+        step1_spatial_query_service()
+    except Exception as e:
+        print(f"[step1 error: {e}]")
+        traceback.print_exc()
 
-    try: step2_player_position_storage()
-    except Exception as e: print(f"[step2 error: {e}]"); traceback.print_exc()
+    try:
+        step2_player_position_storage()
+    except Exception as e:
+        print(f"[step2 error: {e}]")
+        traceback.print_exc()
 
-    try: step3_claim_subscriber_spatial_wiring()
-    except Exception as e: print(f"[step3 error: {e}]"); traceback.print_exc()
+    try:
+        step3_claim_subscriber_spatial_wiring()
+    except Exception as e:
+        print(f"[step3 error: {e}]")
+        traceback.print_exc()
 
-    try: step4_runtime_scene_state_check()
-    except Exception as e: print(f"[step4 error: {e}]"); traceback.print_exc()
+    try:
+        step4_runtime_scene_state_check()
+    except Exception as e:
+        print(f"[step4 error: {e}]")
+        traceback.print_exc()
 
-    try: step5_b4_harness_comparison()
-    except Exception as e: print(f"[step5 error: {e}]"); traceback.print_exc()
+    try:
+        step5_b4_harness_comparison()
+    except Exception as e:
+        print(f"[step5 error: {e}]")
+        traceback.print_exc()
 
-    try: step6_fix_proposal()
-    except Exception as e: print(f"[step6 error: {e}]"); traceback.print_exc()
+    try:
+        step6_fix_proposal()
+    except Exception as e:
+        print(f"[step6 error: {e}]")
+        traceback.print_exc()
 
     try:
         OUT_FILE.parent.mkdir(parents=True, exist_ok=True)

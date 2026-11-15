@@ -37,6 +37,7 @@ v9 strategy:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -376,6 +377,7 @@ def _install_class_spies() -> bool:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         _orig_execute = DialogueExecutor.execute
         DialogueExecutor.execute = _spy_execute
         _orig_gen = DialogueExecutor._generate_with_router
@@ -386,12 +388,14 @@ def _install_class_spies() -> bool:
         return False
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         _orig_materialize = DialogueMaterializer.materialize
         DialogueMaterializer.materialize = _spy_materialize
     except Exception as e:
         print(f"  [DialogueMaterializer spy install failed: {e}]")
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         _orig_to_event = IntentEventAdapter.to_event
         IntentEventAdapter.to_event = staticmethod(_spy_to_event)
     except Exception as e:
@@ -420,6 +424,7 @@ def _restore_class_spies() -> None:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         if _orig_execute is not None:
             DialogueExecutor.execute = _orig_execute
         if _orig_gen is not None:
@@ -428,12 +433,14 @@ def _restore_class_spies() -> None:
         pass
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         if _orig_materialize is not None:
             DialogueMaterializer.materialize = _orig_materialize
     except Exception:
         pass
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         if _orig_to_event is not None:
             IntentEventAdapter.to_event = _orig_to_event
     except Exception:
@@ -476,9 +483,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -495,9 +500,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 300) -> Non
     if bounds:
         s, e = bounds
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -507,9 +512,14 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 300) -> Non
 # ============================================================================
 # Controlled experiment runner
 # ============================================================================
-def _build_test_task(owner_id: str, target_id: str, intent_type: str,
-                     topic: str, proposition: Optional[Any] = None,
-                     campaign_id: str = "Open_road") -> Any:
+def _build_test_task(
+    owner_id: str,
+    target_id: str,
+    intent_type: str,
+    topic: str,
+    proposition: Optional[Any] = None,
+    campaign_id: str = "Open_road",
+) -> Any:
     """Build a QueuedTask-like object for direct executor testing."""
     from app.domain.execution import QueuedTask, TaskKind, TaskState
     from app.domain.communication import DialogueRequest, ExposureLevel
@@ -555,7 +565,9 @@ def _run_experiment(label: str, executor: Any, task: Any, timeout_sec: float = 3
         "executor_router": repr(getattr(executor, "_router", None))[:120],
         "task_owner_id": getattr(task, "owner_id", None),
         "task_payload_intent_type": getattr(task.payload, "intent_type", None) if hasattr(task, "payload") else None,
-        "task_payload_proposition": str(getattr(task.payload, "proposition", None))[:120] if hasattr(task, "payload") else None,
+        "task_payload_proposition": str(getattr(task.payload, "proposition", None))[:120]
+        if hasattr(task, "payload")
+        else None,
         "execute_completed": False,
         "exception": None,
         "yielded_artifacts": [],
@@ -619,9 +631,20 @@ def _run_experiment(label: str, executor: Any, task: Any, timeout_sec: float = 3
     # Capture relevant logs
     relevant_logs = []
     for msg in _log_capture.messages():
-        if any(kw in msg for kw in ["DIALOGUE_EXEC", "LLM", "abort", "timeout",
-                                     "Contract", "materializer", "Materializer",
-                                     "LANG_LEAK", "cognition"]):
+        if any(
+            kw in msg
+            for kw in [
+                "DIALOGUE_EXEC",
+                "LLM",
+                "abort",
+                "timeout",
+                "Contract",
+                "materializer",
+                "Materializer",
+                "LANG_LEAK",
+                "cognition",
+            ]
+        ):
             relevant_logs.append(msg)
     result["relevant_logs"] = relevant_logs[:20]
 
@@ -641,7 +664,7 @@ def _run_experiment(label: str, executor: Any, task: Any, timeout_sec: float = 3
             if art.get("data_text"):
                 print(f"        text: {art['data_text'][:200]}")
     if result["relevant_logs"]:
-        print(f"    Relevant logs:")
+        print("    Relevant logs:")
         for l in result["relevant_logs"][:10]:
             print(f"      {l[:200]}")
 
@@ -700,7 +723,7 @@ def main() -> int:
         _print_section("STEP 4: Read DialogueExecutor.execute fully")
         de_path = _BACKEND / "app" / "services" / "execution" / "dialogue_executor.py"
         _read_function_full(de_path, "execute", max_lines=300)
-        print(f"\n  --- _generate_with_router ---")
+        print("\n  --- _generate_with_router ---")
         _read_function_full(de_path, "_generate_with_router", max_lines=250)
 
         # =====================================================================
@@ -718,11 +741,11 @@ def main() -> int:
         src_ts = _read_file_text(ts_path)
         lines_ts = src_ts.split("\n")
         # Search for _task_outbox usage
-        print(f"  --- _task_outbox usage in task_scheduler.py ---")
+        print("  --- _task_outbox usage in task_scheduler.py ---")
         for i, line in enumerate(lines_ts, 1):
             if "_task_outbox" in line:
                 print(f"  L{i}: {line.rstrip()}")
-        print(f"\n  --- _record_task_outcome definition ---")
+        print("\n  --- _record_task_outcome definition ---")
         _read_function_full(ts_path, "_record_task_outcome", max_lines=100)
 
         # =====================================================================
@@ -750,7 +773,7 @@ def main() -> int:
 
         bus = get_event_bus()
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # Find DialogueExecutor
         ts_obj = loop._get_task_scheduler()
@@ -758,9 +781,10 @@ def main() -> int:
         dialogue_executor = None
         if executors_dict is not None:
             from app.domain.execution import TaskKind
+
             dialogue_executor = executors_dict.get(TaskKind.DIALOGUE)
         if dialogue_executor is None:
-            print(f"  [FATAL: DialogueExecutor not found]")
+            print("  [FATAL: DialogueExecutor not found]")
             return 1
         print(f"  DialogueExecutor found: {dialogue_executor}")
 
@@ -770,11 +794,11 @@ def main() -> int:
 
         # Install class spies
         if _install_class_spies():
-            print(f"  Class spies installed")
+            print("  Class spies installed")
         # Install router spies (if router exists)
         if router is not None:
             _install_router_spies(router)
-            print(f"  Router spies installed")
+            print("  Router spies installed")
 
         # Build test proposition
         test_proposition = Proposition(
@@ -789,7 +813,7 @@ def main() -> int:
 
         # Experiment A: router=None, no proposition (stub branch)
         # We need to temporarily set router to None
-        print(f"\n  === Experiment A: router=None, no proposition ===")
+        print("\n  === Experiment A: router=None, no proposition ===")
         orig_router_val = getattr(dialogue_executor, "_router", None)
         dialogue_executor._router = None
         task_a = _build_test_task("guard_borko", "tavern_keeper_tornin", "warn", "test")
@@ -798,38 +822,41 @@ def main() -> int:
         dialogue_executor._router = orig_router_val
 
         # Experiment B: router=None, with proposition (stub branch, but spread_rumor)
-        print(f"\n  === Experiment B: router=None, spread_rumor + proposition ===")
+        print("\n  === Experiment B: router=None, spread_rumor + proposition ===")
         dialogue_executor._router = None
-        task_b = _build_test_task("guard_borko", "tavern_keeper_tornin", "spread_rumor", "власть",
-                                   proposition=test_proposition)
+        task_b = _build_test_task(
+            "guard_borko", "tavern_keeper_tornin", "spread_rumor", "власть", proposition=test_proposition
+        )
         result_b = _run_experiment("B: router=None, spread_rumor+prop", dialogue_executor, task_b, timeout_sec=15)
         experiments_results.append(result_b)
         dialogue_executor._router = orig_router_val
 
         # Experiment C: router exists, no proposition (deterministic stub)
-        print(f"\n  === Experiment C: router exists, no proposition, intent=warn ===")
+        print("\n  === Experiment C: router exists, no proposition, intent=warn ===")
         task_c = _build_test_task("guard_borko", "tavern_keeper_tornin", "warn", "test")
         result_c = _run_experiment("C: router exists, no prop, intent=warn", dialogue_executor, task_c, timeout_sec=15)
         experiments_results.append(result_c)
 
         # Experiment D: router exists, with proposition (LLM branch — likely blocks)
-        print(f"\n  === Experiment D: router exists, spread_rumor + proposition ===")
-        task_d = _build_test_task("guard_borko", "tavern_keeper_tornin", "spread_rumor", "власть",
-                                   proposition=test_proposition)
-        result_d = _run_experiment("D: router exists, spread_rumor+prop (LLM branch)", dialogue_executor, task_d, timeout_sec=30)
+        print("\n  === Experiment D: router exists, spread_rumor + proposition ===")
+        task_d = _build_test_task(
+            "guard_borko", "tavern_keeper_tornin", "spread_rumor", "власть", proposition=test_proposition
+        )
+        result_d = _run_experiment(
+            "D: router exists, spread_rumor+prop (LLM branch)", dialogue_executor, task_d, timeout_sec=30
+        )
         experiments_results.append(result_d)
 
         # Experiment E: router exists, intent=warn, with proposition
         # (warn + proposition: requires_llm_materialization(warn)=False, AND (warn==spread_rumor is False)
         # → goes to deterministic stub branch)
-        print(f"\n  === Experiment E: router exists, intent=warn, with proposition ===")
-        task_e = _build_test_task("guard_borko", "tavern_keeper_tornin", "warn", "test",
-                                   proposition=test_proposition)
+        print("\n  === Experiment E: router exists, intent=warn, with proposition ===")
+        task_e = _build_test_task("guard_borko", "tavern_keeper_tornin", "warn", "test", proposition=test_proposition)
         result_e = _run_experiment("E: router exists, warn+prop", dialogue_executor, task_e, timeout_sec=15)
         experiments_results.append(result_e)
 
         # Experiment F: router exists, intent=talk (requires_llm_materialization(talk)=True → goes to LLM branch)
-        print(f"\n  === Experiment F: router exists, intent=talk (LLM branch) ===")
+        print("\n  === Experiment F: router exists, intent=talk (LLM branch) ===")
         task_f = _build_test_task("guard_borko", "tavern_keeper_tornin", "talk", "test")
         result_f = _run_experiment("F: router exists, intent=talk (LLM)", dialogue_executor, task_f, timeout_sec=30)
         experiments_results.append(result_f)
@@ -839,7 +866,9 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 8: Summary table — 6 experiments")
 
-        print(f"\n  {'Experiment':<55} {'exec':>5} {'gen':>5} {'mat':>5} {'adapt':>5} {'router':>7} {'abort':>6} {'arts':>5} {'dur':>7} {'result':<30}")
+        print(
+            f"\n  {'Experiment':<55} {'exec':>5} {'gen':>5} {'mat':>5} {'adapt':>5} {'router':>7} {'abort':>6} {'arts':>5} {'dur':>7} {'result':<30}"
+        )
         for r in experiments_results:
             status = "OK"
             if r.get("exception"):
@@ -848,9 +877,11 @@ def main() -> int:
                 status = "TIMEOUT"
             elif not r["yielded_artifacts"]:
                 status = "NO ARTIFACTS"
-            print(f"  {r['label']:<55} {r['execute_spy_calls']:>5} {r['generate_with_router_calls']:>5} "
-                  f"{r['materialize_calls']:>5} {r['to_event_calls']:>5} {r['router_calls']:>7} "
-                  f"{r['abort_calls']:>6} {len(r['yielded_artifacts']):>5} {r['duration_sec']:>6.1f}s {status:<30}")
+            print(
+                f"  {r['label']:<55} {r['execute_spy_calls']:>5} {r['generate_with_router_calls']:>5} "
+                f"{r['materialize_calls']:>5} {r['to_event_calls']:>5} {r['router_calls']:>7} "
+                f"{r['abort_calls']:>6} {len(r['yielded_artifacts']):>5} {r['duration_sec']:>6.1f}s {status:<30}"
+            )
 
         # =====================================================================
         # STEP 9: Answer 7 questions
@@ -858,63 +889,66 @@ def main() -> int:
         _print_section("STEP 9: Answers to 7 questions")
 
         # Q1: Does executor reach _generate_with_router?
-        q1_exp = next((r for r in experiments_results if "spread_rumor+prop" in r["label"] and "router exists" in r["label"]), None)
+        q1_exp = next(
+            (r for r in experiments_results if "spread_rumor+prop" in r["label"] and "router exists" in r["label"]),
+            None,
+        )
         if q1_exp:
-            print(f"\n  Q1: Does executor reach _generate_with_router?")
-            print(f"      Experiment D (router exists, spread_rumor+prop):")
+            print("\n  Q1: Does executor reach _generate_with_router?")
+            print("      Experiment D (router exists, spread_rumor+prop):")
             print(f"      generate_with_router_calls: {q1_exp['generate_with_router_calls']}")
             if q1_exp["generate_with_router_calls"] > 0:
-                print(f"      >>> YES — executor reaches _generate_with_router")
+                print("      >>> YES — executor reaches _generate_with_router")
             else:
-                print(f"      >>> NO — executor does NOT reach _generate_with_router")
-                print(f"      >>> Executor probably stops before L160 (e.g., at _resolve_disclosure_verdict L139)")
+                print("      >>> NO — executor does NOT reach _generate_with_router")
+                print("      >>> Executor probably stops before L160 (e.g., at _resolve_disclosure_verdict L139)")
 
         # Q2: Does _generate_with_router return or block?
         if q1_exp and q1_exp["generate_with_router_calls"] > 0:
-            print(f"\n  Q2: Does _generate_with_router return or block?")
+            print("\n  Q2: Does _generate_with_router return or block?")
             if q1_exp["execute_completed"]:
                 print(f"      >>> RETURNS — execute completed in {q1_exp['duration_sec']:.1f}s")
             else:
-                print(f"      >>> BLOCKS — execute did not complete within timeout")
+                print("      >>> BLOCKS — execute did not complete within timeout")
 
         # Q3: Does Timer fire and what does it interrupt?
-        print(f"\n  Q3: Does Timer fire and what does it interrupt?")
+        print("\n  Q3: Does Timer fire and what does it interrupt?")
         if q1_exp:
             print(f"      Experiment D abort_calls: {q1_exp['abort_calls']}")
             if q1_exp["abort_calls"] > 0:
-                print(f"      >>> Timer DID fire — _abort_generation called")
+                print("      >>> Timer DID fire — _abort_generation called")
             else:
-                print(f"      >>> Timer did NOT fire (within timeout)")
+                print("      >>> Timer did NOT fire (within timeout)")
 
         # Q4: Does execute() return an Artifact?
-        print(f"\n  Q4: Does execute() return an Artifact?")
+        print("\n  Q4: Does execute() return an Artifact?")
         for r in experiments_results:
             print(f"      {r['label']}: {len(r['yielded_artifacts'])} artifacts")
 
         # Q5: Does the result reach materializer.materialize()?
-        print(f"\n  Q5: Does the result reach materializer.materialize()?")
-        print(f"      (Note: materializer is called by task_scheduler, NOT by executor directly)")
-        print(f"      (In our controlled experiments, we call executor directly — no task_scheduler)")
-        print(f"      (So materialize_calls=0 is expected — materializer isn't part of this path)")
+        print("\n  Q5: Does the result reach materializer.materialize()?")
+        print("      (Note: materializer is called by task_scheduler, NOT by executor directly)")
+        print("      (In our controlled experiments, we call executor directly — no task_scheduler)")
+        print("      (So materialize_calls=0 is expected — materializer isn't part of this path)")
         for r in experiments_results:
             print(f"      {r['label']}: materialize_calls={r['materialize_calls']}")
 
         # Q6: WHO publishes NPC_SPOKE and under what conditions?
-        print(f"\n  Q6: WHO publishes NPC_SPOKE and under what conditions?")
-        print(f"      From production code reading (Steps 1-6):")
-        print(f"      - DialogueExecutor.execute() yields Artifact (NOT publishes event)")
-        print(f"      - task_scheduler._process_tasks_async iterates artifacts")
-        print(f"      - materializer.materialize(artifact) creates EventDTO objects")
-        print(f"      - events go into _task_outbox (NOT published immediately)")
-        print(f"      - drain_task_worker_outbox publishes events via _bus.publish()")
-        print(f"      - drain_task_worker_outbox is called from execute_pending + idle_tick")
-        print(f"      >>> NPC_SPOKE is published by drain_task_worker_outbox, NOT by executor")
-        print(f"      >>> Condition: artifact must be successful AND have proposition/materializer result")
+        print("\n  Q6: WHO publishes NPC_SPOKE and under what conditions?")
+        print("      From production code reading (Steps 1-6):")
+        print("      - DialogueExecutor.execute() yields Artifact (NOT publishes event)")
+        print("      - task_scheduler._process_tasks_async iterates artifacts")
+        print("      - materializer.materialize(artifact) creates EventDTO objects")
+        print("      - events go into _task_outbox (NOT published immediately)")
+        print("      - drain_task_worker_outbox publishes events via _bus.publish()")
+        print("      - drain_task_worker_outbox is called from execute_pending + idle_tick")
+        print("      >>> NPC_SPOKE is published by drain_task_worker_outbox, NOT by executor")
+        print("      >>> Condition: artifact must be successful AND have proposition/materializer result")
 
         # Q7: Does the Future get an exception, result, or remain pending?
-        print(f"\n  Q7: Does the Future get an exception, result, or remain pending?")
-        print(f"      From Step 1 (production code): _process_tasks_async uses _executor_pool.submit()")
-        print(f"      In our experiments, we use direct thread — Future equivalent:")
+        print("\n  Q7: Does the Future get an exception, result, or remain pending?")
+        print("      From Step 1 (production code): _process_tasks_async uses _executor_pool.submit()")
+        print("      In our experiments, we use direct thread — Future equivalent:")
         for r in experiments_results:
             if r["execute_completed"]:
                 if r.get("exception"):
@@ -932,7 +966,7 @@ def main() -> int:
         # Find experiment D (the most relevant — spread_rumor + prop + router)
         exp_d = next((r for r in experiments_results if "D:" in r["label"]), None)
         if exp_d:
-            print(f"\n  Experiment D (router exists, spread_rumor + proposition):")
+            print("\n  Experiment D (router exists, spread_rumor + proposition):")
             print(f"    execute_completed: {exp_d['execute_completed']}")
             print(f"    duration: {exp_d['duration_sec']:.1f}s")
             print(f"    exception: {exp_d.get('exception', 'None')}")
@@ -942,38 +976,38 @@ def main() -> int:
             print(f"    abort_calls: {exp_d['abort_calls']}")
 
             if not exp_d["execute_completed"]:
-                print(f"\n  >>> VERDICT: execute() BLOCKS (does not return within timeout)")
-                print(f"  >>> spread_rumor + proposition causes executor to hang")
-                print(f"  >>> Likely on _generate_with_router → router.request_for_agent (LLM call)")
+                print("\n  >>> VERDICT: execute() BLOCKS (does not return within timeout)")
+                print("  >>> spread_rumor + proposition causes executor to hang")
+                print("  >>> Likely on _generate_with_router → router.request_for_agent (LLM call)")
                 if exp_d["abort_calls"] > 0:
                     print(f"  >>> Timer fired ({exp_d['abort_calls']} times) but did not interrupt blocking call")
                 else:
-                    print(f"  >>> Timer did NOT fire — blocking call returns None or hangs indefinitely")
+                    print("  >>> Timer did NOT fire — blocking call returns None or hangs indefinitely")
             elif exp_d.get("exception"):
-                print(f"\n  >>> VERDICT: execute() raises exception")
+                print("\n  >>> VERDICT: execute() raises exception")
                 print(f"  >>> Exception: {exp_d['exception']}")
             elif exp_d["yielded_artifacts"]:
-                print(f"\n  >>> VERDICT: execute() returns artifact(s)")
+                print("\n  >>> VERDICT: execute() returns artifact(s)")
                 art = exp_d["yielded_artifacts"][0]
                 if art["success"]:
-                    print(f"  >>> Artifact SUCCESS — should reach materializer → NPC_SPOKE published")
+                    print("  >>> Artifact SUCCESS — should reach materializer → NPC_SPOKE published")
                 else:
                     print(f"  >>> Artifact FAILURE — error: {art.get('error_message', 'N/A')[:200]}")
             else:
-                print(f"\n  >>> VERDICT: execute() returns no artifacts (unexpected)")
+                print("\n  >>> VERDICT: execute() returns no artifacts (unexpected)")
 
         # Final summary
-        print(f"\n  === ARCHITECTURAL UNDERSTANDING ===")
-        print(f"  1. DialogueExecutor.execute() yields Artifact (does NOT publish NPC_SPOKE)")
-        print(f"  2. task_scheduler._process_tasks_async iterates artifacts in worker thread")
-        print(f"  3. materializer.materialize(artifact) creates EventDTO (NPC_SPOKE)")
-        print(f"  4. Events go into _task_outbox (NOT published immediately from worker)")
-        print(f"  5. drain_task_worker_outbox (called from main thread) publishes events via _bus.publish()")
-        print(f"  6. For spread_rumor + proposition: execute() goes to LLM branch")
-        print(f"  7. LLM branch calls _generate_with_router → router.request_for_agent")
-        print(f"  8. If LLM unavailable: blocks until Timer fires or HTTP times out")
-        print(f"  9. Worker thread does not complete → artifact not yielded → no materializer call")
-        print(f"  10. No NPC_SPOKE published → Tornin does not receive belief from guard_borko")
+        print("\n  === ARCHITECTURAL UNDERSTANDING ===")
+        print("  1. DialogueExecutor.execute() yields Artifact (does NOT publish NPC_SPOKE)")
+        print("  2. task_scheduler._process_tasks_async iterates artifacts in worker thread")
+        print("  3. materializer.materialize(artifact) creates EventDTO (NPC_SPOKE)")
+        print("  4. Events go into _task_outbox (NOT published immediately from worker)")
+        print("  5. drain_task_worker_outbox (called from main thread) publishes events via _bus.publish()")
+        print("  6. For spread_rumor + proposition: execute() goes to LLM branch")
+        print("  7. LLM branch calls _generate_with_router → router.request_for_agent")
+        print("  8. If LLM unavailable: blocks until Timer fires or HTTP times out")
+        print("  9. Worker thread does not complete → artifact not yielded → no materializer call")
+        print("  10. No NPC_SPOKE published → Tornin does not receive belief from guard_borko")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()

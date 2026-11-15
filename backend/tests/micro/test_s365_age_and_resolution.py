@@ -1,11 +1,13 @@
 """S365: regression на возраст (S2) и резолюцию вопросов (S4).
 Запуск: python -m pytest backend/tests/micro/test_s365_age_and_resolution.py -v
 """
+
 from app.services.chronicle.biography_decomposer import BiographyDecomposer
 from app.services.chronicle.decomposition_normalizer import ChronicleDecompositionNormalizer
 
 
 # ── S2-A: regex ловит все формы возраста ─────────────────────────────────────
+
 
 def test_age_anchors_basic_forms():
     """Базовые формы «в N лет», «с N лет», «[N лет]»."""
@@ -37,6 +39,7 @@ def test_age_anchors_negative():
 
 # ── S2-D: CoT-leak заблокирован ──────────────────────────────────────────────
 
+
 def test_cot_leak_blocked():
     """S365: фраза «Возрастных якорей не найдено» НЕ протекает в prompt."""
     d = BiographyDecomposer()
@@ -51,6 +54,7 @@ def test_cot_leak_blocked():
 
 
 # ── S2-C: age из draft_payload проходит в ChronicleEntry (через route) ──────
+
 
 def test_age_passthrough_via_normalizer():
     """S365: normalizer сохраняет age в draft_payload (route прокидывает в

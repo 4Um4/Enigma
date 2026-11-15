@@ -1,19 +1,20 @@
-import json, urllib.request, urllib.error
+import json
+import urllib.request
+import urllib.error
 
 with open("backend/prompts/chronicle_decompose_system.txt", "r", encoding="utf-8") as f:
     sp = f.read()
 
 print(f"System prompt: {len(sp)} chars, {sp.count(chr(10))} lines")
 
-body = json.dumps({
-    "messages": [
-        {"role": "system", "content": sp},
-        {"role": "user", "content": "Say hello"}
-    ],
-    "max_tokens": 50,
-    "temperature": 0.0,
-    "seed": 42
-}).encode("utf-8")
+body = json.dumps(
+    {
+        "messages": [{"role": "system", "content": sp}, {"role": "user", "content": "Say hello"}],
+        "max_tokens": 50,
+        "temperature": 0.0,
+        "seed": 42,
+    }
+).encode("utf-8")
 
 print(f"Request body: {len(body)} bytes")
 

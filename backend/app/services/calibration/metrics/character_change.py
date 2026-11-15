@@ -7,6 +7,7 @@ path: backend/app/services/calibration/metrics/character_change.py
 Зависимости: .base.
 Основные сущности: CharacterChangeRate.
 """
+
 from __future__ import annotations
 
 import math

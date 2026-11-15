@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/sandbox/micro/test_r8_continue_gate.py
 Назначение: R8 — сужение continue-гейта: союз «и» больше не перехватывает приказы в CONTINUE; явное «продолжай» работает
 Зависимости: app.services.input.intent_compressor
@@ -6,6 +6,7 @@ path: backend/tests/sandbox/micro/test_r8_continue_gate.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_r8_continue_gate.py -v --tb=short; cd ..
 """
+
 from unittest.mock import MagicMock
 
 from app.services.input.intent_compressor import IntentCompressor

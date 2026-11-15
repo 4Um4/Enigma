@@ -12,6 +12,7 @@
 Не проверяют адаптеры (BiographyAdapter/InteractiveLanguageAdapter) —
 это следующие шаги USL-1.2 / USL-1.3.
 """
+
 import dataclasses
 import pytest
 
@@ -38,6 +39,7 @@ from app.domain.usl import (
 
 # ── 1. Type creation ──────────────────────────────────────────────────────────
 
+
 def test_usl_source_kind_has_9_values():
     """USL-2: 9 видов источников (AUTHOR_CANON..HYPOTHESIS)."""
     assert len(USLSourceKind) == 9
@@ -48,7 +50,7 @@ def test_usl_source_kind_has_9_values():
 
 def test_usl_time_kind_has_7_forms():
     """Вердикт Мастера Q2 (расширен CCH-15 P0): 7 форм времени.
-    
+
     S380: добавлена REPEAT — повторяемость («каждый год», «регулярно»).
     """
     assert len(USLTimeKind) == 7
@@ -92,8 +94,15 @@ def test_usl_predicate_has_15_values():
 def test_usl_predicate_maps_to_epistemology_predicate():
     """Общие 6 значений USLPredicate совпадают с Predicate.value — trivial mapping."""
     from app.domain.epistemology import Predicate
-    for usl_pred in (USLPredicate.STOLE, USLPredicate.ATTACKED, USLPredicate.HELPED,
-                     USLPredicate.ASSERTS, USLPredicate.EXITS_TO, USLPredicate.NAME):
+
+    for usl_pred in (
+        USLPredicate.STOLE,
+        USLPredicate.ATTACKED,
+        USLPredicate.HELPED,
+        USLPredicate.ASSERTS,
+        USLPredicate.EXITS_TO,
+        USLPredicate.NAME,
+    ):
         # Predicate(uslpred.value) должен работать
         ep_pred = Predicate(usl_pred.value)
         assert ep_pred.value == usl_pred.value
@@ -108,6 +117,7 @@ def test_usl_modality_has_4_values():
 
 
 # ── 2. Frozen dataclasses ─────────────────────────────────────────────────────
+
 
 def test_usl_unit_is_frozen():
     """USLUnit frozen — попытка мутации raises FrozenInstanceError (прецедент IntentSemanticField)."""
@@ -139,6 +149,7 @@ def test_usl_modal_is_frozen():
 
 
 # ── 3. make_unit_id детерминизм (USL-6) ───────────────────────────────────────
+
 
 def test_make_unit_id_deterministic():
     """USL-6: одинаковый source_ref + text_span → одинаковый id."""
@@ -172,6 +183,7 @@ def test_make_unit_id_differs_on_different_span():
 
 # ── 4. USLModal None defaults (правило Блока 1) ──────────────────────────────
 
+
 def test_usl_modal_none_defaults():
     """None = недостаточная информация, НЕ False (правило Блока 1, intent_profile.py:53-55)."""
     modal = USLModal()
@@ -188,6 +200,7 @@ def test_usl_modal_explicit_realis():
 
 
 # ── 5. USLUnit construction (полная сборка) ──────────────────────────────────
+
 
 def test_usl_unit_minimal_construction():
     """Минимальный USLUnit — только обязательные поля."""
@@ -265,6 +278,7 @@ def test_usl_unit_full_construction():
 
 # ── 6. USLEntityRef kinds ─────────────────────────────────────────────────────
 
+
 def test_usl_entity_ref_kinds():
     """USLEntityRef поддерживает kind из обоих контуров."""
     # Из биографии
@@ -283,6 +297,7 @@ def test_usl_entity_ref_kinds():
 
 # ── 7. USLSourceKind PLAYER_ASSERTION ≠ AUTHOR_CANON (инвариант USL-2) ────────
 
+
 def test_player_assertion_not_author_canon():
     """USL-2: PLAYER_ASSERTION и AUTHOR_CANON — разные source_kind.
     Утверждение игрока не становится каноном (инвариант USL-2).
@@ -293,6 +308,7 @@ def test_player_assertion_not_author_canon():
 
 
 # ── 8. USLTimeExpression: DURATION vs RELATIVE (поправка Мастера Q2) ─────────
+
 
 def test_duration_vs_relative_distinction():
     """«Пять лет работал» — DURATION; «пять лет назад работал» — RELATIVE.
@@ -315,6 +331,7 @@ def test_duration_vs_relative_distinction():
 
 
 # ── 9. USLCausalLink: ORDER ≠ CAUSES (запрет хронология→причина) ─────────────
+
 
 def test_order_not_causes():
     """USLTimeExpression(ORDER) никогда не конвертируется в USLCausalLink автоматически.

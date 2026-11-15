@@ -10,6 +10,7 @@ Mirror H-14 FIX из openai_compatible_provider:90-91.
 - streaming/CLI (payload 367/479) не тестируем — ограничение Мастера «не расширять на CLI»
 - мок HTTP через monkeypatch urllib.request.build_opener
 """
+
 from __future__ import annotations
 
 import json
@@ -30,12 +31,12 @@ def _mock_http_response(payload_captured: dict):
     Сохраняет req.data в payload_captured для последующей проверки.
     Возвращает JSON-ответ в формате llama-server /v1/chat/completions.
     """
-    fake_response_bytes = json.dumps({
-        "choices": [
-            {"message": {"content": '{"items": []}'}}
-        ],
-        "usage": {"prompt_tokens": 10, "completion_tokens": 5},
-    }).encode("utf-8")
+    fake_response_bytes = json.dumps(
+        {
+            "choices": [{"message": {"content": '{"items": []}'}}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+    ).encode("utf-8")
 
     class _FakeCtx:
         def __enter__(self):
@@ -60,6 +61,7 @@ def _mock_http_response(payload_captured: dict):
             payload_captured["data"] = req.data
             payload_captured["url"] = req.full_url
             return fake_ctx
+
         return _open
 
     fake_opener.open.side_effect = _make_open_capture()
@@ -139,9 +141,7 @@ def test_other_fields_unchanged():
     # Все ключи без response_format должны совпадать
     keys_with = set(payload_with.keys()) - {"response_format"}
     keys_without = set(payload_without.keys())
-    assert keys_with == keys_without, (
-        f"Изменился набор ключей: with={sorted(keys_with)} without={sorted(keys_without)}"
-    )
+    assert keys_with == keys_without, f"Изменился набор ключей: with={sorted(keys_with)} without={sorted(keys_without)}"
 
     # Значения всех общих ключей совпадают (seed детерминирован по prompt)
     for key in keys_with:

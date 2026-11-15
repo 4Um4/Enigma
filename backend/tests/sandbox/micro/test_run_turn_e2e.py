@@ -21,6 +21,7 @@ sys.path.insert(0, str(_BACKEND))
 async def _run_e2e_test():
     from app.core.config import settings
     from app.domain.events import EventDTO
+
     # Transitional (Этап 0, Устав §19): тест всё ещё владеет lifecycle сервера.
     # Миграция на Host/Broker — Этап 3+. Не распространять паттерн на новые тесты.
     from app.services.llm.server_lifecycle import kill_llama_server, restart_llama_server
@@ -51,7 +52,7 @@ async def _run_e2e_test():
         campaign_id=campaign_id,
         world_id="world_1",
         location="tavern_silver_wolf",
-        actions=[PlayerAction(player_name="Tester", action="Люся, привет")]
+        actions=[PlayerAction(player_name="Tester", action="Люся, привет")],
     )
 
     try:
@@ -65,7 +66,7 @@ async def _run_e2e_test():
         kill_llama_server()
 
     print("--- [5/6] Проверка базовых артефактов (Journal + Recognition) ---")
-    
+
     # Проверка 1: Журнал не пуст
     journal = game_loop.avatar_service.get_journal(campaign_id)
     if not journal:
@@ -75,6 +76,7 @@ async def _run_e2e_test():
 
     # Проверка 2: player_recognition сохранён в scene_state
     from app.core.constants import DEFAULT_LOCATION_ID
+
     scene = game_loop.scene_manager.get_scene_state(campaign_id, DEFAULT_LOCATION_ID)
     if not scene or "player_recognition" not in scene:
         print("❌ ТЕСТ ПРОВАЛЕН: player_recognition отсутствует в сохранённом scene_state.")
@@ -90,7 +92,7 @@ async def _run_e2e_test():
     print("--- [6/6] Проверка механики Eavesdrop (NPC-NPC) ---")
     # Получаем шину событий
     bus = get_event_bus()
-    
+
     # Вызываем idle_tick, чтобы обновить spatial_query
     game_loop.idle_tick(campaign_id)
 
@@ -112,24 +114,23 @@ async def _run_e2e_test():
             "target_id": "borko",
             "text": "Борко, я видела, как Горан прятал товар в подвале.",
             "tone": "SUSPICIOUS",
-            "topic": "goran_contraband"
+            "topic": "goran_contraband",
         },
         visibility="public",
         radius=5.0,
-        persistence_level="session"
+        persistence_level="session",
     )
 
     # Публикуем событие
     bus.publish(event)
-    
+
     # Проверяем, что реплика попала в журнал игрока
     journal_after_eavesdrop = game_loop.avatar_service.get_journal(campaign_id)
-    
+
     eavesdrop_found = any(
-        entry.get("speaker") == "maid_lusya" and "подвале" in entry.get("text", "")
-        for entry in journal_after_eavesdrop
+        entry.get("speaker") == "maid_lusya" and "подвале" in entry.get("text", "") for entry in journal_after_eavesdrop
     )
-    
+
     if not eavesdrop_found:
         print("❌ ТЕСТ ПРОВАЛЕН: Подслушанная реплика NPC-NPC не попала в журнал.")
         print(f"Журнал: {journal_after_eavesdrop}")
@@ -138,6 +139,7 @@ async def _run_e2e_test():
     print("✓ Eavesdrop работает: подслушанная реплика Люси добавлена в журнал.")
     print("\n🎉 E2E ТЕСТ ПРОЙДЕН УСПЕШНО!")
     return True
+
 
 if __name__ == "__main__":
     success = asyncio.run(_run_e2e_test())

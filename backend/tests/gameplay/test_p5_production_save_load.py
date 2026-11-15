@@ -18,6 +18,7 @@ L1: data exists and is correctly saved (JSON file)
 L2: new process restores data in correct NPC
 L3: CognitionContextResolver + DialogueExecutor receive restored data
 """
+
 import json
 import tempfile
 from pathlib import Path
@@ -33,9 +34,13 @@ def _rec(agent, subj, pred, obj, polarity=True, conf=0.5, source="maid_lusya"):
     return EpistemicRecord(
         agent_id=agent,
         proposition=Proposition(subject_id=subj, predicate=pred, object_id=obj, polarity=polarity),
-        confidence=conf, source_id=source, source_claim_id=f"c-{agent}-{polarity}",
-        first_observed_tick=1, last_updated_tick=3,
-        source_type="testimony", original_source_id="player",
+        confidence=conf,
+        source_id=source,
+        source_claim_id=f"c-{agent}-{polarity}",
+        first_observed_tick=1,
+        last_updated_tick=3,
+        source_type="testimony",
+        original_source_id="player",
     )
 
 
@@ -65,7 +70,17 @@ class TestP5ProductionSaveLoad:
         """L1+L2: EpistemicStore → JSON → load → restore. Full production path."""
         store = EpistemicStore()
         store.upsert(_rec("tavern_keeper_tornin", "player", Predicate.INSULTED, "tornin", polarity=True, conf=0.5))
-        store.upsert(_rec("tavern_keeper_tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec(
+                "tavern_keeper_tornin",
+                "player",
+                Predicate.INSULTED,
+                "tornin",
+                polarity=False,
+                conf=0.3,
+                source="guard_borko",
+            )
+        )
 
         adapter, _ = self._setup_adapter()
         scene = _make_scene_state(store)
@@ -82,10 +97,8 @@ class TestP5ProductionSaveLoad:
 
         # Restore
         store2 = EpistemicStore.from_dict(loaded["epistemic_records"])
-        pos = store2.get("tavern_keeper_tornin", Proposition(
-            "player", Predicate.INSULTED, "tornin", polarity=True))
-        neg = store2.get("tavern_keeper_tornin", Proposition(
-            "player", Predicate.INSULTED, "tornin", polarity=False))
+        pos = store2.get("tavern_keeper_tornin", Proposition("player", Predicate.INSULTED, "tornin", polarity=True))
+        neg = store2.get("tavern_keeper_tornin", Proposition("player", Predicate.INSULTED, "tornin", polarity=False))
 
         assert pos is not None, "positive record lost after production save/load"
         assert neg is not None, "negative record lost after production save/load"
@@ -99,9 +112,16 @@ class TestP5ProductionSaveLoad:
             "tavern_keeper_tornin": {
                 "npc_id": "tavern_keeper_tornin",
                 "causal_ledger": [
-                    {"npc_id": "tavern_keeper_tornin", "field": "trust", "delta": -5.0,
-                     "source": "player_insults", "tick": 3, "persistence_time": 0,
-                     "emotional_impact": 0.25, "cause": None},
+                    {
+                        "npc_id": "tavern_keeper_tornin",
+                        "field": "trust",
+                        "delta": -5.0,
+                        "source": "player_insults",
+                        "tick": 3,
+                        "persistence_time": 0,
+                        "emotional_impact": 0.25,
+                        "cause": None,
+                    },
                 ],
             },
         }
@@ -122,7 +142,9 @@ class TestP5ProductionSaveLoad:
         """L3: DialogueExecutor._format_contradictions works with restored store."""
         store = EpistemicStore()
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=True, conf=0.5))
-        store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko")
+        )
 
         adapter, _ = self._setup_adapter()
         scene = _make_scene_state(store)
@@ -146,9 +168,16 @@ class TestP5ProductionSaveLoad:
             "tornin": {
                 "npc_id": "tornin",
                 "causal_ledger": [
-                    {"npc_id": "tornin", "field": "trust", "delta": -5.0,
-                     "source": "player_insults", "tick": 3, "persistence_time": 0,
-                     "emotional_impact": 0.25, "cause": None},
+                    {
+                        "npc_id": "tornin",
+                        "field": "trust",
+                        "delta": -5.0,
+                        "source": "player_insults",
+                        "tick": 3,
+                        "persistence_time": 0,
+                        "emotional_impact": 0.25,
+                        "cause": None,
+                    },
                 ],
             },
         }
@@ -184,7 +213,9 @@ class TestP5ProductionSaveLoad:
         """C: polarity=False survives full JSON persistence (not just to_dict)."""
         store = EpistemicStore()
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=True))
-        store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko")
+        )
         adapter, _ = self._setup_adapter()
         scene = _make_scene_state(store)
         adapter.save_scene_at("Open_road", "tavern", scene)
@@ -212,13 +243,19 @@ class TestP5ProductionSaveLoad:
     def test_C_provenance_survives_production_save_load(self) -> None:
         """C: source_type + original_source_id survive JSON persistence."""
         store = EpistemicStore()
-        store.upsert(EpistemicRecord(
-            agent_id="tornin",
-            proposition=Proposition("player", Predicate.INSULTED, "tornin"),
-            confidence=0.5, source_id="maid_lusya", source_claim_id="c1",
-            first_observed_tick=3, last_updated_tick=7,
-            source_type="testimony", original_source_id="player",
-        ))
+        store.upsert(
+            EpistemicRecord(
+                agent_id="tornin",
+                proposition=Proposition("player", Predicate.INSULTED, "tornin"),
+                confidence=0.5,
+                source_id="maid_lusya",
+                source_claim_id="c1",
+                first_observed_tick=3,
+                last_updated_tick=7,
+                source_type="testimony",
+                original_source_id="player",
+            )
+        )
         adapter, _ = self._setup_adapter()
         scene = _make_scene_state(store)
         adapter.save_scene_at("Open_road", "tavern", scene)

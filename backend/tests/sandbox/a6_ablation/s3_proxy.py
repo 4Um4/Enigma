@@ -22,6 +22,7 @@ Precision (verified in 4a+4b pre-flight S3.2/S3.3):
 S3 is diagnostic, NOT part of scoring matrix. Do not compare its intent
 distribution to S0-S2.
 """
+
 from contextlib import contextmanager
 from typing import Any, List, Optional
 

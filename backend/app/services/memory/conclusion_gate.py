@@ -38,17 +38,11 @@ class ConclusionGate:
     def validate(self, proposal: ConclusionProposal) -> Optional[float]:
         """Валидация proposal перед диспатчем. Возвращает clamped confidence или None."""
         if not proposal.owner_id or not proposal.subject:
-            logger.warning(
-                f"[CONCLUSION_GATE] reject: пустые owner_id/subject "
-                f"(trace_id={proposal.trace_id})"
-            )
+            logger.warning(f"[CONCLUSION_GATE] reject: пустые owner_id/subject (trace_id={proposal.trace_id})")
             return None
         predicate: object = proposal.predicate
         if not predicate:
-            logger.warning(
-                f"[CONCLUSION_GATE] reject: пустой predicate "
-                f"(trace_id={proposal.trace_id})"
-            )
+            logger.warning(f"[CONCLUSION_GATE] reject: пустой predicate (trace_id={proposal.trace_id})")
             return None
 
         return max(0.0, min(1.0, proposal.confidence))
@@ -120,8 +114,6 @@ class ConclusionGate:
             except Exception as _pub_err:  # noqa: ENIGMA001
                 logger.warning(f"[CONCLUSION_GATE] trace publish failed: {_pub_err}")
         else:
-            logger.debug(
-                f"[CONCLUSION_GATE] reinforcement (без публикации): {key}"
-            )
+            logger.debug(f"[CONCLUSION_GATE] reinforcement (без публикации): {key}")
 
         return True

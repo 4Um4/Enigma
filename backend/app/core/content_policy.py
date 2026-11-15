@@ -3,6 +3,7 @@
 Фундамент системы управления контентом (Content Policy Fundament).
 Определяет глобальную политику контента (ContentPolicy) и её загрузку из user_settings.yaml.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,15 +16,19 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+
 class ContentLevel(IntEnum):
     """Уровень разрешённого контента по одной оси."""
-    OFF = 0          # Полный запрет
-    MODERATE = 1     # Лёгкие формы, намёки, эвфемизмы
-    EXPLICIT = 2     # Полный контент без ограничений
+
+    OFF = 0  # Полный запрет
+    MODERATE = 1  # Лёгкие формы, намёки, эвфемизмы
+    EXPLICIT = 2  # Полный контент без ограничений
+
 
 @dataclass(frozen=True)
 class ContentPolicy:
     """Глобальная политика контента. Один экземпляр на игру."""
+
     profanity_level: ContentLevel = ContentLevel.OFF
     sexual_content_level: ContentLevel = ContentLevel.OFF
     violence_level: ContentLevel = ContentLevel.MODERATE
@@ -69,18 +74,20 @@ class ContentPolicy:
             ]
         )
 
+
 def _content_to_dict(policy: ContentPolicy, reason: str = "user_action") -> Dict[str, Any]:
     return {
-        "preset": None, # При ручном изменении сбрасываем пресет
+        "preset": None,  # При ручном изменении сбрасываем пресет
         "individual": {
             "profanity_level": int(policy.profanity_level),
             "sexual_content_level": int(policy.sexual_content_level),
             "violence_level": int(policy.violence_level),
             "taboo_practices_level": int(policy.taboo_practices_level),
         },
-        "last_changed_tick": 0, # Обновляется при вызове из UI
-        "last_changed_reason": reason
+        "last_changed_tick": 0,  # Обновляется при вызове из UI
+        "last_changed_reason": reason,
     }
+
 
 def _content_from_dict(data: Dict[str, Any]) -> ContentPolicy:
     preset = data.get("preset")
@@ -99,6 +106,7 @@ def _content_from_dict(data: Dict[str, Any]) -> ContentPolicy:
         violence_level=ContentLevel(individual.get("violence_level", 1)),
         taboo_practices_level=ContentLevel(individual.get("taboo_practices_level", 0)),
     )
+
 
 def load_content_policy(settings: Any) -> ContentPolicy:
     """Загружает ContentPolicy из user_settings.yaml."""
@@ -133,6 +141,7 @@ def load_content_policy(settings: Any) -> ContentPolicy:
 
     return _content_from_dict(content_section)
 
+
 def _save_content_section(path: Path, policy: ContentPolicy, reason: str = "user_action") -> None:
     """Сохраняет секцию content в user_settings.yaml."""
     if not path.exists():
@@ -145,6 +154,7 @@ def _save_content_section(path: Path, policy: ContentPolicy, reason: str = "user
 
     data["content"] = _content_to_dict(policy, reason)
     path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
+
 
 def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
     """Сохраняет выбранный пресет в user_settings.yaml и перезагружает кэш."""
@@ -177,7 +187,7 @@ def save_content_policy(settings: Any, preset_name: str) -> ContentPolicy:
             "taboo_practices_level": int(policy.taboo_practices_level),
         },
         "last_changed_tick": 0,
-        "last_changed_reason": "user_action"
+        "last_changed_reason": "user_action",
     }
     path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
 

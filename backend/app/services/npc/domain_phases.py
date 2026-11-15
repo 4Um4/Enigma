@@ -62,11 +62,7 @@ def resolve_physical_attack(
     Возвращает (state_l2, reflex_constraints) — constraints для DecisionHub.
     Если действие не физическое или NPC не цель — возвращает (state_l2, None).
     """
-    if (
-        action_type not in PHYSICAL_EVENTS
-        or npc_id != target_id
-        or state_l2.effective_max_hp <= 0
-    ):
+    if action_type not in PHYSICAL_EVENTS or npc_id != target_id or state_l2.effective_max_hp <= 0:
         return state_l2, None
 
     # ADR-0015, ADR-0021: Вся физика и урон перенесены в CombatSubscriber → ImpactEngine
@@ -165,9 +161,7 @@ def age_temporary_drives(state_l2: Any, npc_dict_for_write: Dict[str, Any], npc_
             for d in _aged
         ]
     if len(_aged) != len(_drives):
-        logger.warning(
-            f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)"
-        )
+        logger.warning(f"[DRIVE] {npc_id}: {len(_drives)}→{len(_aged)} drives (expired)")
 
 
 # ── Economy ───────────────────────────────────────────────────────────────────
@@ -207,9 +201,7 @@ def compute_economy(
         _eco_result = _em.calculate(eco_profile, _drives)
         _eco_modifiers = _eco_result.modifiers
         if _eco_modifiers:
-            logger.warning(
-                f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}"
-            )
+            logger.warning(f"[ECO] {npc_id}: {len(_eco_modifiers)} mods, drives={_eco_result.active_drives}")
         _result["modifiers"] = _eco_modifiers or {}
 
         # Стресс от экономики/потребностей (единый расчёт)

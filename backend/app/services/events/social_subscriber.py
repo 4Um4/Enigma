@@ -267,9 +267,7 @@ class SocialSubscriber:
         )
 
         logger.debug(
-            f"[SOCIAL_SUB] {len(events)} events "
-            f"processed, social_tick={self._social_tick}, "
-            f"deltas={len(deltas)}"
+            f"[SOCIAL_SUB] {len(events)} events processed, social_tick={self._social_tick}, deltas={len(deltas)}"
         )
 
         # Извлекаем затронутых NPC из дельт для синхронизации perception ∪ social

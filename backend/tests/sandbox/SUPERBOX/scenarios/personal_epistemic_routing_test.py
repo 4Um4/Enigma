@@ -25,13 +25,17 @@ def _log(m: str) -> None:
 
 
 def _seed(store, actor, boundary, to_loc, conf, claim):
-    store.upsert(EpistemicRecord(
-        agent_id=actor,
-        proposition=Proposition(subject_id=boundary, predicate=Predicate.EXITS_TO,
-                                object_id=to_loc, polarity=True),
-        confidence=conf, source_id=actor, source_claim_id=claim,
-        first_observed_tick=0, last_updated_tick=0,
-    ))
+    store.upsert(
+        EpistemicRecord(
+            agent_id=actor,
+            proposition=Proposition(subject_id=boundary, predicate=Predicate.EXITS_TO, object_id=to_loc, polarity=True),
+            confidence=conf,
+            source_id=actor,
+            source_claim_id=claim,
+            first_observed_tick=0,
+            last_updated_tick=0,
+        )
+    )
 
 
 def main() -> int:

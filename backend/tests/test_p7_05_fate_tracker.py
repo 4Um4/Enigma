@@ -39,11 +39,13 @@ class TestP705FateTracker:
     def test_trigger_fate_success(self, tracker: FateTracker):
         """Успешный триггер судьбы."""
         tracker.update_state("maid_lusya", stability=0.1, threat=0.9)
-        event = tracker.trigger_fate("maid_lusya", FateOutcome.ESCAPE, tick=10, cause="guild_hunt", description="Люся сбегает")
-        
+        event = tracker.trigger_fate(
+            "maid_lusya", FateOutcome.ESCAPE, tick=10, cause="guild_hunt", description="Люся сбегает"
+        )
+
         assert event.event_type == FateOutcome.ESCAPE
         assert event.tick == 10
-        
+
         state = tracker.get_state("maid_lusya")
         assert state.resolved_fate == FateOutcome.ESCAPE
         assert state.fate_tick == 10
@@ -52,7 +54,7 @@ class TestP705FateTracker:
         """Инвариант: Судьба необратима, нельзя триггерить повторно."""
         tracker.update_state("maid_lusya", stability=0.1, threat=0.9)
         tracker.trigger_fate("maid_lusya", FateOutcome.ESCAPE, tick=10, cause="test", description="test")
-        
+
         with pytest.raises(ValueError, match="already resolved"):
             tracker.trigger_fate("maid_lusya", FateOutcome.DEATH, tick=15, cause="test2", description="test2")
 

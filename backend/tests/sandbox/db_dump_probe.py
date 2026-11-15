@@ -42,7 +42,7 @@ rows = s.query(
 )
 print(f"[DB_DUMP] total rows: {len(rows)}")
 for r in rows:
-    summary = (r["summary"] or "")
+    summary = r["summary"] or ""
     print(
         f"{r['npc_id'][:22]:22} | {r['event_type'][:20]:20} | "
         f"imp={r['importance']:.3f} | secret={int(r['is_secret'])} | "

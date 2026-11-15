@@ -85,9 +85,9 @@ def test_repeat_same_intent_preserves_intent_id():
 
     # Only 1 entry in lifecycle (no accumulation)
     player_entries = [
-        e for e in scene["intent_lifecycle"].values()
-        if isinstance(e, dict)
-        and e.get("control_source") == "player_input"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if isinstance(e, dict) and e.get("control_source") == "player_input"
     ]
     assert len(player_entries) == 1
 
@@ -178,9 +178,9 @@ def test_repeated_pipeline_pass_no_duplicates():
         store_player_intent(scene, "player1", "attack", "goran", tick)
 
     player_entries = [
-        e for e in scene["intent_lifecycle"].values()
-        if isinstance(e, dict)
-        and e.get("control_source") == "player_input"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if isinstance(e, dict) and e.get("control_source") == "player_input"
     ]
     assert len(player_entries) == 1  # No duplicates
 
@@ -226,14 +226,14 @@ def test_avatar_intent_coexists_with_player_intent():
 
     # Both coexist, different control_source
     player_active = [
-        e for e in scene["intent_lifecycle"].values()
-        if e.get("control_source") == "player_input"
-        and e.get("lifecycle_state") == "ACTIVE"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if e.get("control_source") == "player_input" and e.get("lifecycle_state") == "ACTIVE"
     ]
     avatar_active = [
-        e for e in scene["intent_lifecycle"].values()
-        if e.get("control_source") == "avatar_initiative"
-        and e.get("lifecycle_state") == "ACTIVE"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if e.get("control_source") == "avatar_initiative" and e.get("lifecycle_state") == "ACTIVE"
     ]
     assert len(player_active) == 1
     assert len(avatar_active) == 1
@@ -263,14 +263,14 @@ def test_player_intent_voided_on_exception():
     voided_player_intents(scene, tick=2)
 
     active = [
-        e for e in scene["intent_lifecycle"].values()
-        if e.get("control_source") == "player_input"
-        and e.get("lifecycle_state") == "ACTIVE"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if e.get("control_source") == "player_input" and e.get("lifecycle_state") == "ACTIVE"
     ]
     voided = [
-        e for e in scene["intent_lifecycle"].values()
-        if e.get("control_source") == "player_input"
-        and e.get("lifecycle_state") == "VOIDED"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if e.get("control_source") == "player_input" and e.get("lifecycle_state") == "VOIDED"
     ]
     assert len(active) == 0
     assert len(voided) == 1

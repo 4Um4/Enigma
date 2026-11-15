@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 # НЕ вводит произвольные пороги — Intent формируется для любого
 # существующего Desire. Urgency сохраняется в record для BodyArbiter.
 _DESIRE_SUBJECT_TO_INTENT: Dict[str, Intent] = {
-    "food": Intent.APPROACH,       # голод → подойти к источнику еды
-    "ale": Intent.APPROACH,        # жажда → подойти к источнику питья
-    "shelter": Intent.IDLE,        # усталость → отдых на месте
-    "rest": Intent.IDLE,           # sleep_pressure → отдых на месте
-    "social": Intent.TALK,         # social_urge → вступить в разговор
+    "food": Intent.APPROACH,  # голод → подойти к источнику еды
+    "ale": Intent.APPROACH,  # жажда → подойти к источнику питья
+    "shelter": Intent.IDLE,  # усталость → отдых на месте
+    "rest": Intent.IDLE,  # sleep_pressure → отдых на месте
+    "social": Intent.TALK,  # social_urge → вступить в разговор
 }
 
 # Avatar character_id (Stranger). В single-avatar MVP это "player".
@@ -87,8 +87,7 @@ def form_avatar_intent(
     intent = _DESIRE_SUBJECT_TO_INTENT.get(subject_class)
     if intent is None:
         logger.debug(
-            f"[AVATAR_INTENT] subject_class={subject_class!r} not in mapping — "
-            f"no Intent formed (honest UNKNOWN)"
+            f"[AVATAR_INTENT] subject_class={subject_class!r} not in mapping — no Intent formed (honest UNKNOWN)"
         )
         return None
 
@@ -194,16 +193,14 @@ def store_avatar_intent(
     uuids = IdentityUUIDs.from_dict(uuids_data) if uuids_data else None
     if uuids is not None:
         owner_id = uuids.avatar_consciousness  # UUID-A
-        body_id = uuids.body                    # UUID-B
+        body_id = uuids.body  # UUID-B
     else:
         # Backward compat: legacy string-based identity (tests, old saves)
         owner_id = "player"
         body_id = "player"
 
     # Generate new intent_id using UUID-A as owner (separate counter from Player)
-    _tick_id, _ordinal = next_intent_identity(
-        scene_state, owner_id, record.intent.value
-    )
+    _tick_id, _ordinal = next_intent_identity(scene_state, owner_id, record.intent.value)
     _intent_id = intent_id_str(_tick_id, owner_id, record.intent.value, _ordinal)
     lifecycle[_intent_id] = {
         "intent_id": _intent_id,

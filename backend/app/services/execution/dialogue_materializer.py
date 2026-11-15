@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/execution/dialogue_materializer.py
 Назначение: Превращает доменный Artifact (результат диалога) в WorldEvent (EventDTO)
             для EventBus.
@@ -18,6 +18,7 @@ path: /backend/app/services/execution/dialogue_materializer.py
              app.services.cognition.proposition_verifier
 Основные сущности: DialogueMaterializer
 """
+
 from __future__ import annotations
 
 import logging
@@ -88,21 +89,23 @@ class DialogueMaterializer:
 
         # NPC_SPOKE публикуется ВСЕГДА — речь состоялась (LLM сгенерировал
         # текст). Proposition здесь НЕТ — это чистое speech-событие.
-        events.append(EventDTO.create(
-            event_type=EventType.NPC_SPOKE.value,
-            source=data["speaker_id"],
-            payload={
-                "target_id": data.get("target_id"),
-                "text": data["text"],
-                "topic": data.get("topic"),
-                "exposure": exposure_semantic,
-                "tone": _tone,
-                "intent_type": data.get("intent_type", "talk"),
-            },
-            visibility=visibility,  # type: ignore[arg-type]
-            radius=_speech_radius,
-            persistence_level="session",
-        ))
+        events.append(
+            EventDTO.create(
+                event_type=EventType.NPC_SPOKE.value,
+                source=data["speaker_id"],
+                payload={
+                    "target_id": data.get("target_id"),
+                    "text": data["text"],
+                    "topic": data.get("topic"),
+                    "exposure": exposure_semantic,
+                    "tone": _tone,
+                    "intent_type": data.get("intent_type", "talk"),
+                },
+                visibility=visibility,  # type: ignore[arg-type]
+                radius=_speech_radius,
+                persistence_level="session",
+            )
+        )
 
         # S197 + P5-B: candidate Proposition верифицируется семантически
         # против финального LLM-текста. Только подтверждённый proposition
@@ -112,20 +115,22 @@ class DialogueMaterializer:
             _text = data.get("text", "")
             _confirmed = self._verify_proposition(_prop_data, _text, data)
             if _confirmed:
-                events.append(EventDTO.create(
-                    event_type=EventType.COMMUNICATION_CLAIM.value,
-                    source=data["speaker_id"],
-                    payload={
-                        "target_id": data.get("target_id"),
-                        "proposition": _prop_data,
-                        "speech_act": "assert",
-                        "tick": 0,
-                        "verified_by": "proposition_verifier",
-                    },
-                    visibility=visibility,  # type: ignore[arg-type]
-                    radius=_speech_radius,
-                    persistence_level="session",
-                ))
+                events.append(
+                    EventDTO.create(
+                        event_type=EventType.COMMUNICATION_CLAIM.value,
+                        source=data["speaker_id"],
+                        payload={
+                            "target_id": data.get("target_id"),
+                            "proposition": _prop_data,
+                            "speech_act": "assert",
+                            "tick": 0,
+                            "verified_by": "proposition_verifier",
+                        },
+                        visibility=visibility,  # type: ignore[arg-type]
+                        radius=_speech_radius,
+                        persistence_level="session",
+                    )
+                )
 
         return events
 
@@ -161,8 +166,7 @@ class DialogueMaterializer:
             confirmed = self._verifier.verify(proposition, text)
         except Exception as exc:  # noqa: BLE001
             logger.error(
-                "P5-B: verifier.verify() raised — fail-closed suppression. "
-                "speaker=%s target=%s prop=%s err=%s",
+                "P5-B: verifier.verify() raised — fail-closed suppression. speaker=%s target=%s prop=%s err=%s",
                 data.get("speaker_id"),
                 data.get("target_id"),
                 proposition,

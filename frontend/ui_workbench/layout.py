@@ -5,6 +5,7 @@ path: /frontend/ui_workbench/layout.py
 Зависимости: pygame, ui_workbench.manifests
 Основные сущности: AnchoredRect
 """
+
 import pygame
 
 from ui_workbench.manifests import WindowManifest
@@ -17,8 +18,7 @@ class AnchoredRect:
     кадр (дёшево) → resize/fullscreen-устойчивость бесплатно."""
 
     @staticmethod
-    def resolve(manifest: WindowManifest, viewport: pygame.Rect,
-                collapsed: bool = False) -> pygame.Rect:
+    def resolve(manifest: WindowManifest, viewport: pygame.Rect, collapsed: bool = False) -> pygame.Rect:
         if manifest.anchor not in _ANCHORS:
             raise ValueError(f"AnchoredRect[{manifest.window_id}]: неизвестный якорь '{manifest.anchor}'")
 

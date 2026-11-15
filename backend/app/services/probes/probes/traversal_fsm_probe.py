@@ -3,6 +3,7 @@
 ADR-TRAV-FSM: Детектор Zombie Traversals.
 Проверяет, что в active_traversals нет терминальных статусов (COMPLETED, CANCELLED).
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -30,7 +31,7 @@ class TraversalFSMProbe(Probe):
                 name=self.name,
                 severity=self.severity,
                 passed=False,
-                details=f"Zombie traversals detected: {', '.join(_zombies)} at tick {ctx.tick_id}"
+                details=f"Zombie traversals detected: {', '.join(_zombies)} at tick {ctx.tick_id}",
             )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

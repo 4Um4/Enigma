@@ -13,6 +13,7 @@ path: backend/tests/micro/test_gap1_bias_differential.py
 Основные сущности: TestGap1BiasDifferential
 Запуск: cd backend ; python -m pytest tests/micro/test_gap1_bias_differential.py -v
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,10 +22,10 @@ from app.models.npc_state import NPCStateAdapter
 from app.services.npc.interpretation_engine import InterpretationEngine
 
 
-_TRUST_NEG = -60.0   # < DISTRUST_STRESS_THRESHOLD(-30) → distrust-ветка активна
-_TRUST_POS = 60.0    # ≥ порога → ветка молчит
-_FEAR_HIGH = 5.0     # 5.0 × 0.15 = 0.75 — внутри клампа [-1, +1]
-_FEAR_LOW = 2.0      # 2.0 × 0.15 = 0.30 — внутри клампа
+_TRUST_NEG = -60.0  # < DISTRUST_STRESS_THRESHOLD(-30) → distrust-ветка активна
+_TRUST_POS = 60.0  # ≥ порога → ветка молчит
+_FEAR_HIGH = 5.0  # 5.0 × 0.15 = 0.75 — внутри клампа [-1, +1]
+_FEAR_LOW = 2.0  # 2.0 × 0.15 = 0.30 — внутри клампа
 
 
 def _make_npc_state(npc_id: str, trust: float, fear: float):

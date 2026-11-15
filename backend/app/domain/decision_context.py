@@ -31,9 +31,7 @@ class ActionSpaceCompression:
 class DecisionContext:
     """Топология пространства решений, собранная из Any и AffectField."""
 
-    deformation: UtilityFieldDeformation = field(
-        default_factory=UtilityFieldDeformation
-    )
+    deformation: UtilityFieldDeformation = field(default_factory=UtilityFieldDeformation)
     compression: ActionSpaceCompression = field(default_factory=ActionSpaceCompression)
     source: Optional[str] = None
     # S74: AffectField. Непрерывная кровоточащая мембрана.
@@ -71,8 +69,7 @@ class DecisionContext:
             # Снижение подавления агрессии при угрозе у храбрых (агрессивная защита)
             aggression_suppression=max(
                 0.0,
-                _aggr_inhibition
-                - (_fight_or_flight if _aggr_inhibition < 0.3 else 0.0),
+                _aggr_inhibition - (_fight_or_flight if _aggr_inhibition < 0.3 else 0.0),
             ),
             initiative_suppression=_init_suppression,
             compliance_bias=_compliance,
@@ -89,6 +86,4 @@ class DecisionContext:
 
         compression = ActionSpaceCompression(constraints=constraints)
 
-        return cls(
-            deformation=deformation, compression=compression, source="perceptual_kernel"
-        )
+        return cls(deformation=deformation, compression=compression, source="perceptual_kernel")

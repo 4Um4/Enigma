@@ -4,6 +4,7 @@ path: backend/app/services/replay/time_freezer.py
 Назначение: Контекст-менеджер для подмены wall-clock на game_time во время replay (Этап 2.4).
 Зависимости: time, datetime, contextlib
 """
+
 import datetime
 import time
 from contextlib import contextmanager

@@ -11,6 +11,7 @@ path: /project/backend/app/services/events/tick_campaign_context.py
 Основные сущности: TickCampaignContext, _current_tick_context, set_tick_context,
     reset_tick_context, get_current_tick_context
 """
+
 from __future__ import annotations
 
 import contextvars
@@ -42,8 +43,8 @@ class TickCampaignContext:
     staged_events: list = field(default_factory=list)
 
 
-_current_tick_context: contextvars.ContextVar[Optional[TickCampaignContext]] = (
-    contextvars.ContextVar("c3_tick_campaign_context", default=None)
+_current_tick_context: contextvars.ContextVar[Optional[TickCampaignContext]] = contextvars.ContextVar(
+    "c3_tick_campaign_context", default=None
 )
 
 

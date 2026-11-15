@@ -22,6 +22,7 @@ SUPERBOX-EAT (Living Activity, срез EAT — ТЗ 7.1 + инварианты 
 (подписка MemoryManager), в этом прогоне проверяется диагностикой.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/eat_vertical_test.py
 """
+
 import os
 import sys
 import tempfile
@@ -59,10 +60,7 @@ TORNIN = "tavern_keeper_tornin"
 MAX_TICKS = 60  # S264: путь к стойке ~35 тиков (расписание+арбитраж) +
 # consume ×2 порции при живом мире (разговоры едят тики) — 40 мало,
 # Торнин не успевал доесть (E7: слепок 0.67 при живом терминале)
-_FOOD_IDS = tuple(
-    _deterministic_object_id(CAMPAIGN, "tavern", f"obj_{n}")
-    for n in (42, 43, 44, 45, 46, 47)
-)
+_FOOD_IDS = tuple(_deterministic_object_id(CAMPAIGN, "tavern", f"obj_{n}") for n in (42, 43, 44, 45, 46, 47))
 
 SPY = {"events": []}
 
@@ -141,8 +139,7 @@ def main() -> int:
     # ── E1: порции спавнены ──────────────────────────────────────────
     _f = _foods(_scene(world))
     e1 = len(_f) == 6 and all(o.state == "INTACT" for o in _f)
-    print(f"[E1] Порции у стойки (production-спавн): {len(_f)}×INTACT — "
-          f"{'✅' if e1 else '❌'}")
+    print(f"[E1] Порции у стойки (production-спавн): {len(_f)}×INTACT — {'✅' if e1 else '❌'}")
     ok = ok and e1
 
     # ── E2: фиксация входа — голод (факт тела) ───────────────────────
@@ -180,42 +177,28 @@ def main() -> int:
             _terminal_hunger = _final_hunger
             break
 
-    _outcomes = [
-        e for e in SPY["events"]
-        if str(getattr(e, "type", "")) == "activity_outcome"
-    ]
+    _outcomes = [e for e in SPY["events"] if str(getattr(e, "type", "")) == "activity_outcome"]
 
     e3 = any(a.get("desire_id") == "d:food" for a in _activity_seen)
-    print(f"[E3] Desire d:food рождён конвертером (provenance=need) — "
-          f"{'✅' if e3 else '❌'}")
+    print(f"[E3] Desire d:food рождён конвертером (provenance=need) — {'✅' if e3 else '❌'}")
 
     e4 = bool(_activity_seen) and all(
-        a.get("desire_id") and str(a.get("target_ref", "")).startswith("wo_")
-        for a in _activity_seen
+        a.get("desire_id") and str(a.get("target_ref", "")).startswith("wo_") for a in _activity_seen
     )
-    print(f"[E4] ACTIVITY_ONSET_FACT: причина+адрес ({len(_activity_seen)} тиков факта) — "
-          f"{'✅' if e4 else '❌'}")
+    print(f"[E4] ACTIVITY_ONSET_FACT: причина+адрес ({len(_activity_seen)} тиков факта) — {'✅' if e4 else '❌'}")
 
     # Движение доказано сменой позиций (терминал → расписание легально
     # двигает дальше; финальная позиция ≠ позиция прибытия)
-    _step0_target = (
-        _activity_seen[0]["steps"][0]["target_ref"] if _activity_seen else ""
-    )
+    _step0_target = _activity_seen[0]["steps"][0]["target_ref"] if _activity_seen else ""
     print(f"[E5-DIAG] step0.target={_step0_target!r}")
     # Движение мог исполнить и расписанный транзит (арбитр отдал ему
     # приоритет) — конвертер оппортунистичен: прибытие = W2-adjacency,
     # не «мой транзит». Цель шага обязана указывать на bar-зону.
-    e5 = (
-        bool(_activity_seen)
-        and "bar_area" in str(_step0_target)
-        and len(set(_positions_seen)) >= 2
-    )
-    print(f"[E5] MOVE (цель {_step0_target}; позиции="
-          f"{sorted(set(_positions_seen))}) — {'✅' if e5 else '❌'}")
+    e5 = bool(_activity_seen) and "bar_area" in str(_step0_target) and len(set(_positions_seen)) >= 2
+    print(f"[E5] MOVE (цель {_step0_target}; позиции={sorted(set(_positions_seen))}) — {'✅' if e5 else '❌'}")
 
     e6 = any(h == TORNIN for _, h in _holder_seen)
-    print(f"[E6] TAKE: HELD_BY={TORNIN} наблюден (production store) — "
-          f"{'✅' if e6 else '❌'}")
+    print(f"[E6] TAKE: HELD_BY={TORNIN} наблюден (production store) — {'✅' if e6 else '❌'}")
 
     _f2 = _foods(_scene(world))
     # S264-финал: hunger в МОМЕНТ терминала (ловится шпионом шины —
@@ -234,15 +217,14 @@ def main() -> int:
         and any(o.state == "DESTROYED" for o in _f2)
         and not any(o.holder == TORNIN for o in _f2)
     )
-    print(f"[E7] Терминал: hunger={_final_hunger:.2f}, "
-          f"DESTROYED={sum(1 for o in _f2 if o.state == 'DESTROYED')}, release — "
-          f"{'✅' if e7 else '❌'}")
-
-    e8 = any(
-        (getattr(e, "payload", {}) or {}).get("success") is True for e in _outcomes
+    print(
+        f"[E7] Терминал: hunger={_final_hunger:.2f}, "
+        f"DESTROYED={sum(1 for o in _f2 if o.state == 'DESTROYED')}, release — "
+        f"{'✅' if e7 else '❌'}"
     )
-    print(f"[E8] activity_outcome на шине: {len(_outcomes)} событий (success) — "
-          f"{'✅' if e8 else '❌'}")
+
+    e8 = any((getattr(e, "payload", {}) or {}).get("success") is True for e in _outcomes)
+    print(f"[E8] activity_outcome на шине: {len(_outcomes)} событий (success) — {'✅' if e8 else '❌'}")
 
     _npos_f = (_scene(world).get("npc_positions") or {}).get(TORNIN) or {}
     # Лейбл-канал жив (два писателя: конвертер "eating" + легаси-дисплей
@@ -253,13 +235,17 @@ def main() -> int:
     # (его чистка = отдельный пункт OPEN-LABEL-LEGACY).
     _final_label = str(_npos_f.get("activity", "") or "")
     e9 = bool(_label_seen) and "eating" not in _final_label
-    print(f"[E9] Ярлык-проекция: seen={sorted(_label_seen)}, "
-          f"финал='{_npos_f.get('activity', '')}' — {'✅' if e9 else '❌'}")
+    print(
+        f"[E9] Ярлык-проекция: seen={sorted(_label_seen)}, "
+        f"финал='{_npos_f.get('activity', '')}' — {'✅' if e9 else '❌'}"
+    )
 
     ok = ok and e3 and e4 and e5 and e6 and e7 and e8 and e9
 
-    print(f"[MEM-DIAG] шина: {sorted({str(getattr(e, 'type', '')) for e in SPY['events']})}"
-          f" — проводка в память: открытый пункт (подписка MemoryManager)")
+    print(
+        f"[MEM-DIAG] шина: {sorted({str(getattr(e, 'type', '')) for e in SPY['events']})}"
+        f" — проводка в память: открытый пункт (подписка MemoryManager)"
+    )
 
     # ── C1: CONTROL (флаги OFF) — легаси, дифф A/B ───────────────────
     SPY["events"].clear()
@@ -284,13 +270,11 @@ def main() -> int:
     # OFF = тишина контура: желаний нет, деятельностей нет, насыщения нет
     # (механика легаси-ярлыка покрыта юнит-тестами Шага 5; предустановка
     # ярлыка futile — update_routine перетирает расписанием)
-    c1 = (
-        _h2 > 0.2
-        and "desires" not in _t2f
-        and not isinstance(_t2f.get("activity_state"), dict)
+    c1 = _h2 > 0.2 and "desires" not in _t2f and not isinstance(_t2f.get("activity_state"), dict)
+    print(
+        f"[C1] CONTROL (OFF): контур нем (desires/activity_state отсутствуют, "
+        f"hunger={_h2:.2f}) — {'✅' if c1 else '❌'} (дифф системно доказан)"
     )
-    print(f"[C1] CONTROL (OFF): контур нем (desires/activity_state отсутствуют, "
-          f"hunger={_h2:.2f}) — {'✅' if c1 else '❌'} (дифф системно доказан)")
     ok = ok and c1
 
     # ── R1: ROLE_AUTHORITATIVE (мирная роль доходит до гейта) ────────
@@ -300,14 +284,19 @@ def main() -> int:
     _state = NPCStateAdapter.from_legacy(_t2f)
     _role = str(getattr(_state, "current_role", "") or "")
     r1 = bool(_role) and not any(p in _role.lower() for p in COMBAT_CAPABLE_ROLES)
-    print(f"[R1] ROLE_AUTHORITATIVE: current_role='{_role}' "
-          f"(мирный → ambush/block_path заблокированы) — {'✅' if r1 else '❌'}")
+    print(
+        f"[R1] ROLE_AUTHORITATIVE: current_role='{_role}' "
+        f"(мирный → ambush/block_path заблокированы) — {'✅' if r1 else '❌'}"
+    )
     ok = ok and r1
 
     print("=" * 64)
-    print("🎉 СРЕЗ EAT ДОКАЗАН: давление → желание → поиск → мир → "
-          "деятельность → исход → след. Control: OFF — легаси, дифф жив."
-          if ok else "❌ ТЕСТ С ОШИБКАМИ — см. блок выше")
+    print(
+        "🎉 СРЕЗ EAT ДОКАЗАН: давление → желание → поиск → мир → "
+        "деятельность → исход → след. Control: OFF — легаси, дифф жив."
+        if ok
+        else "❌ ТЕСТ С ОШИБКАМИ — см. блок выше"
+    )
     print("=" * 64)
     return 0 if ok else 1
 

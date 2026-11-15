@@ -13,6 +13,7 @@ NPC двигаются (movement_intents), но могут не разговар
 6. Errors isolated: один tick error не разрушает весь run
 7. Report saved: save_report создаёт JSON файл
 """
+
 import json
 import sys
 from pathlib import Path
@@ -47,6 +48,7 @@ def shared_trace():
 
 # ── Scenario 1: Smoke — run completes ───────────────────────────────────────
 
+
 def test_scenario_1_smoke(shared_trace):
     """ExperimentRunner.run() completes without critical errors."""
     assert isinstance(shared_trace, ExperimentTrace)
@@ -57,6 +59,7 @@ def test_scenario_1_smoke(shared_trace):
 
 
 # ── Scenario 2: Pre-flight snapshots ────────────────────────────────────────
+
 
 def test_scenario_2_pre_flight_snapshots(shared_trace):
     """Pre-flight snapshots contain NPC data (static + runtime)."""
@@ -81,6 +84,7 @@ def test_scenario_2_pre_flight_snapshots(shared_trace):
 
 # ── Scenario 3: Ticks captured ──────────────────────────────────────────────
 
+
 def test_scenario_3_ticks_captured(shared_trace):
     """trace.ticks has n_ticks entries."""
     assert len(shared_trace.ticks) == 3, f"Expected 3 ticks, got {len(shared_trace.ticks)}"
@@ -90,6 +94,7 @@ def test_scenario_3_ticks_captured(shared_trace):
 
 
 # ── Scenario 4: Movement intents captured ───────────────────────────────────
+
 
 def test_scenario_4_movement_intents_captured(shared_trace):
     """Observation tap captures movement_intents (NPC move in idle)."""
@@ -109,6 +114,7 @@ def test_scenario_4_movement_intents_captured(shared_trace):
 
 
 # ── Scenario 5: Scene changes captured ──────────────────────────────────────
+
 
 def test_scenario_5_scene_changes_captured(shared_trace):
     """Observation tap captures SceneChange from MovementEngine."""
@@ -136,6 +142,7 @@ def test_scenario_5_scene_changes_captured(shared_trace):
 
 # ── Scenario 6: Errors isolated ─────────────────────────────────────────────
 
+
 def test_scenario_6_errors_isolated(shared_trace):
     """One tick error does not destroy entire run."""
     # If any tick has errors, other ticks should still have data
@@ -149,6 +156,7 @@ def test_scenario_6_errors_isolated(shared_trace):
 
 
 # ── Scenario 7: Report saved ────────────────────────────────────────────────
+
 
 def test_scenario_7_report_saved(shared_trace):
     """save_report creates JSON file."""
@@ -169,6 +177,7 @@ def test_scenario_7_report_saved(shared_trace):
 
 
 # ── Convenience: get_dialogues / get_movement_intents ───────────────────────
+
 
 def test_get_movement_intents_flattened(shared_trace):
     """get_movement_intents returns flattened list across all ticks."""

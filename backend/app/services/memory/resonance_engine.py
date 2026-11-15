@@ -112,9 +112,7 @@ class ResonanceEngine:
         relevant = [
             e
             for e in events
-            if isinstance(e, EventMemory)
-            and e.stage != MemoryStage.FORGOTTEN
-            and e.target_id == actor_id
+            if isinstance(e, EventMemory) and e.stage != MemoryStage.FORGOTTEN and e.target_id == actor_id
         ]
 
         if len(relevant) < _MIN_EVENTS_FOR_PATTERN:
@@ -150,9 +148,7 @@ class ResonanceEngine:
         Условие: 3+ событий из темы BETRAYAL от одного actor.
         Trait модулируется по drives_base если передана personality.
         """
-        betrayal_events = [
-            e for e in events if any(theme in e.event_type for theme in _THEME_BETRAYAL)
-        ]
+        betrayal_events = [e for e in events if any(theme in e.event_type for theme in _THEME_BETRAYAL)]
 
         if len(betrayal_events) < _MIN_EVENTS_FOR_PATTERN:
             return None
@@ -182,9 +178,7 @@ class ResonanceEngine:
         Условие: 3+ событий из темы HELP.
         Trait модулируется по drives_base если передана personality.
         """
-        help_events = [
-            e for e in events if any(theme in e.event_type for theme in _THEME_HELP)
-        ]
+        help_events = [e for e in events if any(theme in e.event_type for theme in _THEME_HELP)]
 
         if len(help_events) < _MIN_EVENTS_FOR_PATTERN:
             return None
@@ -232,9 +226,7 @@ class ResonanceEngine:
         transitions = sum(
             1
             for i in range(1, len(classified))
-            if classified[i] != classified[i - 1]
-            and classified[i] in ("A", "H")
-            and classified[i - 1] in ("A", "H")
+            if classified[i] != classified[i - 1] and classified[i] in ("A", "H") and classified[i - 1] in ("A", "H")
         )
 
         if transitions < 2:
@@ -321,10 +313,7 @@ class ResonanceEngine:
 
         # Считаем по тегам: negative события из темы агрессии
         negative = [
-            e
-            for e in relevant
-            if "negative" in e.tags
-            or any(theme in e.event_type for theme in _THEME_AGGRESSION)
+            e for e in relevant if "negative" in e.tags or any(theme in e.event_type for theme in _THEME_AGGRESSION)
         ]
 
         if len(negative) < _MIN_EVENTS_FOR_PATTERN:

@@ -20,6 +20,7 @@ CONSTRAINTS:
   - No fixes
   - Track ONE task lifecycle (guard_borko → tavern_keeper_tornin)
 """
+
 from __future__ import annotations
 
 import os
@@ -117,7 +118,8 @@ _TARGET_LOGGERS = [
     "app.services.world.world_tick_engine",
     "app.services.npc.state_applicator",
     "app.services.execution.dialogue_materializer",
-    "app", "",  # root + catch-all
+    "app",
+    "",  # root + catch-all
 ]
 
 
@@ -182,6 +184,7 @@ _event_bus_spy = _EventBusSpy()
 # ============================================================================
 class _ExecutorSpy:
     """Wrap DialogueExecutor.execute to capture input, return value, exception."""
+
     def __init__(self):
         self.calls: List[Dict[str, Any]] = []
         self._installed = False
@@ -304,6 +307,7 @@ class _AdapterSpy:
             return True
         try:
             from app.services.events.intent_event_adapter import IntentEventAdapter
+
             self._adapter_class = IntentEventAdapter
             self._orig_to_event = IntentEventAdapter.to_event
             IntentEventAdapter.to_event = staticmethod(self._spy_to_event)
@@ -374,9 +378,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -393,9 +395,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 250) -> Non
     if bounds:
         s, e = bounds
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -434,9 +436,9 @@ def main() -> int:
         de_path = _BACKEND / "app" / "services" / "execution" / "dialogue_executor.py"
         print(f"  file: {de_path}")
         _read_function_full(de_path, "execute", max_lines=300)
-        print(f"\n  --- _generate_with_router ---")
+        print("\n  --- _generate_with_router ---")
         _read_function_full(de_path, "_generate_with_router", max_lines=200)
-        print(f"\n  --- _emit_dialogue_outcome ---")
+        print("\n  --- _emit_dialogue_outcome ---")
         _read_function_full(de_path, "_emit_dialogue_outcome", max_lines=150)
 
         # =====================================================================
@@ -509,14 +511,14 @@ def main() -> int:
 
         # Install EventBus spy
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # Install IntentEventAdapter spy
         _adapter_spy.install()
-        print(f"  IntentEventAdapter spy installed")
+        print("  IntentEventAdapter spy installed")
 
         # Find DialogueExecutor via task_scheduler._executors
-        print(f"\n  --- Find DialogueExecutor via task_scheduler._executors ---")
+        print("\n  --- Find DialogueExecutor via task_scheduler._executors ---")
         ts_obj = loop._get_task_scheduler()
         print(f"  task_scheduler: {ts_obj} ({type(ts_obj).__name__})")
         executors_dict = getattr(ts_obj, "_executors", None)
@@ -543,7 +545,7 @@ def main() -> int:
 
         if dialogue_executor is None:
             # Fallback: walk vars
-            print(f"  --- fallback: walk task_scheduler vars ---")
+            print("  --- fallback: walk task_scheduler vars ---")
             try:
                 for k, v in vars(ts_obj).items():
                     if "DialogueExecutor" in type(v).__name__:
@@ -569,7 +571,7 @@ def main() -> int:
             print(f"  dialogue_executor._router: {router}")
             print(f"  dialogue_executor._router is None: {router is None}")
         else:
-            print(f"  [STILL not found — spy not installed]")
+            print("  [STILL not found — spy not installed]")
 
         # =====================================================================
         # STEP 5: capture PRE-EXISTING Tornin beliefs (baseline)
@@ -579,10 +581,12 @@ def main() -> int:
             tornin_pre_records = store.get_all_for_agent("tavern_keeper_tornin") or []
             print(f"  Tornin pre-existing records: {len(tornin_pre_records)}")
             for r in tornin_pre_records:
-                print(f"    prop={str(getattr(r, 'proposition', None))[:80]} "
-                      f"conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"    prop={str(getattr(r, 'proposition', None))[:80]} "
+                    f"conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
         # =====================================================================
         # STEP 6: publish PLAYER_INSULTS
@@ -635,7 +639,7 @@ def main() -> int:
         _print_section("STEP 8: spy results")
 
         # 8a. DialogueExecutor.execute() calls
-        print(f"\n  === DialogueExecutor.execute() calls ===")
+        print("\n  === DialogueExecutor.execute() calls ===")
         print(f"  Total calls: {len(_executor_spy.calls)}")
         for i, call in enumerate(_executor_spy.calls):
             print(f"\n  Call [{i}]:")
@@ -643,17 +647,17 @@ def main() -> int:
             if call.get("exception"):
                 print(f"    EXCEPTION: {call['exception']}")
                 if "exception_traceback" in call:
-                    print(f"    TRACEBACK:")
+                    print("    TRACEBACK:")
                     print(call["exception_traceback"][:1500])
             else:
                 print(f"    return: {call.get('return_value', 'N/A')}")
                 if call.get("yielded_artifacts"):
-                    print(f"    yielded artifacts:")
+                    print("    yielded artifacts:")
                     for art in call["yielded_artifacts"]:
                         print(f"      {art}")
 
         # 8b. _generate_with_router calls
-        print(f"\n  === _generate_with_router calls ===")
+        print("\n  === _generate_with_router calls ===")
         print(f"  Total calls: {len(_executor_spy.gen_calls)}")
         for i, call in enumerate(_executor_spy.gen_calls):
             print(f"\n  Call [{i}]:")
@@ -661,13 +665,13 @@ def main() -> int:
             if call.get("exception"):
                 print(f"    EXCEPTION: {call['exception']}")
                 if "exception_traceback" in call:
-                    print(f"    TRACEBACK:")
+                    print("    TRACEBACK:")
                     print(call["exception_traceback"][:1500])
             else:
                 print(f"    return: {call.get('return_value', 'N/A')[:300]}")
 
         # 8c. IntentEventAdapter calls
-        print(f"\n  === IntentEventAdapter.to_event() calls ===")
+        print("\n  === IntentEventAdapter.to_event() calls ===")
         print(f"  Total calls: {len(_adapter_spy.calls)}")
         for i, call in enumerate(_adapter_spy.calls):
             print(f"\n  Call [{i}]:")
@@ -681,7 +685,7 @@ def main() -> int:
                 print(f"    return_event_type: {call.get('return_event_type', 'N/A')}")
 
         # 8d. EventBus events
-        print(f"\n  === EventBus.publish() calls ===")
+        print("\n  === EventBus.publish() calls ===")
         print(f"  Total events: {len(_event_bus_spy.published_events)}")
         ev_type_counter: Dict[str, int] = {}
         for ev_type, _ in _event_bus_spy.published_events:
@@ -690,7 +694,7 @@ def main() -> int:
             print(f"    {ev_type}: {count}")
 
         # 8e. ALL task_scheduler logs (NO filter)
-        print(f"\n  === ALL task_scheduler logs (no filter) ===")
+        print("\n  === ALL task_scheduler logs (no filter) ===")
         all_logs = _log_capture.messages()
         ts_logs_all = [l for l in all_logs if "task_scheduler" in l.lower() or "TASK_SCHED" in l or "[SCHEDULER]" in l]
         print(f"  Total: {len(ts_logs_all)}")
@@ -698,35 +702,37 @@ def main() -> int:
             print(f"    {l[:250]}")
 
         # 8f. ALL DialogueExecutor logs
-        print(f"\n  === ALL DialogueExecutor logs ===")
+        print("\n  === ALL DialogueExecutor logs ===")
         de_logs_all = [l for l in all_logs if "dialogue_executor" in l.lower() or "DIALOGUE_EXEC" in l]
         print(f"  Total: {len(de_logs_all)}")
         for l in de_logs_all[:30]:
             print(f"    {l[:250]}")
 
         # 8g. DialogueMaterializer logs
-        print(f"\n  === DialogueMaterializer logs ===")
-        dm_logs = [l for l in all_logs if "dialogue_materializer" in l.lower() or "DIALOGUE_MAT" in l or "Materializer" in l]
+        print("\n  === DialogueMaterializer logs ===")
+        dm_logs = [
+            l for l in all_logs if "dialogue_materializer" in l.lower() or "DIALOGUE_MAT" in l or "Materializer" in l
+        ]
         print(f"  Total: {len(dm_logs)}")
         for l in dm_logs[:30]:
             print(f"    {l[:250]}")
 
         # 8h. intent_event_adapter logs
-        print(f"\n  === IntentEventAdapter logs ===")
+        print("\n  === IntentEventAdapter logs ===")
         ad_logs = [l for l in all_logs if "intent_event_adapter" in l.lower() or "INTENT_EVENT_ADAPTER" in l]
         print(f"  Total: {len(ad_logs)}")
         for l in ad_logs[:30]:
             print(f"    {l[:250]}")
 
         # 8i. NPC_SPOKE / spread_rumor logs
-        print(f"\n  === NPC_SPOKE / spread_rumor logs ===")
+        print("\n  === NPC_SPOKE / spread_rumor logs ===")
         ns_logs = [l for l in all_logs if "NPC_SPOKE" in l or "spread_rumor" in l.lower()]
         print(f"  Total: {len(ns_logs)}")
         for l in ns_logs[:30]:
             print(f"    {l[:250]}")
 
         # 8j. ERROR logs (any)
-        print(f"\n  === ALL ERROR level logs ===")
+        print("\n  === ALL ERROR level logs ===")
         err_logs = [l for l in all_logs if l.startswith("[ERROR]")]
         print(f"  Total: {len(err_logs)}")
         for l in err_logs[:30]:
@@ -748,8 +754,7 @@ def main() -> int:
                 print(f"      conf={conf} source_id={source_id} orig={orig}")
 
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_records_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -762,7 +767,9 @@ def main() -> int:
         executor_calls = len(_executor_spy.calls)
         gen_calls = len(_executor_spy.gen_calls)
         adapter_calls = len(_adapter_spy.calls)
-        npc_spoke_count = sum(1 for t, _ in _event_bus_spy.published_events if "npc_spoke" in t.lower() or "spread_rumor" in t.lower())
+        npc_spoke_count = sum(
+            1 for t, _ in _event_bus_spy.published_events if "npc_spoke" in t.lower() or "spread_rumor" in t.lower()
+        )
 
         print(f"  DialogueExecutor.execute() called: {executor_calls}")
         print(f"  _generate_with_router called: {gen_calls}")
@@ -770,13 +777,13 @@ def main() -> int:
         print(f"  NPC_SPOKE/SPREAD_RUMOR published: {npc_spoke_count}")
 
         if new_borko_belief:
-            print(f"\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif executor_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — DialogueExecutor.execute() NOT called")
-            print(f"  >>> Spy still not attached — check Step 4 output")
+            print("\n  >>> VERDICT: BREAK — DialogueExecutor.execute() NOT called")
+            print("  >>> Spy still not attached — check Step 4 output")
         elif executor_calls > 0 and gen_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — execute() called but _generate_with_router NOT called")
-            print(f"  >>> Likely: stub branch (router is None) or pre-LLM branch")
+            print("\n  >>> VERDICT: BREAK — execute() called but _generate_with_router NOT called")
+            print("  >>> Likely: stub branch (router is None) or pre-LLM branch")
             if _executor_spy.calls:
                 last = _executor_spy.calls[-1]
                 if last.get("exception"):
@@ -786,8 +793,8 @@ def main() -> int:
                     for art in last.get("yielded_artifacts", []):
                         print(f"      artifact: {art}")
         elif gen_calls > 0 and adapter_calls == 0:
-            print(f"\n  >>> VERDICT: BREAK — _generate_with_router called but IntentEventAdapter NOT called")
-            print(f"  >>> Likely: materializer not invoked or artifact not successful")
+            print("\n  >>> VERDICT: BREAK — _generate_with_router called but IntentEventAdapter NOT called")
+            print("  >>> Likely: materializer not invoked or artifact not successful")
             if _executor_spy.calls:
                 last = _executor_spy.calls[-1]
                 if last.get("exception"):
@@ -801,9 +808,9 @@ def main() -> int:
                 if last_gen.get("exception"):
                     print(f"  >>> _generate_with_router exception: {last_gen['exception']}")
         elif adapter_calls > 0 and npc_spoke_count == 0:
-            print(f"\n  >>> VERDICT: BREAK — adapter called but NPC_SPOKE not published")
+            print("\n  >>> VERDICT: BREAK — adapter called but NPC_SPOKE not published")
         else:
-            print(f"\n  >>> VERDICT: INCONCLUSIVE — needs manual inspection")
+            print("\n  >>> VERDICT: INCONCLUSIVE — needs manual inspection")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()
@@ -817,6 +824,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:

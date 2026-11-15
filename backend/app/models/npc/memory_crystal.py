@@ -39,24 +39,24 @@ class MemoryCrystal:
     """
 
     # Триплет знания
-    subject: str          # "player"
-    predicate: str        # "occupation"
-    object: str           # "geologist"
+    subject: str  # "player"
+    predicate: str  # "occupation"
+    object: str  # "geologist"
 
     # Происхождение
-    source: str           # npc_id, от которого знание получено
-    origin_reference: str # дайджест источника (episode/consolidation)
+    source: str  # npc_id, от которого знание получено
+    origin_reference: str  # дайджест источника (episode/consolidation)
     related_episodes: Tuple[str, ...] = ()  # id эпизодов-подтверждений
 
     # Доверие (два независимых измерения)
-    confidence: float = 0.5          # 0..1 — уверенность в истинности
+    confidence: float = 0.5  # 0..1 — уверенность в истинности
     retrieval_strength: float = 0.5  # 0..1 — доступность припоминания
 
     # Эмоциональная окраска знания
-    emotional_weight: float = 0.0    # -1..+1
+    emotional_weight: float = 0.0  # -1..+1
 
     # Время жизни
-    last_reinforced: int = 0         # tick последнего подкрепления
+    last_reinforced: int = 0  # tick последнего подкрепления
     times_recalled: int = 0
 
     # Кто владеет кристаллом (нужно для PK таблицы; в DTO — для
@@ -81,9 +81,7 @@ class MemoryCrystal:
             source=self.source,
             origin_reference=self.origin_reference,
             related_episodes=self.related_episodes,
-            confidence=max(
-                0.0, min(1.0, self.confidence * math.exp(-rate * game_days))
-            ),
+            confidence=max(0.0, min(1.0, self.confidence * math.exp(-rate * game_days))),
             retrieval_strength=self.retrieval_strength,
             emotional_weight=self.emotional_weight,
             last_reinforced=self.last_reinforced,

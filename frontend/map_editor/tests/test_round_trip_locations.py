@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_round_trip_locations.py
+"""path: /frontend/map_editor/tests/test_round_trip_locations.py
 
 Назначение: ME-1.7 golden round-trip тесты — load->save->reload не теряет данные.
     Для каждой локации кампании Open_road: копия в tmp_path -> DataManager.load_all()
@@ -24,9 +24,7 @@ import pytest
 from data_manager import DataManager  # type: ignore[import-not-found]
 
 _CAMPAIGN = "Open_road"
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / _CAMPAIGN / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / _CAMPAIGN / "locations"
 
 
 def _location_files() -> list[Path]:
@@ -64,24 +62,14 @@ def round_trip_copy(tmp_path: Path, request) -> tuple[Path, dict, dict]:
 def test_round_trip_preserves_objects(round_trip_copy):
     """objects: все ID + содержимое сохранены после round-trip."""
     _, original, saved = round_trip_copy
-    orig_objs = {
-        o["id"]: o
-        for o in original.get("objects", [])
-        if isinstance(o, dict) and "id" in o
-    }
-    saved_objs = {
-        o["id"]: o
-        for o in saved.get("objects", [])
-        if isinstance(o, dict) and "id" in o
-    }
+    orig_objs = {o["id"]: o for o in original.get("objects", []) if isinstance(o, dict) and "id" in o}
+    saved_objs = {o["id"]: o for o in saved.get("objects", []) if isinstance(o, dict) and "id" in o}
     assert set(orig_objs.keys()) == set(saved_objs.keys()), (
         f"object IDs changed: only-original={set(orig_objs) - set(saved_objs)}, "
         f"only-saved={set(saved_objs) - set(orig_objs)}"
     )
     for oid in orig_objs:
-        assert orig_objs[oid] == saved_objs[oid], (
-            f"object {oid} content changed after round-trip"
-        )
+        assert orig_objs[oid] == saved_objs[oid], f"object {oid} content changed after round-trip"
 
 
 @pytest.mark.parametrize("round_trip_copy", _LOC_NAMES, indirect=True)
@@ -121,6 +109,5 @@ def test_round_trip_preserves_top_level(round_trip_copy):
             continue
         assert key in saved, f"top-level field {key!r} lost after round-trip"
         assert original[key] == saved[key], (
-            f"top-level field {key!r} changed: "
-            f"original={original[key]!r} saved={saved[key]!r}"
+            f"top-level field {key!r} changed: original={original[key]!r} saved={saved[key]!r}"
         )

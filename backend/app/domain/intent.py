@@ -4,6 +4,7 @@ path: /backend/app/domain/intent.py
 Зависимости: dataclasses, typing
 Основные сущности: IntentDTO
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,9 +18,7 @@ class IntentParametersDTO:
     """
 
     semantic_action: Optional[str] = None
-    actor_id: Optional[str] = (
-        None  # ADR-O-315: Кто совершает действие ("player", "tornin")
-    )
+    actor_id: Optional[str] = None  # ADR-O-315: Кто совершает действие ("player", "tornin")
     target_reference: Optional[str] = None
     target_id: Optional[str] = (
         None  # DEPRECATED ADR-125: Factually dead. Truth goes via PlayerTargetExtractor + intent.target. Kept as archaeological divergence indicator during migration.
@@ -63,8 +62,6 @@ class IntentDTO:
 
     action: str  # 'go', 'talk', 'attack', 'look', 'idle'
     target: str  # 'npc_lucy', 'door_north', 'sword', ''
-    parameters: IntentParametersDTO = field(
-        default_factory=IntentParametersDTO
-    )  # Строгая типизация
+    parameters: IntentParametersDTO = field(default_factory=IntentParametersDTO)  # Строгая типизация
     text: str = ""  # оригинальный текст игрока
     campaign_id: str = ""  # какой кампании принадлежит

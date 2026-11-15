@@ -13,6 +13,7 @@
 Не тестирует: partial matching NPC (p.3b), morphology/lemmatization (p.3c),
 EVENT decomposition, effect_kind=command.
 """
+
 from __future__ import annotations
 
 from app.services.chronicle.decomposition_normalizer import (
@@ -120,9 +121,7 @@ def test_normalizer_skips_faction_question():
     assert len(items) == 1
     item = items[0]
     # Question НЕ создан — faction recognized
-    assert item.question is None, (
-        "Faction hint не должен создавать ClarificationQuestion"
-    )
+    assert item.question is None, "Faction hint не должен создавать ClarificationQuestion"
     # Confidence не понижен (нет question → нет min(0.4))
     assert item.confidence == 0.9
 
@@ -152,7 +151,5 @@ def test_normalizer_creates_question_for_role():
     assert len(items) == 1
     item = items[0]
     # Question создан — не фракция, не NPC → roster_mismatch
-    assert item.question is not None, (
-        "Не-фракция без exact NPC match должна создавать ClarificationQuestion"
-    )
+    assert item.question is not None, "Не-фракция без exact NPC match должна создавать ClarificationQuestion"
     assert "roster_mismatch" in item.question.question_id

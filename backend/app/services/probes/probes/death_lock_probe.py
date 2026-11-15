@@ -3,6 +3,7 @@
 ADR-127: Death Lock.
 Мёртвый NPC не может иметь активных перемещений или генерировать интенты.
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -33,7 +34,7 @@ class DeathLockProbe(Probe):
                         name=self.name,
                         severity=self.severity,
                         passed=False,
-                        details=f"Dead NPC '{nid}' has active traversal at tick {ctx.tick_id}. ADR-127 violation."
+                        details=f"Dead NPC '{nid}' has active traversal at tick {ctx.tick_id}. ADR-127 violation.",
                     )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

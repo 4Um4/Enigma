@@ -3,6 +3,7 @@
 Protocol (Interface) для LifeEngine.
 Определяет минимальный публичный контракт, используемый оркестратором и game_loop.
 """
+
 from typing import Any, Dict, List, Protocol, runtime_checkable
 
 

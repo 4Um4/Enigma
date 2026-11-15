@@ -62,9 +62,7 @@ class BreakDeltas:
     identity_crisis: bool = False  # L2.7: Флаг кризиса (deformation) — DEPRECATED
     identity_pressure: float = 0.0  # L2.7: Эфемерное напряжение идентичности (0-100)
     recent_failures_delta: int = 0  # L2.7: Прирост/затухание счётчика неудач
-    stage: str = (
-        "resistance"  # resistance/cracks/rationalization/adaptation/deformation
-    )
+    stage: str = "resistance"  # resistance/cracks/rationalization/adaptation/deformation
 
 
 class BreakProgressEngine:
@@ -88,11 +86,7 @@ class BreakProgressEngine:
         """
         # ADR-O-146: Давление вычисляется из восприятия (affective_load, threat)
         # и физиологии (stress), а не из сырого кэша отношений.
-        _threat = (
-            state.perceptual_kernel.threat_gradient * 100
-            if state.perceptual_kernel
-            else 0.0
-        )
+        _threat = state.perceptual_kernel.threat_gradient * 100 if state.perceptual_kernel else 0.0
         _affect = state.affective_load * 100
         fear = max(_threat, _affect)  # Берём доминирующий источник страха
         stress = state.stress
@@ -146,7 +140,9 @@ class BreakProgressEngine:
             integrity_delta = base_delta * integrity * (1 + pressure_factor)
 
         # Anti-abuse: сопротивление растёт при спаме
-        resistance_delta = BREAK_RESISTANCE_GAIN if pressure > BREAK_RESISTANCE_PRESSURE_THRESHOLD else BREAK_RESISTANCE_DECAY
+        resistance_delta = (
+            BREAK_RESISTANCE_GAIN if pressure > BREAK_RESISTANCE_PRESSURE_THRESHOLD else BREAK_RESISTANCE_DECAY
+        )
 
         # L2.7: Динамика recent_failures. Если аффективная нагрузка высока, неудачи накапливаются.
         # Если NPC спокоен (pressure < 10), счётчик затухает.
@@ -321,9 +317,7 @@ def compute_continuous_drift(
     # --- 3. СУММАРНЫЙ ДРЕЙФ (Генерация событий L1) ---
     total_drifts = {}
     for drive in _drives_base.keys():
-        total_drifts[drive] = external_drifts.get(drive, 0.0) + relaxation_drifts.get(
-            drive, 0.0
-        )
+        total_drifts[drive] = external_drifts.get(drive, 0.0) + relaxation_drifts.get(drive, 0.0)
 
     # ADR-O-208: TIFL больше не мутирует. Он генерирует события деформации L1.
     events = []

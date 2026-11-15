@@ -20,12 +20,12 @@ from app.services.npc.knowledge_retrieval import KnowledgeItem
 # Мастер: пороги — calibration candidates; будущий владелец — Calibration
 # Lab (ADR-O-361-паттерн). Значения выбраны консервативно для MVP-Таверны;
 # пере-калибровка = правка этих констант (не кода логики).
-V1_T_REVEAL = 50.0    # trust ≥ 50 → возможен REVEAL
-V1_T_PARTIAL = 20.0   # trust ≥ 20 → возможен PARTIAL
-V1_P_MIN = 2.0        # накопленное давление ≥ 2 → REVEAL/PARTIAL разблокированы
-V1_S_HIGH = 70.0      # stress ≥ 70 → HINT (трещина)
-V1_P_MAX = 5.0        # давление ≥ 5 → HINT (трещина от настойчивости)
-V1_F_HIGH = 60.0      # fear ≥ 60 → REDIRECT (уход от темы)
+V1_T_REVEAL = 50.0  # trust ≥ 50 → возможен REVEAL
+V1_T_PARTIAL = 20.0  # trust ≥ 20 → возможен PARTIAL
+V1_P_MIN = 2.0  # накопленное давление ≥ 2 → REVEAL/PARTIAL разблокированы
+V1_S_HIGH = 70.0  # stress ≥ 70 → HINT (трещина)
+V1_P_MAX = 5.0  # давление ≥ 5 → HINT (трещина от настойчивости)
+V1_F_HIGH = 60.0  # fear ≥ 60 → REDIRECT (уход от темы)
 V1_FRACTION_PARTIAL = 0.5  # доля канон-текста при PARTIAL
 
 

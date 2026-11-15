@@ -102,7 +102,7 @@ def resolve_intent_pressure(
             social_exposure=0.05,  # Минимальный социальный фрикшн
             humiliation=0.0,  # Игрок не унижается, отдавая приказ
             moral_violation=0.4 if _is_order else 0.0,  # Приказ = моральный выбор
-            self_risk=0.3 if _is_order else 0.0,        # Приказ = ответственность за риск
+            self_risk=0.3 if _is_order else 0.0,  # Приказ = ответственность за риск
         )
 
     elif action in (
@@ -122,9 +122,7 @@ def resolve_intent_pressure(
     # Модификаторы контекста (если переданы)
     if context:
         if context.get("is_desperate"):
-            pressure = IntentPressureProfile(
-                **{k: getattr(pressure, k) * 0.7 for k in pressure.__dataclass_fields__}
-            )
+            pressure = IntentPressureProfile(**{k: getattr(pressure, k) * 0.7 for k in pressure.__dataclass_fields__})
 
     return pressure
 
@@ -163,9 +161,7 @@ def compute_willpower(
     trauma_markers = psyche.get("trauma_markers", [])
     if isinstance(trauma_markers, (list, set, tuple)) and len(trauma_markers) > 0:
         # Каждая травма добавляет 0.1 к rigidity (максимум +0.3, чтобы не стать бессмертным)
-        identity_rigidity = min(
-            1.0, identity_rigidity + min(len(trauma_markers) * 0.1, 0.3)
-        )
+        identity_rigidity = min(1.0, identity_rigidity + min(len(trauma_markers) * 0.1, 0.3))
 
     # Расчет кумулятивного напряжения
     resistance = (
@@ -173,8 +169,7 @@ def compute_willpower(
         + pressure.self_risk * fear
         + pressure.moral_violation * conviction
         + pressure.social_exposure * shame
-        - pressure.violence
-        * aggression  # Склонность к насилию снижает сопротивление ему
+        - pressure.violence * aggression  # Склонность к насилию снижает сопротивление ему
         - pressure.taboo_intensity * curiosity  # Любопытство снижает страх табу
     )
 
@@ -185,9 +180,7 @@ def compute_willpower(
     state = _map_resistance_to_state(resistance)
 
     # Расчет побочных эффектов (Урон идентичности, страх, стресс от морального конфликта)
-    identity_damage = (
-        resistance * pressure.identity_deviation * 0.2 if resistance > 0.4 else 0.0
-    )
+    identity_damage = resistance * pressure.identity_deviation * 0.2 if resistance > 0.4 else 0.0
     fear_delta = resistance * pressure.self_risk * 0.3
     # Стресс аватара: моральное нарушение + сопротивление = внутренний конфликт
     # Масштаб 0-10 за действие (NPCState.stress = 0-100)
@@ -238,24 +231,18 @@ def _map_resistance_to_state(resistance: float) -> WillState:
         return WillState.CONDITIONED
 
 
-def _generate_counter_offer(
-    pressure: IntentPressureProfile, state: WillState
-) -> Optional[IntentDTO]:
+def _generate_counter_offer(pressure: IntentPressureProfile, state: WillState) -> Optional[IntentDTO]:
     """Аватар ищет альтернативу, чтобы сохранить Я."""
     if state in (WillState.COMPLY, WillState.RELUCTANT):
         return None  # Согласие или легкая неохота не требуют компромисса
 
     if pressure.violence > 0.6:
         # Предлагает избежать прямого насилия
-        return IntentDTO(
-            action="flee", target="", parameters=IntentParametersDTO()
-        )
+        return IntentDTO(action="flee", target="", parameters=IntentParametersDTO())
 
     if pressure.social_exposure > 0.6:
         # Предлагает скрытный путь
-        return IntentDTO(
-            action="stealth", target="", parameters=IntentParametersDTO()
-        )
+        return IntentDTO(action="stealth", target="", parameters=IntentParametersDTO())
 
     if pressure.self_risk > 0.6:
         # Предлагает переговоры или подчинение ради выживания
@@ -264,9 +251,7 @@ def _generate_counter_offer(
     return None
 
 
-def _generate_narration_hooks(
-    state: WillState, pressure: IntentPressureProfile
-) -> list[str]:
+def _generate_narration_hooks(state: WillState, pressure: IntentPressureProfile) -> list[str]:
     """Генерирует подсказки для LLM-вербализации."""
     hooks = []
     if state == WillState.DISTRESSED:
@@ -300,9 +285,7 @@ def get_embodied_impulse_text(vector: Optional[EmbodiedVector]) -> str:
     return _EMBODIED_TEXT_MAP.get(vector, "Сопротивляться...")
 
 
-def _resolve_embodied_vector(
-    pressure: IntentPressureProfile, state: WillState
-) -> Optional[tuple]:
+def _resolve_embodied_vector(pressure: IntentPressureProfile, state: WillState) -> Optional[tuple]:
     """The Fool Phase 2: Вычисляет моторный импульс, социальный сигнал и уровень угрозы.
     Возвращает: (EmbodiedVector, SocialSignal, CrowdThreatLevel) или None.
     """
@@ -345,9 +328,7 @@ def _resolve_embodied_vector(
     return EmbodiedVector.AVOIDANCE, SocialSignal.FEAR, CrowdThreatLevel.LOW
 
 
-def compose_pressure_from_tags(
-    base_pressure: IntentPressureProfile, tags: list[str]
-) -> IntentPressureProfile:
+def compose_pressure_from_tags(base_pressure: IntentPressureProfile, tags: list[str]) -> IntentPressureProfile:
     """Накладывает семантические теги интента на базовое давление.
     Решает проблему 'hello = humiliation 0.4'."""
     _mod = {
@@ -370,8 +351,6 @@ def compose_pressure_from_tags(
         violence=base_pressure.violence + deltas.get("violence", 0),
         humiliation=base_pressure.humiliation + deltas.get("humiliation", 0),
         self_risk=base_pressure.self_risk + deltas.get("self_risk", 0),
-        moral_violation=base_pressure.moral_violation
-        + deltas.get("moral_violation", 0),
-        identity_deviation=base_pressure.identity_deviation
-        + deltas.get("identity_deviation", 0),
+        moral_violation=base_pressure.moral_violation + deltas.get("moral_violation", 0),
+        identity_deviation=base_pressure.identity_deviation + deltas.get("identity_deviation", 0),
     )

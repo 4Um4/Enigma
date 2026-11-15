@@ -509,8 +509,7 @@ def run_phase_7_windup_resolution(ctx: Any, orchestrator: Any) -> None:
                                 )
                                 if _g3.status is G3Status.G3_REJECT:
                                     logger.info(
-                                        f"[PHASE_7][G3_REJECT] npc={_actor_id} "
-                                        f"target={_target_id} reason={_g3.reason}"
+                                        f"[PHASE_7][G3_REJECT] npc={_actor_id} target={_target_id} reason={_g3.reason}"
                                     )
                                     _g3_interrupt_reason = INTERRUPT_G3_OBJECT_REJECT
                                     windup = dataclasses.replace(windup, status=WindupStatus.INTERRUPTED)

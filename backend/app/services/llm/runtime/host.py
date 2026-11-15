@@ -15,24 +15,23 @@ path: backend/app/services/llm/runtime/host.py
 Зависимости: FastAPI, server_lifecycle (_spawn_llama_server, _await_llama_ready,
     acquire_llama_server_lock), app.core.config
 """
+
 import asyncio
 import time
-import uuid
 import urllib.request
-from contextlib import asynccontextmanager
+import uuid
 from collections.abc import AsyncIterator
-
+from contextlib import asynccontextmanager
 from typing import Any
-
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 
 from app.core.config import settings
 from app.services.llm.server_lifecycle import (
-    _spawn_llama_server,
     _await_llama_ready,
+    _spawn_llama_server,
     acquire_llama_server_lock,
 )
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 PROTOCOL_VERSION = "llm-host-v1"
 LEASE_TTL = 60
@@ -153,10 +152,10 @@ async def _ensure_llama_server() -> tuple[bool, str]:
 def _cleanup_stale_leases() -> None:
     """Удаление истёкших lease (background task). TTL — реальный механизм, atexit — дополнение."""
     now = time.time()
-    expired = [lid for lid, l in _broker_state["leases"].items() if now > l["expires_at"]]
+    expired = [lid for lid, lease in _broker_state["leases"].items() if now > lease["expires_at"]]
     for lid in expired:
-        l = _broker_state["leases"].pop(lid)
-        print(f"[LLM_HOST] lease expired: {lid} (label={l.get('label', '')})")
+        lease = _broker_state["leases"].pop(lid)
+        print(f"[LLM_HOST] lease expired: {lid} (label={lease.get('label', '')})")
 
 
 async def _cleanup_loop() -> None:
@@ -219,8 +218,8 @@ async def heartbeat(req: HeartbeatRequest) -> HeartbeatResponse:
 @app.post("/release", response_model=ReleaseResponse)
 async def release(req: ReleaseRequest) -> ReleaseResponse:
     if req.lease_id in _broker_state["leases"]:
-        l = _broker_state["leases"].pop(req.lease_id)
-        print(f"[LLM_HOST] lease released: {req.lease_id} (label={l.get('label', '')})")
+        lease = _broker_state["leases"].pop(req.lease_id)
+        print(f"[LLM_HOST] lease released: {req.lease_id} (label={lease.get('label', '')})")
         return ReleaseResponse(released=True)
     return ReleaseResponse(released=False)
 
@@ -232,9 +231,14 @@ async def status() -> dict[str, Any]:
         "spawned_by_us": _broker_state["spawned_by_us"],
         "llama_ready": _broker_state["llama_ready"],
         "leases": [
-            {"lease_id": lid, "pid": l["pid"], "label": l["label"],
-             "pinned": l["pinned"], "expires_at": l["expires_at"]}
-            for lid, l in _broker_state["leases"].items()
+            {
+                "lease_id": lid,
+                "pid": lease["pid"],
+                "label": lease["label"],
+                "pinned": lease["pinned"],
+                "expires_at": lease["expires_at"],
+            }
+            for lid, lease in _broker_state["leases"].items()
         ],
         "started_at": _broker_state["started_at"],
     }

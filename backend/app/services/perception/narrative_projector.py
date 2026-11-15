@@ -4,6 +4,7 @@ path: /project/backend/app/services/perception/narrative_projector.py
 Зависимости: app.domain.presentation, math
 Основные сущности: NarrativeProjector
 """
+
 import logging
 import math
 from typing import Dict, List
@@ -30,19 +31,17 @@ PERCEPTION_CLEAR_RADIUS = 5.0
 PERCEPTION_PARTIAL_RADIUS = 10.0
 PERCEPTION_MAX_RADIUS = 15.0
 
+
 class NarrativeProjector:
     """
     Инжектируется в GameLoop. Принимает чистый PerceptionContext и сырые диалоги.
     Не генерирует event_id (ожидает его в raw_dialogues).
     """
+
     def __init__(self) -> None:
         self._distortion = AuditoryDistortionPolicy()
 
-    def project(
-        self,
-        raw_dialogues: List[Dict],
-        context: PerceptionContext
-    ) -> List[PerceivedNarrativeDTO]:
+    def project(self, raw_dialogues: List[Dict], context: PerceptionContext) -> List[PerceivedNarrativeDTO]:
         if not raw_dialogues:
             return []
 
@@ -53,12 +52,12 @@ class NarrativeProjector:
         for d in raw_dialogues:
             speaker_id = d.get("speaker_id")
             text = d.get("text", "")
-            event_id = d.get("event_id", "") # Ожидаем event_id снаружи!
+            event_id = d.get("event_id", "")  # Ожидаем event_id снаружи!
 
             dist = 999.0
             if speaker_id and speaker_id in context.speaker_positions:
                 s_x, s_y = context.speaker_positions[speaker_id]
-                dist = math.sqrt((p_x - s_x)**2 + (p_y - s_y)**2)
+                dist = math.sqrt((p_x - s_x) ** 2 + (p_y - s_y) ** 2)
 
             if dist <= PERCEPTION_CLEAR_RADIUS:
                 perception_certainty = 0.9 * stability
@@ -75,13 +74,15 @@ class NarrativeProjector:
 
             visible_text = self._distortion.distort(text, auditory_clarity)
 
-            narratives.append(PerceivedNarrativeDTO(
-                event_id=event_id,
-                speaker_id=speaker_id,
-                visible_text=visible_text,
-                perception_certainty=max(0.0, min(1.0, perception_certainty)),
-                auditory_clarity=max(0.0, min(1.0, auditory_clarity)),
-                delivery_type=_DELIVERY_MAP.get(d.get("exposure", "normal"), "NORMAL")
-            ))
+            narratives.append(
+                PerceivedNarrativeDTO(
+                    event_id=event_id,
+                    speaker_id=speaker_id,
+                    visible_text=visible_text,
+                    perception_certainty=max(0.0, min(1.0, perception_certainty)),
+                    auditory_clarity=max(0.0, min(1.0, auditory_clarity)),
+                    delivery_type=_DELIVERY_MAP.get(d.get("exposure", "normal"), "NORMAL"),
+                )
+            )
 
         return narratives

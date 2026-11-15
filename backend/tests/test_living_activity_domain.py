@@ -4,6 +4,7 @@ Round-trip и детерминизм доменных сущностей Living 
 (форма npc["desires"] / npc["activity_state"]); вариации — dataclasses.replace,
 не конструктор-мечтания.
 """
+
 import dataclasses
 import unittest
 
@@ -37,8 +38,18 @@ REAL_ACTIVITY_DICT = {
     "target_ref": "obj_tavern_portion_0001",
     "steps": [
         {"step_kind": "move", "action_type": "", "target_ref": "tavern:kitchen", "duration_ticks": 1},
-        {"step_kind": "object_action", "action_type": "TAKE", "target_ref": "obj_tavern_portion_0001", "duration_ticks": 1},
-        {"step_kind": "body_action", "action_type": "CONSUME", "target_ref": "obj_tavern_portion_0001", "duration_ticks": 3},
+        {
+            "step_kind": "object_action",
+            "action_type": "TAKE",
+            "target_ref": "obj_tavern_portion_0001",
+            "duration_ticks": 1,
+        },
+        {
+            "step_kind": "body_action",
+            "action_type": "CONSUME",
+            "target_ref": "obj_tavern_portion_0001",
+            "duration_ticks": 3,
+        },
     ],
     "step_index": 0,
     "started_tick": 124,

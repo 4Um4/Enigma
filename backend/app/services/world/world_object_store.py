@@ -29,6 +29,7 @@ path: backend/app/services/world/world_object_store.py
     app.domain.object_fsms, app.domain.semantic_action
 Основные сущности: WorldObjectStore
 """
+
 from __future__ import annotations
 
 import math
@@ -132,17 +133,11 @@ def _assert_write_allowed() -> None:
         # как 'tests.X', и как 'X' — прецедент npc_state PK-guard, где
         # двойственность решалась парными записями; здесь — одним
         # условием, семантика точного соответствия сохранена).
-        if (
-            _caller == _mod
-            or _caller.startswith(_mod + ".")
-            or _mod.endswith("." + _caller)
-        ):
+        if _caller == _mod or _caller.startswith(_mod + ".") or _mod.endswith("." + _caller):
             return
     from app.errors import ArchitecturalViolationError
 
-    raise ArchitecturalViolationError(
-        f"world_objects write-op (caller={_caller!r})", _caller
-    )
+    raise ArchitecturalViolationError(f"world_objects write-op (caller={_caller!r})", _caller)
 
 
 def _read_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
@@ -153,8 +148,8 @@ def _read_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
         return {}
     if not isinstance(subtree, dict):
         raise OntologyViolationError(
-            f"scene_state['{_KEY_WORLD_OBJECTS}'] повреждён: "
-            f"{type(subtree).__name__}, ожидается dict")
+            f"scene_state['{_KEY_WORLD_OBJECTS}'] повреждён: {type(subtree).__name__}, ожидается dict"
+        )
     return subtree
 
 
@@ -172,8 +167,8 @@ def _write_subtree(scene_state: Dict[str, Any]) -> Dict[str, Any]:
         return subtree
     if not isinstance(subtree, dict):
         raise OntologyViolationError(
-            f"scene_state['{_KEY_WORLD_OBJECTS}'] повреждён: "
-            f"{type(subtree).__name__}, ожидается dict")
+            f"scene_state['{_KEY_WORLD_OBJECTS}'] повреждён: {type(subtree).__name__}, ожидается dict"
+        )
     return subtree
 
 
@@ -182,9 +177,7 @@ def _load_required(subtree: Dict[str, Any], object_id: str) -> WorldObject:
     громкий отказ (L4), не тихий None."""
     raw = subtree.get(object_id)
     if raw is None:
-        raise OntologyViolationError(
-            f"world_objects: объект '{object_id}' не существует — "
-            f"операция невозможна")
+        raise OntologyViolationError(f"world_objects: объект '{object_id}' не существует — операция невозможна")
     return WorldObject.from_dict(raw)
 
 
@@ -202,9 +195,7 @@ def _parent_id(obj: WorldObject) -> Optional[str]:
     return None
 
 
-def _assert_no_cycle(
-    subtree: Dict[str, Any], start_id: str, first_target_id: str
-) -> None:
+def _assert_no_cycle(subtree: Dict[str, Any], start_id: str, first_target_id: str) -> None:
     """Цикл в цепочке отношений (A в B, B в A) онтологически невозможен:
     позиция не может зависеть сама от себя. Поднимаемся по родителям;
     встреча start или повтор узла = нарушение. Существующий чужой цикл —
@@ -214,12 +205,12 @@ def _assert_no_cycle(
     while current is not None:
         if current == start_id:
             raise OntologyViolationError(
-                f"world_objects: цикл отношений через '{start_id}' — "
-                f"позиция не может зависеть от самой себя")
+                f"world_objects: цикл отношений через '{start_id}' — позиция не может зависеть от самой себя"
+            )
         if current in visited:
             raise OntologyViolationError(
-                f"world_objects: существующий цикл отношений в "
-                f"'{current}' — subtree повреждён")
+                f"world_objects: существующий цикл отношений в '{current}' — subtree повреждён"
+            )
         visited.add(current)
         raw = subtree.get(current)
         if raw is None:
@@ -235,9 +226,7 @@ class WorldObjectStore:
     # ════════════════ READ (не мутируют scene_state) ════════════════
 
     @staticmethod
-    def get(
-        scene_state: Dict[str, Any], object_id: str
-    ) -> Optional[WorldObject]:
+    def get(scene_state: Dict[str, Any], object_id: str) -> Optional[WorldObject]:
         raw = _read_subtree(scene_state).get(object_id)
         return WorldObject.from_dict(raw) if raw is not None else None  # noqa: ENIGMA001
 
@@ -247,16 +236,13 @@ class WorldObjectStore:
         location_id: Optional[str] = None,
     ) -> Tuple[WorldObject, ...]:
         """Все объекты (опционально — локации) в порядке вставки."""
-        objs = [WorldObject.from_dict(raw)
-                for raw in _read_subtree(scene_state).values()]
+        objs = [WorldObject.from_dict(raw) for raw in _read_subtree(scene_state).values()]
         if location_id is not None:
             objs = [o for o in objs if o.location_id == location_id]
         return tuple(objs)
 
     @staticmethod
-    def query_object_relations(
-        scene_state: Dict[str, Any], object_id: str
-    ) -> Optional[Tuple[ObjectRelation, ...]]:
+    def query_object_relations(scene_state: Dict[str, Any], object_id: str) -> Optional[Tuple[ObjectRelation, ...]]:
         """ТЗ §20.2: все отношения объекта (projection DTO).
         None = объект не существует (легитимное отсутствие на read)."""
         obj = WorldObjectStore.get(scene_state, object_id)
@@ -264,9 +250,7 @@ class WorldObjectStore:
         return obj.project_relations() if obj is not None else None  # noqa: ENIGMA001
 
     @staticmethod
-    def query_container_contents(
-        scene_state: Dict[str, Any], container_id: str
-    ) -> Tuple[WorldObject, ...]:
+    def query_container_contents(scene_state: Dict[str, Any], container_id: str) -> Tuple[WorldObject, ...]:
         """Inverse-проекция CONTAINED_BY: canonical хранится на
         содержимом; список содержимого — ЗАПРОС, не хранимое поле
         (mirror-поле = зомби-истина, урок S215)."""
@@ -321,9 +305,7 @@ class WorldObjectStore:
         операцией (каузальная цепочка явная)."""
         subtree = _write_subtree(scene_state)
         if object_id in subtree:
-            raise OntologyViolationError(
-                f"world_objects: дубликат object_id '{object_id}' — "
-                f"рождение уже рождённого")
+            raise OntologyViolationError(f"world_objects: дубликат object_id '{object_id}' — рождение уже рождённого")
         obj = build_world_object(
             object_id=object_id,
             archetype=archetype,
@@ -356,9 +338,7 @@ class WorldObjectStore:
         if kind in _OBJECT_TARGET_KINDS:
             raw_target = subtree.get(target_id)
             if raw_target is None:
-                raise OntologyViolationError(
-                    f"world_objects: цель {kind.value} '{target_id}' "
-                    f"не существует")
+                raise OntologyViolationError(f"world_objects: цель {kind.value} '{target_id}' не существует")
             target = WorldObject.from_dict(raw_target)
             _assert_no_cycle(subtree, object_id, target_id)
             if kind is ObjectRelationKind.SUPPORTED_BY:
@@ -368,12 +348,14 @@ class WorldObjectStore:
                     raise OntologyViolationError(
                         f"world_objects: опора '{target_id}' не FREE "
                         f"(carrier={target.carrier_mode.value}) — "
-                        f"опора обязана владеть своей позицией")
+                        f"опора обязана владеть своей позицией"
+                    )
                 if target.location_id != obj.location_id:
                     raise OntologyViolationError(
                         f"world_objects: SUPPORTED_BY через локации "
                         f"({obj.location_id} -> {target.location_id}) "
-                        f"невозможен")
+                        f"невозможен"
+                    )
         elif kind is ObjectRelationKind.ATTACHED_TO and target_id in subtree:
             # host — объект: циклы невозможны. host — NPC: структурно
             # (существование NPC — W3/W4). Граница с BodyTopology
@@ -413,15 +395,13 @@ class WorldObjectStore:
         легален)."""
         subtree = _read_subtree(scene_state)
         obj = _load_required(subtree, object_id)
-        dependents = [
-            oid for oid, raw in subtree.items()
-            if WorldObject.from_dict(raw).supported_by == object_id
-        ]
+        dependents = [oid for oid, raw in subtree.items() if WorldObject.from_dict(raw).supported_by == object_id]
         if dependents:
             raise OntologyViolationError(
                 f"world_objects: relocate '{object_id}' заблокирован — "
                 f"позиционные зависимые {dependents}; сначала явный "
-                f"release SUPPORTED_BY для каждого")
+                f"release SUPPORTED_BY для каждого"
+            )
         new_obj = relocate_object(obj, location_id, position)
         _write_subtree(scene_state)[object_id] = new_obj.to_dict()
         return new_obj
@@ -448,8 +428,7 @@ class WorldObjectStore:
         subtree = _read_subtree(scene_state)
         obj = _load_required(subtree, object_id)
         result = transition_object(obj, action, actor_id)
-        if (result.verdict is TransitionVerdict.PASS
-                and result.new_obj is not None):
+        if result.verdict is TransitionVerdict.PASS and result.new_obj is not None:
             _write_subtree(scene_state)[object_id] = result.new_obj.to_dict()
         return result
 

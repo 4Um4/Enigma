@@ -8,9 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 # Путь к реальным NPC из конфига
-_NPC_INDIVIDUALS_DIR = (
-    Path(__file__).parent.parent.parent.parent / "config" / "npc" / "individuals"
-)
+_NPC_INDIVIDUALS_DIR = Path(__file__).parent.parent.parent.parent / "config" / "npc" / "individuals"
 
 # Визуальный маппинг для отрисовки NPC в редакторе (ref_id -> спрайт)
 # ME-D5: персональные спрайты — единственный дом (значения из рендер-эталона S348)

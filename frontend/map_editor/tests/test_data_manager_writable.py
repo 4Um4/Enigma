@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_data_manager_writable.py
+"""path: /frontend/map_editor/tests/test_data_manager_writable.py
 
 Назначение: ME-1.7 autotests — DataManager._writable flag invariants.
     ME-1.6 сделал location_templates/ read-only starter library: save,
@@ -28,9 +28,7 @@ from pathlib import Path
 from data_manager import DataManager  # type: ignore[import-not-found]
 
 _TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "location_templates"
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
 
 
 def test_default_writable_false():
@@ -71,15 +69,9 @@ def test_save_blocked_on_templates():
 def test_save_all_blocked_on_templates():
     """save_all() on templates returns early — no template files modified."""
     dm = DataManager()
-    before = {
-        f.name: hashlib.md5(f.read_bytes()).hexdigest()
-        for f in _TEMPLATES_DIR.glob("*.json")
-    }
+    before = {f.name: hashlib.md5(f.read_bytes()).hexdigest() for f in _TEMPLATES_DIR.glob("*.json")}
     dm.save_all()
-    after = {
-        f.name: hashlib.md5(f.read_bytes()).hexdigest()
-        for f in _TEMPLATES_DIR.glob("*.json")
-    }
+    after = {f.name: hashlib.md5(f.read_bytes()).hexdigest() for f in _TEMPLATES_DIR.glob("*.json")}
     assert before == after, "save_all modified template files (should be blocked)"
 
 

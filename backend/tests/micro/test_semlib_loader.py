@@ -42,18 +42,14 @@ def test_missing_module_fails_loud(tmp_path):
 
 
 def test_missing_contrast_block_fails_loud(tmp_path):
-    (tmp_path / "bad.md").write_text(
-        "# semantic-module: bad\n## enum-tail\nx\n", encoding="utf-8"
-    )
+    (tmp_path / "bad.md").write_text("# semantic-module: bad\n## enum-tail\nx\n", encoding="utf-8")
     with pytest.raises(SemanticLibraryError):
         load_module("bad", base_path=tmp_path)
 
 
 def test_enum_tail_optional_add_only_module(tmp_path):
     """Схема v1: модуль без enum-tail — add-only, парсится с enum_tail=None."""
-    (tmp_path / "addonly.md").write_text(
-        "# semantic-module: addonly\n## contrast-block\n\n- c\n", encoding="utf-8"
-    )
+    (tmp_path / "addonly.md").write_text("# semantic-module: addonly\n## contrast-block\n\n- c\n", encoding="utf-8")
     m = load_module("addonly", base_path=tmp_path)
     assert m.enum_tail is None
     assert m.contrast_block == "\n- c"
@@ -69,7 +65,7 @@ def test_unknown_section_fails_loud(tmp_path):
 
 
 def test_bom_tolerated_deterministically(tmp_path):
-    body = "# semantic-module: bommod\n## enum-tail\n, \"X\"\n## contrast-block\n\n- c\n"
+    body = '# semantic-module: bommod\n## enum-tail\n, "X"\n## contrast-block\n\n- c\n'
     (tmp_path / "bommod.md").write_bytes(b"\xef\xbb\xbf" + body.encode("utf-8"))
     m = load_module("bommod", base_path=tmp_path)
     assert m.enum_tail == ', "X"'

@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p6_discovery_bridge.py
+# path: /project/backend/tests/gameplay/test_p6_discovery_bridge.py
 """
 Файл: backend/tests/gameplay/test_p6_discovery_bridge.py
 Назначение: P6 Шаг 1 — ядро DiscoveryBridge (T1/T2/T4/T9).
@@ -173,11 +173,7 @@ def test_t9_map_surface_is_pure_and_deterministic() -> None:
     # два прогона на чистых state/truth дают структурно идентичные updates
     surface_a = _reveal_surface()
     surface_b = _reveal_surface()
-    result_a = DiscoveryBridge(
-        PlayerEpistemicState(), _FakeTruth("borko_negligence")
-    ).process(surface_a)
-    result_b = DiscoveryBridge(
-        PlayerEpistemicState(), _FakeTruth("borko_negligence")
-    ).process(surface_b)
+    result_a = DiscoveryBridge(PlayerEpistemicState(), _FakeTruth("borko_negligence")).process(surface_a)
+    result_b = DiscoveryBridge(PlayerEpistemicState(), _FakeTruth("borko_negligence")).process(surface_b)
     assert result_a == result_b
     assert surface_a == surface_b

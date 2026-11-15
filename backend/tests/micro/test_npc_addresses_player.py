@@ -9,6 +9,7 @@ path: /project/backend/tests/micro/test_npc_addresses_player.py
     app.services.events.event_identity, app.domain.events
 Основные сущности: тесты battery A-H
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -88,9 +89,9 @@ def _build_ctx(
         dirty_npcs=set(),
         prop_dirty=False,
         scene_changes=[],
-        decision_events=[],      # L181: ctx.tick_events = ctx.decision_events
-        significant_events=[],   # L194: significant_events=ctx.significant_events or []
-        tick_events=[],          # L181 write target (pre-set для safety)
+        decision_events=[],  # L181: ctx.tick_events = ctx.decision_events
+        significant_events=[],  # L194: significant_events=ctx.significant_events or []
+        tick_events=[],  # L181 write target (pre-set для safety)
     )
 
 
@@ -122,9 +123,7 @@ def bus(monkeypatch):
     """
     scene = {"tick": 100}
     fresh = _make_bus(scene)
-    monkeypatch.setattr(
-        "app.services.events.event_bus.get_event_bus", lambda: fresh
-    )
+    monkeypatch.setattr("app.services.events.event_bus.get_event_bus", lambda: fresh)
     return fresh
 
 
@@ -135,10 +134,7 @@ def _run(ctx, orch) -> None:
 
 def _addr_events(bus: EventBus) -> list:
     """Только NPC_ADDRESSES_PLAYER из _event_log."""
-    return [
-        e for e in bus._event_log
-        if e.type == EventType.NPC_ADDRESSES_PLAYER.value
-    ]
+    return [e for e in bus._event_log if e.type == EventType.NPC_ADDRESSES_PLAYER.value]
 
 
 # ── Контракт A: Accept (валидное обращение публикует событие) ────────────
@@ -152,9 +148,7 @@ def test_A1_valid_npc_publishes_one_event(bus):
 
 
 def test_A2_event_fields_canonical(bus):
-    ctx = _build_ctx(
-        tick=100, npcs=[_npc(npc_id="lusya", intent="talk", formed_at=100)]
-    )
+    ctx = _build_ctx(tick=100, npcs=[_npc(npc_id="lusya", intent="talk", formed_at=100)])
     _run(ctx, _build_orchestrator())
     e = _addr_events(bus)[0]
     assert e.type == "npc_addresses_player"
@@ -171,14 +165,18 @@ def test_A2_event_fields_canonical(bus):
 @pytest.mark.parametrize(
     "intent_key",
     [
-        "talk", "warn", "trade", "offer_job",
-        "request_service", "help", "report", "intimidate",
+        "talk",
+        "warn",
+        "trade",
+        "offer_job",
+        "request_service",
+        "help",
+        "report",
+        "intimidate",
     ],
 )
 def test_A3_all_8_intents_accepted(bus, intent_key):
-    ctx = _build_ctx(
-        tick=100, npcs=[_npc(intent=intent_key, formed_at=100)]
-    )
+    ctx = _build_ctx(tick=100, npcs=[_npc(intent=intent_key, formed_at=100)])
     _run(ctx, _build_orchestrator())
     evts = _addr_events(bus)
     assert len(evts) == 1
@@ -318,9 +316,7 @@ def test_E1_all_npcs_raw_keys_unchanged(bus):
     npc = _npc(npc_id="lusya", intent="warn", formed_at=100)
     keys_before = set(npc.keys())
     _run(_build_ctx(npcs=[npc]), _build_orchestrator())
-    assert set(npc.keys()) == keys_before, (
-        f"добавлены ключи: {set(npc.keys()) - keys_before}"
-    )
+    assert set(npc.keys()) == keys_before, f"добавлены ключи: {set(npc.keys()) - keys_before}"
 
 
 def test_E2_all_npcs_raw_values_unchanged(bus):
@@ -349,9 +345,7 @@ def test_F1_replay_same_sequence_same_ids(monkeypatch):
     """
     scene1 = {"tick": 100}
     bus1 = _make_bus(scene1)
-    monkeypatch.setattr(
-        "app.services.events.event_bus.get_event_bus", lambda: bus1
-    )
+    monkeypatch.setattr("app.services.events.event_bus.get_event_bus", lambda: bus1)
     _run(
         _build_ctx(
             tick=100,
@@ -363,9 +357,7 @@ def test_F1_replay_same_sequence_same_ids(monkeypatch):
 
     scene2 = {"tick": 100}
     bus2 = _make_bus(scene2)
-    monkeypatch.setattr(
-        "app.services.events.event_bus.get_event_bus", lambda: bus2
-    )
+    monkeypatch.setattr("app.services.events.event_bus.get_event_bus", lambda: bus2)
     _run(
         _build_ctx(
             tick=100,
@@ -397,9 +389,7 @@ def test_G2_mixed_addressing_and_non_addressing(bus):
     npcs = [
         _npc(npc_id="lusya", intent="talk", formed_at=100),
         _npc(npc_id="borko", intent="idle", formed_at=100),  # не в множестве
-        _npc(
-            npc_id="mira", intent="help", target="kira", formed_at=100
-        ),  # target != player
+        _npc(npc_id="mira", intent="help", target="kira", formed_at=100),  # target != player
         _npc(npc_id="kira", intent="warn", formed_at=100),
     ]
     _run(_build_ctx(tick=100, npcs=npcs), _build_orchestrator())

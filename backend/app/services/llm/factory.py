@@ -10,6 +10,7 @@ LLM Provider Factory
 - vllm_provider.py
 - mock_provider.py
 """
+
 from __future__ import annotations
 
 from app.core.config import settings
@@ -59,6 +60,7 @@ class ProviderFactory:
 
             case ProviderType.OPENAI:
                 from app.services.llm.openai_compatible_provider import OpenAICompatibleProvider
+
                 # endpoint: https://api.openai.com/v1 или https://api.bigmodel.cn/api/paas/v4
                 # api_key: берётся из config.py (settings.openai_api_key)
                 return OpenAICompatibleProvider(

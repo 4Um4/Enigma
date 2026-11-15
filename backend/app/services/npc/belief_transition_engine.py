@@ -87,28 +87,20 @@ class BeliefTransitionEngine:
 
         Вызывать один раз за тик, до DecisionHub.
         """
-        event_type_str: str = (
-            event.event_type.value
-            if hasattr(event.event_type, "value")
-            else str(event.event_type)
-        )
+        event_type_str: str = event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type)
 
         # Сигнал: интенсивность × затухание по расстоянию
         distance_factor = max(0.1, 1.0 - event.distance * _DISTANCE_DECAY_K)
         base_signal = round(event.intensity * distance_factor, 4)
 
         deltas: List[BeliefDelta] = []
-        _d_danger = self._update_danger(
-            state, event_type_str, base_signal, event.visible_threat_markers, current_tick
-        )
+        _d_danger = self._update_danger(state, event_type_str, base_signal, event.visible_threat_markers, current_tick)
         if _d_danger:
             deltas.append(_d_danger)
 
         # PLAYER_HOSTILE — только если источник события игрок
         if event.actor_id == "player":
-            _d_hostile = self._update_player_hostile(
-                state, event_type_str, base_signal, current_tick
-            )
+            _d_hostile = self._update_player_hostile(state, event_type_str, base_signal, current_tick)
             if _d_hostile:
                 deltas.append(_d_hostile)
 

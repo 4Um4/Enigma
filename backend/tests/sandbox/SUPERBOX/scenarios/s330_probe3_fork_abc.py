@@ -8,6 +8,7 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/s330_probe3_fork_abc.py
 Метод: log-only обёртки (ObservabilityTap ADR-O-361); ноль правок прод-кода.
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/s330_probe3_fork_abc.py
 """
+
 import io
 import logging
 import math
@@ -49,11 +50,15 @@ class _H(logging.Handler):
 
 def _instrument() -> None:
     logging.getLogger().setLevel(logging.CRITICAL)
-    for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-               "app.services.llm.llama_cpp_provider",
-               "app.services.game_loop.task_scheduler",
-               "app.services.execution.dialogue_queue",
-               "app.services.memory", "app.services.npc.npc_tick_pipeline"):
+    for _n in (
+        "app.services.llm.router",
+        "app.services.llm.provider_manager",
+        "app.services.llm.llama_cpp_provider",
+        "app.services.game_loop.task_scheduler",
+        "app.services.execution.dialogue_queue",
+        "app.services.memory",
+        "app.services.npc.npc_tick_pipeline",
+    ):
         logging.getLogger(_n).setLevel(logging.CRITICAL)
     _h = _H()
     _h.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
@@ -67,61 +72,73 @@ def _instrument() -> None:
 def _taps() -> None:
     from app.services.spatial import movement_engine as _me
     from app.services.spatial import transition_topology_solver as _tts
+
     _PERC = _me._DEFAULT_PERCEPTION_RADIUS
 
     _orig_sjc = _tts.TransitionTopologySolver.solve_jump_candidates
     _seen = {"n": 0}
 
     def _sjc(self, src_pose, tgt_pose, obstacles, radius):  # type: ignore[no-untyped-def]
-        _hit = (abs(src_pose.x - 10.5) < 0.6 and abs(src_pose.y - 6.5) < 0.6
-                and abs(tgt_pose.x - 6.0) < 0.6 and abs(tgt_pose.y - 8.0) < 0.6)
+        _hit = (
+            abs(src_pose.x - 10.5) < 0.6
+            and abs(src_pose.y - 6.5) < 0.6
+            and abs(tgt_pose.x - 6.0) < 0.6
+            and abs(tgt_pose.y - 8.0) < 0.6
+        )
         if _hit and _seen["n"] < 4:
             _seen["n"] += 1
-            for _obs, _clr in (obstacles or []):
-                _BUF.write(f"[P3][OBS] rect=({_obs.x:.2f},{_obs.y:.2f},"
-                           f"w={_obs.w:.2f},h={_obs.h:.2f}) "
-                           f"id={getattr(_obs, 'obstacle_id', getattr(_obs, 'id', '?'))} "
-                           f"clearance={_clr:.3f}\n")
+            for _obs, _clr in obstacles or []:
+                _BUF.write(
+                    f"[P3][OBS] rect=({_obs.x:.2f},{_obs.y:.2f},"
+                    f"w={_obs.w:.2f},h={_obs.h:.2f}) "
+                    f"id={getattr(_obs, 'obstacle_id', getattr(_obs, 'id', '?'))} "
+                    f"clearance={_clr:.3f}\n"
+                )
         _out = _orig_sjc(self, src_pose, tgt_pose, obstacles, radius)
         if _hit and _seen["n"] <= 4:
-            for _c in (_out or []):
-                _BUF.write(f"[P3][CAND] id={getattr(_c, 'obstacle_id', '?')} "
-                           f"h_dist={_c.horizontal_distance:.3f} "
-                           f"h_obst={_c.obstacle_height} "
-                           f"entry=({_c.entry_pose.x:.2f},{_c.entry_pose.y:.2f}) "
-                           f"exit=({_c.exit_pose.x:.2f},{_c.exit_pose.y:.2f})\n")
+            for _c in _out or []:
+                _BUF.write(
+                    f"[P3][CAND] id={getattr(_c, 'obstacle_id', '?')} "
+                    f"h_dist={_c.horizontal_distance:.3f} "
+                    f"h_obst={_c.obstacle_height} "
+                    f"entry=({_c.entry_pose.x:.2f},{_c.entry_pose.y:.2f}) "
+                    f"exit=({_c.exit_pose.x:.2f},{_c.exit_pose.y:.2f})\n"
+                )
         return _out
 
     _tts.TransitionTopologySolver.solve_jump_candidates = _sjc  # type: ignore[method-assign]
 
     _orig_ctp = _me.MovementEngine._compile_traversal_plan
 
-    def _ctp(self, intent, svc, current_pos, tick, source_xy, target_xy,
-             target_node_obj):  # type: ignore[no-untyped-def]
-        if (getattr(intent, "actor_id", "") == TORNIN
-                and str(getattr(intent, "reason", "")).startswith("activity:")):
+    def _ctp(self, intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj):  # type: ignore[no-untyped-def]
+        if getattr(intent, "actor_id", "") == TORNIN and str(getattr(intent, "reason", "")).startswith("activity:"):
             try:
                 _path = svc.find_path(source_xy, target_node_obj)
                 _chain = [tuple(source_xy)] + [(n.x, n.y) for n in (_path or [])[1:]]
-                _BUF.write(f"[P3][CTP] tick={tick} src={current_pos} "
-                           f"tgt={getattr(target_node_obj, 'node_id', '?')} "
-                           f"chain={[getattr(n, 'node_id', '?') for n in (_path or [])]}\n")
+                _BUF.write(
+                    f"[P3][CTP] tick={tick} src={current_pos} "
+                    f"tgt={getattr(target_node_obj, 'node_id', '?')} "
+                    f"chain={[getattr(n, 'node_id', '?') for n in (_path or [])]}\n"
+                )
                 for _a, _b in zip(_chain, _chain[1:]):
                     _geo = svc.get_local_geometry(_a, perception_radius=_PERC)
                     _pl = self._planner.compile_plan(  # type: ignore[attr-defined]
-                        TraversalQuery(source_pose=Pose(_a[0], _a[1]),
-                                       target_pose=Pose(_b[0], _b[1]),
-                                       body=intent.body_capabilities,
-                                       allowed_modes=(TraversalMode.WALK,
-                                                      TraversalMode.JUMP)),
-                        _geo)
-                    _BUF.write(f"[P3][HOP] ({_a[0]:.2f},{_a[1]:.2f})->"
-                               f"({_b[0]:.2f},{_b[1]:.2f}) d={math.dist(_a, _b):.2f} "
-                               f"possible={_pl.possible} reason={_pl.reason}\n")
+                        TraversalQuery(
+                            source_pose=Pose(_a[0], _a[1]),
+                            target_pose=Pose(_b[0], _b[1]),
+                            body=intent.body_capabilities,
+                            allowed_modes=(TraversalMode.WALK, TraversalMode.JUMP),
+                        ),
+                        _geo,
+                    )
+                    _BUF.write(
+                        f"[P3][HOP] ({_a[0]:.2f},{_a[1]:.2f})->"
+                        f"({_b[0]:.2f},{_b[1]:.2f}) d={math.dist(_a, _b):.2f} "
+                        f"possible={_pl.possible} reason={_pl.reason}\n"
+                    )
             except Exception as _e:  # зонд не роняет тик (ADR-O-361)
                 _BUF.write(f"[P3][HOP-ERR] {type(_e).__name__}: {_e}\n")
-        return _orig_ctp(self, intent, svc, current_pos, tick, source_xy,
-                         target_xy, target_node_obj)
+        return _orig_ctp(self, intent, svc, current_pos, tick, source_xy, target_xy, target_node_obj)
 
     _me.MovementEngine._compile_traversal_plan = _ctp  # type: ignore[method-assign]
 

@@ -1,4 +1,4 @@
-﻿# path: backend/tests/sandbox/SUPERBOX/scenarios/d61_llm_outage_doctrine_test.py
+# path: backend/tests/sandbox/SUPERBOX/scenarios/d61_llm_outage_doctrine_test.py
 # Назначение: COV-2/D61 (ТЗ §4; вердикт Мастера: живой игровой тест вместо
 #   ручного launcher-smoke; прецеденты — probes/llm_down_smoke_probe.py,
 #   scenarios/lc_gc01_world_speaks_test.py, scenarios/chronicle_weave_probe).
@@ -140,9 +140,7 @@ def _llm_alive() -> bool:
     from app.core.config import settings
 
     try:
-        urllib.request.urlopen(
-            settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3
-        )
+        urllib.request.urlopen(settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3)
         return True
     except (urllib.error.URLError, OSError):
         return False
@@ -267,9 +265,7 @@ def _ensure_async_loop() -> "asyncio.AbstractEventLoop":
     global _ASYNC_LOOP
     if _ASYNC_LOOP is None or _ASYNC_LOOP.is_closed():
         _ASYNC_LOOP = asyncio.new_event_loop()
-        threading.Thread(
-            target=_ASYNC_LOOP.run_forever, daemon=True, name="d61-async-loop"
-        ).start()
+        threading.Thread(target=_ASYNC_LOOP.run_forever, daemon=True, name="d61-async-loop").start()
     return _ASYNC_LOOP
 
 
@@ -341,23 +337,16 @@ class _OutageGateway:
         from app.services.llm.provider_manager import get_model_pool
 
         pool = get_model_pool()
-        pool_status = (
-            pool.pool_backoff_status()
-            if pool is not None
-            else {"degraded": False, "models": {}}
-        )
+        pool_status = pool.pool_backoff_status() if pool is not None else {"degraded": False, "models": {}}
         if pool_status.get("degraded"):
             until = max(
-                (m.get("backoff_until", 0.0)
-                 for m in pool_status.get("models", {}).values()),
+                (m.get("backoff_until", 0.0) for m in pool_status.get("models", {}).values()),
                 default=0.0,
             )
-            return {"status": "outage",
-                    "reason": f"pool backoff доказан (до {until:.0f})"}
+            return {"status": "outage", "reason": f"pool backoff доказан (до {until:.0f})"}
         online, why = _health_online_fast()
         if not online:
-            return {"status": "unconfirmed",
-                    "reason": f"health offline: {why}"}
+            return {"status": "unconfirmed", "reason": f"health offline: {why}"}
         return {"status": "online", "reason": ""}
 
     def restart_llm(self) -> dict:
@@ -444,16 +433,13 @@ def g2_outage(gl, gw, router):
 
     check(
         "g2_inflight_honest_failure",
-        inflight.get("ok") is False
-        and "мутнеет" not in str(inflight.get("msg", "")).lower(),
+        inflight.get("ok") is False and "мутнеет" not in str(inflight.get("msg", "")).lower(),
         f"inflight={inflight}",
     )
 
     pool = _pool()
     pool_status = pool.pool_backoff_status() if pool else None
-    check("g2_pool_backoff_proven",
-          bool(pool_status and pool_status.get("degraded")),
-          f"pool_status={pool_status}")
+    check("g2_pool_backoff_proven", bool(pool_status and pool_status.get("degraded")), f"pool_status={pool_status}")
 
     payload = gw.get_llm_outage()
     check("g2_status_outage", payload.get("status") == "outage", f"payload={payload}")
@@ -461,11 +447,12 @@ def g2_outage(gl, gw, router):
     ctrl = _new_ctrl(gw)
     ctrl.start()
     paused = _wait_pause(ctrl, 8.0)
-    check("g2_pause_immediate",
-          paused and ctrl.modal_state == "OUTAGE",
-          f"paused={ctrl.llm_paused} modal={ctrl.modal_state}")
-    check("g2_no_debounce_path", ctrl._unconfirmed == 0,
-          f"unconfirmed={ctrl._unconfirmed}")
+    check(
+        "g2_pause_immediate",
+        paused and ctrl.modal_state == "OUTAGE",
+        f"paused={ctrl.llm_paused} modal={ctrl.modal_state}",
+    )
+    check("g2_no_debounce_path", ctrl._unconfirmed == 0, f"unconfirmed={ctrl._unconfirmed}")
 
     ran = _drive_ticks(gl, ctrl, 4)
     check("g2_idle_frozen", ran == 0, f"ticks_during_pause={ran}")
@@ -476,10 +463,11 @@ def g2_outage(gl, gw, router):
         rr_view["dm"] = _dm_text(rr.get("resp"))[:200]
         rr_view.pop("resp", None)
     _obs("g2_run_turn", rr_view)
-    check("g2_run_turn_no_fake_narrative",
-          "hang" not in rr_view
-          and "мутнеет" not in json.dumps(rr_view, ensure_ascii=False).lower(),
-          f"rr={rr_view}")
+    check(
+        "g2_run_turn_no_fake_narrative",
+        "hang" not in rr_view and "мутнеет" not in json.dumps(rr_view, ensure_ascii=False).lower(),
+        f"rr={rr_view}",
+    )
     return ctrl
 
 
@@ -494,42 +482,44 @@ def g4_restart_resume(gl, gw, router, ctrl) -> None:
         if ctrl.modal_state in ("SUCCESS", "FAILED"):
             break
         time.sleep(0.25)
-    check("g4_restart_success", ctrl.modal_state == "SUCCESS",
-          f"modal={ctrl.modal_state} reason={ctrl.modal_reason[:200]}")
+    check(
+        "g4_restart_success",
+        ctrl.modal_state == "SUCCESS",
+        f"modal={ctrl.modal_state} reason={ctrl.modal_reason[:200]}",
+    )
 
     pool = _pool()
     pool_status = pool.pool_backoff_status() if pool else None
-    check("g4_backoff_reset", not (pool_status and pool_status.get("degraded")),
-          f"pool_status={pool_status}")
+    check("g4_backoff_reset", not (pool_status and pool_status.get("degraded")), f"pool_status={pool_status}")
 
     payload = gw.get_llm_outage()
     check("g4_status_online", payload.get("status") == "online", f"payload={payload}")
 
     ran = _drive_ticks(gl, ctrl, 4)
-    check("g4_pause_holds_after_success",
-          ran == 0 and ctrl.llm_paused,
-          f"ticks={ran} paused={ctrl.llm_paused}")
+    check("g4_pause_holds_after_success", ran == 0 and ctrl.llm_paused, f"ticks={ran} paused={ctrl.llm_paused}")
 
     ctrl.confirm_resume()
     ran = _drive_ticks(gl, ctrl, 3)
-    check("g4_resume_ticks_flow", ran == 3 and not ctrl.llm_paused,
-          f"ticks={ran} paused={ctrl.llm_paused}")
+    check("g4_resume_ticks_flow", ran == 3 and not ctrl.llm_paused, f"ticks={ran} paused={ctrl.llm_paused}")
 
     reply = ""
     try:
-        reply = router.request_for_agent(
-            "dm", "[D61-SCENARIO] Короткая реплика для проверки живого контура.",
-            None, "probe",
-        ) or ""
+        reply = (
+            router.request_for_agent(
+                "dm",
+                "[D61-SCENARIO] Короткая реплика для проверки живого контура.",
+                None,
+                "probe",
+            )
+            or ""
+        )
     except Exception as e:
         _obs("g4_router_reply_exc", f"{type(e).__name__}: {e}")
     check("g4_reply_end_to_end", len(reply.strip()) > 0, f"len={len(reply)}")
 
     rr = _run_turn_boxed(gl, "Попросить Люсю принести эль.")
     dm_len = len(_dm_text(rr.get("resp"))) if "resp" in rr else 0
-    _obs("g4_run_turn",
-         _jsonable({k: v for k, v in rr.items() if k != "resp"})
-         | {"dm_len": dm_len})
+    _obs("g4_run_turn", _jsonable({k: v for k, v in rr.items() if k != "resp"}) | {"dm_len": dm_len})
     check("g4_run_turn_e2e", dm_len > 0, f"rr={rr.get('exc', rr.get('hang', 'ok'))}")
 
 
@@ -548,8 +538,7 @@ def g5_failure(gw, router) -> None:
     payload = gw.get_llm_outage()
     ctrl = _new_ctrl(gw)
     ctrl._apply_status(payload.get("status", ""), payload.get("reason", ""))
-    check("g5_pause_before_retry",
-          ctrl.llm_paused and ctrl.modal_state == "OUTAGE", f"payload={payload}")
+    check("g5_pause_before_retry", ctrl.llm_paused and ctrl.modal_state == "OUTAGE", f"payload={payload}")
 
     real_exe = _s.llama_cpp_server_executable
     fake_exe = str(Path(real_exe).parent / "llama_server_d61_sabotage_missing.exe")
@@ -566,14 +555,15 @@ def g5_failure(gw, router) -> None:
 
         ctrl.begin_restart()
         _terminal(30)
-        check("g5_failed_with_reason",
-              ctrl.modal_state == "FAILED" and "exe_missing" in ctrl.modal_reason,
-              f"modal={ctrl.modal_state} reason={ctrl.modal_reason[:200]}")
+        check(
+            "g5_failed_with_reason",
+            ctrl.modal_state == "FAILED" and "exe_missing" in ctrl.modal_reason,
+            f"modal={ctrl.modal_state} reason={ctrl.modal_reason[:200]}",
+        )
         check("g5_pause_persists", ctrl.llm_paused, f"paused={ctrl.llm_paused}")
         ctrl.begin_restart()  # «Повторить»
         _terminal(30)
-        check("g5_retry_fails_again", ctrl.modal_state == "FAILED",
-              f"modal={ctrl.modal_state}")
+        check("g5_retry_fails_again", ctrl.modal_state == "FAILED", f"modal={ctrl.modal_state}")
     finally:
         _s.llama_cpp_server_executable = real_exe
 
@@ -592,24 +582,27 @@ def g6_debounce(gw) -> None:
         pool.pool_reset_backoff()  # чистый пул: health-only картина
 
     payload = gw.get_llm_outage()
-    check("g6_unconfirmed_status", payload.get("status") == "unconfirmed",
-          f"payload={payload}")
+    check("g6_unconfirmed_status", payload.get("status") == "unconfirmed", f"payload={payload}")
 
     ctrl = _new_ctrl(gw)
     ctrl._apply_status(payload.get("status", ""), payload.get("reason", ""))
-    check("g6_debounce_first_probe",
-          not ctrl.llm_paused and ctrl.modal_state is None,
-          f"paused={ctrl.llm_paused}")  # §3.5: старт без модалки, watcher доберёт
+    check(
+        "g6_debounce_first_probe", not ctrl.llm_paused and ctrl.modal_state is None, f"paused={ctrl.llm_paused}"
+    )  # §3.5: старт без модалки, watcher доберёт
     ctrl._apply_status(payload.get("status", ""), payload.get("reason", ""))
-    check("g6_debounce_second_probe",
-          ctrl.llm_paused and ctrl.modal_state == "OUTAGE",
-          f"paused={ctrl.llm_paused} modal={ctrl.modal_state}")
+    check(
+        "g6_debounce_second_probe",
+        ctrl.llm_paused and ctrl.modal_state == "OUTAGE",
+        f"paused={ctrl.llm_paused} modal={ctrl.modal_state}",
+    )
 
     ctrl2 = _new_ctrl(gw)
     ctrl2.start()
-    check("g6_watcher_live_debounce",
-          _wait_pause(ctrl2, 12.0) and ctrl2._unconfirmed >= 2,
-          f"paused={ctrl2.llm_paused} unconfirmed={ctrl2._unconfirmed}")
+    check(
+        "g6_watcher_live_debounce",
+        _wait_pause(ctrl2, 12.0) and ctrl2._unconfirmed >= 2,
+        f"paused={ctrl2.llm_paused} unconfirmed={ctrl2._unconfirmed}",
+    )
 
 
 # ── G7: модалка headless (SDL dummy) ──────────────────────────────────────
@@ -640,9 +633,7 @@ def g7_modal_ui() -> None:
         def _click(state: str, pos) -> Optional[str]:
             c = _fresh(
                 state,
-                "причина провала рестарта " * 4
-                if state == "FAILED"
-                else "pool backoff доказан",
+                "причина провала рестарта " * 4 if state == "FAILED" else "pool backoff доказан",
             )
             mouse["pressed"], mouse["pos"] = True, pos
             d61_ui.draw_outage_modal(screen, c, None)  # смена состояния гасит
@@ -664,17 +655,17 @@ def g7_modal_ui() -> None:
         check("g7_modal_renders_all_states", renders)
 
         cases = [
-            ("OUTAGE", LEFT, "restart"), ("OUTAGE", RIGHT, "exit"),
+            ("OUTAGE", LEFT, "restart"),
+            ("OUTAGE", RIGHT, "exit"),
             ("OUTAGE", MISS, None),
-            ("RESTARTING", SINGLE, "exit"), ("RESTARTING", LEFT, None),
-            ("SUCCESS", LEFT, "resume"), ("SUCCESS", RIGHT, "exit"),
-            ("FAILED", LEFT, "restart"), ("FAILED", RIGHT, "exit"),
+            ("RESTARTING", SINGLE, "exit"),
+            ("RESTARTING", LEFT, None),
+            ("SUCCESS", LEFT, "resume"),
+            ("SUCCESS", RIGHT, "exit"),
+            ("FAILED", LEFT, "restart"),
+            ("FAILED", RIGHT, "exit"),
         ]
-        bad = [
-            f"{st}@{pos}: got={got} want={want}"
-            for st, pos, want in cases
-            if (got := _click(st, pos)) != want
-        ]
+        bad = [f"{st}@{pos}: got={got} want={want}" for st, pos, want in cases if (got := _click(st, pos)) != want]
         check("g7_button_map", not bad, "; ".join(bad))
 
         c = _fresh("OUTAGE")
@@ -694,9 +685,7 @@ def g8_final(gw) -> None:
     from app.services.llm.server_lifecycle import restart_llama_server
 
     res = _call_async(restart_llama_server, timeout=_restart_timeout())
-    check("g8_final_server_healthy",
-          bool(res.get("restarted")) and _llm_alive(),
-          f"res={res}")
+    check("g8_final_server_healthy", bool(res.get("restarted")) and _llm_alive(), f"res={res}")
 
 
 # ── Оркестрация ───────────────────────────────────────────────────────────
@@ -746,14 +735,14 @@ def _finish() -> int:
         encoding="utf-8",
     )
     md = [
-        "# D61 LLM Outage Doctrine — живой прогон (COV-2)", "",
-        f"Итог: GREEN={_GREEN} RED={_RED}", "",
-        "| check | verdict | detail |", "|---|---|---|",
+        "# D61 LLM Outage Doctrine — живой прогон (COV-2)",
+        "",
+        f"Итог: GREEN={_GREEN} RED={_RED}",
+        "",
+        "| check | verdict | detail |",
+        "|---|---|---|",
     ]
-    md += [
-        f"| {c['name']} | {'GREEN' if c['ok'] else 'RED'} | {c['detail'][:120]} |"
-        for c in REPORT["checks"]
-    ]
+    md += [f"| {c['name']} | {'GREEN' if c['ok'] else 'RED'} | {c['detail'][:120]} |" for c in REPORT["checks"]]
     (REPORTS / "d61_llm_outage_doctrine.md").write_text("\n".join(md), encoding="utf-8")
     print(f"[D61-SCENARIO] артефакты: {REPORTS / 'd61_llm_outage_doctrine.json'}")
     print(f"Итог: GREEN={_GREEN} RED={_RED}")

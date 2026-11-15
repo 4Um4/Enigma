@@ -1,4 +1,4 @@
-﻿# path: /project/backend/app/services/player_cognition/discovery_bridge.py
+# path: /project/backend/app/services/player_cognition/discovery_bridge.py
 """
 Файл: backend/app/services/player_cognition/discovery_bridge.py
 Назначение: P6 — DiscoveryBridge: ЕДИНСТВЕННАЯ точка превращения игровых
@@ -47,7 +47,7 @@ class SurfaceDecision:
     """Решение чистого маппера: целевой уровень + флаг наблюдения."""
 
     secret_id: Optional[str]
-    target_level: Optional[int]   # None -> уровень не меняется (obs only)
+    target_level: Optional[int]  # None -> уровень не меняется (obs only)
     observation: bool
 
 
@@ -145,9 +145,7 @@ class DiscoveryBridge:
             )
             self._state.add_observation(observation)
 
-        from_level = (
-            self._state.level(decision.secret_id) if decision.secret_id else UNKNOWN
-        )
+        from_level = self._state.level(decision.secret_id) if decision.secret_id else UNKNOWN
         to_level = from_level
         change: Optional[LevelChangeEvent] = None
         marked = False
@@ -157,13 +155,10 @@ class DiscoveryBridge:
                 # Гвард D4: неизвестный id -> телеметрия, не молча;
                 # уровень не поднимаем (невалидный провенанс surface)
                 logger.warning(
-                    f"[DISCOVERY_BRIDGE] unknown secret_id={decision.secret_id!r}: "
-                    "уровень не поднят (телеметрия)"
+                    f"[DISCOVERY_BRIDGE] unknown secret_id={decision.secret_id!r}: уровень не поднят (телеметрия)"
                 )
             else:
-                change = self._state.raise_level(
-                    decision.secret_id, decision.target_level, surface
-                )
+                change = self._state.raise_level(decision.secret_id, decision.target_level, surface)
                 if change is not None:
                     from_level = change.from_level
                     to_level = change.to_level

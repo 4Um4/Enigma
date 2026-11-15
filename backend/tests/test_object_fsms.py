@@ -7,6 +7,7 @@ path: backend/tests/test_object_fsms.py
 Зависимости: pytest, app.domain.object_fsms, app.domain.world_object,
     app.domain.semantic_action, app.services.world.world_object_store
 """
+
 import pytest
 from app.domain.object_fsms import (
     TransitionVerdict,
@@ -19,21 +20,19 @@ from app.services.world.world_object_store import WorldObjectStore
 
 
 def _door(state: str):
-    return build_world_object(
-        "door_1", "door", "loc_1", (1.0, 1.0), state=state)
+    return build_world_object("door_1", "door", "loc_1", (1.0, 1.0), state=state)
 
 
 def _chair():
-    return build_world_object(
-        "chair_1", "chair", "loc_1", (1.0, 1.0), state="AVAILABLE")
+    return build_world_object("chair_1", "chair", "loc_1", (1.0, 1.0), state="AVAILABLE")
 
 
 def _container(state: str):
-    return build_world_object(
-        "box_1", "container", "loc_1", (1.0, 1.0), state=state)
+    return build_world_object("box_1", "container", "loc_1", (1.0, 1.0), state=state)
 
 
 # ── door ────────────────────────────────────────────────────────────
+
 
 def test_door_open_closed():
     res = transition_object(_door("CLOSED"), WorldActionType.OPEN)
@@ -80,8 +79,7 @@ def test_door_break_repair_resets_damage():
 
 def test_door_open_from_broken_keeps_damage():
     """ТЗ §22.1: BROKEN→OPEN легален; damage-track — физика (О6)."""
-    broken = transition_object(
-        _door("CLOSED"), WorldActionType.BREAK).new_obj
+    broken = transition_object(_door("CLOSED"), WorldActionType.BREAK).new_obj
     res = transition_object(broken, WorldActionType.OPEN)
     assert res.verdict == TransitionVerdict.PASS
     assert res.new_obj.state == "OPEN"
@@ -89,6 +87,7 @@ def test_door_open_from_broken_keeps_damage():
 
 
 # ── container ───────────────────────────────────────────────────────
+
 
 def test_container_no_op_open():
     res = transition_object(_container("OPEN"), WorldActionType.OPEN)
@@ -98,12 +97,12 @@ def test_container_no_op_open():
 def test_container_destroyed_terminal():
     res = transition_object(_container("DESTROYED"), WorldActionType.OPEN)
     assert res.verdict == TransitionVerdict.REJECT
-    res2 = transition_object(
-        _container("DESTROYED"), WorldActionType.REPAIR)
+    res2 = transition_object(_container("DESTROYED"), WorldActionType.REPAIR)
     assert res2.verdict == TransitionVerdict.REJECT
 
 
 # ── chair (О2: политика над отношениями) ────────────────────────────
+
 
 def test_chair_sit_stand_up():
     res = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1")
@@ -115,8 +114,7 @@ def test_chair_sit_stand_up():
 
 
 def test_chair_sit_occupied_rejected():
-    sat = transition_object(
-        _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+    sat = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
     res = transition_object(sat, WorldActionType.SIT, actor_id="npc_2")
     assert res.verdict == TransitionVerdict.REJECT
     assert "OCCUPIED" in res.reason
@@ -124,15 +122,13 @@ def test_chair_sit_occupied_rejected():
 
 def test_chair_take_occupied_rejected():
     """ТЗ §22.1: OCCUPIED→{AVAILABLE} — взять занятое нельзя."""
-    sat = transition_object(
-        _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+    sat = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
     res = transition_object(sat, WorldActionType.TAKE, actor_id="npc_2")
     assert res.verdict == TransitionVerdict.REJECT
 
 
 def test_chair_break_occupied_rejected():
-    sat = transition_object(
-        _chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
+    sat = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1").new_obj
     res = transition_object(sat, WorldActionType.BREAK)
     assert res.verdict == TransitionVerdict.REJECT
     assert "OCCUPIED" in res.reason
@@ -162,8 +158,7 @@ def test_chair_stand_up_not_occupied_rejected():
 def test_chair_break_then_repair_preserves_relations():
     """Auto-release запрещён (ADR-O-371): held-сломанный-починенный
     проецируется как HELD — модель W1 богаче ТЗ (О2)."""
-    held = transition_object(
-        _chair(), WorldActionType.TAKE, actor_id="npc_1").new_obj
+    held = transition_object(_chair(), WorldActionType.TAKE, actor_id="npc_1").new_obj
     broken = transition_object(held, WorldActionType.BREAK)
     assert broken.verdict == TransitionVerdict.PASS
     assert broken.new_obj.state == "BROKEN"
@@ -192,6 +187,7 @@ def test_unknown_archetype_rejected():
 
 # ── damage (О6) ─────────────────────────────────────────────────────
 
+
 def test_damage_object_to_broken():
     new_door = damage_object(_door("CLOSED"), 1.0)
     assert new_door.state == "BROKEN"
@@ -214,6 +210,7 @@ def test_damage_negative_raises():
 
 # ── О6 (вердикт Мастера): archetype-specific damage policy ──────────
 
+
 def test_damage_container_to_destroyed():
     """ТЗ §22.1: терминальное состояние container — DESTROYED, не BROKEN."""
     new_box = damage_object(_container("CLOSED"), 1.0)
@@ -228,6 +225,7 @@ def test_damage_door_still_broken():
 
 # ── О8 (вердикт Мастера): факт перехода + topology-контракт ────────
 
+
 def test_transition_result_carries_old_state():
     res = transition_object(_door("CLOSED"), WorldActionType.OPEN)
     assert res.old_state == "CLOSED"
@@ -237,8 +235,7 @@ def test_transition_result_carries_old_state():
 def test_topology_effect_door_pass_only():
     door_res = transition_object(_door("CLOSED"), WorldActionType.OPEN)
     assert door_res.topology_effect is True
-    chair_res = transition_object(
-        _chair(), WorldActionType.SIT, actor_id="npc_1")
+    chair_res = transition_object(_chair(), WorldActionType.SIT, actor_id="npc_1")
     assert chair_res.topology_effect is False
     reject_res = transition_object(_door("LOCKED"), WorldActionType.CLOSE)
     assert reject_res.topology_effect is False
@@ -247,17 +244,15 @@ def test_topology_effect_door_pass_only():
     assert noop_res.old_state == "OPEN"
 
 
-
 # ── О7/L4: структурный вердикт ──────────────────────────────────────
+
 
 def test_reject_always_carries_reason():
     rejects = [
         transition_object(_door("LOCKED"), WorldActionType.CLOSE),
         transition_object(_chair(), WorldActionType.DROP),
         transition_object(_container("DESTROYED"), WorldActionType.OPEN),
-        transition_object(
-            build_world_object("bed_1", "bed", "loc_1", (1.0, 1.0)),
-            WorldActionType.SIT),
+        transition_object(build_world_object("bed_1", "bed", "loc_1", (1.0, 1.0)), WorldActionType.SIT),
     ]
     for res in rejects:
         assert res.verdict == TransitionVerdict.REJECT
@@ -267,33 +262,26 @@ def test_reject_always_carries_reason():
 
 # ── store (apply: домен → scene_state) ─────────────────────────────
 
+
 def test_store_apply_transition():
     scene_state: dict = {"world_objects": {}}
-    WorldObjectStore.spawn(
-        scene_state, "door_1", "door", "loc_1", (1.0, 1.0),
-        state="CLOSED")
-    res = WorldObjectStore.apply_transition(
-        scene_state, "door_1", WorldActionType.OPEN)
+    WorldObjectStore.spawn(scene_state, "door_1", "door", "loc_1", (1.0, 1.0), state="CLOSED")
+    res = WorldObjectStore.apply_transition(scene_state, "door_1", WorldActionType.OPEN)
     assert res.verdict == TransitionVerdict.PASS
     assert WorldObjectStore.get(scene_state, "door_1").state == "OPEN"
 
 
 def test_store_apply_transition_reject_does_not_mutate():
     scene_state: dict = {"world_objects": {}}
-    WorldObjectStore.spawn(
-        scene_state, "door_1", "door", "loc_1", (1.0, 1.0),
-        state="CLOSED")
-    res = WorldObjectStore.apply_transition(
-        scene_state, "door_1", WorldActionType.CLOSE)
+    WorldObjectStore.spawn(scene_state, "door_1", "door", "loc_1", (1.0, 1.0), state="CLOSED")
+    res = WorldObjectStore.apply_transition(scene_state, "door_1", WorldActionType.CLOSE)
     assert res.verdict == TransitionVerdict.REJECT
     assert WorldObjectStore.get(scene_state, "door_1").state == "CLOSED"
 
 
 def test_store_apply_damage():
     scene_state: dict = {"world_objects": {}}
-    WorldObjectStore.spawn(
-        scene_state, "door_1", "door", "loc_1", (1.0, 1.0),
-        state="CLOSED")
+    WorldObjectStore.spawn(scene_state, "door_1", "door", "loc_1", (1.0, 1.0), state="CLOSED")
     WorldObjectStore.apply_damage(scene_state, "door_1", 1.0)
     assert WorldObjectStore.get(scene_state, "door_1").state == "BROKEN"
 
@@ -301,10 +289,7 @@ def test_store_apply_damage():
 def test_store_chair_relation_transition():
     """О2-интеграция: chair-переход через relations в scene_state."""
     scene_state: dict = {"world_objects": {}}
-    WorldObjectStore.spawn(
-        scene_state, "chair_1", "chair", "loc_1", (1.0, 1.0),
-        state="AVAILABLE")
-    res = WorldObjectStore.apply_transition(
-        scene_state, "chair_1", WorldActionType.SIT, actor_id="npc_1")
+    WorldObjectStore.spawn(scene_state, "chair_1", "chair", "loc_1", (1.0, 1.0), state="AVAILABLE")
+    res = WorldObjectStore.apply_transition(scene_state, "chair_1", WorldActionType.SIT, actor_id="npc_1")
     assert res.verdict == TransitionVerdict.PASS
     assert WorldObjectStore.get(scene_state, "chair_1").occupancy == "npc_1"

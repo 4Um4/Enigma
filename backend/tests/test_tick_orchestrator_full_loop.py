@@ -71,7 +71,7 @@ def _make_scene_state() -> dict:
                 "activity": "idle",
                 "visible": True,
                 "local_position": {"x": 6.0, "y": 5.0},
-            }
+            },
         },
     }
 
@@ -152,16 +152,10 @@ def test_tick_orchestrator_full_loop_player_attacks():
     # Авторитетный пост-тик словарь — TickResultDTO.all_npcs_raw.
     final_npcs = getattr(result, "all_npcs_raw", None) or []
     final_npc = next(
-        (
-            n
-            for n in final_npcs
-            if n.get("id") == "npc_1" or n.get("npc_id") == "npc_1"
-        ),
+        (n for n in final_npcs if n.get("id") == "npc_1" or n.get("npc_id") == "npc_1"),
         None,
     )
-    assert final_npc is not None, (
-        "npc_1 отсутствует в TickResultDTO.all_npcs_raw — контракт результата ядра нарушен."
-    )
+    assert final_npc is not None, "npc_1 отсутствует в TickResultDTO.all_npcs_raw — контракт результата ядра нарушен."
     assert final_npc["psyche"]["stress"] > 30.0, (
         "Стресс NPC не увеличился — дельта из Phase 8 не применена в Phase 10! Вероятно, ctx.all_npcs_raw не заполнен."
     )

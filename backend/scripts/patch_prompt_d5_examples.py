@@ -9,6 +9,7 @@
 
 Идемпотентный: проверяет маркер D5-EXAMPLES перед применением.
 """
+
 from __future__ import annotations
 
 import sys
@@ -91,7 +92,7 @@ def main() -> int:
 
     new_text = text.replace(anchor, EXAMPLES_BLOCK + "\n" + anchor)
     PROMPT_PATH.write_text(new_text, encoding="utf-8")
-    print(f"[ok] D5 examples inserted before D6")
+    print("[ok] D5 examples inserted before D6")
     print(f"     size: {len(text)} -> {len(new_text)} bytes")
     return 0
 

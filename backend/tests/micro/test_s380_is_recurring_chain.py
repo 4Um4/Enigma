@@ -7,6 +7,7 @@
              app.services.chronicle.decomposition_normalizer
 Основные сущности: ChronicleEntry, ChronicleDocument, EventMemory, DecompositionItem
 """
+
 from __future__ import annotations
 
 import pytest
@@ -29,8 +30,10 @@ from app.services.chronicle.chronicle_seeder import (
 
 # ── Фикстуры ────────────────────────────────────────────────────
 
+
 def _ref(npc_id: str) -> EntityRef:
     return EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=npc_id)
+
 
 def _entry(
     entry_id: str,
@@ -52,6 +55,7 @@ def _entry(
         provenance=EntryProvenance.AUTHOR_CONFIRMED,
     )
 
+
 def _doc(entries: tuple[ChronicleEntry, ...]) -> ChronicleDocument:
     return ChronicleDocument(
         chronicle_id="test_npc",
@@ -62,6 +66,7 @@ def _doc(entries: tuple[ChronicleEntry, ...]) -> ChronicleDocument:
 
 
 # ── Уровень А: передача данных (ChronicleEntry → EventMemory) ──
+
 
 class TestSeederDecayModulation:
     """Seeder модулирует decay_rate по is_recurring в ChronicleEntry.payload."""
@@ -90,11 +95,13 @@ class TestSeederDecayModulation:
 
     def test_mixed_recurring_and_single(self) -> None:
         """В одном документе — recurring и single, разные decay."""
-        doc = _doc((
-            _entry("e1", "регулярно избивал", is_recurring=True),
-            _entry("e2", "один раз ударил", is_recurring=False),
-            _entry("e3", "просто событие"),
-        ))
+        doc = _doc(
+            (
+                _entry("e1", "регулярно избивал", is_recurring=True),
+                _entry("e2", "один раз ударил", is_recurring=False),
+                _entry("e3", "просто событие"),
+            )
+        )
         mems = build_seed_memories("test_npc", doc)
         assert len(mems) == 3
         by_summary = {m.summary: m.decay_rate for m in mems}
@@ -112,6 +119,7 @@ class TestSeederDecayModulation:
 
 
 # ── Уровень Б: normalizer pass-through (LLM JSON → DecompositionItem) ──
+
 
 class TestNormalizerPassThrough:
     """Normalizer передаёт is_recurring из LLM JSON в DecompositionItem.draft_payload."""
@@ -133,9 +141,7 @@ class TestNormalizerPassThrough:
                 }
             ]
         }
-        items = ChronicleDecompositionNormalizer.normalize(
-            llm_output, chronicle_id="test", fragment_ord=0
-        )
+        items = ChronicleDecompositionNormalizer.normalize(llm_output, chronicle_id="test", fragment_ord=0)
         assert len(items) == 1
         item = items[0]
         assert item.kind is EntryKind.EVENT
@@ -143,6 +149,7 @@ class TestNormalizerPassThrough:
 
 
 # ── Полная цепочка (mock LLM → normalizer → ChronicleEntry → seeder) ──
+
 
 class TestFullChainRecurring:
     """REPEAT-событие: LLM JSON → normalizer → ChronicleEntry → EventMemory."""
@@ -165,9 +172,7 @@ class TestFullChainRecurring:
                 }
             ]
         }
-        items = ChronicleDecompositionNormalizer.normalize(
-            llm_output, chronicle_id="lusya", fragment_ord=0
-        )
+        items = ChronicleDecompositionNormalizer.normalize(llm_output, chronicle_id="lusya", fragment_ord=0)
         assert items[0].draft_payload.get("is_recurring") is True
 
         # 2. Canonization: payload=dict(draft_payload) — is_recurring проходит

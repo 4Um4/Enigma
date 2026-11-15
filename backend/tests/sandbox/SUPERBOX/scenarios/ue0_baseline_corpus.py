@@ -14,21 +14,21 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/ue0_baseline_corpus.py
 # (case_id, текст, gold-dict)
 GOLD = {
     # ── Отрицание иллкюции (контрастная тройка Мастера + пара U-3) ──
-    "NEG-01": {"negated": True,  "polarity": True,  "readiness": "RESOLVED"},
-    "NEG-02": {"negated": True,  "polarity": False, "readiness": "RESOLVED"},
+    "NEG-01": {"negated": True, "polarity": True, "readiness": "RESOLVED"},
+    "NEG-02": {"negated": True, "polarity": False, "readiness": "RESOLVED"},
     "NEG-03": {"negated": False, "polarity": False, "readiness": "RESOLVED"},
     # ── Опасные отрицания изменяющих-мир действий (блокер №2) ──
-    "NEG-04": {"negated": True,  "act": "ATTACK", "readiness": "PARTIAL-EXEC-BLOCK"},
-    "NEG-05": {"negated": True,  "act": "ORDER",  "readiness": "PARTIAL-EXEC-BLOCK"},
+    "NEG-04": {"negated": True, "act": "ATTACK", "readiness": "PARTIAL-EXEC-BLOCK"},
+    "NEG-05": {"negated": True, "act": "ORDER", "readiness": "PARTIAL-EXEC-BLOCK"},
     # ── Цитата (U-4, плоский список + quoted=True, единый вариант) ──
-    "QUO-01": {"quoted": True,  "quoted_speaker": "npc", "readiness": "RESOLVED"},
-    "QUO-02": {"quoted": True,  "readiness": "RESOLVED"},  # вопрос О цитате
+    "QUO-01": {"quoted": True, "quoted_speaker": "npc", "readiness": "RESOLVED"},
+    "QUO-02": {"quoted": True, "readiness": "RESOLVED"},  # вопрос О цитате
     # ── Гипотеза (U-6, модальность) ──
     "HYP-01": {"modality": "HYPOTHETICAL", "readiness": "RESOLVED"},
-    "HYP-02": {"modality": "DESIRED",      "readiness": "RESOLVED"},
+    "HYP-02": {"modality": "DESIRED", "readiness": "RESOLVED"},
     # ── Референция (U-2/U-7: угадать нельзя, кандидаты видны) ──
     "REF-01": {"reference": "ambiguous", "readiness": "REFERENCE_AMBIGUOUS"},
-    "REF-02": {"correction": True,        "readiness": "RESOLVED"},
+    "REF-02": {"correction": True, "readiness": "RESOLVED"},
     # ── Семантическая неоднозначность (блокер №1) ──
     "SAM-01": {"semantic_ambiguity": True, "readiness": "SEMANTIC_AMBIGUOUS"},
     # ── Время (флаг, не интерпретация; уточнение Д) ──

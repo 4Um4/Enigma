@@ -68,9 +68,7 @@ class RelationshipStore:
             self._evict_if_needed()
             return data
         except Exception as e:
-            raise ContractValidationError(
-                f"RelationshipStore._load: повреждённый {path}: {e}"
-            ) from e
+            raise ContractValidationError(f"RelationshipStore._load: повреждённый {path}: {e}") from e
 
     def _evict_if_needed(self) -> None:
         while len(self._cache) > self.MAX_CACHE_SIZE:
@@ -139,9 +137,7 @@ class RelationshipStore:
         data = self._load(campaign_id)
         prefix = f"{source}→"
         return {
-            key.split("→")[1]: {
-                attr: float(data[key].get(attr, 0.0)) for attr in RELATIONSHIP_KEYS
-            }
+            key.split("→")[1]: {attr: float(data[key].get(attr, 0.0)) for attr in RELATIONSHIP_KEYS}
             for key in data
             if key.startswith(prefix)
         }
@@ -162,9 +158,7 @@ class RelationshipStore:
         # Сохраняем пустой словарь
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}" if not data else "{}", encoding="utf-8")
-        logger.warning(
-            f"[RELATIONSHIPS] Сброшено {count} записей для {campaign_id} (миграция бага #7)"
-        )
+        logger.warning(f"[RELATIONSHIPS] Сброшено {count} записей для {campaign_id} (миграция бага #7)")
         return count
 
     def get_pair(
@@ -184,8 +178,4 @@ class RelationshipStore:
         if raw is None:
             return {}
 
-        return {
-            attr: round(float(val), 4)
-            for attr, val in raw.items()
-            if attr in RELATIONSHIP_KEYS
-        }
+        return {attr: round(float(val), 4) for attr, val in raw.items() if attr in RELATIONSHIP_KEYS}

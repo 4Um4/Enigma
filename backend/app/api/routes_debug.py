@@ -66,9 +66,7 @@ async def reset_model_errors(model_key: str) -> dict[str, Any]:
 
 
 @router.get("/npc/{npc_id}/causal_ledger")
-async def get_npc_causal_ledger(
-    npc_id: str, campaign_id: str, request: Request
-) -> dict[str, Any]:
+async def get_npc_causal_ledger(npc_id: str, campaign_id: str, request: Request) -> dict[str, Any]:
     """
     God Mode: просмотр CausalLedger NPC.
     Показывает полную цепочку причинно-следственных связей —
@@ -97,9 +95,7 @@ async def get_npc_causal_ledger(
 
 
 @router.post("/reset-relationships/{campaign_id}")
-async def reset_campaign_relationships(
-    request: Request, campaign_id: str
-) -> dict[str, Any]:
+async def reset_campaign_relationships(request: Request, campaign_id: str) -> dict[str, Any]:
     """Миграция: сброс relationships после бага #7 (дублирование дельт).
 
     AUDIT #1: прежний код импортировал несуществующий модуль game_loop

@@ -32,7 +32,7 @@ class TestP706FactionAlignment:
         # Игрок сдал вора страже
         tracker.apply_delta("городская_стража", delta=20.0)
         tracker.apply_delta("гильдия_воров", delta=-40.0)
-        
+
         assert tracker.get_alignment("городская_стража").alignment == 20.0
         assert tracker.get_alignment("гильдия_воров").alignment == -40.0
         # Действия известны фракциям
@@ -42,7 +42,7 @@ class TestP706FactionAlignment:
         """Значения ограничиваются 100 и -100."""
         tracker.apply_delta("городская_стража", delta=150.0)
         assert tracker.get_alignment("городская_стража").alignment == 100.0
-        
+
         tracker.apply_delta("гильдия_воров", delta=-150.0)
         assert tracker.get_alignment("гильдия_воров").alignment == -100.0
 

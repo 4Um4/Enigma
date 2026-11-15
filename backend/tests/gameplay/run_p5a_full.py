@@ -24,6 +24,7 @@ P5-A A/B Experiment Runner — self-contained automation.
   1 — YELLOW (частичный успех: stub/degraded, но не RED)
   2 — RED или infrastructure failure (LLM-server down, baseline polluted, и т.д.)
 """
+
 from __future__ import annotations
 
 import os
@@ -46,8 +47,8 @@ from typing import Any
 
 # Path setup — script lives in backend/tests/gameplay/
 _HERE = Path(os.path.dirname(os.path.abspath(__file__)))
-_BACKEND_ROOT = _HERE.parent.parent                    # backend/
-_PROJECT_ROOT = _BACKEND_ROOT.parent                    # Enigma/
+_BACKEND_ROOT = _HERE.parent.parent  # backend/
+_PROJECT_ROOT = _BACKEND_ROOT.parent  # Enigma/
 SCENARIO_SCRIPT = _HERE / "p5a_minimal_ab.py"
 SCENARIO_SCRIPT_BAK = _HERE / "p5a_minimal_ab.py.bak"
 SUMMARY_JSON = _PROJECT_ROOT / "p5a_minimal_ab_summary.json"
@@ -67,6 +68,7 @@ SCENARIO_TIMEOUT_SEC = 600
 # Logging helpers
 # ============================================================================
 
+
 def _log(msg: str, *, level: str = "INFO") -> None:
     print(f"[{level}] {msg}", flush=True)
 
@@ -83,6 +85,7 @@ def _die(msg: str, exit_code: int = 2) -> None:
 # ============================================================================
 # Step 1: Pre-flight checks
 # ============================================================================
+
 
 def preflight() -> dict:
     """Verify environment before running anything."""
@@ -132,6 +135,7 @@ def preflight() -> dict:
         if str(_PROJECT_ROOT) not in sys.path:
             sys.path.insert(0, str(_PROJECT_ROOT))
         from app.services.llm.router import initialize_router  # noqa: F401
+
         _log("import OK: app.services.llm.router.initialize_router")
         info["import_router_ok"] = True
     except Exception as exc:
@@ -143,6 +147,7 @@ def preflight() -> dict:
 # ============================================================================
 # Step 2: LLM-server health check
 # ============================================================================
+
 
 def check_llm_server() -> dict:
     """Probe localhost:8181 for LLM-server availability."""
@@ -195,7 +200,7 @@ def check_llm_server() -> dict:
 # ============================================================================
 
 # The expanded stub detection block we want to insert.
-EXPANDED_STUB_BLOCK = '''    # Stub detection — expanded markers (auto-patched by run_p5a_full.py)
+EXPANDED_STUB_BLOCK = """    # Stub detection — expanded markers (auto-patched by run_p5a_full.py)
     _stub_markers = [
         "[Заглушка]", "[stub]", "Fallback to stub", "ModelRouter is None",
         "движок не ответил", "llm_degraded", "llm failed",
@@ -230,25 +235,25 @@ EXPANDED_STUB_BLOCK = '''    # Stub detection — expanded markers (auto-patched
         result["stub_detected_in_speeches"]
         or result["stub_detected_in_response"]
         or result.get("dm_llm_degraded", False)
-    )'''
+    )"""
 
 # The original block pattern we want to replace.
 # Match flexibly — original source uses "Stub detection" comment + 4-line block.
 ORIGINAL_STUB_PATTERN = re.compile(
-    r'    # Stub detection\n'
-    r'    _stub_markers = \[.*?\]\n'
+    r"    # Stub detection\n"
+    r"    _stub_markers = \[.*?\]\n"
     r'    result\["stub_detected_in_speeches"\] = any\(\n'
     r'        any\(_m\.lower\(\) in s\["text"\]\.lower\(\) for _m in _stub_markers\)\n'
     r'        for s in result\["tornin_speeches"\]\n'
-    r'    \)\n'
-    r'    # Also check log output for stub indicators.*?\n'
-    r'    _pa_resp_str = json\.dumps\(_safe_serialize\(pa_response\), ensure_ascii=False\)\.lower\(\)\n'
+    r"    \)\n"
+    r"    # Also check log output for stub indicators.*?\n"
+    r"    _pa_resp_str = json\.dumps\(_safe_serialize\(pa_response\), ensure_ascii=False\)\.lower\(\)\n"
     r'    result\["stub_detected_in_response"\] = any\(\n'
-    r'        _m\.lower\(\) in _pa_resp_str for _m in _stub_markers\n'
-    r'    \)\n'
+    r"        _m\.lower\(\) in _pa_resp_str for _m in _stub_markers\n"
+    r"    \)\n"
     r'    result\["stub_detected"\] = \(\n'
     r'        result\["stub_detected_in_speeches"\] or result\["stub_detected_in_response"\]\n'
-    r'    \)',
+    r"    \)",
     re.DOTALL,
 )
 
@@ -283,19 +288,17 @@ def patch_scenario_script() -> dict:
     # Match original block
     match = ORIGINAL_STUB_PATTERN.search(original)
     if not match:
-        _log("WARNING: could not match original stub detection block — trying looser pattern",
-             level="WARN")
+        _log("WARNING: could not match original stub detection block — trying looser pattern", level="WARN")
         # Try a much looser pattern
         loose_match = re.search(
             r'    # Stub detection\n(?:.*?\n){5,20}?    result\["stub_detected"\] = \(\n'
             r'        result\["stub_detected_in_speeches"\] or result\["stub_detected_in_response"\]\n'
-            r'    \)',
+            r"    \)",
             original,
             re.DOTALL,
         )
         if not loose_match:
-            _die("could not locate stub detection block to replace "
-                 "(file structure changed?)", exit_code=2)
+            _die("could not locate stub detection block to replace (file structure changed?)", exit_code=2)
         match = loose_match
 
     _log(f"matched block at offset {match.start()}-{match.end()} ({match.end() - match.start()} chars)")
@@ -303,7 +306,7 @@ def patch_scenario_script() -> dict:
     info["match_length"] = match.end() - match.start()
 
     # Replace
-    patched = original[:match.start()] + EXPANDED_STUB_BLOCK + original[match.end():]
+    patched = original[: match.start()] + EXPANDED_STUB_BLOCK + original[match.end() :]
     SCENARIO_SCRIPT.write_text(patched, encoding="utf-8")
     info["patched_size"] = len(patched)
     info["patched"] = True
@@ -314,6 +317,7 @@ def patch_scenario_script() -> dict:
 # ============================================================================
 # Step 4: Run A/B experiment
 # ============================================================================
+
 
 def run_experiment() -> dict:
     """Run p5a_minimal_ab.py via subprocess."""
@@ -371,6 +375,7 @@ def run_experiment() -> dict:
 # ============================================================================
 # Step 5: Parse results
 # ============================================================================
+
 
 def _try_load_json(path: Path) -> dict | None:
     if not path.exists():
@@ -462,10 +467,14 @@ def parse_results() -> dict:
     # Extract player_action info
     info["a_player_action"] = _extract_player_action(info["A"])
     info["b_player_action"] = _extract_player_action(info["B"])
-    _log(f"A player_action duration: {info['a_player_action'].get('duration_sec')}s, "
-         f"error: {info['a_player_action'].get('error')}")
-    _log(f"B player_action duration: {info['b_player_action'].get('duration_sec')}s, "
-         f"error: {info['b_player_action'].get('error')}")
+    _log(
+        f"A player_action duration: {info['a_player_action'].get('duration_sec')}s, "
+        f"error: {info['a_player_action'].get('error')}"
+    )
+    _log(
+        f"B player_action duration: {info['b_player_action'].get('duration_sec')}s, "
+        f"error: {info['b_player_action'].get('error')}"
+    )
 
     return info
 
@@ -474,9 +483,10 @@ def parse_results() -> dict:
 # Step 6: Final verdict + report
 # ============================================================================
 
+
 def compute_final_verdict(parsed: dict) -> tuple[str, str]:
     """Compute final GREEN/YELLOW/RED from parsed results."""
-    summary = parsed.get("summary") or {}
+    parsed.get("summary") or {}
     a = parsed.get("A") or {}
     b = parsed.get("B") or {}
 
@@ -571,19 +581,22 @@ def print_final_report(parsed: dict, verdict: str, reason: str) -> None:
     _section("BASELINE / POST-PUBLISH / COGNITION")
     print(f"{'Metric':<40} {'A':<30} {'B':<30}")
     print("-" * 100)
-    _row = lambda name, av, bv: print(f"{name:<40} {str(av)[:30]:<30} {str(bv)[:30]:<30}")
-    _row("baseline_target_present",
-         (a.get("baseline", {}) or {}).get("target_belief_present", "?"),
-         (b.get("baseline", {}) or {}).get("target_belief_present", "?"))
-    _row("post_publish_target_present",
-         (a.get("post_publish", {}) or {}).get("target_belief_present", "?"),
-         (b.get("post_publish", {}) or {}).get("target_belief_present", "?"))
-    _row("cognition_has_insult",
-         a.get("cognition_has_insult", "?"),
-         b.get("cognition_has_insult", "?"))
-    _row("cognition_block_length",
-         a.get("cognition_block_length", 0),
-         b.get("cognition_block_length", 0))
+
+    def _row(name, av, bv):
+        return print(f"{name:<40} {str(av)[:30]:<30} {str(bv)[:30]:<30}")
+
+    _row(
+        "baseline_target_present",
+        (a.get("baseline", {}) or {}).get("target_belief_present", "?"),
+        (b.get("baseline", {}) or {}).get("target_belief_present", "?"),
+    )
+    _row(
+        "post_publish_target_present",
+        (a.get("post_publish", {}) or {}).get("target_belief_present", "?"),
+        (b.get("post_publish", {}) or {}).get("target_belief_present", "?"),
+    )
+    _row("cognition_has_insult", a.get("cognition_has_insult", "?"), b.get("cognition_has_insult", "?"))
+    _row("cognition_block_length", a.get("cognition_block_length", 0), b.get("cognition_block_length", 0))
 
     # Cognition block A
     _section("COGNITION BLOCK — A")
@@ -649,33 +662,23 @@ def print_final_report(parsed: dict, verdict: str, reason: str) -> None:
     _section("DIFFERENCES TABLE")
     print(f"{'Metric':<40} {'A':<35} {'B':<35}")
     print("-" * 110)
-    _row("baseline_target_present",
-         (a.get("baseline", {}) or {}).get("target_belief_present", "?"),
-         (b.get("baseline", {}) or {}).get("target_belief_present", "?"))
-    _row("post_publish_target_present",
-         (a.get("post_publish", {}) or {}).get("target_belief_present", "?"),
-         (b.get("post_publish", {}) or {}).get("target_belief_present", "?"))
-    _row("cognition_has_insult",
-         a.get("cognition_has_insult", "?"),
-         b.get("cognition_has_insult", "?"))
-    _row("cognition_block_length",
-         a.get("cognition_block_length", 0),
-         b.get("cognition_block_length", 0))
-    _row("player_action_duration_sec",
-         f"{a_pa.get('duration_sec') or 0:.2f}",
-         f"{b_pa.get('duration_sec') or 0:.2f}")
-    _row("player_action_error",
-         a_pa.get('error') or "None",
-         b_pa.get('error') or "None")
-    _row("tornin_speech_count",
-         a.get("tornin_speech_count", 0),
-         b.get("tornin_speech_count", 0))
-    _row("dm_llm_degraded",
-         a_dm.get("dm_llm_degraded", "?"),
-         b_dm.get("dm_llm_degraded", "?"))
-    _row("stub_detected",
-         a_dm.get("stub_detected", "?"),
-         b_dm.get("stub_detected", "?"))
+    _row(
+        "baseline_target_present",
+        (a.get("baseline", {}) or {}).get("target_belief_present", "?"),
+        (b.get("baseline", {}) or {}).get("target_belief_present", "?"),
+    )
+    _row(
+        "post_publish_target_present",
+        (a.get("post_publish", {}) or {}).get("target_belief_present", "?"),
+        (b.get("post_publish", {}) or {}).get("target_belief_present", "?"),
+    )
+    _row("cognition_has_insult", a.get("cognition_has_insult", "?"), b.get("cognition_has_insult", "?"))
+    _row("cognition_block_length", a.get("cognition_block_length", 0), b.get("cognition_block_length", 0))
+    _row("player_action_duration_sec", f"{a_pa.get('duration_sec') or 0:.2f}", f"{b_pa.get('duration_sec') or 0:.2f}")
+    _row("player_action_error", a_pa.get("error") or "None", b_pa.get("error") or "None")
+    _row("tornin_speech_count", a.get("tornin_speech_count", 0), b.get("tornin_speech_count", 0))
+    _row("dm_llm_degraded", a_dm.get("dm_llm_degraded", "?"), b_dm.get("dm_llm_degraded", "?"))
+    _row("stub_detected", a_dm.get("stub_detected", "?"), b_dm.get("stub_detected", "?"))
 
     # Interpretation
     _section("INTERPRETATION")
@@ -689,15 +692,22 @@ def print_final_report(parsed: dict, verdict: str, reason: str) -> None:
 # Main entry
 # ============================================================================
 
+
 def main() -> int:
     global SCENARIO_TIMEOUT_SEC
     parser = argparse.ArgumentParser(description="P5-A A/B Experiment Runner")
-    parser.add_argument("--skip-llm-check", action="store_true",
-                        help="Skip LLM-server health check (use with caution).")
-    parser.add_argument("--skip-patch", action="store_true",
-                        help="Skip patching p5a_minimal_ab.py (if already patched).")
-    parser.add_argument("--timeout", type=int, default=SCENARIO_TIMEOUT_SEC,
-                        help=f"Per-scenario subprocess timeout (default: {SCENARIO_TIMEOUT_SEC}).")
+    parser.add_argument(
+        "--skip-llm-check", action="store_true", help="Skip LLM-server health check (use with caution)."
+    )
+    parser.add_argument(
+        "--skip-patch", action="store_true", help="Skip patching p5a_minimal_ab.py (if already patched)."
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=SCENARIO_TIMEOUT_SEC,
+        help=f"Per-scenario subprocess timeout (default: {SCENARIO_TIMEOUT_SEC}).",
+    )
     args = parser.parse_args()
 
     SCENARIO_TIMEOUT_SEC = args.timeout

@@ -14,6 +14,7 @@ path: backend/app/services/social/reputation_decay_handler.py
 
 - В будущем можно расширить логику, учитывая дополнительные факторы (например, события в кампании), но сейчас фокус на базовом дрейфе репутации.
 """
+
 from __future__ import annotations
 
 import logging
@@ -49,8 +50,5 @@ class ReputationDecayHandler:
         """Чистый расчёт дрейфа репутации через ReputationEngine."""
         deltas = self._engine.compute_decay()
         if deltas:
-            logger.debug(
-                f"[REPUTATION_DECAY] {campaign_id} tick={current_tick}: "
-                f"{len(deltas)} faction drift deltas"
-            )
+            logger.debug(f"[REPUTATION_DECAY] {campaign_id} tick={current_tick}: {len(deltas)} faction drift deltas")
         return deltas

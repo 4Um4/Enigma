@@ -11,6 +11,7 @@ path: backend/tests/calibration_lab/test_m0_acceptance.py
 Зависимости: experiment_runner, superbox_adapter.
 Основные сущности: TestM0Acceptance.
 """
+
 from pathlib import Path
 from typing import Optional
 
@@ -26,9 +27,7 @@ _TICKS = 150
 
 
 def _cfg(name: str, ticks: int = _TICKS) -> ExperimentConfig:
-    return ExperimentConfig(
-        preset_path=str(_PRESETS / f"{name}.yaml"), duration_ticks=ticks
-    )
+    return ExperimentConfig(preset_path=str(_PRESETS / f"{name}.yaml"), duration_ticks=ticks)
 
 
 def _zone(change: Optional[float], loop: Optional[float]) -> str:

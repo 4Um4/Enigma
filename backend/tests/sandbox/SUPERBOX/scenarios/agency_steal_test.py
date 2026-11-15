@@ -21,6 +21,7 @@ SUPERBOX-AGENCY-STEAL (S209, Vertical Slice звено 1): NPC может реш
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/agency_steal_test.py
 """
+
 import sys
 from pathlib import Path
 
@@ -43,9 +44,13 @@ from app.services.spatial.spatial_query_service import SpatialQueryService
 
 def _profile(archetype: str, desire: float = 0.3) -> NPCProfileL0:
     return NPCProfileL0(
-        id=f"npc_{archetype}", name=archetype, tier="minor",
+        id=f"npc_{archetype}",
+        name=archetype,
+        tier="minor",
         drives_base={"control": 0.25, "significance": 0.25, "fear": 0.2, "desire": desire},
-        psyche_base=type("P", (), {})(), voice_profile="", archetype=archetype,
+        psyche_base=type("P", (), {})(),
+        voice_profile="",
+        archetype=archetype,
     )
 
 
@@ -58,15 +63,17 @@ def main() -> int:
 
     # ── A1/A2: opportunity-гейт ───────────────────────────────────────
     thief, state = _profile("thief"), NPCState(npc_id="thief_shadow")
-    unlocked = OpportunityResult(score=1.0, hidden_action_allowed=True,
-                                 unlocked_intents=frozenset({"steal"}), score_trace={})
-    locked = OpportunityResult(score=0.0, hidden_action_allowed=False,
-                               unlocked_intents=frozenset(), score_trace={})
+    unlocked = OpportunityResult(
+        score=1.0, hidden_action_allowed=True, unlocked_intents=frozenset({"steal"}), score_trace={}
+    )
+    locked = OpportunityResult(score=0.0, hidden_action_allowed=False, unlocked_intents=frozenset(), score_trace={})
+
     # _get_possible_intents требует event; используем world_tick-контекст
     # минимальной заглушкой (протокол EventContext — только .event_type читается)
     class _WT:
         event_type = "world_tick"
         visible_threat_markers = []
+
     possible_unlocked = hub._get_possible_intents(state, thief, _WT(), unlocked)
     possible_locked = hub._get_possible_intents(state, thief, _WT(), locked)
     a1 = Intent.STEAL.value in possible_unlocked
@@ -80,8 +87,9 @@ def main() -> int:
     a_t = hub._steal_affinity(state, thief)
     a_c = hub._steal_affinity(state, commoner)
     a3 = a_t > 0.5 and a_c < 0.2
-    print(f"[A3] Affinity: thief={a_t}, commoner={a_c} — "
-          f"{'✅' if a3 else '❌'} (кража доступна каждому, выбирает натура)")
+    print(
+        f"[A3] Affinity: thief={a_t}, commoner={a_c} — {'✅' if a3 else '❌'} (кража доступна каждому, выбирает натура)"
+    )
     ok = ok and a3
 
     # ── A4: маршрутизация steal → windup (не диалоговый слой) ────────
@@ -89,32 +97,36 @@ def main() -> int:
     import inspect
 
     from app.services.phases import post_decision as pd
+
     _src = inspect.getsource(pd)
-    a4 = 'not in ("attack", "steal")' in _src and "_gate_intent_type in (\"attack\", \"steal\")" in _src
-    print(f"[A4] Маршрутизатор: windowed={('attack','steal')}, диалоговый слой их не ловит — "
-          f"{'✅' if a4 else '❌'}")
+    a4 = 'not in ("attack", "steal")' in _src and '_gate_intent_type in ("attack", "steal")' in _src
+    print(f"[A4] Маршрутизатор: windowed={('attack', 'steal')}, диалоговый слой их не ловит — {'✅' if a4 else '❌'}")
     ok = ok and a4
 
     # ── A5: релиз held intent → THEFT через adapter ──────────────────
     from app.domain.communication import CommunicationIntent, ExposureLevel
     from app.services.events.intent_event_adapter import IntentEventAdapter
+
     # Кража максимально тихая: whisper (радиус события выведется из semantic —
     # честная мембрана для Reaction/Social подписчиков, не 999.0).
     # ExposureLevel — frozen dataclass с фабрикой from_semantic (археология S209),
     # НЕ enum; три предположения об enum-членах были ложными.
     _exposure = ExposureLevel.from_semantic("whisper")
     import dataclasses as _dc
+
     _intent = CommunicationIntent(
-        speaker="thief_shadow", audience="gold_chest", topic="theft",
-        intent_type="steal", emotional_state="neutral",
+        speaker="thief_shadow",
+        audience="gold_chest",
+        topic="theft",
+        intent_type="steal",
+        emotional_state="neutral",
         exposure_level=_exposure,
     )
     if hasattr(_intent, "target_id") and _intent.target_id is None:
         _intent = _dc.replace(_intent, target_id="gold_chest")
     _ev = IntentEventAdapter.to_event(_intent)
     a5 = _ev.type == "theft" and _ev.source == "thief_shadow"
-    print(f"[A5] Adapter: intent=steal → EventDTO(type={_ev.type}, source={_ev.source}) — "
-          f"{'✅' if a5 else '❌'}")
+    print(f"[A5] Adapter: intent=steal → EventDTO(type={_ev.type}, source={_ev.source}) — {'✅' if a5 else '❌'}")
     ok = ok and a5
 
     # ── A6: эмерджентное замыкание Goran-цепи ────────────────────────
@@ -128,33 +140,38 @@ def main() -> int:
 
     positions = {
         "thief_shadow": {"local_position": {"x": 0.0, "y": 0.0}},
-        "goran":        {"local_position": {"x": 3.0, "y": 0.0}},   # LOS, дист 3
-        "far_npc":      {"local_position": {"x": 15.0, "y": 0.0}},  # вне радиуса
+        "goran": {"local_position": {"x": 3.0, "y": 0.0}},  # LOS, дист 3
+        "far_npc": {"local_position": {"x": 15.0, "y": 0.0}},  # вне радиуса
     }
     sq = SpatialQueryService(npc_positions=positions)
     store = EpistemicStore()
-    engine = BeliefRevisionEngine(
-        reliability_provider=TrustBasedReliabilityProvider(None, "agency_test"))
-    sub = ObservationSubscriber(engine=engine, store=store,
-                                spatial_query_provider=lambda: sq,
-                                tick_provider=lambda: 10)
+    engine = BeliefRevisionEngine(reliability_provider=TrustBasedReliabilityProvider(None, "agency_test"))
+    sub = ObservationSubscriber(engine=engine, store=store, spatial_query_provider=lambda: sq, tick_provider=lambda: 10)
     sub.on_world_event(_ev)  # THEFT от A5 — НИКАКИХ инъекций belief
 
     g = store.get("goran")
     f = store.get("far_npc")
-    a6 = (g is not None and g.confidence == DIRECT_OBSERVATION_RELIABILITY
-          and g.proposition.subject_id == "thief_shadow"
-          and g.proposition.predicate == Predicate.STOLE
-          and f is None)
-    print(f"[A6] Goran belief={g.confidence if g else None} (ожид. {DIRECT_OBSERVATION_RELIABILITY}), "
-          f"far_npc belief={'нет' if f is None else 'ЕСТЬ (ТЕЛЕПАТИЯ!)'} — "
-          f"{'✅' if a6 else '❌'}")
+    a6 = (
+        g is not None
+        and g.confidence == DIRECT_OBSERVATION_RELIABILITY
+        and g.proposition.subject_id == "thief_shadow"
+        and g.proposition.predicate == Predicate.STOLE
+        and f is None
+    )
+    print(
+        f"[A6] Goran belief={g.confidence if g else None} (ожид. {DIRECT_OBSERVATION_RELIABILITY}), "
+        f"far_npc belief={'нет' if f is None else 'ЕСТЬ (ТЕЛЕПАТИЯ!)'} — "
+        f"{'✅' if a6 else '❌'}"
+    )
     ok = ok and a6
 
     print("=" * 64)
-    print("🎉 ЭМЕРДЖЕНТНОЕ ДЕЙСТВИЕ ДОКАЗАНО: Shadow может украсть сам,"
-          "\n   свидетель узнает, и цепь живёт без единой инъекции."
-          if ok else "❌ ТЕСТ С ОШИБКАМИ")
+    print(
+        "🎉 ЭМЕРДЖЕНТНОЕ ДЕЙСТВИЕ ДОКАЗАНО: Shadow может украсть сам,"
+        "\n   свидетель узнает, и цепь живёт без единой инъекции."
+        if ok
+        else "❌ ТЕСТ С ОШИБКАМИ"
+    )
     print("=" * 64)
     return 0 if ok else 1
 

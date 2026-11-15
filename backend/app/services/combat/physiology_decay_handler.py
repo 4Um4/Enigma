@@ -20,6 +20,7 @@ Closing drift (как в SocialDecayHandler): если остаток < EPSILON 
 TODO: в будущем можно добавить разные lambda для разных типов повреждений
 (например, кровопотеря может затухать медленнее из-за свертывания крови).
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,9 +42,7 @@ BLOOD_LOSS_DECAY_LAMBDA: float = 0.01  # Кровопотеря ещё медл�
 CONSCIOUSNESS_RECOVERY: float = 0.02  # Восстановление сознания
 SHOCK_DECAY_LAMBDA: float = 0.08  # Шок затухает быстрее боли (~8% за тик)
 
-PHYSIOLOGY_DECAY_EPSILON: float = (
-    0.001  # Порог closing drift (кровопотеря даёт дельты ~0.005 при blood_loss=0.5)
-)
+PHYSIOLOGY_DECAY_EPSILON: float = 0.001  # Порог closing drift (кровопотеря даёт дельты ~0.005 при blood_loss=0.5)
 
 # Пороги фазовых переходов (emergent states)
 # Мастер Тай: не if pain > X, а устойчивость траектории
@@ -142,9 +141,7 @@ class PhysiologyDecayHandler:
 
             # Кровопотеря медленно снижается (свертывание крови)
             blood_after_decay = current_blood_loss * math.exp(-BLOOD_LOSS_DECAY_LAMBDA)
-            blood_loss_delta = (
-                _closing_drift(blood_after_decay, 0.0) - current_blood_loss
-            )
+            blood_loss_delta = _closing_drift(blood_after_decay, 0.0) - current_blood_loss
 
             # Шок затухает быстрее боли — это острый сигнал, не хроническое состояние
             shock_after_decay = current_shock * math.exp(-SHOCK_DECAY_LAMBDA)
@@ -159,25 +156,18 @@ class PhysiologyDecayHandler:
                     1.0 - current_consciousness,  # Не больше максимума
                 )
                 # Closing drift
-                if (
-                    1.0 - (current_consciousness + consciousness_delta)
-                    < PHYSIOLOGY_DECAY_EPSILON
-                ):
+                if 1.0 - (current_consciousness + consciousness_delta) < PHYSIOLOGY_DECAY_EPSILON:
                     consciousness_delta = 1.0 - current_consciousness
             else:
                 consciousness_delta = 0.0
 
             # P3 ARCH: Decay Perceptual Causes (активные причины затухают)
             threat_after_decay = current_threat * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
-            uncertainty_after_decay = current_uncertainty * math.exp(
-                -PERCEPTUAL_DECAY_LAMBDA
-            )
+            uncertainty_after_decay = current_uncertainty * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
             anomaly_after_decay = current_anomaly * math.exp(-PERCEPTUAL_DECAY_LAMBDA)
 
             threat_delta = _closing_drift(threat_after_decay, 0.0) - current_threat
-            uncertainty_delta = (
-                _closing_drift(uncertainty_after_decay, 0.0) - current_uncertainty
-            )
+            uncertainty_delta = _closing_drift(uncertainty_after_decay, 0.0) - current_uncertainty
             anomaly_delta = _closing_drift(anomaly_after_decay, 0.0) - current_anomaly
 
             # Пропускаем если всё затухло

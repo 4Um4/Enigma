@@ -107,11 +107,7 @@ class DMOrchestrator:
         _is_physical_contact = router_result.raw_event and getattr(  # noqa: ENIGMA002
             router_result.raw_event, "event_type", ""
         ) in ("player_attacks", "combat")
-        if (
-            target_npc_id
-            and target_npc_id not in scene_ctx.line_of_sight
-            and not _is_physical_contact
-        ):
+        if target_npc_id and target_npc_id not in scene_ctx.line_of_sight and not _is_physical_contact:
             return DMResult(
                 is_valid=False,
                 error=f"Validator: NPC '{target_npc_id}' не видит игрока — действие невозможно",

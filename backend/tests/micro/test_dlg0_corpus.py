@@ -13,6 +13,7 @@
 - Скорер unit-tests: zero applicable, partial PASS, unknown-result-not-PASS
 - Подмена результатов не допускается (broken expectation → FAIL)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -30,6 +31,7 @@ from tests.sandbox.scenarios.dlg0_golden_corpus import (
 
 
 # ── DLG-GC-00: корпус ────────────────────────────────────────────────────────
+
 
 class TestDLGGC00:
     """DLG-GC-00: корпус headless-runnable; скоринг детерминирован."""
@@ -81,8 +83,9 @@ class TestDLGGC00:
         """Сценарии не должны падать с исключениями."""
         r = run_corpus()
         errors = [res for res in r.results if res.error is not None]
-        assert not errors, \
+        assert not errors, (
             f"scenarios raised exceptions: {[(e.scenario.scenario_id, e.error.splitlines()[0]) for e in errors]}"
+        )
 
     def test_applicable_false_not_counted_as_pass(self):
         """diagnostic_only сценарии НЕ увеличивают applicable."""
@@ -90,8 +93,7 @@ class TestDLGGC00:
         for res in r.results:
             if res.scenario.diagnostic_only:
                 for chk in res.checks:
-                    assert not chk.applicable, \
-                        f"{res.scenario.scenario_id}: diagnostic_only but has applicable check"
+                    assert not chk.applicable, f"{res.scenario.scenario_id}: diagnostic_only but has applicable check"
 
     def test_no_result_substitution_broken_expectation_fails(self):
         """Broken expectation (expected=999) → FAIL — доказывает, что скорер
@@ -104,26 +106,29 @@ class TestDLGGC00:
             speaker="player",
             event_type=EventType.PLAYER_SPOKE.value,
             semantic_acts=({"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}},),
-            text="Мю", event_id="evt-broken",
+            text="Мю",
+            event_id="evt-broken",
             target_id="merchant_goran",
             expected_claims_count=999,  # заведомо неверно
             expected_claim_contains=(),
-            expected_topic=None, expected_open_questions_count=0,
+            expected_topic=None,
+            expected_open_questions_count=0,
             known_red_for=(),
         )
         r = _run_scenario(s_broken)
         claims_check = next(c for c in r.checks if c.check_id.endswith("claims_count"))
-        assert not claims_check.passed, \
+        assert not claims_check.passed, (
             f"broken expectation must FAIL — proves no substitution; detail={claims_check.detail}"
+        )
 
     def test_real_scenario_dlg001_passes(self):
         """dlg-001 (sanity) — SELF_INTRO действительно создаёт 1 claim."""
         r = _run_scenario(next(s for s in CORPUS if s.scenario_id == "dlg-001"))
-        assert all(c.passed for c in r.checks), \
-            f"dlg-001 should pass: {[(c.check_id, c.detail) for c in r.checks]}"
+        assert all(c.passed for c in r.checks), f"dlg-001 should pass: {[(c.check_id, c.detail) for c in r.checks]}"
 
 
 # ── Скорер unit-tests ────────────────────────────────────────────────────────
+
 
 class TestScorer:
     """Unit-тесты самого скорера (без запуска корпуса)."""
@@ -131,16 +136,26 @@ class TestScorer:
     def test_zero_applicable_returns_none_us(self):
         """Zero applicable → US=None (не 100)."""
         s = DLGScenario(
-            scenario_id="t1", category="x", description="",
-            ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
-            semantic_acts=(), text="", event_id="e1", target_id=None,
-            expected_claims_count=0, expected_claim_contains=(),
-            expected_topic=None, expected_open_questions_count=0,
-            known_red_for=(), diagnostic_only=True,
+            scenario_id="t1",
+            category="x",
+            description="",
+            ref_3_6=None,
+            speaker="player",
+            event_type="PLAYER_SPOKE",
+            semantic_acts=(),
+            text="",
+            event_id="e1",
+            target_id=None,
+            expected_claims_count=0,
+            expected_claim_contains=(),
+            expected_topic=None,
+            expected_open_questions_count=0,
+            known_red_for=(),
+            diagnostic_only=True,
         )
-        r = ScenarioResult(scenario=s, checks=(
-            DLGCheck(check_id="t1.diag", applicable=False, passed=False, detail=""),
-        ))
+        r = ScenarioResult(
+            scenario=s, checks=(DLGCheck(check_id="t1.diag", applicable=False, passed=False, detail=""),)
+        )
         applicable = sum(1 for c in r.checks if c.applicable)
         us = (0 / applicable * 100) if applicable > 0 else None
         assert us is None, "zero applicable must yield US=None"
@@ -159,11 +174,20 @@ class TestScorer:
     def test_unknown_result_not_pass(self):
         """error в scenario → checks пустые → не вклад в applicable/passed."""
         s = DLGScenario(
-            scenario_id="t3", category="x", description="",
-            ref_3_6=None, speaker="player", event_type="PLAYER_SPOKE",
-            semantic_acts=(), text="", event_id="e3", target_id=None,
-            expected_claims_count=1, expected_claim_contains=(),
-            expected_topic=None, expected_open_questions_count=0,
+            scenario_id="t3",
+            category="x",
+            description="",
+            ref_3_6=None,
+            speaker="player",
+            event_type="PLAYER_SPOKE",
+            semantic_acts=(),
+            text="",
+            event_id="e3",
+            target_id=None,
+            expected_claims_count=1,
+            expected_claim_contains=(),
+            expected_topic=None,
+            expected_open_questions_count=0,
             known_red_for=(),
         )
         r = ScenarioResult(scenario=s, checks=(), error="Boom")

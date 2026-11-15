@@ -215,14 +215,10 @@ def test_3_call_sites_use_helper() -> None:
     for file_path, helper_name, expected_tag in files_to_check:
         assert file_path.exists(), f"файл не найден: {file_path}"
         content = file_path.read_text(encoding="utf-8")
-        assert helper_name in content, (
-            f"{file_path.name}: helper {helper_name} не вызывается"
-        )
+        assert helper_name in content, f"{file_path.name}: helper {helper_name} не вызывается"
         # Проверяем, что tag соответствует ожидаемому
         # (HTTP/IDLE/BRIDGE — каждый оракул использует свой tag)
-        assert f'tag="{expected_tag}"' in content, (
-            f"{file_path.name}: tag={expected_tag!r} не найден"
-        )
+        assert f'tag="{expected_tag}"' in content, f"{file_path.name}: tag={expected_tag!r} не найден"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

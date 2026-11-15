@@ -20,11 +20,7 @@ def _make_bus(scene: dict) -> EventBus:
 
 
 def _spoke(bus, text="Привет", source="lusya"):
-    bus.publish(
-        EventDTO.create(
-            event_type="npc_spoke", source=source, payload={"text": text}
-        )
-    )
+    bus.publish(EventDTO.create(event_type="npc_spoke", source=source, payload={"text": text}))
     return bus._event_log[-1]
 
 
@@ -92,21 +88,13 @@ def test_G_nested_publish_projection_events():
     scene = {"tick": 100}
     bus = _make_bus(scene)
     parent = _spoke(bus, "outer")
-    bus.publish(
-        EventDTO.create(
-            event_type="communication_claim", source="lusya", payload={}
-        )
-    )
+    bus.publish(EventDTO.create(event_type="communication_claim", source="lusya", payload={}))
     child = bus._event_log[-1]
     assert parent.id != child.id
     # порядок вложенности детерминирован: повтор → те же ids
     bus2 = _make_bus({"tick": 100})
     p2 = _spoke(bus2, "outer")
-    bus2.publish(
-        EventDTO.create(
-            event_type="communication_claim", source="lusya", payload={}
-        )
-    )
+    bus2.publish(EventDTO.create(event_type="communication_claim", source="lusya", payload={}))
     assert p2.id == parent.id and bus2._event_log[-1].id == child.id
 
 
@@ -161,9 +149,7 @@ def test_I_provisional_no_bus_collision_reproduces():
     # X2: _mem_id formula from memory_manager.py:371-372 reproduced locally.
     # No apply() call — no production side effect.
     def _mem_id_for(ev, npc_id, summary):
-        digest = hashlib.md5(
-            (summary or "").encode("utf-8")
-        ).hexdigest()[:12]
+        digest = hashlib.md5((summary or "").encode("utf-8")).hexdigest()[:12]
         return f"{ev.id}:{npc_id}:{digest}"
 
     m1 = _mem_id_for(e1, "borko", "Привет")
@@ -176,15 +162,12 @@ def test_I_provisional_no_bus_collision_reproduces():
     # X3: control — different summary must yield different _mem_id (digest discriminates)
     m1_alt = _mem_id_for(e1, "borko", "Уходи")
     assert m1 != m1_alt, (
-        "different summary must yield different _mem_id; "
-        "if this fails, digest is not actually discriminating"
+        "different summary must yield different _mem_id; if this fails, digest is not actually discriminating"
     )
 
     # X4: control — different npc must yield different _mem_id
     m1_other = _mem_id_for(e1, "ivan", "Привет")
-    assert m1 != m1_other, (
-        "different npc_id must yield different _mem_id"
-    )
+    assert m1 != m1_other, "different npc_id must yield different _mem_id"
 
     # X5: control — different source must yield different event.id (finalized or provisional)
     e3 = EventDTO.create(

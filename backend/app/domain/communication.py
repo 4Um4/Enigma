@@ -80,10 +80,7 @@ class ExposureLevel:
     ) -> "ExposureLevel":
         """Единственный легальный способ создать ExposureLevel в прод-коде."""
         if semantic not in _EXPOSURE_DEFAULT_RADIUS:
-            raise ValueError(
-                f"Unknown exposure semantic: {semantic!r}. "
-                f"Allowed: {list(_EXPOSURE_DEFAULT_RADIUS)}"
-            )
+            raise ValueError(f"Unknown exposure semantic: {semantic!r}. Allowed: {list(_EXPOSURE_DEFAULT_RADIUS)}")
         return cls(semantic=semantic)
 
 
@@ -121,12 +118,8 @@ class CommunicationIntent:
     intent_type: str  # 'диалог', 'приказ', 'ложь', 'вопрос'
     emotional_state: str  # 'злость', 'страх', 'любопытство'
     exposure_level: ExposureLevel
-    semantic_action: Optional[str] = (
-        None  # GAP8 FIX: Тип социального акта (MOVE, THREATEN, PERSUADE, GIVE)
-    )
-    target_id: Optional[str] = (
-        None  # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
-    )
+    semantic_action: Optional[str] = None  # GAP8 FIX: Тип социального акта (MOVE, THREATEN, PERSUADE, GIVE)
+    target_id: Optional[str] = None  # GAP8 FIX: ID цели директивы (для NPC-to-NPC Social Physics)
     thread_id: str = ""  # BUG-DL-04: ID нити диалога
     priority: float = 0.5  # H-28 FIX: DRF overlay для модуляции приоритета реплик
     # S197: Causal Provenance. Утверждение, породившее этот Intent.
@@ -182,6 +175,4 @@ class CommunicationIntent:
     def __post_init__(self) -> None:
         # Устав 7.2: пустой topic = LLM плывёт по ассоциациям
         if not self.topic or not self.topic.strip():
-            raise ValueError(
-                f"CommunicationIntent.topic не может быть пустым (speaker={self.speaker!r})"
-            )
+            raise ValueError(f"CommunicationIntent.topic не может быть пустым (speaker={self.speaker!r})")

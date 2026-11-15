@@ -1,4 +1,5 @@
-﻿"""П-13 вердикты 2-3 Мастера: salt-детерминизм живого rules-roll + чистые social checks."""
+"""П-13 вердикты 2-3 Мастера: salt-детерминизм живого rules-roll + чистые social checks."""
+
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,7 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from app.services.events.rules_subscriber import RulesSubscriber
 
 
-def _event(source: str = "player", tick: int = 100, etype: str = "player_attacks", target: str = "merchant_goran") -> SimpleNamespace:
+def _event(
+    source: str = "player", tick: int = 100, etype: str = "player_attacks", target: str = "merchant_goran"
+) -> SimpleNamespace:
     return SimpleNamespace(type=etype, payload={"target_id": target}, source=source, id=f"rules_{tick}")
 
 
@@ -33,8 +36,7 @@ def test_t2_no_tick_degeneration_across_actors():
     sub = RulesSubscriber()
     rolls = {sub.handle(_event(source=f"p{i}"), _snapshot()).roll for i in range(10)}
     assert len(rolls) >= 2, (
-        "разные actor на одном тике обязаны давать разные роллы "
-        f"(дегенерация f(tick)); получено: {sorted(rolls)}"
+        f"разные actor на одном тике обязаны давать разные роллы (дегенерация f(tick)); получено: {sorted(rolls)}"
     )
 
 

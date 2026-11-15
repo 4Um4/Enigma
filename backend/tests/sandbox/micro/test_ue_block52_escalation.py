@@ -6,6 +6,7 @@
 Зависимости: app.services.input.intent_compressor
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_block52_escalation.py -q; cd ..
 """
+
 import asyncio
 from unittest.mock import MagicMock
 
@@ -51,7 +52,8 @@ def test_integration_neg01_reaches_llm():
         async def compress_intent(self, raw_text, scene_context, dialogue_session=None):
             calls.append(raw_text)
             return {
-                "action": "DIALOGUE", "speech_act": "order",
+                "action": "DIALOGUE",
+                "speech_act": "order",
                 "semantic_acts": [{"type": "ORDER", "params": {}, "negated": True, "quoted": False}],
             }
 

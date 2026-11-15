@@ -6,6 +6,7 @@ path: /project/frontend/ui_workbench/style_overrides.py
 Зависимости: json, pathlib
 Основные сущности: StyleOverrides
 """
+
 import json
 from pathlib import Path
 from typing import Dict, Tuple
@@ -19,8 +20,7 @@ _GLOBAL = "*"
 
 # Редактируемые характеристики v1 (токены — из theme._DEFAULT_TOKENS;
 # шрифт — имена файлов из assets/fonts; размер — px).
-EDITABLE_TOKENS = ("surface_panel", "surface_title", "border",
-                   "border_accent", "text_primary", "text_muted", "accent")
+EDITABLE_TOKENS = ("surface_panel", "surface_title", "border", "border_accent", "text_primary", "text_muted", "accent")
 
 
 class StyleOverrides:
@@ -43,8 +43,7 @@ class StyleOverrides:
 
     def save(self) -> None:
         payload = {_K_VERSION: _VERSION, _K_OVERRIDES: self._data}
-        self._path.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
-                              encoding="utf-8")
+        self._path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # ── Цвета ──
     def resolve_color(self, wid: str, token: str, base: Color) -> Color:

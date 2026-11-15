@@ -44,19 +44,19 @@ logger = logging.getLogger(__name__)
 _PL_SUMMARY: str = "summary"
 _PL_VALENCE: str = "valence"
 _PL_EFFECT_KIND: str = "effect_kind"
-_PL_TRIGGERS: str = "triggers"        # авторская пометка триггеров trauma (CCH-4)
+_PL_TRIGGERS: str = "triggers"  # авторская пометка триггеров trauma (CCH-4)
 _PL_BELIEF_TYPE: str = "belief_type"  # авторская пометка типа убеждения
 _PL_IS_RECURRING: str = "is_recurring"  # S380: маркер повторяемости EVENT (REPEAT-якорь)
 
 # ── Seed-константы (CALIBRATION_CANDIDATE — ТЗ CCH-01 §11, риск №4) ─────────
 
-SEED_EVENT_IMPORTANCE: float = 0.6         # ТЗ §7.4: «по умолчанию 0.6»
+SEED_EVENT_IMPORTANCE: float = 0.6  # ТЗ §7.4: «по умолчанию 0.6»
 SEED_TRAUMA_EVENT_IMPORTANCE: float = 0.9  # ТЗ §7.4: «для травм ≥0.9»
-SEED_DECAY_RATE: float = 0.001             # прецедент _convert_origin_events
+SEED_DECAY_RATE: float = 0.001  # прецедент _convert_origin_events
 SEED_DECAY_RATE_RECURRING: float = 0.0005  # S380: повторяющиеся события забываются медленнее (CALIBRATION_CANDIDATE)
-SEED_TRUST_NEGATIVE: float = -40.0         # valence=negative (словарь nature
+SEED_TRUST_NEGATIVE: float = -40.0  # valence=negative (словарь nature
 SEED_FEAR_NEGATIVE: float = 60.0  # F5: fear для negative valence + nature=страх/вражда/зависимость
-SEED_TRUST_POSITIVE: float = 30.0          #  НЕ закрыт — калибровка CCH-6)
+SEED_TRUST_POSITIVE: float = 30.0  #  НЕ закрыт — калибровка CCH-6)
 SEED_TRAUMA_PAIN: float = 0.7
 SEED_TRAUMA_FEAR: float = 0.5
 SEED_TRAUMA_HUMILIATION: float = 0.3
@@ -125,9 +125,7 @@ def _author_entries(doc: ChronicleDocument) -> Tuple[ChronicleEntry, ...]:
     return tuple(e for e in doc.entries if e.provenance in _AUTHOR_OK)
 
 
-def _day_from_age(
-    age: Optional[int], start_age: Optional[int], label: str, *, strict: bool
-) -> int:
+def _day_from_age(age: Optional[int], start_age: Optional[int], label: str, *, strict: bool) -> int:
     """Возраст → день от старта (чистая math age_math: birth_epoch
     сокращается → (age − start) × 365). strict=True — собственная хроника:
     якорь без game_start_age = отказ; событие в будущем = отказ (память о
@@ -185,19 +183,13 @@ def build_seed_memories(npc_id: str, doc: ChronicleDocument) -> Tuple[Any, ...]:
                 target_id=_resolved_npc_id(e.object_id) or "",
                 emotion_tag="neutral",
                 day=day,
-                importance=(
-                    SEED_TRAUMA_EVENT_IMPORTANCE
-                    if e.entry_id in trauma_ids
-                    else SEED_EVENT_IMPORTANCE
-                ),
+                importance=(SEED_TRAUMA_EVENT_IMPORTANCE if e.entry_id in trauma_ids else SEED_EVENT_IMPORTANCE),
                 clarity=1.0,
                 confidence=1.0,
                 # S380: повторяющиеся события (is_recurring=True в payload) —
                 # пониженный decay_rate. Семантика REPEAT-якоря доходит до памяти.
                 decay_rate=(
-                    SEED_DECAY_RATE_RECURRING
-                    if bool(e.payload.get(_PL_IS_RECURRING, False))
-                    else SEED_DECAY_RATE
+                    SEED_DECAY_RATE_RECURRING if bool(e.payload.get(_PL_IS_RECURRING, False)) else SEED_DECAY_RATE
                 ),
                 summary=str(e.payload.get(_PL_SUMMARY, "")),
                 npc_id=npc_id,
@@ -213,9 +205,7 @@ def build_seed_memories(npc_id: str, doc: ChronicleDocument) -> Tuple[Any, ...]:
     return tuple(result)
 
 
-def build_seed_knowledge(
-    npc_id: str, docs_by_npc: Dict[str, ChronicleDocument]
-) -> Tuple[Any, ...]:
+def build_seed_knowledge(npc_id: str, docs_by_npc: Dict[str, ChronicleDocument]) -> Tuple[Any, ...]:
     """KNOWLEDGE_LINK (из ВСЕХ канонов, где knower == npc_id) → EventMemory,
     датированная возрастом УЗНАВАНИЯ (ось знания ≠ ось события — П4 ТЗ).
     Кого в знающих нет — записи не получает (изоляция, T-CCH-06).
@@ -251,9 +241,7 @@ def build_seed_knowledge(
             if _k_day > 0:
                 # Знание «из будущего» относительно знающего — странность
                 # данных канона: не блокирует загрузку, но не сеется (L4).
-                logger.warning(
-                    f"[CCH_SEED] knowledge {e.entry_id}: learned_age в будущем знающего — пропущен"
-                )
+                logger.warning(f"[CCH_SEED] knowledge {e.entry_id}: learned_age в будущем знающего — пропущен")
                 continue
             result.append(
                 EventMemory(
@@ -292,6 +280,7 @@ def build_seed_relationships(npc_id: str, doc: ChronicleDocument) -> Dict[str, D
     # Биографические RELATIONSHIP о Tornin/Orm имеют target_hint="Торнин"/"Орм"
     # но object_id=WHITE_SPOT — без fallback seeder skip'ает их, biography не доходит.
     from app.services.input.intent_compressor import _resolve_npc_by_name
+
     # F5 (USL-2): fear для negative valence + nature=страх/вражда/зависимость.
     # Биографическое насилие (valence=negative, nature=вражда) должно транслироваться
     # в fear — иначе DecisionHub не видит угрозу от конкретного NPC.
@@ -306,7 +295,9 @@ def build_seed_relationships(npc_id: str, doc: ChronicleDocument) -> Dict[str, D
             if _hint:
                 tgt = _resolve_npc_by_name(_hint)
             if tgt is None:
-                logger.warning(f"[CCH_SEED] {npc_id}:{e.entry_id}: связь на неразрешённую сущность (hint={_hint!r}) — не сеется")
+                logger.warning(
+                    f"[CCH_SEED] {npc_id}:{e.entry_id}: связь на неразрешённую сущность (hint={_hint!r}) — не сеется"
+                )
                 continue
         if tgt == npc_id:
             continue
@@ -346,9 +337,7 @@ def build_seed_imprints(doc: ChronicleDocument) -> List[Dict[str, Any]]:
             continue
         triggers = e.payload.get(_PL_TRIGGERS)
         if not triggers or not isinstance(triggers, (list, tuple)):
-            logger.warning(
-                f"[CCH_SEED] {doc.chronicle_id}:{e.entry_id}: trauma без triggers — импринт не создан"
-            )
+            logger.warning(f"[CCH_SEED] {doc.chronicle_id}:{e.entry_id}: trauma без triggers — импринт не создан")
             continue
         result.append(
             {
@@ -427,17 +416,18 @@ def build_full_seed(npc_id: str) -> Optional[Dict[str, Any]]:
 @dataclass(frozen=True)
 class SeedEntryReport:
     """Отчёт по одной авторской entry: structural/semantic check + seed result."""
+
     npc_id: str
     entry_id: str
-    source_kind: str                # EntryKind.value
-    structural_check: str           # "OK" | "FAIL"
+    source_kind: str  # EntryKind.value
+    structural_check: str  # "OK" | "FAIL"
     structural_notes: Tuple[str, ...]
-    semantic_check: str             # "OK" | "WARN"
+    semantic_check: str  # "OK" | "WARN"
     semantic_notes: Tuple[str, ...]
-    seed_result: str                # "SEEDED" | "SKIPPED" | "NOT_APPLICABLE"
-    skip_reason: Optional[str]      # "no_object_id" | "self_relation" | ...
-    day: Optional[int]              # для EVENT/EFFECT: вычисленный day
-    day_anomaly: Optional[str]      # "SENTINEL_DAY" | "DAY_ZERO" | None
+    seed_result: str  # "SEEDED" | "SKIPPED" | "NOT_APPLICABLE"
+    skip_reason: Optional[str]  # "no_object_id" | "self_relation" | ...
+    day: Optional[int]  # для EVENT/EFFECT: вычисленный day
+    day_anomaly: Optional[str]  # "SENTINEL_DAY" | "DAY_ZERO" | None
     downstream_consumer: Optional[str]  # "EventMemory" | "relationship_cache" | ...
     # A2: структурированная диагностика skip. Заполняется только для self_relation
     # (остальные skip'ы — без detail). None = нет дополнительной информации.
@@ -447,6 +437,7 @@ class SeedEntryReport:
 @dataclass(frozen=True)
 class SeedReport:
     """Полный отчёт по посеву NPC: агрегаты по 6 категориям + per-entry детали."""
+
     npc_id: str
     chronicle_id: str
     canon_loaded: bool
@@ -553,7 +544,10 @@ def _classify_seed_entry(
             # без логирования). SeederError = реальная ошибка day-computation.
             logging.getLogger(__name__).warning(
                 "chronicle_seeder: day computation failed for chronicle=%s entry=%s age=%s: %s",
-                doc.chronicle_id, e.entry_id, e.historical_age, ex,
+                doc.chronicle_id,
+                e.entry_id,
+                e.historical_age,
+                ex,
             )
             return ("SKIPPED", f"SeederError: {ex}", None, None, None)
     if kind_str == "RELATIONSHIP":
@@ -584,6 +578,7 @@ def _classify_seed_entry(
         return ("SEEDED", None, None, None, None)
     if kind_str == "BELIEF_SEED":
         from app.models.npc.beliefs import BeliefType
+
         registry = {t.value for t in BeliefType}
         bt = (e.payload or {}).get(_PL_BELIEF_TYPE)
         if bt not in registry:
@@ -644,6 +639,7 @@ def build_seed_report(npc_id: str) -> Optional[SeedReport]:
         m_notes: List[str] = []
         if e.kind is EntryKind.BELIEF_SEED:
             from app.models.npc.beliefs import BeliefType
+
             registry = {t.value for t in BeliefType}
             bt = (e.payload or {}).get(_PL_BELIEF_TYPE)
             if bt not in registry:
@@ -652,21 +648,23 @@ def build_seed_report(npc_id: str) -> Optional[SeedReport]:
         seed_result, skip_reason, day, day_anomaly, skip_detail = _classify_seed_entry(e, doc, kind_str)
         consumer = _KIND_CONSUMER.get(kind_str)
 
-        entry_reports.append(SeedEntryReport(
-            npc_id=npc_id,
-            entry_id=e.entry_id,
-            source_kind=kind_str,
-            structural_check="OK" if not s_notes else "FAIL",
-            structural_notes=tuple(s_notes),
-            semantic_check="OK" if not m_notes else "WARN",
-            semantic_notes=tuple(m_notes),
-            seed_result=seed_result,
-            skip_reason=skip_reason,
-            day=day,
-            day_anomaly=day_anomaly,
-            downstream_consumer=consumer,
-            skip_detail=skip_detail,
-        ))
+        entry_reports.append(
+            SeedEntryReport(
+                npc_id=npc_id,
+                entry_id=e.entry_id,
+                source_kind=kind_str,
+                structural_check="OK" if not s_notes else "FAIL",
+                structural_notes=tuple(s_notes),
+                semantic_check="OK" if not m_notes else "WARN",
+                semantic_notes=tuple(m_notes),
+                seed_result=seed_result,
+                skip_reason=skip_reason,
+                day=day,
+                day_anomaly=day_anomaly,
+                downstream_consumer=consumer,
+                skip_detail=skip_detail,
+            )
+        )
 
     return SeedReport(
         npc_id=npc_id,

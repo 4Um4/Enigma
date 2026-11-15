@@ -5,11 +5,13 @@ path: /project/backend/app/services/adr_net/adr_visualizer.py
 Зависимости: networkx
 Основные сущности: ADRVisualizer
 """
+
 import logging
 
 import networkx as nx
 
 logger = logging.getLogger(__name__)
+
 
 class ADRVisualizer:
     """Генерирует Mermaid-код из NetworkX графа ADR."""
@@ -24,17 +26,17 @@ class ADRVisualizer:
         for node_id, data in self.graph.nodes(data=True):
             node_type = data.get("node_type", "UNKNOWN")
             label = ""
-            shape = "[[]]" # Default shape
+            shape = "[[]]"  # Default shape
 
             if node_type == "ADR":
                 label = f"{node_id}: {data.get('title', '')}"
-                shape = '["{label}"]' # Rectangle
+                shape = '["{label}"]'  # Rectangle
             elif node_type == "FILE":
                 label = data.get("path", node_id)
-                shape = '(("{label}"))' # Circle
+                shape = '(("{label}"))'  # Circle
             elif node_type == "LAW":
                 label = node_id.replace("LAW:", "")
-                shape = '{{"{label}"}}' # Hexagon
+                shape = '{{"{label}"}}'  # Hexagon
             else:
                 label = node_id
                 shape = '["{label}"]'
@@ -47,7 +49,7 @@ class ADRVisualizer:
             edge_type = data.get("edge_type", "RELATED_TO")
             safe_u = u.replace(":", "_").replace("/", "_").replace("\\", "_").replace(".", "_")
             safe_v = v.replace(":", "_").replace("/", "_").replace("\\", "_").replace(".", "_")
-            lines.append(f'    {safe_u} -->|{edge_type}| {safe_v}')
+            lines.append(f"    {safe_u} -->|{edge_type}| {safe_v}")
 
         return "\n".join(lines)
 

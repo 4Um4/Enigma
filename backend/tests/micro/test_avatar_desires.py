@@ -29,11 +29,12 @@ def _avatar_npc(body_state: dict = None) -> dict:
         "npc_id": "player",
         "id": "player",
         "name": "Странник",
-        "body_state": body_state or {
+        "body_state": body_state
+        or {
             "current_hp": 100,
-            "nutrition": 30.0,    # 70% голоден
-            "hydration": 50.0,    # 50% жажда
-            "fatigue": 80.0,      # 20% усталости (wait — 80 = устал на 80%, но шкала инвертируется)
+            "nutrition": 30.0,  # 70% голоден
+            "hydration": 50.0,  # 50% жажда
+            "fatigue": 80.0,  # 20% усталости (wait — 80 = устал на 80%, но шкала инвертируется)
             "sleep_pressure": 0.7,  # 70% потребность сна
         },
     }

@@ -9,9 +9,14 @@ Goal: verify proposition from claims_about_self passes through DecisionHub
 Run: cd backend; $env:ENIGMA_B4_APPROVED=1; python scripts/b4r1_experiment.py
 """
 
-import sys, os, json, time, logging, subprocess
-from pathlib import Path
+import json
+import logging
+import os
+import subprocess
+import sys
+import time
 from datetime import datetime
+from pathlib import Path
 
 # Path setup
 _HERE = Path(__file__).resolve().parent
@@ -22,28 +27,32 @@ sys.path.insert(0, str(_ROOT))
 
 from tests.gameplay.harness import TavernGameplayHarness
 from tests.gameplay.test_butterfly_b4_verified_belief import (
-    _publish_player_insults,
-    _read_epistemic_for_agent,
-    _resolve_cognition_context,
-    _install_spies,
-    _uninstall_spies,
-    _check_b4_approved,
-    _check_llm_health_http,
-    SPY_SPOKE,
-    SPY_CLAIM,
-    _collect_verifier_records,
     _PLAYER,
     _VICTIM,
     _WITNESS,
+    SPY_CLAIM,
+    SPY_SPOKE,
+    _check_b4_approved,
+    _check_llm_health_http,
+    _collect_verifier_records,
+    _install_spies,
+    _publish_player_insults,
+    _read_epistemic_for_agent,
+    _resolve_cognition_context,
+    _uninstall_spies,
 )
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 
 # Verifier log capture
 _verifier_records: list = []
+
+
 class _VerifierCapture(logging.Handler):
     def emit(self, record):
         _verifier_records.append(record)
+
+
 _vh = _VerifierCapture()
 _vh.setLevel(logging.DEBUG)
 _lv = logging.getLogger("app.services.cognition.proposition_verifier")
@@ -60,7 +69,11 @@ def main():
 
     # Git SHA
     try:
-        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(_ROOT), stderr=subprocess.DEVNULL).decode().strip()[:8]
+        sha = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(_ROOT), stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()[:8]
+        )
         print(f"Git SHA: {sha}")
     except Exception:
         sha = "unknown"
@@ -77,6 +90,7 @@ def main():
     # Ensure LLM
     try:
         from app.services.llm.runtime.client import ensure_llm
+
         ensure_llm(label="B4-R1")
         print("LLM: ensured")
     except Exception as e:
@@ -119,18 +133,23 @@ def main():
         print(f"\n[1] EpistemicStore ({_VICTIM}): {len(tornin_records)} records")
         for r in tornin_records:
             p = r.get("proposition", {})
-            print(f"    subj={p.get('subject_id')} pred={p.get('predicate')} obj={p.get('object_id')} "
-                  f"pol={p.get('polarity')} conf={r.get('confidence')} src={r.get('source_id')}")
+            print(
+                f"    subj={p.get('subject_id')} pred={p.get('predicate')} obj={p.get('object_id')} "
+                f"pol={p.get('polarity')} conf={r.get('confidence')} src={r.get('source_id')}"
+            )
 
         # 2: EpistemicContext
         cog_ctx = _resolve_cognition_context(h, _VICTIM)
         print(f"\n[2] EpistemicContext ({_VICTIM}):")
-        print(f"    has_report={cog_ctx.get('has_report_proposition')} "
-              f"has_claims={cog_ctx.get('has_claims_about_self')} "
-              f"max_conf={cog_ctx.get('max_confidence')}")
+        print(
+            f"    has_report={cog_ctx.get('has_report_proposition')} "
+            f"has_claims={cog_ctx.get('has_claims_about_self')} "
+            f"max_conf={cog_ctx.get('max_confidence')}"
+        )
 
         # 3: DecisionHub audit (proposition_selection)
         from app.core.config import settings
+
         audit_path = Path(settings.data_dir) / "logs" / "enigma_audit.jsonl"
         ps_entries = []
         if audit_path.exists():
@@ -144,9 +163,11 @@ def main():
                         pass
         print(f"\n[3] proposition_selection audit ({_VICTIM}): {len(ps_entries)} entries")
         for e in ps_entries[-5:]:
-            print(f"    intent={e.get('intent_type')} src={e.get('selected_source')} "
-                  f"reason={e.get('fallback_reason')} trig={e.get('trigger_available')} "
-                  f"rep={e.get('report_available')} claims={e.get('claims_about_self_count')}")
+            print(
+                f"    intent={e.get('intent_type')} src={e.get('selected_source')} "
+                f"reason={e.get('fallback_reason')} trig={e.get('trigger_available')} "
+                f"rep={e.get('report_available')} claims={e.get('claims_about_self_count')}"
+            )
             if e.get("proposition_key"):
                 print(f"      key={e['proposition_key']}")
 
@@ -170,11 +191,13 @@ def main():
         for c in tornin_claims:
             pl = c.get("payload", {}) or {}
             p = pl.get("proposition", {}) or {}
-            print(f"    target={c.get('target_id')} subj={p.get('subject_id')} "
-                  f"pred={p.get('predicate')} obj={p.get('object_id')} pol={p.get('polarity')}")
+            print(
+                f"    target={c.get('target_id')} subj={p.get('subject_id')} "
+                f"pred={p.get('predicate')} obj={p.get('object_id')} pol={p.get('polarity')}"
+            )
 
         # 8: Receiver EpistemicStore
-        print(f"\n[8] Receiver EpistemicStore:")
+        print("\n[8] Receiver EpistemicStore:")
         receiver_beliefs = {}
         for c in tornin_claims:
             t = c.get("target_id")
@@ -186,8 +209,10 @@ def main():
             print(f"    {t}: {len(recs)} records")
             for r in recs:
                 p = r.get("proposition", {})
-                print(f"      subj={p.get('subject_id')} pred={p.get('predicate')} "
-                      f"obj={p.get('object_id')} conf={r.get('confidence')}")
+                print(
+                    f"      subj={p.get('subject_id')} pred={p.get('predicate')} "
+                    f"obj={p.get('object_id')} conf={r.get('confidence')}"
+                )
 
         # === PASS/FAIL ===
         print("\n" + "=" * 72)
@@ -196,39 +221,57 @@ def main():
 
         es, ep, eo = _PLAYER, "insulted", _VICTIM
         checks = []
-        checks.append(("1. Tornin has belief (player INSULTED tornin)",
-                       any(r.get("proposition",{}).get("predicate")==ep and
-                           r.get("proposition",{}).get("subject_id")==es and
-                           r.get("proposition",{}).get("object_id")==eo
-                           for r in tornin_records)))
-        checks.append(("2. claims_about_self non-empty",
-                       cog_ctx.get("has_claims_about_self", False)))
-        sr = [e for e in ps_entries if e.get("intent_type")=="spread_rumor"]
+        checks.append(
+            (
+                "1. Tornin has belief (player INSULTED tornin)",
+                any(
+                    r.get("proposition", {}).get("predicate") == ep
+                    and r.get("proposition", {}).get("subject_id") == es
+                    and r.get("proposition", {}).get("object_id") == eo
+                    for r in tornin_records
+                ),
+            )
+        )
+        checks.append(("2. claims_about_self non-empty", cog_ctx.get("has_claims_about_self", False)))
+        sr = [e for e in ps_entries if e.get("intent_type") == "spread_rumor"]
         checks.append(("3. Tornin selected spread_rumor", len(sr) > 0))
-        cs = [e for e in sr if e.get("selected_source")=="claims_about_self"]
+        cs = [e for e in sr if e.get("selected_source") == "claims_about_self"]
         checks.append(("4. selected_source = claims_about_self", len(cs) > 0))
-        checks.append(("5. NPC_SPOKE with LLM text (not template)",
-                       any(s.get("text") and not s["text"].startswith("[Intent.")
-                           and not s["text"].startswith("[Заглушка") for s in tornin_spoke)))
-        vyes = any(v.get("status")=="YES" and
-                   v.get("proposition",{}).get("subject_id")==es and
-                   v.get("proposition",{}).get("predicate")==ep and
-                   v.get("proposition",{}).get("object_id")==eo
-                   for v in vdata)
+        checks.append(
+            (
+                "5. NPC_SPOKE with LLM text (not template)",
+                any(
+                    s.get("text") and not s["text"].startswith("[Intent.") and not s["text"].startswith("[Заглушка")
+                    for s in tornin_spoke
+                ),
+            )
+        )
+        vyes = any(
+            v.get("status") == "YES"
+            and v.get("proposition", {}).get("subject_id") == es
+            and v.get("proposition", {}).get("predicate") == ep
+            and v.get("proposition", {}).get("object_id") == eo
+            for v in vdata
+        )
         checks.append(("6. PropositionVerifier YES", vyes))
         checks.append(("7. COMMUNICATION_CLAIM published", len(tornin_claims) > 0))
-        rbel = any(any(r.get("proposition",{}).get("predicate")==ep and
-                       r.get("proposition",{}).get("subject_id")==es for r in recs)
-                   for recs in receiver_beliefs.values())
+        rbel = any(
+            any(
+                r.get("proposition", {}).get("predicate") == ep and r.get("proposition", {}).get("subject_id") == es
+                for r in recs
+            )
+            for recs in receiver_beliefs.values()
+        )
         checks.append(("8. Receiver got belief", rbel))
 
         all_pass = True
         for desc, passed in checks:
             st = "PASS" if passed else "FAIL"
-            if not passed: all_pass = False
+            if not passed:
+                all_pass = False
             print(f"  [{st}] {desc}")
 
-        print(f"\n{'='*72}")
+        print(f"\n{'=' * 72}")
         if all_pass:
             print("OVERALL: PASS — Stage B channel alignment works end-to-end")
         elif not sr:
@@ -242,14 +285,17 @@ def main():
                 print(f"  src={e.get('selected_source')} reason={e.get('fallback_reason')}")
         else:
             print("OVERALL: FAIL")
-        print(f"{'='*72}")
+        print(f"{'=' * 72}")
 
         # Save artifacts
         adir = _ROOT / "diagnostics" / "b4r1_artifacts"
         adir.mkdir(parents=True, exist_ok=True)
         results = {
-            "timestamp": datetime.now().isoformat(), "git_sha": sha,
-            "player": _PLAYER, "victim": _VICTIM, "ticks": 20,
+            "timestamp": datetime.now().isoformat(),
+            "git_sha": sha,
+            "player": _PLAYER,
+            "victim": _VICTIM,
+            "ticks": 20,
             "elapsed": round(elapsed, 1),
             "epistemic_store": tornin_records,
             "epistemic_context": cog_ctx,
@@ -268,8 +314,10 @@ def main():
 
     finally:
         _uninstall_spies()
-        try: h.dispose()
-        except: pass
+        try:
+            h.dispose()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

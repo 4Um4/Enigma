@@ -1,4 +1,4 @@
-﻿# backend/tests/test_new_8_scene_manager.py
+# backend/tests/test_new_8_scene_manager.py
 import tempfile
 from pathlib import Path
 
@@ -9,16 +9,17 @@ def test_new_8_scene_manager_preserves_recognition():
     db_path = Path(tempfile.gettempdir()) / "test_scene_mgr_recognition.db"
     if db_path.exists():
         db_path.unlink()
-        
+
     mgr = SceneStateManager(data_dir=Path(tempfile.gettempdir()), saves_dir=Path(tempfile.gettempdir()))
     # Подменяем persistence на SQLite in-memory/file
     from app.services.state.sqlite_persistence_adapter import SqlitePersistenceAdapter
+
     mgr._persistence = SqlitePersistenceAdapter(db_path)
-    
+
     # Мокаем методы обогащения, чтобы не зависеть от файлов локаций
     mgr._enrich_local_positions = lambda campaign_id, scene_state: None
     mgr._enrich_spatial_data = lambda campaign_id, scene_state: None
-    
+
     campaign_id = "test_campaign"
     npc_id = "maid_lusya"
     location_id = "tavern"
@@ -29,19 +30,24 @@ def test_new_8_scene_manager_preserves_recognition():
         "tick": 1,
         # FIX-RC2-v2 husk-guard: запись без location_id/position/local_position
         # = призрак переноса и вычищается при сохранении (SC-1..SC-5).
-        "npc_positions": {npc_id: {
-            "x": 1.0, "y": 2.0, "name": "Люся",
-            "location_id": "tavern", "position": "bar",
-            "local_position": {"x": 1.0, "y": 2.0},
-        }},
-        "player_recognition": {npc_id: {"confidence": 1.0}}
+        "npc_positions": {
+            npc_id: {
+                "x": 1.0,
+                "y": 2.0,
+                "name": "Люся",
+                "location_id": "tavern",
+                "position": "bar",
+                "local_position": {"x": 1.0, "y": 2.0},
+            }
+        },
+        "player_recognition": {npc_id: {"confidence": 1.0}},
     }
     mgr.save_scene_state(campaign_id, initial_scene)
 
     # 2. Act: Симуляция тика (lock -> mutate -> commit -> unlock)
     locked_scene = mgr.lock_for_tick(campaign_id, location_id)
     assert locked_scene is not None, "lock_for_tick вернул None!"
-    
+
     # Проверяем, что распознавание загрузилось
     assert "player_recognition" in locked_scene, "player_recognition потерян при lock_for_tick!"
     assert locked_scene["player_recognition"][npc_id]["confidence"] == 1.0
@@ -49,16 +55,16 @@ def test_new_8_scene_manager_preserves_recognition():
     # Симулируем мутацию ядра (например, изменение позиции)
     locked_scene["tick"] = 2
     locked_scene["npc_positions"][npc_id]["x"] = 1.5
-    
+
     # Коммитим результат тика
     mgr.commit_tick_result(campaign_id, locked_scene)
-    
+
     # Разблокируем тик (сохранение на диск)
     mgr.unlock_tick(campaign_id)
-    
+
     # 3. Act: Симуляция следующего тика (lock)
     next_scene = mgr.lock_for_tick(campaign_id, location_id)
-    
+
     # 4. Assert
     assert next_scene is not None, "lock_for_tick на следующем тике вернул None!"
     assert next_scene["tick"] == 2, "Тик не сохранился!"

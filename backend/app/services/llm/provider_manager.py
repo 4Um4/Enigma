@@ -16,6 +16,7 @@ Provider Manager — Multi-Provider + Lazy Loading (RTX 3070 Ti, 8 GB VRAM)
 
 # 4. context_size по умолчанию: 8192 (с flash-attn влезает в 8 GB VRAM).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -69,9 +70,7 @@ class ModelConfig:
     context_size: int = 8192
     temperature: float = 0.7
     vram_mb: int = 4000
-    metrics: ModelMetrics = field(
-        default_factory=lambda: ModelMetrics(name="", vram_usage=0, last_used=0.0)
-    )
+    metrics: ModelMetrics = field(default_factory=lambda: ModelMetrics(name="", vram_usage=0, last_used=0.0))
 
 
 @dataclass
@@ -91,11 +90,7 @@ class ModelProvider:
     last_error: Optional[str] = None
 
     def is_available(self) -> bool:
-        return (
-            self.status == ProviderStatus.READY
-            and self.provider is not None
-            and self.provider.is_available()
-        )
+        return self.status == ProviderStatus.READY and self.provider is not None and self.provider.is_available()
 
     def get_info(self) -> ProviderInfo:
         return self.provider.get_info()
@@ -157,9 +152,7 @@ class ModelPool:
     def register_model_config(self, config: ModelConfig) -> None:
         self._model_configs[config.key] = config
         if config.key not in self._metrics:
-            self._metrics[config.key] = ModelMetrics(
-                name=config.name, vram_usage=config.vram_mb, last_used=0.0
-            )
+            self._metrics[config.key] = ModelMetrics(name=config.name, vram_usage=config.vram_mb, last_used=0.0)
 
     def get_model_config(self, key: str) -> Optional[ModelConfig]:
         return self._model_configs.get(key)
@@ -190,9 +183,7 @@ class ModelPool:
             timeout_sec = settings.model_load_timeout_sec
 
         session_log = f"[{session_id}]" if session_id else ""
-        self._logger.info(
-            f"ModelPool{session_log} get_model_async('{key}', agent='{agent}')"
-        )
+        self._logger.info(f"ModelPool{session_log} get_model_async('{key}', agent='{agent}')")
 
         vram_before = await self.vram_monitor.get_vram_mb()
         self._jsonl_log(
@@ -215,9 +206,7 @@ class ModelPool:
             delta_mb = vram_after - vram_before
 
             if model:
-                self._logger.info(
-                    f"ModelPool{session_log} ✓ '{key}' (VRAM delta={delta_mb:+}MB)"
-                )
+                self._logger.info(f"ModelPool{session_log} ✓ '{key}' (VRAM delta={delta_mb:+}MB)")
                 self._jsonl_log(
                     {
                         "timestamp": datetime.now().isoformat(),
@@ -274,9 +263,7 @@ class ModelPool:
             )
             return None
 
-    async def _get_model_locked(
-        self, key: str, session_id: Optional[str] = None
-    ) -> Optional[ModelProvider]:
+    async def _get_model_locked(self, key: str, session_id: Optional[str] = None) -> Optional[ModelProvider]:
         async with self._switch_semaphore:
             async with self._pool_lock:
                 if self._active_key == key and self._active_model is not None:
@@ -365,10 +352,7 @@ class ModelPool:
         now = time.time()
         if key in self._failure_cache and now < self._failure_cache[key]:
             return False
-        if (
-            key in self._availability_cache
-            and now - self._last_cache_update < self._cache_ttl_seconds
-        ):
+        if key in self._availability_cache and now - self._last_cache_update < self._cache_ttl_seconds:
             return self._availability_cache[key]
         available = key in self._model_configs
         self._availability_cache[key] = available
@@ -527,14 +511,8 @@ class ProviderManager:
     def get_provider_for_capability(
         self, capability: str, preferred_keys: Optional[List[str]] = None
     ) -> Optional[ModelProvider]:
-        cap_enum = (
-            Capability(capability)
-            if capability in [c.value for c in Capability]
-            else Capability.GENERAL
-        )
-        prefs = list(
-            preferred_keys or CAPABILITY_MODEL_PREFERENCES.get(cap_enum, ["qwen_7b"])
-        )
+        cap_enum = Capability(capability) if capability in [c.value for c in Capability] else Capability.GENERAL
+        prefs = list(preferred_keys or CAPABILITY_MODEL_PREFERENCES.get(cap_enum, ["qwen_7b"]))
         with self._providers_lock:
             for key in prefs:
                 p = self._providers.get(key)
@@ -558,9 +536,7 @@ class ProviderManager:
         from app.services.llm.factory import ProviderFactory
 
         pt = ProviderType(getattr(model_config, "provider_type", "llama_cpp"))
-        provider = ProviderFactory.create(
-            provider_type=pt, model_path=model_config.path
-        )
+        provider = ProviderFactory.create(provider_type=pt, model_path=model_config.path)
         return self.register_provider(
             key=key,
             name=model_config.display_name,
@@ -605,9 +581,7 @@ def initialize_model_pool(warm_model_key: Optional[str] = None) -> Dict[str, boo
             config = ModelConfig(
                 key=key,
                 name=model_config.display_name,
-                provider_type=ProviderType(
-                    getattr(model_config, "provider_type", "llama_cpp")
-                ),
+                provider_type=ProviderType(getattr(model_config, "provider_type", "llama_cpp")),
                 path=model_config.path,
                 context_size=ctx,
                 temperature=model_config.temperature,

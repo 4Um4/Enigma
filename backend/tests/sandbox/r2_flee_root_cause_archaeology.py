@@ -18,8 +18,14 @@ R2-FLEE-ROOT-CAUSE archaeology probe — find the EXACT root cause.
 
 READ-ONLY. Никаких production-изменений.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -91,7 +97,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -110,9 +116,19 @@ def step1_node_loading() -> None:
 
     # Find where nodes are loaded — search for "for node_name" or "for name, nd" or similar
     print("\n--- Поиск циклов загрузки nodes ---")
-    keywords = ["for node_name", "for name, node", "for n_name", "for n_id",
-                "graph[", "node_id=", "location_id +", "f\"{location_id}",
-                "f'{location_id}", "prefix", "namespaced"]
+    keywords = [
+        "for node_name",
+        "for name, node",
+        "for n_name",
+        "for n_id",
+        "graph[",
+        "node_id=",
+        "location_id +",
+        'f"{location_id}',
+        "f'{location_id}",
+        "prefix",
+        "namespaced",
+    ]
     for i, line in enumerate(lines, 1):
         for kw in keywords:
             if kw in line:
@@ -123,7 +139,9 @@ def step1_node_loading() -> None:
     print("\n--- compile_graph function — find node loading section ---")
     func_start = None
     for i, line in enumerate(lines):
-        if line.startswith("def compile_graph") or (line.startswith("    def compile_graph") is False and line.startswith("def compile_graph")):
+        if line.startswith("def compile_graph") or (
+            line.startswith("    def compile_graph") is False and line.startswith("def compile_graph")
+        ):
             func_start = i
             break
     if func_start is None:
@@ -136,7 +154,7 @@ def step1_node_loading() -> None:
         # Show next 100 lines
         print(f"\nFound compile_graph at L{func_start + 1}")
         for j in range(func_start, min(func_start + 150, len(lines))):
-            print(f"L{j+1:4d}: {lines[j]}")
+            print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -147,16 +165,16 @@ def step2_boundary_search_key() -> None:
     gc = _BACKEND / "app/services/spatial/graph_compiler.py"
     if not gc.exists():
         return
-    src = gc.read_text(encoding="utf-8", errors="replace")
+    gc.read_text(encoding="utf-8", errors="replace")
 
     # Show lines around _create_boundary_nodes (focus on search key)
     print("\n--- L930-960: где _existing_node = graph.get(boundary_id) ---")
     for line in _read_lines(gc, 930, 960):
         print(line)
 
-    print(f"""
+    print("""
 АНАЛИЗ:
-  boundary_id = f"{{location_id}}:exit_{{direction}}"  ← с префиксом "tavern:exit_east"
+  boundary_id = f"{location_id}:exit_{direction}"  ← с префиксом "tavern:exit_east"
   _existing_node = graph.get(boundary_id)             ← ищет "tavern:exit_east" в graph
 
   Если graph хранит узлы под ключами БЕЗ префикса (просто "exit_east"),
@@ -201,10 +219,10 @@ def step3_runtime_graph_keys() -> None:
         return
 
     graph = result[0] if len(result) > 0 else {}
-    connections = result[1] if len(result) > 1 else {}
+    result[1] if len(result) > 1 else {}
 
     print(f"\n>>> Graph has {len(graph)} entries")
-    print(f">>> All keys in graph (sorted):")
+    print(">>> All keys in graph (sorted):")
     for key in sorted(graph.keys()):
         nref = graph[key]
         x = getattr(nref, "x", "?")
@@ -214,32 +232,32 @@ def step3_runtime_graph_keys() -> None:
         marker = " ← BOUNDARY (synthetic)" if is_boundary else ""
         print(f"  '{key}'  ({x}, {y})  role={role}{marker}")
 
-    print(f"\n>>> Специфичная проверка: есть ли 'exit_east' (БЕЗ префикса)?")
+    print("\n>>> Специфичная проверка: есть ли 'exit_east' (БЕЗ префикса)?")
     if "exit_east" in graph:
         nref = graph["exit_east"]
-        print(f"  ✓ НАЙДЕН: 'exit_east' в graph")
+        print("  ✓ НАЙДЕН: 'exit_east' в graph")
         print(f"    x={getattr(nref, 'x', '?')}, y={getattr(nref, 'y', '?')}")
         print(f"    role={getattr(nref, 'role', '?')}")
     else:
-        print(f"  ✗ 'exit_east' НЕ в graph (БЕЗ префикса)")
+        print("  ✗ 'exit_east' НЕ в graph (БЕЗ префикса)")
 
-    print(f"\n>>> Специфичная проверка: есть ли 'tavern:exit_east' (С префиксом)?")
+    print("\n>>> Специфичная проверка: есть ли 'tavern:exit_east' (С префиксом)?")
     if "tavern:exit_east" in graph:
         nref = graph["tavern:exit_east"]
-        print(f"  ✓ НАЙДЕН: 'tavern:exit_east' в graph")
+        print("  ✓ НАЙДЕН: 'tavern:exit_east' в graph")
         print(f"    x={getattr(nref, 'x', '?')}, y={getattr(nref, 'y', '?')}")
         print(f"    role={getattr(nref, 'role', '?')}")
     else:
-        print(f"  ✗ 'tavern:exit_east' НЕ в graph")
+        print("  ✗ 'tavern:exit_east' НЕ в graph")
 
-    print(f"\n>>> Сравнение координат:")
-    print(f"  authored exit_east в JSON: x=8.22, y=12.45 (ЛОКАЛЬНЫЕ)")
-    print(f"  phantom tavern:exit_east:   x=44.03, y=12.52 (МИРОВЫЕ = origin + offset)")
-    print(f"  origin: x=25.033, y=5.018")
-    print(f"  offset for east: (origin.x + w - 1, origin.y + h/2) = (25.033+19, 5.018+7.5) = (44.033, 12.518)")
+    print("\n>>> Сравнение координат:")
+    print("  authored exit_east в JSON: x=8.22, y=12.45 (ЛОКАЛЬНЫЕ)")
+    print("  phantom tavern:exit_east:   x=44.03, y=12.52 (МИРОВЫЕ = origin + offset)")
+    print("  origin: x=25.033, y=5.018")
+    print("  offset for east: (origin.x + w - 1, origin.y + h/2) = (25.033+19, 5.018+7.5) = (44.033, 12.518)")
 
     # Also check SpatialValidator logs
-    print(f"\n>>> SpatialValidator logs (последние 2000 символов):")
+    print("\n>>> SpatialValidator logs (последние 2000 символов):")
     logs = _log_capture.getvalue()
     if logs:
         # Filter for SPATIAL_VALIDATION messages
@@ -247,7 +265,7 @@ def step3_runtime_graph_keys() -> None:
             if "SPATIAL_VALIDATION" in line or "boundary" in line.lower():
                 print(f"  {line}")
     else:
-        print(f"  (no logs)")
+        print("  (no logs)")
 
 
 # ============================================================================
@@ -290,7 +308,7 @@ def step4_spatial_validator_coords() -> None:
         return
     print(f"\n--- _validate_navigation_geometry (L{func_start + 1} onwards) ---")
     for j in range(func_start, min(func_start + 80, len(lines))):
-        print(f"L{j+1:4d}: {lines[j]}")
+        print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -383,11 +401,11 @@ NPC попадает в tavern, и одновременно выход в city_g
         for w in walls:
             if isinstance(w, dict) and w.get("id") == "wall_2":
                 print(f"\n  wall_2: x1={w.get('x1')}, y1={w.get('y1')}, x2={w.get('x2')}, y2={w.get('y2')}")
-                print(f"  → door_0 at y=13.0 — это wall_2")
+                print("  → door_0 at y=13.0 — это wall_2")
         for w in walls:
             if isinstance(w, dict) and w.get("id") == "wall_0":
                 print(f"\n  wall_0: x1={w.get('x1')}, y1={w.get('y1')}, x2={w.get('x2')}, y2={w.get('y2')}")
-                print(f"  → Это другая стена (без door в JSON)")
+                print("  → Это другая стена (без door в JSON)")
 
 
 # ============================================================================

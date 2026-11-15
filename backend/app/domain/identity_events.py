@@ -4,6 +4,7 @@ path: backend/app/domain/identity_events.py
 Зависимости: Нет
 Основные сущности: TraitDriftEvent, L1EventStream
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -85,8 +86,6 @@ class L1EventStream(Protocol):
         """Единственная точка записи L1. Событие неизменяемо после создания."""
         ...
 
-    def query(
-        self, npc_id: str, t_from: int, t_to: Optional[int] = None
-    ) -> List[TraitDriftEvent]:
+    def query(self, npc_id: str, t_from: int, t_to: Optional[int] = None) -> List[TraitDriftEvent]:
         """Чтение истории деформаций для вычисления проекции DriveResolver'ом."""
         ...

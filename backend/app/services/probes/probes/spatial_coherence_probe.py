@@ -3,6 +3,7 @@
 SC-1..SC-8: Пространственная согласованность.
 Контракт: CAUSAL_CONTRACT_v2.0.md -> 2.1.1. Spatial Coherence Contract.
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -26,8 +27,10 @@ class SpatialCoherenceProbe(Probe):
             # SC-1: local_position не может быть (0.0, 0.0)
             if isinstance(lp, dict) and lp.get("x", 1.0) == 0.0 and lp.get("y", 1.0) == 0.0:
                 return ProbeResult(
-                    name=self.name, severity=self.severity, passed=False,
-                    details=f"SC-1 FAIL: NPC '{npc_id}' has local_position (0.0, 0.0) at tick {ctx.tick_id}"
+                    name=self.name,
+                    severity=self.severity,
+                    passed=False,
+                    details=f"SC-1 FAIL: NPC '{npc_id}' has local_position (0.0, 0.0) at tick {ctx.tick_id}",
                 )
 
             # SC-2: local_position должен принадлежать текущей location_id.
@@ -59,8 +62,10 @@ class SpatialCoherenceProbe(Probe):
                 # пока node_id не обновился на новый узел назначения.
                 if abs(lp.get("x", 0.0) - node.x) > 10.0 or abs(lp.get("y", 0.0) - node.y) > 10.0:
                     return ProbeResult(
-                        name=self.name, severity=self.severity, passed=False,
-                        details=f"SC-4 FAIL: NPC '{npc_id}' pos ({lp.get('x')}, {lp.get('y')}) too far from node '{curr_node_id}' ({node.x}, {node.y})"
+                        name=self.name,
+                        severity=self.severity,
+                        passed=False,
+                        details=f"SC-4 FAIL: NPC '{npc_id}' pos ({lp.get('x')}, {lp.get('y')}) too far from node '{curr_node_id}' ({node.x}, {node.y})",
                     )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

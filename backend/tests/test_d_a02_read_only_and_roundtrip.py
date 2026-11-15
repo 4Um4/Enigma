@@ -23,9 +23,7 @@ from app.services.npc.state_applicator import StateApplicator
 
 
 # Точный образец из test_contracts_stage6.py:27
-_MOCK_DRIVES = EffectiveDrives.from_dict(
-    {"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5}
-)
+_MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
 
 def _make_base_dict(**overrides):
@@ -75,9 +73,7 @@ def _pressure_updates(result):
 
 # ── T1: WARA round-trip (to_persistence_dict ↔ from_legacy) ──
 def test_pressure_accumulator_wara_roundtrip():
-    real_dict = _make_base_dict(
-        pressure_accumulator={"idle|flee": 0.4, "observe|approach": 0.9}
-    )
+    real_dict = _make_base_dict(pressure_accumulator={"idle|flee": 0.4, "observe|approach": 0.9})
     state = NPCStateAdapter.from_legacy(real_dict)
     assert state.pressure_accumulator == {
         ("idle", "flee"): 0.4,

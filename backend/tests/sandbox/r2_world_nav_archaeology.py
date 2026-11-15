@@ -18,8 +18,13 @@ R2-WORLD-NAV-ARCHAEOLOGY probe — архитектурное исследова
 READ-ONLY: никаких production-изменений, новых дверей, boundary nodes,
 изменений авторской геометрии.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy
+import os
+import sys
+import json
+import traceback
+import copy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -98,7 +103,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -142,7 +147,9 @@ def step1_coordinate_contract() -> None:
     print("\n--- Поиск использования 'origin' в spatial коде ---")
     spatial_dir = _BACKEND / "app/services/spatial"
     if spatial_dir.exists():
-        results = _grep_in_dir(spatial_dir, ["origin", "global_coords", "world_coords", "local_to_world", "world_to_local"])
+        results = _grep_in_dir(
+            spatial_dir, ["origin", "global_coords", "world_coords", "local_to_world", "world_to_local"]
+        )
         for path, ln, line in results[:30]:
             rel = path.relative_to(_BACKEND)
             print(f"  {rel} L{ln}: {line}")
@@ -176,8 +183,17 @@ def step1_coordinate_contract() -> None:
 
     # Check for navmesh / world geometry
     print("\n--- Поиск NavMesh / world geometry / continuous navigation ---")
-    navmesh_keywords = ["navmesh", "nav_mesh", "NavMesh", "walkable", "walk_poly",
-                        "world_graph", "global_graph", "world_geometry", "world_space"]
+    navmesh_keywords = [
+        "navmesh",
+        "nav_mesh",
+        "NavMesh",
+        "walkable",
+        "walk_poly",
+        "world_graph",
+        "global_graph",
+        "world_geometry",
+        "world_space",
+    ]
     found = _grep_in_dir(_BACKEND, navmesh_keywords, file_exts=(".py",))
     if found:
         print(f"\nFound {len(found)} references:")
@@ -234,8 +250,18 @@ def step2_transition_system() -> None:
     if me.exists():
         src = me.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line for kw in ["boundary", "neighbor_chunk", "entry_node_hint", "location_transition",
-                                          "scene_change", "load_location", "switch_location"]):
+            if any(
+                kw in line
+                for kw in [
+                    "boundary",
+                    "neighbor_chunk",
+                    "entry_node_hint",
+                    "location_transition",
+                    "scene_change",
+                    "load_location",
+                    "switch_location",
+                ]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
     # Check scene_state_manager / location transitions
@@ -249,8 +275,17 @@ def step2_transition_system() -> None:
     if ssm.exists():
         src = ssm.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line.lower() for kw in ["def load_location", "def switch_location", "boundary", "neighbor_chunk",
-                                                   "location_transition", "scene_change"]):
+            if any(
+                kw in line.lower()
+                for kw in [
+                    "def load_location",
+                    "def switch_location",
+                    "boundary",
+                    "neighbor_chunk",
+                    "location_transition",
+                    "scene_change",
+                ]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
 
@@ -261,22 +296,42 @@ def step3_continuous_navigation() -> None:
     _print_section("STEP 3: Непрерывная мировая навигация — поиск существующих механизмов")
 
     mechanisms = {
-        "NavMesh / walkable polygons": ["navmesh", "nav_mesh", "NavMesh", "walkable_poly", "walk_poly",
-                                          "polygon_nav", "mesh_navigation"],
-        "Geometric passability check": ["passable", "is_walkable", "can_walk", "is_passable",
-                                          "geometric_pass", "geometry_pass"],
-        "Spatial index (grid/quadtree)": ["spatial_index", "quadtree", "QuadTree", "spatial_grid",
-                                            "grid_index", "SpatialHash"],
-        "Obstacle avoidance": ["obstacle_avoid", "avoid_obstacle", "steering", "boid",
-                                "collision_avoidance"],
-        "Multi-location navigation": ["multi_location", "cross_location", "inter_location",
-                                       "world_path", "global_path"],
-        "Hierarchical navigation": ["hierarchical", "hierarchy", "high_level_graph",
-                                     "abstract_graph", "HAN", "HPA"],
-        "Dynamic passability": ["dynamic_pass", "dynamic_door", "locked_door",
-                                  "conditional_pass"],
-        "Different creature sizes": ["creature_size", "actor_size", "radius_nav",
-                                       "size_aware_nav"],
+        "NavMesh / walkable polygons": [
+            "navmesh",
+            "nav_mesh",
+            "NavMesh",
+            "walkable_poly",
+            "walk_poly",
+            "polygon_nav",
+            "mesh_navigation",
+        ],
+        "Geometric passability check": [
+            "passable",
+            "is_walkable",
+            "can_walk",
+            "is_passable",
+            "geometric_pass",
+            "geometry_pass",
+        ],
+        "Spatial index (grid/quadtree)": [
+            "spatial_index",
+            "quadtree",
+            "QuadTree",
+            "spatial_grid",
+            "grid_index",
+            "SpatialHash",
+        ],
+        "Obstacle avoidance": ["obstacle_avoid", "avoid_obstacle", "steering", "boid", "collision_avoidance"],
+        "Multi-location navigation": [
+            "multi_location",
+            "cross_location",
+            "inter_location",
+            "world_path",
+            "global_path",
+        ],
+        "Hierarchical navigation": ["hierarchical", "hierarchy", "high_level_graph", "abstract_graph", "HAN", "HPA"],
+        "Dynamic passability": ["dynamic_pass", "dynamic_door", "locked_door", "conditional_pass"],
+        "Different creature sizes": ["creature_size", "actor_size", "radius_nav", "size_aware_nav"],
     }
 
     print("\nПоиск по всем backend/ .py файлам:")
@@ -289,12 +344,20 @@ def step3_continuous_navigation() -> None:
             rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
             print(f"    {rel} L{ln}: {line}")
         if not found:
-            print(f"    [NONE FOUND]")
+            print("    [NONE FOUND]")
 
     # Specifically search for world graph / global navigation
     print("\n--- Поиск 'world graph' / 'global navigation' / 'world map' ---")
-    world_nav_keywords = ["world_graph", "global_navigation", "world_map_nav", "world_pathfinding",
-                          "GlobalGraph", "WorldGraph", "world_node", "global_node"]
+    world_nav_keywords = [
+        "world_graph",
+        "global_navigation",
+        "world_map_nav",
+        "world_pathfinding",
+        "GlobalGraph",
+        "WorldGraph",
+        "world_node",
+        "global_node",
+    ]
     found = _grep_in_dir(_BACKEND, world_nav_keywords, file_exts=(".py",))
     if found:
         for path, ln, line in found[:10]:
@@ -483,7 +546,7 @@ def step5_real_world_geometry() -> None:
         print(f"\n--- {name} ({path.name}) ---")
         data = _load_map(path)
         if data is None:
-            print(f"  [file not found or invalid]")
+            print("  [file not found or invalid]")
             continue
         world_data[name] = data
 
@@ -519,7 +582,7 @@ def step5_real_world_geometry() -> None:
 
         # Show all node world coords
         nodes = data.get("nodes", {})
-        print(f"\n  Nodes (local → world coords):")
+        print("\n  Nodes (local → world coords):")
         for nname, nd in nodes.items():
             if not isinstance(nd, dict):
                 continue
@@ -539,7 +602,7 @@ def step5_real_world_geometry() -> None:
         # Show all walls (local coords)
         walls = data.get("walls", [])
         if walls:
-            print(f"\n  Walls (local coords):")
+            print("\n  Walls (local coords):")
             for w in walls:
                 if isinstance(w, dict):
                     print(f"    {w.get('id')}: ({w.get('x1')}, {w.get('y1')}) → ({w.get('x2')}, {w.get('y2')})")

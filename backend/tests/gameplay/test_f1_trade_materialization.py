@@ -11,6 +11,7 @@ path: /project/backend/tests/gameplay/test_f1_trade_materialization.py
 Основные сущности: test_trade_materialization_full_loop
 Запуск: cd backend; python -m pytest tests/gameplay/test_f1_trade_materialization.py -v
 """
+
 import os
 import shutil
 import tempfile
@@ -28,16 +29,18 @@ _MAX_TICKS = 24
 def world():
     _tmp = Path(tempfile.mkdtemp(prefix="f1_reg_"))
     from app.core.config import settings
-    shutil.copytree(settings.data_dir, _tmp, dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("replay.db", "logs"))
+
+    shutil.copytree(settings.data_dir, _tmp, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
     settings.data_dir = str(_tmp)
     settings.saves_dir = tempfile.mkdtemp(prefix="f1_reg_saves_")
     os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
     os.environ["DESIRES_ENABLED"] = "1"
     os.environ["WORK_ENABLED"] = "1"
     from app.services.events.event_bus import get_event_bus
+
     get_event_bus().clear()
     from app.services.game_loop_builder import build_game_loop
+
     gl = build_game_loop(_tmp)
     _s = getattr(gl, "_task_scheduler", None)
     _e = getattr(_s, "_executor", None) or getattr(_s, "executor", None)
@@ -67,7 +70,7 @@ def test_trade_materialization_full_loop(world):
     _t = _npc(gl, TORNIN)
     assert _l and _t, "NPC не найдены"
     _l.setdefault("body_state", {})["hunger"] = 80.0  # инъекция входа: факт тела
-    _l["position"] = _t.get("position")               # инъекция входа: позиция
+    _l["position"] = _t.get("position")  # инъекция входа: позиция
     _prof = gl._svc.get_or_create_economic_profiles(_CAMPAIGN)
     _gold_l0 = float(getattr(_prof.get(LUSYA), "gold", 0.0) or 0.0)
     _gold_t0 = float(getattr(_prof.get(TORNIN), "gold", 0.0) or 0.0)
@@ -76,8 +79,11 @@ def test_trade_materialization_full_loop(world):
     for _ in range(_MAX_TICKS):
         gl.idle_tick(_CAMPAIGN)
         _o = _orders(gl)
-        _done = [v for v in _o.values() if isinstance(v, dict)
-                 and v.get("actor_id") == LUSYA and v.get("status") == "completed"]
+        _done = [
+            v
+            for v in _o.values()
+            if isinstance(v, dict) and v.get("actor_id") == LUSYA and v.get("status") == "completed"
+        ]
         if _done:
             _completed = _done[0]
             break

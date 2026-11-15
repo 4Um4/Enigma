@@ -10,6 +10,7 @@ Fixes:
   3. Force propagate=True on those loggers
   4. Use logging.basicConfig(level=DEBUG) as belt-and-suspenders
 """
+
 from __future__ import annotations
 
 import os
@@ -110,7 +111,7 @@ _TARGET_LOGGERS = [
     "app.services.event_compiler",
     "app.services.events.event_bus",
     "app",  # catch-all
-    "",    # root
+    "",  # root
 ]
 
 
@@ -166,6 +167,7 @@ def _parse_why_decision(msg: str) -> Optional[Dict[str, Any]]:
     if m:
         try:
             import ast
+
             out["comps"] = ast.literal_eval(m.group(1))
         except Exception:
             out["comps_raw"] = m.group(1)
@@ -198,6 +200,7 @@ def _parse_trace_decision_score(msg: str) -> Optional[Dict[str, Any]]:
     if m:
         try:
             import ast
+
             out["top3"] = ast.literal_eval("[" + m.group(1) + "]")
         except Exception:
             out["top3_raw"] = m.group(1)
@@ -344,6 +347,7 @@ def _parse_causal_slice_grievance(msg: str) -> Optional[Dict[str, Any]]:
     if m:
         try:
             import ast
+
             out["methods"] = ast.literal_eval(m.group(1))
         except Exception:
             out["methods_raw"] = m.group(1)
@@ -420,6 +424,7 @@ def _collect_npc_data(logs: List[str], target_npc: str = "maid_lusya") -> Dict[s
 def _build_fresh_loop(temp_dir: Path):
     """Build a fresh game loop using the given temp dir as saves_dir."""
     from app.services.game_loop_builder import build_game_loop
+
     settings.saves_dir = str(temp_dir)
     settings.environment = "development"
     loop = build_game_loop(data_dir=Path(settings.data_dir))
@@ -544,7 +549,7 @@ def main() -> int:
             _reinstall_log_capture()
             _reset_log_capture()
 
-            print(f"\n  A: calling loop.idle_tick('Open_road', 'tavern') ...")
+            print("\n  A: calling loop.idle_tick('Open_road', 'tavern') ...")
             try:
                 result_a = loop_a.idle_tick("Open_road", "tavern")
                 print(f"  A: idle_tick returned type={type(result_a).__name__}")
@@ -556,17 +561,21 @@ def main() -> int:
             print(f"  A: captured {len(logs_A)} log entries")
             # Show first 20 for sanity
             if logs_A:
-                print(f"  A: first 10 log entries:")
+                print("  A: first 10 log entries:")
                 for l in logs_A[:10]:
                     print(f"    {l[:200]}")
             else:
-                print(f"  A: WARNING — 0 logs captured! Checking logger config...")
+                print("  A: WARNING — 0 logs captured! Checking logger config...")
                 for name in _TARGET_LOGGERS[:5]:
                     lg = logging.getLogger(name)
-                    print(f"    logger '{name}' level={lg.level} handlers={[type(h).__name__ for h in lg.handlers]} propagate={lg.propagate}")
+                    print(
+                        f"    logger '{name}' level={lg.level} handlers={[type(h).__name__ for h in lg.handlers]} propagate={lg.propagate}"
+                    )
 
             data_A = _collect_npc_data(logs_A, "maid_lusya")
-            print(f"  A: parsed maid_lusya data: {[(k, type(v).__name__) for k, v in data_A.items() if v is not None and v != []]}")
+            print(
+                f"  A: parsed maid_lusya data: {[(k, type(v).__name__) for k, v in data_A.items() if v is not None and v != []]}"
+            )
 
             try:
                 ts = loop_a._get_task_scheduler()
@@ -576,6 +585,7 @@ def main() -> int:
                 pass
             del loop_a
             import gc
+
             gc.collect()
         except Exception as e:
             print(f"  A FATAL: {e}")
@@ -675,11 +685,13 @@ def main() -> int:
                 persistence_level="working",
             )
             bus.publish(evt)
-            print(f"  B: PLAYER_INSULTS published")
+            print("  B: PLAYER_INSULTS published")
 
             if store_b is not None:
                 rec_b_post = store_b.get("maid_lusya", expected_prop)
-                print(f"  B (post-publish): store.get('maid_lusya', expected_prop).confidence = {getattr(rec_b_post, 'confidence', None)}")
+                print(
+                    f"  B (post-publish): store.get('maid_lusya', expected_prop).confidence = {getattr(rec_b_post, 'confidence', None)}"
+                )
 
             if resolver_b is not None:
                 ctx_b_post = resolver_b.resolve("maid_lusya")
@@ -690,7 +702,7 @@ def main() -> int:
             _reinstall_log_capture()
             _reset_log_capture()
 
-            print(f"\n  B: calling loop.idle_tick('Open_road', 'tavern') ...")
+            print("\n  B: calling loop.idle_tick('Open_road', 'tavern') ...")
             try:
                 result_b = loop_b.idle_tick("Open_road", "tavern")
                 print(f"  B: idle_tick returned type={type(result_b).__name__}")
@@ -701,14 +713,16 @@ def main() -> int:
             logs_B = _log_capture.messages()
             print(f"  B: captured {len(logs_B)} log entries")
             if logs_B:
-                print(f"  B: first 10 log entries:")
+                print("  B: first 10 log entries:")
                 for l in logs_B[:10]:
                     print(f"    {l[:200]}")
             else:
-                print(f"  B: WARNING — 0 logs captured!")
+                print("  B: WARNING — 0 logs captured!")
 
             data_B = _collect_npc_data(logs_B, "maid_lusya")
-            print(f"  B: parsed maid_lusya data: {[(k, type(v).__name__) for k, v in data_B.items() if v is not None and v != []]}")
+            print(
+                f"  B: parsed maid_lusya data: {[(k, type(v).__name__) for k, v in data_B.items() if v is not None and v != []]}"
+            )
 
             try:
                 ts = loop_b._get_task_scheduler()
@@ -718,6 +732,7 @@ def main() -> int:
                 pass
             del loop_b
             import gc
+
             gc.collect()
         except Exception as e:
             print(f"  B FATAL: {e}")
@@ -729,7 +744,14 @@ def main() -> int:
         _print_section("Sanity check: data for ALL NPCs (B only)")
         if logs_B:
             all_npcs_data: Dict[str, Dict[str, Any]] = {}
-            for npc_id in ("maid_lusya", "guard_borko", "merchant_goran", "blacksmith_orm", "thief_shadow", "tavern_keeper_tornin"):
+            for npc_id in (
+                "maid_lusya",
+                "guard_borko",
+                "merchant_goran",
+                "blacksmith_orm",
+                "thief_shadow",
+                "tavern_keeper_tornin",
+            ):
                 all_npcs_data[npc_id] = _collect_npc_data(logs_B, npc_id)
             for npc_id, d in all_npcs_data.items():
                 wd = d.get("why_decision") or {}
@@ -740,7 +762,9 @@ def main() -> int:
                 print(f"    winner: {wd.get('winner', 'N/A')} ({wd.get('winner_score', 'N/A')})")
                 print(f"    top3: {tr.get('top3', 'N/A')}")
                 print(f"    [DECISION_HUB]: intent={dh.get('intent', 'N/A')} score={dh.get('score', 'N/A')}")
-                print(f"    [DECISION_HUB_RETURN]: intent={dhret.get('intent', 'N/A')} comm_built={dhret.get('comm_built', 'N/A')} epistemic_context={dhret.get('epistemic_context', 'N/A')}")
+                print(
+                    f"    [DECISION_HUB_RETURN]: intent={dhret.get('intent', 'N/A')} comm_built={dhret.get('comm_built', 'N/A')} epistemic_context={dhret.get('epistemic_context', 'N/A')}"
+                )
 
         # =====================================================================
         # COMPARE A vs B
@@ -750,14 +774,14 @@ def main() -> int:
         if data_A is None or data_B is None:
             print("  [cannot compare — one or both runs failed]")
         else:
-            print(f"\n  === DecisionHub winner ===")
+            print("\n  === DecisionHub winner ===")
             winner_a = data_A.get("why_decision") or {}
             winner_b = data_B.get("why_decision") or {}
             print(f"  A winner: {winner_a.get('winner', 'N/A')} (score={winner_a.get('winner_score', 'N/A')})")
             print(f"  B winner: {winner_b.get('winner', 'N/A')} (score={winner_b.get('winner_score', 'N/A')})")
             print(f"  winner changed: {winner_a.get('winner') != winner_b.get('winner')}")
 
-            print(f"\n  === Top 3 intents (with scores) ===")
+            print("\n  === Top 3 intents (with scores) ===")
             top3_a = (data_A.get("trace_decision_score") or {}).get("top3", [])
             top3_b = (data_B.get("trace_decision_score") or {}).get("top3", [])
             print(f"  A top3: {top3_a}")
@@ -765,27 +789,27 @@ def main() -> int:
 
             sr_a = next((s for n, s in top3_a if "spread_rumor" in str(n).lower()), None)
             sr_b = next((s for n, s in top3_b if "spread_rumor" in str(n).lower()), None)
-            print(f"\n  SPREAD_RUMOR score:")
+            print("\n  SPREAD_RUMOR score:")
             print(f"    A: {sr_a if sr_a is not None else 'NOT IN TOP3'}")
             print(f"    B: {sr_b if sr_b is not None else 'NOT IN TOP3'}")
             if sr_a is not None and sr_b is not None:
                 delta = sr_b - sr_a
                 print(f"    delta: {delta:+.4f}")
             elif sr_a is None and sr_b is not None:
-                print(f"    >>> SPREAD_RUMOR entered top3 in B (was absent in A)")
+                print("    >>> SPREAD_RUMOR entered top3 in B (was absent in A)")
             elif sr_a is not None and sr_b is None:
-                print(f"    >>> SPREAD_RUMOR dropped from top3 in B (was present in A)")
+                print("    >>> SPREAD_RUMOR dropped from top3 in B (was present in A)")
 
             sa_a = next((s for n, s in top3_a if "seek_ally" in str(n).lower()), None)
             sa_b = next((s for n, s in top3_b if "seek_ally" in str(n).lower()), None)
-            print(f"\n  SEEK_ALLY score:")
+            print("\n  SEEK_ALLY score:")
             print(f"    A: {sa_a if sa_a is not None else 'NOT IN TOP3'}")
             print(f"    B: {sa_b if sa_b is not None else 'NOT IN TOP3'}")
             if sa_a is not None and sa_b is not None:
                 delta = sa_b - sa_a
                 print(f"    delta: {delta:+.4f}")
 
-            print(f"\n  === fear_drive ===")
+            print("\n  === fear_drive ===")
             dsa = data_A.get("diag_score_all") or {}
             dsb = data_B.get("diag_score_all") or {}
             print(f"  A fear_drive: {dsa.get('fear_drive', 'N/A')}")
@@ -795,25 +819,29 @@ def main() -> int:
             if fd_a is not None and fd_b is not None:
                 print(f"  delta: {fd_b - fd_a:+.4f}")
 
-            print(f"\n  === social_pressure (BREAK_PROGRESS) ===")
+            print("\n  === social_pressure (BREAK_PROGRESS) ===")
             bp_a = data_A.get("break_progress") or {}
             bp_b = data_B.get("break_progress") or {}
-            print(f"  A: trust_min={bp_a.get('trust_min', 'N/A')} fear_max={bp_a.get('fear_max', 'N/A')} social_pressure={bp_a.get('social_pressure', 'N/A')}")
-            print(f"  B: trust_min={bp_b.get('trust_min', 'N/A')} fear_max={bp_b.get('fear_max', 'N/A')} social_pressure={bp_b.get('social_pressure', 'N/A')}")
+            print(
+                f"  A: trust_min={bp_a.get('trust_min', 'N/A')} fear_max={bp_a.get('fear_max', 'N/A')} social_pressure={bp_a.get('social_pressure', 'N/A')}"
+            )
+            print(
+                f"  B: trust_min={bp_b.get('trust_min', 'N/A')} fear_max={bp_b.get('fear_max', 'N/A')} social_pressure={bp_b.get('social_pressure', 'N/A')}"
+            )
 
-            print(f"\n  === emotion_emergent ===")
+            print("\n  === emotion_emergent ===")
             ee_a = data_A.get("emotion_emergent") or {}
             ee_b = data_B.get("emotion_emergent") or {}
             print(f"  A: emotion={ee_a.get('emotion', 'N/A')} social_pressure={ee_a.get('social_pressure', 'N/A')}")
             print(f"  B: emotion={ee_b.get('emotion', 'N/A')} social_pressure={ee_b.get('social_pressure', 'N/A')}")
 
-            print(f"\n  === grievance (CAUSAL_SLICE_GRIEVANCE) ===")
+            print("\n  === grievance (CAUSAL_SLICE_GRIEVANCE) ===")
             cg_a = data_A.get("causal_slice_grievance") or {}
             cg_b = data_B.get("causal_slice_grievance") or {}
             print(f"  A: desired_change={cg_a.get('desired_change', 'N/A')} methods={cg_a.get('methods', 'N/A')}")
             print(f"  B: desired_change={cg_b.get('desired_change', 'N/A')} methods={cg_b.get('methods', 'N/A')}")
 
-            print(f"\n  === [BREAK] records (resistance progression) ===")
+            print("\n  === [BREAK] records (resistance progression) ===")
             br_a = data_A.get("break_records", [])
             br_b = data_B.get("break_records", [])
             print(f"  A: {len(br_a)} BREAK records")
@@ -823,7 +851,7 @@ def main() -> int:
             for r in br_b[:3]:
                 print(f"    {r}")
 
-            print(f"\n  === [DIAG_RISK_ATK] records ===")
+            print("\n  === [DIAG_RISK_ATK] records ===")
             ra_a = data_A.get("diag_risk_atk_records", [])
             ra_b = data_B.get("diag_risk_atk_records", [])
             print(f"  A: {len(ra_a)} records")
@@ -833,30 +861,40 @@ def main() -> int:
             for r in ra_b[:5]:
                 print(f"    {r}")
 
-            print(f"\n  === WHY/DECISION components (winner's components) ===")
+            print("\n  === WHY/DECISION components (winner's components) ===")
             comps_a = winner_a.get("comps", {})
             comps_b = winner_b.get("comps", {})
             print(f"  A comps: {comps_a}")
             print(f"  B comps: {comps_b}")
             all_keys = set(comps_a.keys()) | set(comps_b.keys())
-            print(f"\n  component delta (B - A):")
+            print("\n  component delta (B - A):")
             for k in sorted(all_keys):
                 va = comps_a.get(k, 0.0)
                 vb = comps_b.get(k, 0.0)
                 delta = vb - va if isinstance(va, (int, float)) and isinstance(vb, (int, float)) else "?"
-                print(f"    {k:20s} A={va:+.4f}  B={vb:+.4f}  delta={delta if isinstance(delta, str) else f'{delta:+.4f}'}")
+                print(
+                    f"    {k:20s} A={va:+.4f}  B={vb:+.4f}  delta={delta if isinstance(delta, str) else f'{delta:+.4f}'}"
+                )
 
-            print(f"\n  === threshold, pressure, accumulated ===")
-            print(f"  A: threshold={winner_a.get('threshold', 'N/A')} pressure={winner_a.get('pressure', 'N/A')} accumulated={winner_a.get('accumulated', 'N/A')}")
-            print(f"  B: threshold={winner_b.get('threshold', 'N/A')} pressure={winner_b.get('pressure', 'N/A')} accumulated={winner_b.get('accumulated', 'N/A')}")
+            print("\n  === threshold, pressure, accumulated ===")
+            print(
+                f"  A: threshold={winner_a.get('threshold', 'N/A')} pressure={winner_a.get('pressure', 'N/A')} accumulated={winner_a.get('accumulated', 'N/A')}"
+            )
+            print(
+                f"  B: threshold={winner_b.get('threshold', 'N/A')} pressure={winner_b.get('pressure', 'N/A')} accumulated={winner_b.get('accumulated', 'N/A')}"
+            )
 
-            print(f"\n  === [DECISION_HUB_RETURN] ===")
+            print("\n  === [DECISION_HUB_RETURN] ===")
             dh_a = data_A.get("decision_hub_return") or {}
             dh_b = data_B.get("decision_hub_return") or {}
-            print(f"  A: intent={dh_a.get('intent', 'N/A')} comm_built={dh_a.get('comm_built', 'N/A')} epistemic_context={dh_a.get('epistemic_context', 'N/A')}")
-            print(f"  B: intent={dh_b.get('intent', 'N/A')} comm_built={dh_b.get('comm_built', 'N/A')} epistemic_context={dh_b.get('epistemic_context', 'N/A')}")
+            print(
+                f"  A: intent={dh_a.get('intent', 'N/A')} comm_built={dh_a.get('comm_built', 'N/A')} epistemic_context={dh_a.get('epistemic_context', 'N/A')}"
+            )
+            print(
+                f"  B: intent={dh_b.get('intent', 'N/A')} comm_built={dh_b.get('comm_built', 'N/A')} epistemic_context={dh_b.get('epistemic_context', 'N/A')}"
+            )
 
-            print(f"\n  === [EPISTEMIC_REPORT_TARGET] ===")
+            print("\n  === [EPISTEMIC_REPORT_TARGET] ===")
             ert_a = data_A.get("epistemic_report_target")
             ert_b = data_B.get("epistemic_report_target")
             print(f"  A: {ert_a}")
@@ -873,8 +911,12 @@ def main() -> int:
             print("  >>> VERDICT: INCONCLUSIVE — DecisionHub log capture failed")
             print("  >>> Check 'first 10 log entries' above to see what was captured")
             print(f"  >>> Total logs A: {len(logs_A)}, B: {len(logs_B)}")
-            print(f"  >>> maid_lusya-specific data A: {[(k, type(v).__name__) for k, v in data_A.items() if v is not None and v != []]}")
-            print(f"  >>> maid_lusya-specific data B: {[(k, type(v).__name__) for k, v in data_B.items() if v is not None and v != []]}")
+            print(
+                f"  >>> maid_lusya-specific data A: {[(k, type(v).__name__) for k, v in data_A.items() if v is not None and v != []]}"
+            )
+            print(
+                f"  >>> maid_lusya-specific data B: {[(k, type(v).__name__) for k, v in data_B.items() if v is not None and v != []]}"
+            )
         else:
             winner_a = (data_A.get("why_decision") or {}).get("winner", "N/A")
             winner_b = (data_B.get("why_decision") or {}).get("winner", "N/A")
@@ -913,7 +955,7 @@ def main() -> int:
                 else:
                     print(f"  >>> Investigate: did PLAYER_INSULTS push Lusya to {winner_b} (not SPREAD_RUMOR)?")
             else:
-                print(f"  >>> VERDICT: needs manual inspection of comparison above")
+                print("  >>> VERDICT: needs manual inspection of comparison above")
 
     finally:
         settings.saves_dir = orig_saves_dir

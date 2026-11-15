@@ -5,6 +5,7 @@ diff, generates WorldProjectionEvent[] как производный слой.
 НЕ мутирует первичную реальность (scene_state, npc_states).
 Зависимости: app.domain.world_projection
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -42,7 +43,9 @@ class WorldProjectionBuffer:
         for event in significant_events:
             _ev_type = getattr(event, "type", None) or (event.get("type") if isinstance(event, dict) else None)  # noqa: ENIGMA001, ENIGMA002
             if _ev_type in ("combat", "death", "steal"):
-                _ev_source = getattr(event, "source", None) or (event.get("source", "world") if isinstance(event, dict) else "world")  # noqa: ENIGMA002
+                _ev_source = getattr(event, "source", None) or (
+                    event.get("source", "world") if isinstance(event, dict) else "world"
+                )  # noqa: ENIGMA002
                 # BUG-FB-038 FIX: Детерминированный event_id через md5(tick:source:type)
                 _proj_seed = f"{tick}:{_ev_source}:{ProjectionType.RUMOR.value}".encode()
                 _proj_id = hashlib.md5(_proj_seed).hexdigest()[:8]
@@ -59,11 +62,7 @@ class WorldProjectionBuffer:
                 )
 
         # 2. Анализ изменений состояния NPC (строгий diff state_t vs state_t-1)
-        _prev_map = {
-            (n.get("npc_id") or n.get("id")): n
-            for n in previous_npcs_raw
-            if n.get("npc_id") != "player"
-        }
+        _prev_map = {(n.get("npc_id") or n.get("id")): n for n in previous_npcs_raw if n.get("npc_id") != "player"}
 
         for npc_dict in all_npcs_raw:
             npc_id = npc_dict.get("npc_id") or npc_dict.get("id")
@@ -76,10 +75,7 @@ class WorldProjectionBuffer:
             current_bs = npc_dict.get("body_state", {})
             prev_bs = prev_state.get("body_state", {})
 
-            if (
-                current_bs.get("blood_loss", 0) > 0.5
-                and prev_bs.get("blood_loss", 0) <= 0.5
-            ):
+            if current_bs.get("blood_loss", 0) > 0.5 and prev_bs.get("blood_loss", 0) <= 0.5:
                 _proj_seed = f"{tick}:{npc_id}:{ProjectionType.AMBIENT.value}".encode()
                 _proj_id = hashlib.md5(_proj_seed).hexdigest()[:8]
                 projections.append(

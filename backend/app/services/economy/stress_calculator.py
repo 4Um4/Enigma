@@ -7,6 +7,7 @@ path: /backend/app/services/economy/stress_calculator.py
 Зависимости: app.models.economy (EconomicProfile), app.services.economy.need_engine (NeedEngine)
 Основные сущности: calculate_economic_stress()
 """
+
 from __future__ import annotations
 
 from typing import Tuple

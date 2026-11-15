@@ -4,6 +4,7 @@
 Проверяет связь: JSON-данные (tags) → GraphCompiler → SpatialService → LifeEngine.
 Запуск: pytest backend/tests/test_workplace_affordance.py -v
 """
+
 import sys
 from pathlib import Path
 

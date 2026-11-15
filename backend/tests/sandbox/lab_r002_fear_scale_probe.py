@@ -14,6 +14,7 @@ path: backend/tests/sandbox/lab_r002_fear_scale_probe.py
 Основные сущности: PRESETS, main
 Запуск: python backend/tests/sandbox/lab_r002_fear_scale_probe.py
 """
+
 from __future__ import annotations
 
 import json
@@ -67,9 +68,7 @@ def main() -> int:
         psyche = fin.get("psyche", {}) or {}
         rc = fin.get("relationship_cache", {}).get("player", {}) or {}
         first = result.npc_captures[0] if result.npc_captures else []
-        first_g = next(
-            (n for n in first if (n.get("id") or n.get("npc_id")) == _NPC), {}
-        )
+        first_g = next((n for n in first if (n.get("id") or n.get("npc_id")) == _NPC), {})
         rec = {
             "run_id": run_id,
             "experiment_id": experiment_id,
@@ -93,9 +92,7 @@ def main() -> int:
         print(f"[LAB-R002-RUN] {json.dumps(rec, ensure_ascii=False)}")
 
     out = _ROOT / "reports" / "lab_r002_fear_scale_results.json"
-    out.write_text(
-        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    out.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[LAB-R002] PROTOCOL WRITTEN: {out}")
     return 0
 

@@ -1,4 +1,4 @@
-﻿# backend/tests/sandbox/persistence/test_crystallized_belief_persistence.py
+# backend/tests/sandbox/persistence/test_crystallized_belief_persistence.py
 # ФАЗА -1: Проверка персистентности CrystallizedBeliefStore (DEEP-013)
 
 import pytest
@@ -22,12 +22,12 @@ def test_beliefs_survive_restart(memory_store):
         last_updated_tick=10,
     )
     store1.update_beliefs("npc_1", [belief])
-    
+
     assert len(store1.get_beliefs("npc_1")) == 1
-    
+
     # Симулируем рестарт сервера (создаём новый объект с тем же store)
     store2 = CrystallizedBeliefStore(store=memory_store, campaign_id="test_camp")
-    
+
     # Данные должны были сохраниться
     beliefs = store2.get_beliefs("npc_1")
     assert len(beliefs) == 1

@@ -365,14 +365,7 @@ def test_d2_minimal_frontend_registry_mirror(tmp_path: Path) -> None:
 
     from spatial_compilation_orchestrator import _MinimalFrontendRegistry
 
-    sr_path = (
-        frontend_root
-        / "map_editor"
-        / "campaigns"
-        / "Open_road"
-        / "compiled"
-        / "spatial_registry.json"
-    )
+    sr_path = frontend_root / "map_editor" / "campaigns" / "Open_road" / "compiled" / "spatial_registry.json"
     registry = _MinimalFrontendRegistry.load(sr_path)
 
     # Точка внутри tavern

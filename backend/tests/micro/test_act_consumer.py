@@ -12,7 +12,6 @@
 Запуск: cd backend; python -m pytest tests/micro/test_act_consumer.py -v; cd ..
 """
 
-
 from app.domain.epistemology import ClaimEvent, Predicate, Proposition
 from app.services.npc.act_consumer import (
     ActAttitude,
@@ -37,9 +36,7 @@ def _record_self_intro(store: EpistemicStore, name: str) -> None:
         claim_id=f"claim-selfintro-{name}",
         speaker_id="player",
         listener_id="merchant_goran",
-        proposition=Proposition(
-            subject_id="player", predicate=Predicate.NAME, object_id=name
-        ),
+        proposition=Proposition(subject_id="player", predicate=Predicate.NAME, object_id=name),
         tick=1,
     )
     engine = BeliefRevisionEngine(reliability_provider=_FlatReliability())

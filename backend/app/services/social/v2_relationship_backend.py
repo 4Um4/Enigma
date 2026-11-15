@@ -139,10 +139,7 @@ class V2RelationshipBackend:
                 if not isinstance(_vals, dict):
                     continue
                 _entry = {
-                    _k: float(_v)
-                    for _k, _v in _vals.items()
-                    if _k in _LEGACY_SCALARS
-                    and isinstance(_v, (int, float))
+                    _k: float(_v) for _k, _v in _vals.items() if _k in _LEGACY_SCALARS and isinstance(_v, (int, float))
                 }
                 if not _entry:
                     continue
@@ -154,7 +151,6 @@ class V2RelationshipBackend:
             logger.info(f"[V2_REL] bootstrap: поднято {lifted} пар из NPC-диктов")
             self.sync_into_scene()
         return lifted
-
 
     def _ensure_lazy_bind(self, campaign_id: str) -> None:
         """Lazy-привязка + M1b.3.2 lazy-bootstrap: непривязанный адаптер +
@@ -213,9 +209,7 @@ class V2RelationshipBackend:
             )
             return
         if not source or not target or not delta:
-            logger.debug(
-                "[V2_REL] update no-op: пустой source/target/delta"
-            )
+            logger.debug("[V2_REL] update no-op: пустой source/target/delta")
             return
         directed = self._directed(create=True)
         # Путь к паре создаётся лениво — как в легаси (запись впервые)
@@ -267,11 +261,7 @@ class V2RelationshipBackend:
         raw = self._directed().get(f"{source}→{target}")
         if raw is None:
             return {}  # Vacuum: нет записи = нет знания
-        return {
-            attr: round(float(val), 4)
-            for attr, val in raw.items()
-            if attr in _LEGACY_SCALARS
-        }
+        return {attr: round(float(val), 4) for attr, val in raw.items() if attr in _LEGACY_SCALARS}
 
     def get(self, campaign_id: str, source: str) -> Dict[str, Any]:
         """Все отношения от source → {"src→tgt": {scalars}} (legacy get
@@ -284,11 +274,7 @@ class V2RelationshipBackend:
         if not self._campaign_guard(campaign_id) or not source:
             return {}
         prefix = f"{source}→"
-        return {
-            key: dict(raw)
-            for key, raw in self._directed().items()
-            if key.startswith(prefix)
-        }
+        return {key: dict(raw) for key, raw in self._directed().items() if key.startswith(prefix)}
 
     def get_all(self, campaign_id: str) -> Dict[str, Any]:
         """Весь граф кампании (legacy get_all — для end_screen/memory API)."""
@@ -308,9 +294,7 @@ class V2RelationshipBackend:
             return {}
         prefix = f"{source}→"
         return {
-            key.split("→")[1]: {
-                attr: float(raw.get(attr, 0.0)) for attr in _LEGACY_SCALARS
-            }
+            key.split("→")[1]: {attr: float(raw.get(attr, 0.0)) for attr in _LEGACY_SCALARS}
             for key, raw in self._directed().items()
             if key.startswith(prefix)
         }
@@ -322,7 +306,7 @@ class V2RelationshipBackend:
             return 0
         count = len(self._directed_ram)
         self._directed_ram = {}  # RAM-authority: сброс носителя
-        self.sync_into_scene()   # проекция сброса в живую сцену
+        self.sync_into_scene()  # проекция сброса в живую сцену
         if count:
             logger.info(f"[V2_REL] reset_campaign: сброшено {count} пар ({campaign_id})")
         return count

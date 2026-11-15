@@ -4,6 +4,7 @@
 Зависимости: app.models.psychological.DistortionProfile
 Основные сущности: InterpretationResult
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

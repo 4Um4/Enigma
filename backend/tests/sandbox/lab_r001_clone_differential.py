@@ -11,6 +11,7 @@ path: backend/tests/sandbox/lab_r001_clone_differential.py
 Основные сущности: RUNS, main
 Запуск: python backend/tests/sandbox/lab_r001_clone_differential.py
 """
+
 from __future__ import annotations
 
 import json
@@ -34,11 +35,7 @@ _CAMPAIGN = "Open_road"
 
 
 def _probe_lines(text: str) -> list:
-    return [
-        ln.split("[LAB-R001]", 1)[1].strip()
-        for ln in text.splitlines()
-        if "[LAB-R001]" in ln
-    ]
+    return [ln.split("[LAB-R001]", 1)[1].strip() for ln in text.splitlines() if "[LAB-R001]" in ln]
 
 
 def main() -> int:
@@ -83,18 +80,14 @@ def main() -> int:
             "status_tail": getattr(result, "statuses", None) or None,
         }
         try:
-            rec["result_summary"] = {
-                k: getattr(result, k) for k in ("experiment_id", "duration_ticks")
-            }
+            rec["result_summary"] = {k: getattr(result, k) for k in ("experiment_id", "duration_ticks")}
         except Exception:
             pass
         results.append(rec)
         print(f"[LAB-R001-RUN] {run_id} initial={json.dumps(initial, ensure_ascii=False)}")
 
     out = _ROOT / "reports" / "lab_r001_results.json"
-    out.write_text(
-        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    out.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[LAB-R001] PROTOCOL WRITTEN: {out}")
     return 0
 

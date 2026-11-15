@@ -16,8 +16,10 @@ from app.models.truth_state import TruthState
 
 logger = logging.getLogger(__name__)
 
+
 class PropositionMatcher:
     """Семантический матч IntentDTO.proposition с TruthState.secrets через Embedding Similarity (Stub)."""
+
     def __init__(self, truth_state: Optional[TruthState]):
         self._truth = truth_state
         # Маппинг предикатов на эталонные фразы для семантического сравнения
@@ -55,6 +57,7 @@ class PropositionMatcher:
 
         return best_match_id
 
+
 def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state: Optional[TruthState]) -> PlayerAction:
     """Временный мост: конвертирует расширенный IntentDTO в PlayerAction для MvpTavernController.
     Возвращает PlayerAction с заполненным action_type и secret_id (если найден через PropositionMatcher).
@@ -62,15 +65,15 @@ def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state:
     # Маппинг ActionType (в IntentSemanticField) в ActionType (в PlayerAction)
     # В будущем PlayerAction будет удалён, а MvpTavernController будет принимать IntentDTO напрямую.
     _act_mapping = {
-        "MOVE": ActionType.DIALOGUE, # MOVE не имеет эквивалента в MVP PlayerAction
+        "MOVE": ActionType.DIALOGUE,  # MOVE не имеет эквивалента в MVP PlayerAction
         "OBSERVE": ActionType.DIALOGUE,
         "INTERACT": ActionType.DIALOGUE,
         "ATTACK": ActionType.ATTACK,
-        "THREATEN": ActionType.BLACKMAIL, # Угроза = шантаж в MVP
+        "THREATEN": ActionType.BLACKMAIL,  # Угроза = шантаж в MVP
         "PERSUADE": ActionType.DIALOGUE,
-        "FLIRT": ActionType.HELP, # Флирт = помощь в MVP (временный костыль)
+        "FLIRT": ActionType.HELP,  # Флирт = помощь в MVP (временный костыль)
         "STEAL": ActionType.DIALOGUE,
-        "GIVE": ActionType.HELP, # Дать = помочь в MVP
+        "GIVE": ActionType.HELP,  # Дать = помочь в MVP
         "UNCERTAIN": ActionType.DIALOGUE,
     }
 
@@ -100,5 +103,5 @@ def intent_to_player_action(intent: IntentSemanticField, tick: int, truth_state:
         action_type=_player_action_type,
         target_id=intent.target or "",
         secret_id=_secret_id,
-        description=intent.raw_text
+        description=intent.raw_text,
     )

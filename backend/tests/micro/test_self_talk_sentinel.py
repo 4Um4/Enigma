@@ -52,9 +52,7 @@ def _make_subscriber(rel, mem, chronicle, avatar):
         memory_manager=mem,
         relationship_store=rel,
         avatar_service=avatar,
-        spatial_query_provider=lambda: SimpleNamespace(
-            player_distances=lambda ids: {"thief_shadow": 2.0}
-        ),
+        spatial_query_provider=lambda: SimpleNamespace(player_distances=lambda ids: {"thief_shadow": 2.0}),
         campaign_id_provider=lambda: "test_campaign",
         l1_chronicle=chronicle,
         tick_provider=lambda: 7,

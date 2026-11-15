@@ -139,9 +139,7 @@ class SpatialRegistryBuilder:
             return True
 
         # Собираем текущие хэши
-        existing_hashes = {
-            c["location_id"]: c["content_hash"] for c in existing.get("chunks", [])
-        }
+        existing_hashes = {c["location_id"]: c["content_hash"] for c in existing.get("chunks", [])}
 
         locations_dir = campaign_path / "locations"
         if not locations_dir.exists():
@@ -197,9 +195,7 @@ class SpatialRegistryBuilder:
         locations_dir = campaign_path / "locations"
 
         if not locations_dir.exists():
-            logger.warning(
-                f"[SPATIAL_REGISTRY] Нет директории локаций: {locations_dir}"
-            )
+            logger.warning(f"[SPATIAL_REGISTRY] Нет директории локаций: {locations_dir}")
             return chunks
 
         for loc_file in sorted(locations_dir.glob("*.json")):
@@ -236,8 +232,7 @@ class SpatialRegistryBuilder:
                 chunks.append(chunk)
             else:
                 logger.warning(
-                    f"[SPATIAL_REGISTRY] Пропуск {chunk.location_id}: "
-                    f"нулевой размер ({chunk.width}x{chunk.height})"
+                    f"[SPATIAL_REGISTRY] Пропуск {chunk.location_id}: нулевой размер ({chunk.width}x{chunk.height})"
                 )
 
         return chunks
@@ -254,9 +249,7 @@ class SpatialRegistryBuilder:
 
         return adjacency
 
-    def _check_adjacent(
-        self, a: ChunkDescriptor, b: ChunkDescriptor
-    ) -> List[AdjacencyEntry]:
+    def _check_adjacent(self, a: ChunkDescriptor, b: ChunkDescriptor) -> List[AdjacencyEntry]:
         """Проверяет смежность двух чанков по осям X и Y."""
         entries = []
 

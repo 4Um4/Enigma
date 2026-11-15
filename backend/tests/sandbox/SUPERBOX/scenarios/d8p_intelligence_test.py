@@ -60,22 +60,31 @@ class SessionMemory:
     def __init__(self) -> None:
         self._sessions: Dict[tuple, DialogueSession] = {}
 
-    def get_dialogue_session(
-        self, campaign_id: str, npc_id: str, partner_id: str = "player"
-    ) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         key = (campaign_id, npc_id, partner_id)
         if key not in self._sessions:
             self._sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
         return self._sessions[key]
 
     def add_dialogue_turn(
-        self, campaign_id: str, npc_id: str, speaker: str, text: str,
-        target_id: str = "", intent: str = "", tone: str = "",
-        tick: int = 0, partner_id: str = "player",
+        self,
+        campaign_id: str,
+        npc_id: str,
+        speaker: str,
+        text: str,
+        target_id: str = "",
+        intent: str = "",
+        tone: str = "",
+        tick: int = 0,
+        partner_id: str = "player",
     ) -> None:
         self.get_dialogue_session(campaign_id, npc_id, partner_id).add_turn(
-            speaker=speaker, text=text, target_id=target_id,
-            intent=intent, tone=tone, tick=tick,
+            speaker=speaker,
+            text=text,
+            target_id=target_id,
+            intent=intent,
+            tone=tone,
+            tick=tick,
         )
 
 
@@ -101,9 +110,7 @@ class RecordingExtractor:
 
     def extract(self, stm_before: str, new_turn: str, partner: str) -> Any:
         self.calls += 1
-        self.ran_on_main.append(
-            threading.current_thread() is threading.main_thread()
-        )
+        self.ran_on_main.append(threading.current_thread() is threading.main_thread())
         return self.update
 
 
@@ -126,7 +133,8 @@ def _make_subscriber(
         memory_manager=mem,
         relationship_store=RecordingRelStore(),
         npc_states_provider=lambda: [
-            {"npc_id": SPEAKER}, {"npc_id": LISTENER},
+            {"npc_id": SPEAKER},
+            {"npc_id": LISTENER},
         ],
         campaign_id_provider=lambda: CAMPAIGN,
         avatar_service=None,
@@ -169,16 +177,16 @@ def group_a() -> Dict[str, bool]:
     mem, tick, ext = SessionMemory(), [100], RecordingExtractor(_make_update())
     pool = ThreadPoolExecutor(max_workers=1)
     q = wire_intelligence_queue(
-        mem, ext, lambda: tick[0],
+        mem,
+        ext,
+        lambda: tick[0],
         npc_states_provider=lambda: [{"npc_id": SPEAKER}, {"npc_id": LISTENER}],
         pool_provider=lambda: pool,
     )
     sub = _make_subscriber(mem, ext, lambda: tick[0])
     _publish(sub)
     sess = _sess(mem)
-    placeholder_immediate = any(
-        t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer
-    )
+    placeholder_immediate = any(t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer)
     deadline = time.time() + 10.0
     while q.stats()["applied"] < 1 and time.time() < deadline:
         time.sleep(0.05)
@@ -190,9 +198,7 @@ def group_a() -> Dict[str, bool]:
         "A3 topic=trade": sess.topic == "trade",
         "A4 claim=1": len(sess.claims) == 1,
         "A5 question=1": len(sess.open_questions) == 1,
-        "A6 loop-exile: extractor на worker, НЕ main": (
-            bool(ext.ran_on_main) and ext.ran_on_main[-1] is False
-        ),
+        "A6 loop-exile: extractor на worker, НЕ main": (bool(ext.ran_on_main) and ext.ran_on_main[-1] is False),
     }
 
 
@@ -207,15 +213,11 @@ def group_b() -> Dict[str, bool]:
     sess = _sess(mem)
     return {
         "B1 inline extract calls=1": ext.calls == 1,
-        "B2 publisher-thread (контроль A6)": (
-            bool(ext.ran_on_main) and ext.ran_on_main[-1] is True
-        ),
+        "B2 publisher-thread (контроль A6)": (bool(ext.ran_on_main) and ext.ran_on_main[-1] is True),
         "B3 topic=trade (эквивалент A3)": sess.topic == "trade",
         "B4 claim=1 (эквивалент A4)": len(sess.claims) == 1,
         "B5 question=1 (эквивалент A5)": len(sess.open_questions) == 1,
-        "B6 intent=offer (inline-семантика)": any(
-            t.intent == "offer" for t in sess.buffer
-        ),
+        "B6 intent=offer (inline-семантика)": any(t.intent == "offer" for t in sess.buffer),
         "B7 очередь не участвовала": d8p_enabled() is False,
     }
 
@@ -226,7 +228,9 @@ def group_c() -> Dict[str, bool]:
     _reset_intelligence_queue()
     mem, tick, ext = SessionMemory(), [100], RecordingExtractor(_make_update())
     q = wire_intelligence_queue(
-        mem, ext, lambda: tick[0],
+        mem,
+        ext,
+        lambda: tick[0],
         npc_states_provider=lambda: [{"npc_id": SPEAKER}, {"npc_id": LISTENER}],
         pool_provider=None,
     )
@@ -239,9 +243,7 @@ def group_c() -> Dict[str, bool]:
         "C1 stale_discarded=1": q.stats()["stale_discarded"] == 1,
         "C2 session не обогащён (claims=0)": len(sess.claims) == 0,
         "C3 topic нет": sess.topic is None,
-        "C4 placeholder остался (сырой текст жив)": any(
-            t.speaker == SPEAKER for t in sess.buffer
-        ),
+        "C4 placeholder остался (сырой текст жив)": any(t.speaker == SPEAKER for t in sess.buffer),
     }
 
 
@@ -252,7 +254,9 @@ def group_d() -> Dict[str, bool]:
     _reset_intelligence_queue()
     mem, tick, ext = SessionMemory(), [100], RecordingExtractor(_make_update())
     q = wire_intelligence_queue(
-        mem, ext, lambda: tick[0],
+        mem,
+        ext,
+        lambda: tick[0],
         npc_states_provider=lambda: [{"npc_id": SPEAKER}, {"npc_id": LISTENER}],
         pool_provider=None,
     )
@@ -281,9 +285,7 @@ def group_e() -> Dict[str, bool]:
     sess = _sess(mem)
     return {
         "E1 extractor не вызван (0 LLM-вызовов)": ext.calls == 0,
-        "E2 placeholder записан": any(
-            t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer
-        ),
+        "E2 placeholder записан": any(t.speaker == SPEAKER and t.intent == "dialogue" for t in sess.buffer),
         "E3 не упало (publish вернулся)": True,
     }
 

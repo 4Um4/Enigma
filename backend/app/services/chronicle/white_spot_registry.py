@@ -18,6 +18,7 @@
 (прецедент relationship_state_store переиспользует его так же) — маркер класса
 каноничен, текст сообщения косметически неточен.
 """
+
 from __future__ import annotations
 
 import sys
@@ -57,9 +58,7 @@ class WhiteSpotRegistry:
 
     @staticmethod
     def all_open(doc: ChronicleDocument) -> Tuple[WhiteSpot, ...]:
-        return tuple(
-            ws for ws in doc.white_spots if ws.resolution_state is WhiteSpotResolutionState.OPEN
-        )
+        return tuple(ws for ws in doc.white_spots if ws.resolution_state is WhiteSpotResolutionState.OPEN)
 
     @staticmethod
     def resolve(doc: ChronicleDocument, white_spot_id: str, as_npc: Optional[str] = None) -> ChronicleDocument:
@@ -82,13 +81,9 @@ class WhiteSpotRegistry:
         if target is None:
             raise ValueError(f"WhiteSpot '{white_spot_id}' не найден в документе {doc.chronicle_id}")
         if target.resolution_state is not WhiteSpotResolutionState.OPEN:
-            raise ValueError(
-                f"WhiteSpot '{white_spot_id}' уже резолвлен ({target.resolution_state.value})"
-            )
+            raise ValueError(f"WhiteSpot '{white_spot_id}' уже резолвлен ({target.resolution_state.value})")
 
-        new_state = (
-            WhiteSpotResolutionState.RESOLVED_AS_NPC if as_npc else WhiteSpotResolutionState.RESOLVED_AS_UNKNOWN
-        )
+        new_state = WhiteSpotResolutionState.RESOLVED_AS_NPC if as_npc else WhiteSpotResolutionState.RESOLVED_AS_UNKNOWN
         new_spots = tuple(
             replace(
                 ws,
@@ -99,14 +94,12 @@ class WhiteSpotRegistry:
         )
 
         def _relink_ref(ref: Optional[EntityRef]) -> Optional[EntityRef]:
-            if (
-                ref is None
-                or ref.ref_kind is not EntityRefKind.WHITE_SPOT
-                or ref.white_spot_id != white_spot_id
-            ):
+            if ref is None or ref.ref_kind is not EntityRefKind.WHITE_SPOT or ref.white_spot_id != white_spot_id:
                 return ref
             if as_npc:
-                return EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id=as_npc, name_hint=ref.name_hint or target.label)
+                return EntityRef(
+                    ref_kind=EntityRefKind.RESOLVED, npc_id=as_npc, name_hint=ref.name_hint or target.label
+                )
             return EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint=ref.name_hint or target.label)
 
         def _relink_entry(e: ChronicleEntry) -> ChronicleEntry:

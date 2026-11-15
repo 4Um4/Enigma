@@ -45,8 +45,8 @@ from app.services.spatial.spatial_query_service import SpatialQueryService
 
 CAMPAIGN_ID = "reliability_baseline"
 PLAYER = "player"
-SOURCE = "npc_src"       # источник в сценариях A
-FRIEND = "npc_friend"    # фиксированный друг (trust=80) в сценариях B
+SOURCE = "npc_src"  # источник в сценариях A
+FRIEND = "npc_friend"  # фиксированный друг (trust=80) в сценариях B
 SUBJECT = "thief_shadow"
 OBJECT = "gold"
 
@@ -79,9 +79,7 @@ def _make_pipe(mode: str, rel_store: Any, positions: Dict[str, Dict[str, Any]]):
     store = EpistemicStore()
     engine = BeliefRevisionEngine(reliability_provider=provider)
     sq = SpatialQueryService(npc_positions=positions)
-    subscriber = ClaimEventSubscriber(
-        engine=engine, store=store, spatial_query_provider=lambda: sq
-    )
+    subscriber = ClaimEventSubscriber(engine=engine, store=store, spatial_query_provider=lambda: sq)
     return provider, provider_name, store, subscriber
 
 
@@ -120,8 +118,9 @@ def _observe(store: EpistemicStore) -> Dict[str, Any]:
     }
 
 
-def _scenario_a(mode: str, trust: Optional[float], tmp_root: Path, idx: int,
-                speaker: str = SOURCE, preset_trust: bool = True) -> Dict[str, Any]:
+def _scenario_a(
+    mode: str, trust: Optional[float], tmp_root: Path, idx: int, speaker: str = SOURCE, preset_trust: bool = True
+) -> Dict[str, Any]:
     """Сценарий A: единственный источник. create (tick=1) + same-source repeat (tick=2)."""
     rel_store = RelationshipStore(data_dir=str(tmp_root / f"a{idx}"))
     if preset_trust and trust is not None:
@@ -163,7 +162,7 @@ def _scenario_b(mode: str, enemy_trust: float, tmp_root: Path, idx: int) -> Dict
     rel_friend = round(provider.get_reliability(observer=PLAYER, source=FRIEND), 4)
     rel_enemy = round(provider.get_reliability(observer=PLAYER, source="npc_enemy"), 4)
 
-    _publish_claim(subscriber, FRIEND, tick=1)      # create от друга
+    _publish_claim(subscriber, FRIEND, tick=1)  # create от друга
     friend_obs = _observe(store)
     _publish_claim(subscriber, "npc_enemy", tick=2)  # cross-source confirm
     cross_obs = _observe(store)
@@ -205,9 +204,20 @@ def run_baseline(mode: str) -> Dict[str, Any]:
     edge_cases: List[Dict[str, Any]] = []
     # H1: store отсутствует (provider с None).
     try:
-        edge_cases.append({"case": "store_missing", **_scenario_a(
-            mode, None, tmp_root, 90, preset_trust=False,
-        )} if False else {"case": "store_missing", **_edge_store_missing(mode)})
+        edge_cases.append(
+            {
+                "case": "store_missing",
+                **_scenario_a(
+                    mode,
+                    None,
+                    tmp_root,
+                    90,
+                    preset_trust=False,
+                ),
+            }
+            if False
+            else {"case": "store_missing", **_edge_store_missing(mode)}
+        )
     except Exception as e:
         edge_cases.append({"case": "store_missing", "error": f"{type(e).__name__}: {e}"})
         failures.append("EDGE[store_missing]")
@@ -236,9 +246,7 @@ def _edge_store_missing(mode: str) -> Dict[str, Any]:
         SOURCE: {"local_position": {"x": 1.0, "y": 0.0}},
     }
     sq = SpatialQueryService(npc_positions=positions)
-    subscriber = ClaimEventSubscriber(
-        engine=engine, store=store, spatial_query_provider=lambda: sq
-    )
+    subscriber = ClaimEventSubscriber(engine=engine, store=store, spatial_query_provider=lambda: sq)
     reliability = round(provider.get_reliability(observer=PLAYER, source=SOURCE), 4)
     _publish_claim(subscriber, SOURCE, tick=1)
     return {"reliability": reliability, **_observe(store)}
@@ -249,9 +257,9 @@ def _edge_unknown_pair(mode: str, tmp_root: Path) -> Dict[str, Any]:
     # фактический контракт get_pair для незнакомой пары (Runtime Data First).
     rel_store = RelationshipStore(data_dir=str(tmp_root / "edge_unknown"))
     provider, provider_name, store, subscriber = _make_pipe(
-        mode, rel_store,
-        {PLAYER: {"local_position": {"x": 0.0, "y": 0.0}},
-         "npc_stranger": {"local_position": {"x": 1.0, "y": 0.0}}},
+        mode,
+        rel_store,
+        {PLAYER: {"local_position": {"x": 0.0, "y": 0.0}}, "npc_stranger": {"local_position": {"x": 1.0, "y": 0.0}}},
     )
     reliability = round(provider.get_reliability(observer=PLAYER, source="npc_stranger"), 4)
     _publish_claim(subscriber, "npc_stranger", tick=1)
@@ -259,7 +267,7 @@ def _edge_unknown_pair(mode: str, tmp_root: Path) -> Dict[str, Any]:
 
 
 def main() -> int:
-    mode = (sys.argv[1].lower() if len(sys.argv) > 1 else "before")
+    mode = sys.argv[1].lower() if len(sys.argv) > 1 else "before"
     if mode not in ("before", "after"):
         print(f"Неизвестный режим: {mode!r}. Ожидался before|after.")
         return 2
@@ -278,19 +286,22 @@ def main() -> int:
         if "error" in s:
             print(f"  A trust={s['trust']:>7}: ERROR {s['error']}")
         else:
-            print(f"  A trust={s['trust']:>7}: rel={s['reliability']:>7} "
-                  f"create={s['create']['confidence']} repeat={s['same_source_repeat']['confidence']}")
+            print(
+                f"  A trust={s['trust']:>7}: rel={s['reliability']:>7} "
+                f"create={s['create']['confidence']} repeat={s['same_source_repeat']['confidence']}"
+            )
     for s in result["scenarios_cross_source"]:
         if "error" in s:
             print(f"  B enemy={s['enemy_trust']:>7}: ERROR {s['error']}")
         else:
-            print(f"  B enemy={s['enemy_trust']:>7}: rel_e={s['reliability_enemy']:>7} "
-                  f"friend={s['friend_create']['confidence']} "
-                  f"cross={s['enemy_cross_confirm']['confidence']} "
-                  f"repeat={s['enemy_same_repeat']['confidence']}")
+            print(
+                f"  B enemy={s['enemy_trust']:>7}: rel_e={s['reliability_enemy']:>7} "
+                f"friend={s['friend_create']['confidence']} "
+                f"cross={s['enemy_cross_confirm']['confidence']} "
+                f"repeat={s['enemy_same_repeat']['confidence']}"
+            )
     for e in result["edge_cases"]:
-        print(f"  EDGE {e['case']}: {e.get('reliability', e.get('error'))} "
-              f"conf={e.get('confidence', '-')}")
+        print(f"  EDGE {e['case']}: {e.get('reliability', e.get('error'))} conf={e.get('confidence', '-')}")
 
     print(f"\nАртефакт: {out_path}")
     if result["failures"]:

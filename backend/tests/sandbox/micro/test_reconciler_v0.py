@@ -6,6 +6,7 @@ path: backend/tests/sandbox/micro/test_reconciler_v0.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_reconciler_v0.py -v --tb=short; cd ..
 """
+
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
@@ -39,8 +40,8 @@ def test_incomplete_attack_enriched_and_phantom_dropped():
     assert result.target_zone == TargetZone.HEAD
     assert result.zone_raw == "HEAD"
     assert result.tool_reference == "нож"
-    assert result.target == "люсю"           # fast не перезаписан
-    assert result.proposition is None        # R4-фантом снят (LLM не подтверждает)
+    assert result.target == "люсю"  # fast не перезаписан
+    assert result.proposition is None  # R4-фантом снят (LLM не подтверждает)
 
 
 def test_complete_fast_is_not_incomplete():

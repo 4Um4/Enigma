@@ -11,6 +11,7 @@
 """
 Запуск: cd backend; python -m pytest tests/test_l1_chronicle_archive_idempotency.py -v; cd ..
 """
+
 import sys
 from pathlib import Path
 
@@ -23,14 +24,16 @@ from app.services.npc.l1_chronicle import L1Chronicle
 
 def _seed_events(chron: L1Chronicle) -> None:
     for t in range(1, 101):
-        chron.append(TraitDriftEvent(
-            tick_id=t,
-            target_id="npc_x",
-            source_id=f"src_{t % 7}",
-            effect_value=0.1,
-            observation_weight=1.0,
-            event_type="drift",
-        ))
+        chron.append(
+            TraitDriftEvent(
+                tick_id=t,
+                target_id="npc_x",
+                source_id=f"src_{t % 7}",
+                effect_value=0.1,
+                observation_weight=1.0,
+                event_type="drift",
+            )
+        )
 
 
 def test_archive_idempotent_no_avalanche(tmp_path):
@@ -40,9 +43,7 @@ def test_archive_idempotent_no_avalanche(tmp_path):
     counts = []
     for _ in range(4):
         chron.archive_old_events(current_tick=2100)  # threshold=100
-        counts.append(
-            store.query("SELECT COUNT(*) AS n FROM l1_chronicle_archive")[0]["n"]
-        )
+        counts.append(store.query("SELECT COUNT(*) AS n FROM l1_chronicle_archive")[0]["n"])
     # Гейт Мастера: лавина 99→198→297→396 недопустима
     assert counts == [99, 99, 99, 99], f"archive avalanche: {counts}"
     # PatternDetector видит честную историю: 99 архив + 1 RAM
@@ -56,18 +57,22 @@ def test_query_raw_order_deterministic_and_reload_stable(tmp_path):
     chron1 = L1Chronicle(store1, campaign_id="reg")
     # Ties по tick_id: три источника в одном тике (легальная федерация писателей)
     for src in ("src_c", "src_a", "src_b"):
-        chron1.append(TraitDriftEvent(
-            tick_id=7, target_id="npc_x", source_id=src,
-            effect_value=0.2, observation_weight=1.0, event_type="drift",
-        ))
+        chron1.append(
+            TraitDriftEvent(
+                tick_id=7,
+                target_id="npc_x",
+                source_id=src,
+                effect_value=0.2,
+                observation_weight=1.0,
+                event_type="drift",
+            )
+        )
     # Контракт S270 (археология зафиксировала): RAM-ветка query_raw отдаёт
     # события в порядке вставки (детерминировано последовательностью append
     # внутри рана). Канонический порядок (tick, source, id) гарантируют
     # SQL-ветки: архив (Б-1) и reload (Б-2).
     order_ram = [(e.tick_id, e.source_id) for e in chron1.query_raw("npc_x")]
-    assert order_ram == [(7, "src_c"), (7, "src_a"), (7, "src_b")], (
-        f"RAM insertion order изменился: {order_ram}"
-    )
+    assert order_ram == [(7, "src_c"), (7, "src_a"), (7, "src_b")], f"RAM insertion order изменился: {order_ram}"
     store1.close()
 
     # Reload (SQL-ветка Б-2): канонический порядок по (tick_id, source_id, id)
@@ -85,7 +90,5 @@ def test_query_raw_order_deterministic_and_reload_stable(tmp_path):
     chron3 = L1Chronicle(store3, campaign_id="reg")
     chron3._ensure_loaded()
     order_reloaded2 = [(e.tick_id, e.source_id) for e in chron3.query_raw("npc_x")]
-    assert order_reloaded2 == order_reloaded, (
-        f"reload нестабилен: {order_reloaded} vs {order_reloaded2}"
-    )
+    assert order_reloaded2 == order_reloaded, f"reload нестабилен: {order_reloaded} vs {order_reloaded2}"
     store3.close()

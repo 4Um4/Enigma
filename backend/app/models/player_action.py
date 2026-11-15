@@ -20,13 +20,15 @@ class ActionType(str, Enum):
     HELP = "help"
     ACCUSE = "accuse"  # S211 (слой 4): публичное обвинение. Гейт — EpistemicStore[player] (§18)
 
+
 @dataclass(frozen=True)
 class PlayerAction:
     """Действие агента, инициирующее каузальные последствия."""
+
     action_id: str
     tick: int
     actor_id: str
     action_type: ActionType
     target_id: str
-    secret_id: Optional[str] = None # Контекст действия, а не автоматически доказательство
+    secret_id: Optional[str] = None  # Контекст действия, а не автоматически доказательство
     description: str = ""

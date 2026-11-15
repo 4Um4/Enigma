@@ -19,7 +19,7 @@ from pathlib import Path
 from tests.gameplay.harness import TavernGameplayHarness
 
 _C = "Open_road"
-_NID = "guard_borko"   # образец: SAME-LOCATION (мы доказали его оседание)
+_NID = "guard_borko"  # образец: SAME-LOCATION (мы доказали его оседание)
 _LOCS = ("tavern", "city_gate")
 _TRACE: list[dict] = []
 
@@ -53,29 +53,38 @@ def main() -> int:
         last_present_tick: dict[str, int] = {}
         absent_since: dict[str, int] = {}
 
-        for tick in range(1, 721):   # полдня плотно
+        for tick in range(1, 721):  # полдня плотно
             h.advance_ticks(1)
             for loc in _LOCS:
                 sc = sm.get_scene_state(_C, loc) or {}
                 e = (sc.get("npc_positions") or {}).get(_NID)
                 present = e is not None
-                _TRACE.append({
-                    "tick": tick, "loc": loc, "present": present,
-                    "vis": (e or {}).get("visible"),
-                    "pos": copy_or_none((e or {}).get("position")),
-                })
+                _TRACE.append(
+                    {
+                        "tick": tick,
+                        "loc": loc,
+                        "present": present,
+                        "vis": (e or {}).get("visible"),
+                        "pos": copy_or_none((e or {}).get("position")),
+                    }
+                )
                 key = f"scene:{loc}"
                 if present:
                     last_present_tick[key] = tick
                     if absent_since.get(key) is not None:
-                        gaps.append({
+                        gaps.append(
+                            {
+                                "scene": loc,
+                                "last_present": absent_since.pop(key) - 1,
+                                "first_absent": absent_since.get(key, 0),
+                                "again": tick,
+                            }
+                        )
+                        gaps[-1] = {
                             "scene": loc,
-                            "last_present": absent_since.pop(key) - 1,
-                            "first_absent": absent_since.get(key, 0),
-                            "again": tick,
-                        })
-                        gaps[-1] = {"scene": loc, "gap_ticks": tick - gaps[-1]["first_absent"] + 0,
-                                    "from": abs(gaps[-1].get("first_absent", 0))}
+                            "gap_ticks": tick - gaps[-1]["first_absent"] + 0,
+                            "from": abs(gaps[-1].get("first_absent", 0)),
+                        }
             # упрощённый gap-детектор ниже в пост-анализе по трассе
 
         # Пост-анализ: точные gap-интервалы по scene:loc
@@ -91,12 +100,14 @@ def main() -> int:
                         absent_run = r["tick"]
                 else:
                     if absent_run is not None:
-                        findings.append({
-                            "scene": loc,
-                            "first_absent": absent_run,
-                            "first_present_again": r["tick"],
-                            "gap_ticks": r["tick"] - absent_run,
-                        })
+                        findings.append(
+                            {
+                                "scene": loc,
+                                "first_absent": absent_run,
+                                "first_present_again": r["tick"],
+                                "gap_ticks": r["tick"] - absent_run,
+                            }
+                        )
                         absent_run = None
         _log(f"gap-интервалы: {json.dumps(findings)}")
 
@@ -110,7 +121,7 @@ def main() -> int:
         out.mkdir(parents=True, exist_ok=True)
         (out / "spf_trace.json").write_text(json.dumps(_TRACE, ensure_ascii=False), encoding="utf-8")
         (out / "spf_logs.txt").write_text("\n".join(store_lines), encoding="utf-8")
-        _log(f"трасса: {out/'spf_trace.json'}; логов: {len(store_lines)}")
+        _log(f"трасса: {out / 'spf_trace.json'}; логов: {len(store_lines)}")
     return 0
 
 

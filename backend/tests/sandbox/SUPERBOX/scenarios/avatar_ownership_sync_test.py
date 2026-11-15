@@ -14,6 +14,7 @@ SUPERBOX-AVATAR-SYNC (S208, P0 closure): ownership аватара восстан
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/avatar_ownership_sync_test.py
 """
+
 import json
 import sys
 import tempfile
@@ -40,8 +41,10 @@ def main() -> int:
     svc = PlayerAvatarService(root=str(root))
     s = svc.load_state(CAMP, HERO)
     t1 = s.body_state.get("money") == 48
-    print(f"[T1] Новый аватар: money={s.body_state.get('money')} — "
-          f"{'✅' if t1 else '❌'} (default-ветка жива, без violation)")
+    print(
+        f"[T1] Новый аватар: money={s.body_state.get('money')} — "
+        f"{'✅' if t1 else '❌'} (default-ветка жива, без violation)"
+    )
     ok = ok and t1
 
     # ── T2: исходный P0-триггер (сохранение без body_state) ────────
@@ -56,8 +59,10 @@ def main() -> int:
     try:
         s2 = svc2.load_state(CAMP, HERO)
         t2 = s2.body_state.get("money") == 48
-        print(f"[T2] Сохранение без body_state: load OK, money="
-              f"{s2.body_state.get('money')} — {'✅' if t2 else '❌'} (исходный P0 закрыт)")
+        print(
+            f"[T2] Сохранение без body_state: load OK, money="
+            f"{s2.body_state.get('money')} — {'✅' if t2 else '❌'} (исходный P0 закрыт)"
+        )
         ok = ok and t2
     except Exception as e:
         print(f"[T2] ❌ P0-триггер жив: {type(e).__name__}: {e}")
@@ -73,20 +78,21 @@ def main() -> int:
     # прямой write {} из теста сам был бы violation (guard прав для всех).
     _fresh = NPCState(npc_id="fresh_hero")  # body_state = {} (default_factory)
     AvatarStateApplicator.apply_pipeline_result(_fresh, {"hp": 3})
-    t3c = (_fresh.body_state["current_hp"] == 3
-           and "shock_impulse" in _fresh.body_state)
-    print(f"[T3] Write-back: full-sync={t3a}, hp={t3b}, disabled={t3c} — "
-          f"{'✅' if (t3a and t3b and t3c) else '❌'}")
+    t3c = _fresh.body_state["current_hp"] == 3 and "shock_impulse" in _fresh.body_state
+    print(f"[T3] Write-back: full-sync={t3a}, hp={t3b}, disabled={t3c} — {'✅' if (t3a and t3b and t3c) else '❌'}")
     ok = ok and t3a and t3b and t3c
 
     # ── T4: реакции через applicator (бывший object.__setattr__) ────
     from app.models.npc_state import EmotionTag
-    AvatarStateApplicator.apply_reaction(s, stress_delta=+200.0)   # clamp 100
+
+    AvatarStateApplicator.apply_reaction(s, stress_delta=+200.0)  # clamp 100
     t4a = s.stress == 100.0
     AvatarStateApplicator.apply_reaction(s, stress_delta=-300.0, emotion=EmotionTag.NEUTRAL)
     t4b = s.stress == 0.0 and s.emotion == EmotionTag.NEUTRAL
-    print(f"[T4] Реакции: clamp-верх={t4a}, clamp-низ+emotion={t4b} — "
-          f"{'✅' if (t4a and t4b) else '❌'} (object.__setattr__ мёртв)")
+    print(
+        f"[T4] Реакции: clamp-верх={t4a}, clamp-низ+emotion={t4b} — "
+        f"{'✅' if (t4a and t4b) else '❌'} (object.__setattr__ мёртв)"
+    )
     ok = ok and t4a and t4b
 
     # ── T5: save/load round-trip ────────────────────────────────────
@@ -94,12 +100,12 @@ def main() -> int:
     # T3b оставил current_hp=7 (DISABLED-ветка ушла на _fresh), T4 — stress=0.
     svc.save_state(CAMP, s)
     s3 = svc.load_state(CAMP, HERO)
-    t5 = (s3.body_state.get("current_hp") == 7.0
-          and s3.body_state.get("money") == 48
-          and s3.stress == 0.0)
-    print(f"[T5] Round-trip: hp={s3.body_state.get('current_hp')}, "
-          f"money={s3.body_state.get('money')}, stress={s3.stress} — "
-          f"{'✅' if t5 else '❌'}")
+    t5 = s3.body_state.get("current_hp") == 7.0 and s3.body_state.get("money") == 48 and s3.stress == 0.0
+    print(
+        f"[T5] Round-trip: hp={s3.body_state.get('current_hp')}, "
+        f"money={s3.body_state.get('money')}, stress={s3.stress} — "
+        f"{'✅' if t5 else '❌'}"
+    )
     ok = ok and t5
 
     print("=" * 64)

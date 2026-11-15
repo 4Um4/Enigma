@@ -45,6 +45,7 @@ NPC может быть:
 ❌ Новые поля body_state без причинного источника
 ❌ Прогнозы («неизбежно умрёт») — система не умеет прогнозировать
 """
+
 from __future__ import annotations
 
 import logging
@@ -128,9 +129,7 @@ def evaluate_vital_state(body_state: Dict[str, Any]) -> LifeStatus:
     # Реалистично: тело с >60% тяжёлых повреждений не может функционировать.
     _injuries = body_state.get("injuries", [])
     if _injuries:
-        _total_structural = sum(
-            float(inj.get("structural_damage", 0.0)) for inj in _injuries
-        )
+        _total_structural = sum(float(inj.get("structural_damage", 0.0)) for inj in _injuries)
         logger.warning(
             f"[VITAL_EVAL] injuries={len(_injuries)} total_structural={_total_structural:.3f} threshold={_STRUCTURAL_COLLAPSE} blood_loss={blood_loss:.3f}"
         )
@@ -245,7 +244,4 @@ def is_capable(body_state: Dict[str, Any]) -> bool:
     # моторные блокираторы (сигнал); потеря обеих рук — структурная
     # невозможность манипуляции. Ноги НЕ ветят capability бинарно:
     # движение деградирует стоимостью (BodyEngine × locomotion_impairment).
-    return (
-        manipulation_impairment(body_state.get("injuries", []))
-        < _MANIPULATION_INCAPACITATED
-    )
+    return manipulation_impairment(body_state.get("injuries", [])) < _MANIPULATION_INCAPACITATED

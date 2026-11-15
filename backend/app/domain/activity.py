@@ -9,6 +9,7 @@ path: /project/backend/app/domain/activity.py
 Основные сущности: ActivityType, InterruptionPolicy, StepKind, ActivityStep,
     SuccessCriterion, ActivityState, ActivitySpec
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -113,7 +114,7 @@ class SuccessCriterionKind(str, Enum):
     """Структурированный критерий успеха (ответ на 10.1.5): predicate в Goal,
     НЕ строка (L4: ядро не парсит текст). TemporalSpec-реинкарнация."""
 
-    NEED_BELOW = "need_below"   # потребность ниже порога: hunger < 0.2
+    NEED_BELOW = "need_below"  # потребность ниже порога: hunger < 0.2
 
 
 @dataclass(frozen=True)
@@ -157,10 +158,10 @@ class ActivityState:
     никакого накопительного аккумулятора).
     """
 
-    activity_id: str            # build_id(): детерминированный
+    activity_id: str  # build_id(): детерминированный
     activity_type: ActivityType
-    desire_id: str              # причина (ACTIVITY_ONSET_FACT)
-    target_ref: str             # WorldTarget ref (v1: object_id)
+    desire_id: str  # причина (ACTIVITY_ONSET_FACT)
+    target_ref: str  # WorldTarget ref (v1: object_id)
     steps: Tuple[ActivityStep, ...]
     step_index: int = 0
     # Прогресс телесного шага: шаги BODY_ACTION длятся duration_ticks —
@@ -229,10 +230,10 @@ class ActivitySpec:
     """
 
     activity_type: ActivityType
-    serves_subject: str                          # какое желание обслуживает: "food"
-    steps: Tuple[ActivityStep, ...]              # шаблон шагов
+    serves_subject: str  # какое желание обслуживает: "food"
+    steps: Tuple[ActivityStep, ...]  # шаблон шагов
     success: SuccessCriterion
     # WorldObject-архетип цели (строка W2-таблицы); после обязательных — default
     target_archetype: str = ""
     interruption_policy: InterruptionPolicy = InterruptionPolicy.STUB
-    priority_hint: float = 6.0                   # шкала s203.4 (SURVIVAL≈6)
+    priority_hint: float = 6.0  # шкала s203.4 (SURVIVAL≈6)

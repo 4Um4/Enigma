@@ -179,7 +179,7 @@ class TurnPipeline:
         _ue_readiness = getattr(_ue_readiness, "intent_readiness", None)
         _rules_delta = None
         if _ue_readiness and _ue_readiness != "RESOLVED":
-            logger.warning(f"[UE-GATE-RULES] rules-последствия подавлены " f"(intent_readiness={_ue_readiness})")
+            logger.warning(f"[UE-GATE-RULES] rules-последствия подавлены (intent_readiness={_ue_readiness})")
         else:
             _rules_sub = RulesSubscriber()
             _rules_delta = _rules_sub.handle(_rules_event, _rules_snapshot)

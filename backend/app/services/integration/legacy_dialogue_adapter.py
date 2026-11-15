@@ -4,6 +4,7 @@ path: /project/backend/app/services/integration/legacy_dialogue_adapter.py
 Зависимости: app.domain.presentation
 Основные сущности: LegacyDialogueAdapter
 """
+
 from typing import List
 
 from app.domain.presentation import PerceivedNarrativeDTO
@@ -15,14 +16,17 @@ class LegacyDialogueAdapter:
     Превращает новые PerceivedNarrativeDTO в старый формат RecentDialogueDTO,
     который сейчас ожидает фронтенд в recent_dialogues.
     """
+
     @staticmethod
     def to_legacy_dto(narratives: List[PerceivedNarrativeDTO]) -> List[RecentDialogueDTO]:
         result = []
         for n in narratives:
-            result.append(RecentDialogueDTO(
-                speaker_id=n.speaker_id or "unknown",
-                text=n.visible_text,
-                exposure=n.delivery_type.lower(),
-                timestamp=0.0
-            ))
+            result.append(
+                RecentDialogueDTO(
+                    speaker_id=n.speaker_id or "unknown",
+                    text=n.visible_text,
+                    exposure=n.delivery_type.lower(),
+                    timestamp=0.0,
+                )
+            )
         return result

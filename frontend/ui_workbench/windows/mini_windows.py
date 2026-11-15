@@ -5,6 +5,7 @@ path: /project/frontend/ui_workbench/windows/mini_windows.py
 Зависимости: ui_workbench.manifests
 Основные сущности: WORLD_CLOCK_MANIFEST, TIME_SCALE_MANIFEST
 """
+
 from ui_workbench.manifests import WindowManifest, WindowState
 
 WORLD_CLOCK_MANIFEST = WindowManifest(
@@ -23,7 +24,7 @@ WORLD_CLOCK_MANIFEST = WindowManifest(
 INVENTORY_MANIFEST = WindowManifest(
     window_id="inventory",
     title="Инвентарь",
-    layer=3,                       # слой 3: осознанный анализ (Doctrine IX)
+    layer=3,  # слой 3: осознанный анализ (Doctrine IX)
     data_source="player_body_topology",
     default_state=WindowState.HIDDEN,
     anchor="top_right",

@@ -14,6 +14,7 @@ path: backend/app/services/spatial/spatial_event_detector.py
 Зависимости: domain.events.EventDTO, services.events.event_bus, services.events.event_types
 Основные сущности: SpatialEventDetector
 """
+
 from __future__ import annotations
 
 import logging
@@ -114,10 +115,7 @@ class SpatialEventDetector:
             npc_a, npc_b = pair_key
 
             # Были далеко → стали близко
-            if (
-                old_dist >= _PROXIMITY_CLOSE_THRESHOLD
-                and new_dist < _PROXIMITY_CLOSE_THRESHOLD
-            ):
+            if old_dist >= _PROXIMITY_CLOSE_THRESHOLD and new_dist < _PROXIMITY_CLOSE_THRESHOLD:
                 event = EventDTO.create(
                     event_type=EventType.NPC_PROXIMITY_CLOSE.value,
                     source=npc_a,
@@ -131,15 +129,10 @@ class SpatialEventDetector:
                     persistence_level="working",
                 )
                 events.append(event)
-                logger.debug(
-                    f"[SPATIAL] Проксимитет: {npc_a} ↔ {npc_b} ({new_dist:.1f}м)"
-                )
+                logger.debug(f"[SPATIAL] Проксимитет: {npc_a} ↔ {npc_b} ({new_dist:.1f}м)")
 
             # Были близко → стали далеко
-            elif (
-                old_dist < _PROXIMITY_LEAVE_THRESHOLD
-                and new_dist >= _PROXIMITY_LEAVE_THRESHOLD
-            ):
+            elif old_dist < _PROXIMITY_LEAVE_THRESHOLD and new_dist >= _PROXIMITY_LEAVE_THRESHOLD:
                 event = EventDTO.create(
                     event_type=EventType.NPC_PROXIMITY_LEAVE.value,
                     source=npc_a,
@@ -153,9 +146,7 @@ class SpatialEventDetector:
                     persistence_level="working",
                 )
                 events.append(event)
-                logger.debug(
-                    f"[SPATIAL] Расхождение: {npc_a} ↔ {npc_b} ({new_dist:.1f}м)"
-                )
+                logger.debug(f"[SPATIAL] Расхождение: {npc_a} ↔ {npc_b} ({new_dist:.1f}м)")
 
         # Публикуем все через EventBus
         if events:

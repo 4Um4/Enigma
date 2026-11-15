@@ -85,9 +85,7 @@ class SqlitePersistenceAdapter(PersistencePort):
         conn.commit()
         logger.debug(f"[SQLITE_PERSISTENCE] Инициализирован: {self._db_path}")
 
-    def _upsert(
-        self, key: str, value: Union[Dict[str, Any], List[Dict[str, Any]]]
-    ) -> None:
+    def _upsert(self, key: str, value: Union[Dict[str, Any], List[Dict[str, Any]]]) -> None:
         """INSERT OR REPLACE одной записью."""
         with self._lock:
             conn = self._get_conn()
@@ -112,17 +110,13 @@ class SqlitePersistenceAdapter(PersistencePort):
         до Epoch-финала (решение по измеренному отказу)."""
         with self._lock:
             conn = self._get_conn()
-            row = conn.execute(
-                "SELECT value FROM state_kv WHERE key = ?", (key,)
-            ).fetchone()
+            row = conn.execute("SELECT value FROM state_kv WHERE key = ?", (key,)).fetchone()
         if row is None:
             return None
         try:
             return json.loads(row[0])
         except json.JSONDecodeError as e:
-            logger.error(
-                f"[SQLITE_PERSISTENCE] Ошибка парсинга JSON для ключа {key}: {e}"
-            )
+            logger.error(f"[SQLITE_PERSISTENCE] Ошибка парсинга JSON для ключа {key}: {e}")
             return None
 
     def save_scene(self, campaign_id: str, scene_state: Dict[str, Any]) -> None:
@@ -166,14 +160,10 @@ class SqlitePersistenceAdapter(PersistencePort):
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving NPCs: {e}")
                 self._get_conn().rollback()
 
-    def save_npc_runtime(
-        self, session_id: str, npc_dicts: List[Dict[str, Any]]
-    ) -> None:
+    def save_npc_runtime(self, session_id: str, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет runtime-состояние NPC в сессию."""
         if not session_id:
-            logger.warning(
-                "[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск"
-            )
+            logger.warning("[SQLITE_PERSISTENCE] save_npc_runtime без session_id — пропуск")
             return
         with self._lock:
             try:
@@ -181,9 +171,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                 self._get_conn().commit()
                 # S268-ЭСКАЛАЦИЯ3: инвалидация read-кэша
                 self._cache_gen += 1
-                logger.debug(
-                    f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
-                )
+                logger.debug(f"[SQLITE_PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)")
             except sqlite3.Error as e:
                 logger.error(f"[SQLITE_PERSISTENCE] Error saving NPC runtime: {e}")
                 self._get_conn().rollback()
@@ -213,9 +201,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                 self._cache_gen += 1
                 logger.info(f"[SQLITE_PERSISTENCE] Campaign deleted: {campaign_id}")
             except sqlite3.Error as e:
-                logger.error(
-                    f"[SQLITE_PERSISTENCE] Error deleting campaign {campaign_id}: {e}"
-                )
+                logger.error(f"[SQLITE_PERSISTENCE] Error deleting campaign {campaign_id}: {e}")
                 self._get_conn().rollback()
 
     def load_scene(self, campaign_id: str) -> Dict[str, Any] | None:
@@ -272,9 +258,7 @@ class SqlitePersistenceAdapter(PersistencePort):
             return None
         if isinstance(data, list):
             return data
-        logger.warning(
-            f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}"
-        )
+        logger.warning(f"[SQLITE_PERSISTENCE] runtime:{session_id} не список, а {type(data)}")
         return None
 
     def atomic_commit(
@@ -306,9 +290,7 @@ class SqlitePersistenceAdapter(PersistencePort):
                 logger.debug(f"[SQLITE_PERSISTENCE] Atomic commit OK: {campaign_id}:{_loc_id}")
                 return True
             except sqlite3.Error as e:
-                logger.error(
-                    f"[SQLITE_PERSISTENCE] Atomic commit FAILED ({campaign_id}): {e} — откат"
-                )
+                logger.error(f"[SQLITE_PERSISTENCE] Atomic commit FAILED ({campaign_id}): {e} — откат")
                 conn.rollback()
                 return False
 

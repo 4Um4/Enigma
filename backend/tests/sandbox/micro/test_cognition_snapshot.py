@@ -10,6 +10,7 @@ path: backend/tests/sandbox/micro/test_cognition_snapshot.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_cognition_snapshot.py -v; cd ..
 """
+
 import pytest
 from app.domain.tick import create_tick_state
 from app.services.npc import attention_reflex as ar
@@ -119,11 +120,7 @@ def test_snapshot_carries_prediction_error_on_history() -> None:
     r2 = _pass(101, 4.0, {"orm": r1.attention_delta["orm"]})  # окно=2, история=1
     r3 = _pass(102, 3.0, {"orm": r2.attention_delta["orm"]})  # окно=3 → v̂
 
-    p = [
-        s
-        for s in r3.cognition_snapshots
-        if s["observer_id"] == "orm" and s["subject_id"] == "maid_lusya"
-    ][0]
+    p = [s for s in r3.cognition_snapshots if s["observer_id"] == "orm" and s["subject_id"] == "maid_lusya"][0]
     assert p["surprise_used"] is not None  # история ≥2 → v̂ → ошибка выведена
     assert 0.0 <= p["surprise_used"] <= 1.0
     # Прямолинейное движение → прогноз точен → ошибка ≈ 0 (контрольный №1).

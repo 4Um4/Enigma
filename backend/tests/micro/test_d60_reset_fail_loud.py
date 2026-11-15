@@ -1,4 +1,4 @@
-﻿"""Тесты COV-D60 / ADR-O-426 Шаг 3: fail-loud reset_campaign.
+"""Тесты COV-D60 / ADR-O-426 Шаг 3: fail-loud reset_campaign.
 
 Пины: контракт ADR-O-403 (порядок 1->12, форма возврата, состав files_removed,
 board_state.json удаляется / characters.json выживает); немедленное прерывание
@@ -84,13 +84,9 @@ def _make_lifecycle(tmp_path, calls, *, scene=None, npcs=None):
         reinit_campaign=sm_reinit,
         commit=sm_commit,
     )
-    rel_store = SimpleNamespace(
-        reset_campaign=lambda cid: calls.append("relationships")
-    )
+    rel_store = SimpleNamespace(reset_campaign=lambda cid: calls.append("relationships"))
     tick_orch = SimpleNamespace(
-        crystallized_belief_store=SimpleNamespace(
-            reset_campaign=lambda cid: calls.append("crystallized_beliefs")
-        )
+        crystallized_belief_store=SimpleNamespace(reset_campaign=lambda cid: calls.append("crystallized_beliefs"))
     )
 
     def mm_reset(cid):
@@ -100,17 +96,11 @@ def _make_lifecycle(tmp_path, calls, *, scene=None, npcs=None):
     memory_manager = SimpleNamespace(reset_campaign_state=mm_reset)
     engine = SimpleNamespace(
         reset_campaign=lambda cid: (calls.append("life_engine_npc"), npcs)[1],
-        _temporal=SimpleNamespace(
-            reset_campaign=lambda cid: calls.append("temporal_engine")
-        ),
+        _temporal=SimpleNamespace(reset_campaign=lambda cid: calls.append("temporal_engine")),
         clear_runtime_caches=lambda cid: calls.append("npc_runtime_caches"),
     )
-    avatar_service = SimpleNamespace(
-        reset_campaign=lambda cid: (calls.append("avatar_session"), True)[1]
-    )
-    mvp_controller = SimpleNamespace(
-        init_campaign=lambda cid: calls.append("mvp_controller_init")
-    )
+    avatar_service = SimpleNamespace(reset_campaign=lambda cid: (calls.append("avatar_session"), True)[1])
+    mvp_controller = SimpleNamespace(init_campaign=lambda cid: calls.append("mvp_controller_init"))
 
     lc = CampaignLifecycle(
         scene_manager=scene_manager,
@@ -198,9 +188,7 @@ class TestHappyPath:
         # пропущена (до D60 несвязанное имя давало NameError ВНЕ try).
         calls = []
         lc, sm, engine = _make_lifecycle(tmp_path, calls)
-        lc.memory_manager = SimpleNamespace(
-            reset_campaign_state=lambda cid: (calls.append("memory_manager"), None)[1]
-        )
+        lc.memory_manager = SimpleNamespace(reset_campaign_state=lambda cid: (calls.append("memory_manager"), None)[1])
         patch_session(calls)
         result = lc.reset_campaign("d60")
         assert result["reset"] is True
@@ -296,9 +284,7 @@ class TestImmediateInterrupt:
         # П1-18: отказ seed уже классифицирован (current_location_seed) и
         # переупаковке в scene_reinit НЕ подлежит — step-поле не лжёт (В7).
         calls = []
-        lc, sm, engine = _make_lifecycle(
-            tmp_path, calls, scene={"location_id": "tavern"}, npcs=[]
-        )
+        lc, sm, engine = _make_lifecycle(tmp_path, calls, scene={"location_id": "tavern"}, npcs=[])
         import app.services.campaign_state_service as css
 
         def boom_factory():
@@ -318,10 +304,7 @@ class TestMachineReadable:
     def test_fields_and_message(self):
         e = CampaignResetError("cid-1", "json_files", "unlink failed: x")
         assert (e.campaign_id, e.step, e.detail) == ("cid-1", "json_files", "unlink failed: x")
-        assert str(e) == (
-            "campaign_reset_failed: campaign_id='cid-1' "
-            "step='json_files' detail='unlink failed: x'"
-        )
+        assert str(e) == ("campaign_reset_failed: campaign_id='cid-1' step='json_files' detail='unlink failed: x'")
 
     def test_hierarchy(self):
         assert CampaignResetError.__bases__ == (RuntimeError,)
@@ -330,6 +313,7 @@ class TestMachineReadable:
         src = inspect.getsource(CampaignLifecycle.reset_campaign)
         for sid in STEP_IDS:
             assert f'"{sid}"' in src, sid
+
 
 class TestRouteTranslation:
     """Патч №2 (COV-D60): честный перевод отказа в HTTPException(500, dict-detail).

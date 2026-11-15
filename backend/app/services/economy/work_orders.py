@@ -28,6 +28,7 @@ path: /project/backend/app/services/economy/work_orders.py
 Основные сущности: work_enabled, create_order_from_trade_intent,
     run_work_orders_pass, settle_order, fail_order
 """
+
 from __future__ import annotations
 
 import logging
@@ -66,7 +67,10 @@ _TERMINAL = (
 
 def work_enabled() -> bool:
     return os.environ.get(_WORK_ENABLED_ENV, "").strip().lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
 
 
@@ -87,9 +91,7 @@ def _profiles_getter(ctx: Any, orchestrator: Any = None) -> Optional[Any]:
     if _getter is None and orchestrator is not None:
         _getter = getattr(orchestrator, "_economic_profiles_getter", None)  # noqa: ENIGMA002
     if _getter is None:
-        logger.error(
-            "[WORK] economic-profiles getter недоступен (npc_services/оркестратор) — контур нем"
-        )
+        logger.error("[WORK] economic-profiles getter недоступен (npc_services/оркестратор) — контур нем")
     return _getter
 
 
@@ -151,8 +153,7 @@ def create_order_from_trade_intent(
     if isinstance(_existing, dict) and any(
         isinstance(o, dict)
         and o.get("actor_id") == buyer
-        and o.get("status")
-        in (TransactionStatus.PROPOSED.value, TransactionStatus.ACCEPTED.value)
+        and o.get("status") in (TransactionStatus.PROPOSED.value, TransactionStatus.ACCEPTED.value)
         for o in _existing.values()
     ):
         return None
@@ -173,11 +174,7 @@ def create_order_from_trade_intent(
     _good = ""
     _desire_id = ""
     for _urg, _subj, _did in _desires:
-        _sellers = sorted(
-            nid
-            for nid in profiles
-            if nid not in (buyer, "player") and _subj in _stock_keys(nid)
-        )
+        _sellers = sorted(nid for nid in profiles if nid not in (buyer, "player") and _subj in _stock_keys(nid))
         if not _sellers:
             continue  # предмет никто не продаёт — пробуем следующее желание
         seller = _named if _named in _sellers else _sellers[0]
@@ -213,16 +210,18 @@ def create_order_from_trade_intent(
     orders = ctx.scene_state.setdefault(_ORDERS_KEY, {})
     orders[_oid] = _order
     _evict_terminal(orders)
-    logger.info(
-        f"[WORK] ORDER born: {_oid} goods={_good}x{_qty} "
-        f"payment={_price} tick={ctx.tick_number}"
-    )
+    logger.info(f"[WORK] ORDER born: {_oid} goods={_good}x{_qty} payment={_price} tick={ctx.tick_number}")
     return _oid
 
 
 def create_order(
-    ctx: Any, *, buyer: str, good: str, seller_ref: str = "",
-    orchestrator: Any = None, quantity: float = 1.0,
+    ctx: Any,
+    *,
+    buyer: str,
+    good: str,
+    seller_ref: str = "",
+    orchestrator: Any = None,
+    quantity: float = 1.0,
 ) -> Optional[str]:
     """Shared entry point for order creation (player path adapter).
 
@@ -265,8 +264,7 @@ def create_order(
     if isinstance(_existing, dict) and any(
         isinstance(o, dict)
         and o.get("actor_id") == buyer
-        and o.get("status")
-        in (TransactionStatus.PROPOSED.value, TransactionStatus.ACCEPTED.value)
+        and o.get("status") in (TransactionStatus.PROPOSED.value, TransactionStatus.ACCEPTED.value)
         for o in _existing.values()
     ):
         return None
@@ -276,10 +274,7 @@ def create_order(
         _s = getattr(_p, "stock_for_sale", None) if _p is not None else None
         return set(_s.keys()) if isinstance(_s, dict) else set()
 
-    _sellers = sorted(
-        nid for nid in profiles
-        if nid not in (buyer, "player") and _good in _stock_keys(nid)
-    )
+    _sellers = sorted(nid for nid in profiles if nid not in (buyer, "player") and _good in _stock_keys(nid))
     if not _sellers:
         logger.debug(f"[WORK] create_order: no seller for good={_good!r}")
         return None
@@ -342,9 +337,7 @@ def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
     if not isinstance(orders, dict) or not orders:
         return
 
-    _by_id = {
-        str(n.get("npc_id") or n.get("id") or ""): n for n in ctx.all_npcs_raw or []
-    }
+    _by_id = {str(n.get("npc_id") or n.get("id") or ""): n for n in ctx.all_npcs_raw or []}
     _ctx_loc = str(ctx.scene_state.get("location_id", "") or "") if isinstance(ctx.scene_state, dict) else ""
     for _oid in sorted(orders):
         _o = orders[_oid]
@@ -369,12 +362,10 @@ def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
         if not isinstance(_bs, dict) or not _bs:
             continue  # §ENIGMA-003: мёртвый/без сознания не обслуживает
         _state = ActivityState(
-            activity_id=ActivityState.build_id(
-                _seller, ActivityType.SERVE, ctx.tick_number
-            ),
+            activity_id=ActivityState.build_id(_seller, ActivityType.SERVE, ctx.tick_number),
             activity_type=ActivityType.SERVE,
             desire_id=f"order:{_oid}",  # ACTIVITY_ONSET_FACT: причина = заказ
-            target_ref=_oid,            # адрес цели = заказ (не WorldObject, D6)
+            target_ref=_oid,  # адрес цели = заказ (не WorldObject, D6)
             steps=(
                 ActivityStep(
                     step_kind=StepKind.BODY_ACTION,
@@ -404,9 +395,7 @@ def run_work_orders_pass(ctx: Any, orchestrator: Any) -> None:
         logger.info(f"[WORK] SERVE onset: {_seller} ← {_oid} tick={ctx.tick_number}")
 
 
-def settle_order(
-    ctx: Any, orchestrator: Any, *, seller_id: str, order_id: str
-) -> None:
+def settle_order(ctx: Any, orchestrator: Any, *, seller_id: str, order_id: str) -> None:
     """Терминал SERVE (success) = момент исполнения сделки.
 
     validate → атомарная SSOT-мутация → COMPLETED → outcome обоим →
@@ -453,21 +442,15 @@ def settle_order(
     if _fail:
         _o["status"] = TransactionStatus.FAILED.value
         _o["fail_reason"] = _fail
-        _publish_outcome_for(
-            orchestrator, buyer, _o, success=False, reason=_fail, tick=_tick
-        )
-        _publish_outcome_for(
-            orchestrator, seller, _o, success=False, reason=_fail, tick=_tick
-        )
+        _publish_outcome_for(orchestrator, buyer, _o, success=False, reason=_fail, tick=_tick)
+        _publish_outcome_for(orchestrator, seller, _o, success=False, reason=_fail, tick=_tick)
         logger.info(f"[WORK] ORDER failed: {order_id} reason={_fail}")
         return
 
     # ── Атомарный обмен: ТОЛЬКО SSOT (L-W3/L-W4) ─────────────────────
     for _g, _q in sorted(goods.items()):
         _q = float(_q or 0.0)
-        seller_p.stock_for_sale[_g] = round(
-            float(seller_p.stock_for_sale.get(_g, 0.0) or 0.0) - _q, 4
-        )
+        seller_p.stock_for_sale[_g] = round(float(seller_p.stock_for_sale.get(_g, 0.0) or 0.0) - _q, 4)
         buyer_p.goods[_g] = round(float(buyer_p.goods.get(_g, 0.0) or 0.0) + _q, 4)
     buyer_p.gold = round(float(buyer_p.gold or 0.0) - payment, 4)
     seller_p.gold = round(float(seller_p.gold or 0.0) + payment, 4)
@@ -487,12 +470,8 @@ def settle_order(
     else:
         logger.error("[WORK] economy_tracker недоступен — доход не записан (громко)")
 
-    _publish_outcome_for(
-        orchestrator, buyer, _o, success=True, reason="transaction_completed", tick=_tick
-    )
-    _publish_outcome_for(
-        orchestrator, seller, _o, success=True, reason="transaction_completed", tick=_tick
-    )
+    _publish_outcome_for(orchestrator, buyer, _o, success=True, reason="transaction_completed", tick=_tick)
+    _publish_outcome_for(orchestrator, seller, _o, success=True, reason="transaction_completed", tick=_tick)
     logger.info(f"[WORK] ORDER completed: {order_id} payment={payment}")
 
 
@@ -522,9 +501,7 @@ def _satisfy_buyer(ctx: Any, buyer: str, good: str, tick: int) -> None:
     try:
         from app.services.npc.desire_generator import _NEED_TO_DESIRE
 
-        _need_name = next(
-            (_n for _n, (_s, _t) in _NEED_TO_DESIRE.items() if _s == good), ""
-        )
+        _need_name = next((_n for _n, (_s, _t) in _NEED_TO_DESIRE.items() if _s == good), "")
         for _n in ctx.all_npcs_raw or []:
             if str(_n.get("npc_id") or _n.get("id") or "") != buyer:
                 continue
@@ -541,8 +518,13 @@ def _satisfy_buyer(ctx: Any, buyer: str, good: str, tick: int) -> None:
 
 
 def _publish_outcome_for(
-    orchestrator: Any, npc_id: str, order: Dict[str, Any],
-    *, success: bool, reason: str, tick: int,
+    orchestrator: Any,
+    npc_id: str,
+    order: Dict[str, Any],
+    *,
+    success: bool,
+    reason: str,
+    tick: int,
 ) -> None:
     """Исход сделки обеим сторонам — той же фабрикой EventDTO, что
     _publish_outcome конвертера (строковый event_type — сон-прецедент).
@@ -561,13 +543,9 @@ def _publish_outcome_for(
                 payload={
                     "activity_type": "trade" if _is_buyer else "serve",
                     "desire_id": (
-                        order.get("buyer_desire_id", "")
-                        if _is_buyer
-                        else f"order:{order.get('order_id', '')}"
+                        order.get("buyer_desire_id", "") if _is_buyer else f"order:{order.get('order_id', '')}"
                     ),
-                    "target_ref": (
-                        order.get("target_id") if _is_buyer else order.get("actor_id")
-                    ),
+                    "target_ref": (order.get("target_id") if _is_buyer else order.get("actor_id")),
                     "success": success,
                     "reason": reason,
                     "order_id": order.get("order_id", ""),

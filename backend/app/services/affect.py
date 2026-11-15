@@ -160,9 +160,7 @@ def distort_pressure(
     shame = psyche.get("shame", 0.5)
 
     # Определение доминирующего паттерна искажения
-    dominant_bias = _determine_response_bias(
-        resonance, fear, aggression, identity_rigidity, shame
-    )
+    dominant_bias = _determine_response_bias(resonance, fear, aggression, identity_rigidity, shame)
 
     # Базовый множитель искажения
     distortion_amp = 1.0 + resonance.trigger_strength
@@ -183,9 +181,7 @@ def distort_pressure(
     elif dominant_bias == ResponseBias.AGGRESSION:
         # Страх конвертируется в гнев (насилие)
         d_violence *= distortion_amp * (1 + resonance.violence_resonance)
-        d_identity *= (
-            distortion_amp * 0.8
-        )  # Агрессия защищает идентичность, но создает риск
+        d_identity *= distortion_amp * 0.8  # Агрессия защищает идентичность, но создает риск
         d_self_risk *= 0.7  # Агрессия снижает восприятие риска
 
     elif dominant_bias == ResponseBias.FREEZE:
@@ -208,9 +204,7 @@ def distort_pressure(
 
     # Влияние certainty и dissociation_risk
     if resonance.certainty_modifier < 0:
-        d_self_risk *= 1 + abs(
-            resonance.certainty_modifier
-        )  # Неуверенность повышает риск
+        d_self_risk *= 1 + abs(resonance.certainty_modifier)  # Неуверенность повышает риск
 
     return IntentPressureProfile(
         violence=min(1.0, d_violence),
@@ -219,9 +213,7 @@ def distort_pressure(
         social_exposure=min(1.0, d_social),
         moral_violation=min(1.0, d_moral),
         identity_deviation=min(1.0, d_identity),
-        trauma_trigger=min(
-            1.0, base_pressure.trauma_trigger + resonance.trigger_strength * 0.5
-        ),
+        trauma_trigger=min(1.0, base_pressure.trauma_trigger + resonance.trigger_strength * 0.5),
         taboo_intensity=min(1.0, d_taboo),
     )
 
@@ -242,11 +234,7 @@ def _determine_response_bias(
         return ResponseBias.AGGRESSION
 
     # Высокий стыд + ригидность = ступор
-    if (
-        shame > 0.7
-        and identity_rigidity > 0.7
-        and resonance.humiliation_resonance > 0.3
-    ):
+    if shame > 0.7 and identity_rigidity > 0.7 and resonance.humiliation_resonance > 0.3:
         return ResponseBias.FREEZE
 
     # Высокий страх + покинутость = подчинение
@@ -281,9 +269,7 @@ def decay_affective_imprints(
     surviving = []
     for imp in imprints:
         # Травмы теряют силу, если не резонируют
-        new_reinforcement = imp.reinforcement - (
-            imp.decay_rate * AFFECT_DECAY_BASE_RATE * delta_time
-        )
+        new_reinforcement = imp.reinforcement - (imp.decay_rate * AFFECT_DECAY_BASE_RATE * delta_time)
         if new_reinforcement < 0.05:
             continue  # Травма зажила или забыта
 
@@ -323,12 +309,8 @@ def apply_conditioning(
         for i, imp in enumerate(updated_imprints):
             if imp.source_entity_id in triggered_ids:
                 # Травма подтверждена опытом: reinforcement растёт, decay замедляется
-                new_reinforcement = min(
-                    1.0, imp.reinforcement + 0.15 * will_response.identity_damage
-                )
-                new_decay_rate = max(
-                    0.01, imp.decay_rate - 0.05
-                )  # Травма забывается медленнее
+                new_reinforcement = min(1.0, imp.reinforcement + 0.15 * will_response.identity_damage)
+                new_decay_rate = max(0.01, imp.decay_rate - 0.05)  # Травма забывается медленнее
                 updated_imprints[i] = replace(
                     imp,
                     reinforcement=new_reinforcement,
@@ -366,9 +348,7 @@ def apply_conditioning(
             trigger_tags=(_action,),  # Базовый тег
             pain_signature=0.5 if "attack" in _action else 0.1,
             fear_signature=will_response.fear_delta,
-            humiliation_signature=round(
-                min(1.0, humiliation), 2
-            ),  # Унижение выведено из состояния воли
+            humiliation_signature=round(min(1.0, humiliation), 2),  # Унижение выведено из состояния воли
             trust_shift=-0.2,
             reinforcement=0.3,  # Базовая сила
             decay_rate=0.1,  # Будет затухать, если не повторится

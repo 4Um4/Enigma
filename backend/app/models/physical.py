@@ -97,9 +97,7 @@ class OutcomeBand(str, Enum):
     d20 roll → OutcomeBand через пороги. Нет хардкода — пороги конфигурируемы.
     """
 
-    CRITICAL_FAIL = (
-        "critical_fail"  # natural 1 — катастрофа, осложнение следующих проверок
-    )
+    CRITICAL_FAIL = "critical_fail"  # natural 1 — катастрофа, осложнение следующих проверок
     FAIL = "fail"  # ниже target_ac
     PARTIAL = "partial"  # выше target_ac, но ниже success_threshold
     SUCCESS = "success"  # в полосе [success_threshold, critical_threshold)
@@ -143,9 +141,7 @@ class OutcomeResult:
         return max(0, int(self.damage * self.damage_modifier))
 
     @staticmethod
-    def from_physical(
-        outcome: PhysicalOutcome, roll: int, target_ac: int = 0
-    ) -> "OutcomeResult":
+    def from_physical(outcome: PhysicalOutcome, roll: int, target_ac: int = 0) -> "OutcomeResult":
         """Создаёт OutcomeResult из PhysicalOutcome + броска."""
         if outcome.critical:
             band = OutcomeBand.CRITICAL_SUCCESS

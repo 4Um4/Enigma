@@ -1,4 +1,4 @@
-﻿"""
+"""
 R4/GATE-9A D2 — PAT ×8 проверки 4–8 (v2, исправленные).
 
 Исправления vs v1:
@@ -13,6 +13,7 @@ R4/GATE-9A D2 — PAT ×8 проверки 4–8 (v2, исправленные).
   - ac_calls_in_unlock — список atomic_commit_all вызовов, произошедших ИЗ unlock_tick.
   - Контракт D2: при abort → ac_calls_in_unlock пуст; при normal → ac_calls_in_unlock >= 1.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -164,21 +165,18 @@ def test_check_6_skip_time_exception_marks_aborted_and_unlocks(harness):
         with pytest.raises(RuntimeError, match="PAT-x8 simulated time_skip failure"):
             gl.skip_time(harness.campaign_id, ticks=5)
 
-    assert len(state["mark_calls"]) == 1, f"mark_tick_aborted should be called once"
+    assert len(state["mark_calls"]) == 1, "mark_tick_aborted should be called once"
     assert state["mark_calls"][0] == harness.campaign_id
     assert len(state["unlock_calls"]) == 1
     assert state["unlock_calls"][0] == harness.campaign_id
-    assert len(state["ac_calls_in_unlock"]) == 0, (
-        f"atomic_commit_all should NOT be called from unlock_tick on abort"
-    )
+    assert len(state["ac_calls_in_unlock"]) == 0, "atomic_commit_all should NOT be called from unlock_tick on abort"
     assert sm._tick_locked is False
     assert sm._tick_aborted is False
 
 
 # ─── Проверка 7a: Штатный путь — atomic_commit_all ИЗ unlock_tick вызывается ─
 def test_check_7a_normal_path_persists(harness):
-    """Штатный idle_tick → atomic_commit_all вызывается ИЗ unlock_tick (нормальный persist).
-    """
+    """Штатный idle_tick → atomic_commit_all вызывается ИЗ unlock_tick (нормальный persist)."""
     gl = harness.game_loop
     sm = gl.scene_manager
     state = _install_spies(sm)
@@ -196,8 +194,7 @@ def test_check_7a_normal_path_persists(harness):
 
 # ─── Проверка 7b: Аварийный путь — atomic_commit_all ИЗ unlock_tick НЕ вызывается ─
 def test_check_7b_abort_path_skips_persist(harness):
-    """Аварийный idle_tick (exception) → atomic_commit_all НЕ вызывается ИЗ unlock_tick.
-    """
+    """Аварийный idle_tick (exception) → atomic_commit_all НЕ вызывается ИЗ unlock_tick."""
     gl = harness.game_loop
     sm = gl.scene_manager
     state = _install_spies(sm)

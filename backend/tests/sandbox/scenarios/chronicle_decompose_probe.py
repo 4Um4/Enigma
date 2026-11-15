@@ -8,6 +8,7 @@
 Итог-строка: 'Итог: GREEN=N RED=M' (квалификация §3.12).
 LLM-пул недоступен → RED=1 с честным маркером LLM_UNAVAILABLE (не фейк-GREEN).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -52,6 +53,7 @@ def main() -> int:
         # Этап 4.1.10: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
         try:
             from app.services.llm.runtime.client import ensure_llm
+
             ensure_llm(label="chronicle_decompose")
         except Exception as e:
             print(f"[RED] LLM_UNAVAILABLE :: {e}")
@@ -62,6 +64,7 @@ def main() -> int:
     # регистрация конфигов пула ОБЯЗАТЕЛЬНА до любого request() —
     # без неё is_model_available=False («Все модели пула недоступны»).
     from app.services.llm.router import initialize_router
+
     initialize_router()
     print("[PROBE] ModelPool инициализирован (initialize_router, прод-прецедент)")
 
@@ -80,9 +83,7 @@ def main() -> int:
     check(
         "white_spot_option_in_questions",
         all(
-            q is None or any(o.value == "LEAVE_WHITE_SPOT" for o in q.options)
-            for it in r1.items
-            for q in [it.question]
+            q is None or any(o.value == "LEAVE_WHITE_SPOT" for o in q.options) for it in r1.items for q in [it.question]
         ),
         "вопрос без опции белого пятна",
     )
@@ -102,18 +103,24 @@ def main() -> int:
     # канонический контракт (прецедент: compressor — семантика, не буквы).
     r2 = asyncio.run(d.decompose("chronicle_maid_lusya", 0, FRAGMENT))
     if r2.ok and r1.ok:
+
         def _struct_sig(items):
             rows = []
             for i in items:
                 p = i.draft_payload
-                rows.append((
-                    i.kind.value,
-                    tuple(sorted(p.keys())),
-                    p.get("nature"), p.get("valence"), p.get("effect_kind"),
-                    i.question is not None,
-                    i.needs_confirmation,
-                ))
+                rows.append(
+                    (
+                        i.kind.value,
+                        tuple(sorted(p.keys())),
+                        p.get("nature"),
+                        p.get("valence"),
+                        p.get("effect_kind"),
+                        i.question is not None,
+                        i.needs_confirmation,
+                    )
+                )
             return hashlib.md5(json.dumps(sorted(rows), ensure_ascii=False).encode()).hexdigest()
+
         sig1 = _struct_sig(r1.items)
         sig2 = _struct_sig(r2.items)
         check("determinism_same_prompt_same_structure", sig1 == sig2, f"sig1={sig1[:8]} sig2={sig2[:8]}")

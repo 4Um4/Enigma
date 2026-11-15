@@ -10,6 +10,7 @@ path: /project/backend/tests/sandbox/f1a_trade_gate_probe.py
     временные, удаляются после вердикта.
 Запуск: cd backend; python tests/sandbox/f1a_trade_gate_probe.py
 """
+
 import logging
 import os
 import shutil
@@ -21,8 +22,7 @@ sys.path.insert(0, ".")
 from app.core.config import settings
 
 _d = Path(tempfile.mkdtemp(prefix="f1a_"))
-shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 settings.data_dir = str(_d)
 settings.saves_dir = tempfile.mkdtemp(prefix="f1a_saves_")
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
@@ -31,9 +31,13 @@ os.environ["WORK_ENABLED"] = "1"
 
 logging.basicConfig(level=logging.INFO)
 # Глушим шум, но НЕ decision_hub/work_orders (их логи — часть вердикта)
-for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-           "app.services.llm.llama_cpp_provider", "app.services.memory",
-           "pymorphy3.opencorpora_dict.wrapper"):
+for _n in (
+    "app.services.llm.router",
+    "app.services.llm.provider_manager",
+    "app.services.llm.llama_cpp_provider",
+    "app.services.memory",
+    "pymorphy3.opencorpora_dict.wrapper",
+):
     logging.getLogger(_n).setLevel(logging.CRITICAL)
 
 from app.services.economy.work_orders import _ORDERS_KEY
@@ -62,13 +66,16 @@ if _l is None or _t is None:
 _bs = _l.setdefault("body_state", {})
 _bs["hunger"] = 80.0  # шкала 0-100 → pipeline:689 даст 0.8 ≥ NEED_GATE
 _l["position"] = _t.get("position")
-print(f"[F1A-SEED] lusya hunger=80.0 pos={str(_l.get('position',''))[:30]} "
-      f"tornin_pos={str(_t.get('position',''))[:30]}")
+print(
+    f"[F1A-SEED] lusya hunger=80.0 pos={str(_l.get('position', ''))[:30]} tornin_pos={str(_t.get('position', ''))[:30]}"
+)
+
 
 def _orders_view():
     _sc = gl.scene_manager.get_scene_state("Open_road", "tavern") or {}
     _o = _sc.get(_ORDERS_KEY) or {}
     return {k: v.get("status", "?") for k, v in _o.items()} if isinstance(_o, dict) else {"<not-dict>": "?"}
+
 
 for _i in range(12):
     gl.idle_tick("Open_road")
@@ -77,8 +84,9 @@ for _i in range(12):
     _t = next((n for n in _st if (n.get("npc_id") or n.get("id")) == TORNIN), {}) or {}
     _lh = (_l.get("body_state") or {}).get("hunger")
     _ln = (_l.get("needs") or {}).get("hunger")
-    _lful = next((d.get("last_fulfilled_tick") for d in (_l.get("desires") or [])
-                  if d.get("subject_class") == "food"), None)
+    _lful = next(
+        (d.get("last_fulfilled_tick") for d in (_l.get("desires") or []) if d.get("subject_class") == "food"), None
+    )
     _prof = gl._svc.get_or_create_economic_profiles("Open_road")
     _lg = dict(getattr(_prof.get(LUSYA), "goods", {}) or {})
     _tg = dict(getattr(_prof.get(TORNIN), "goods", {}) or {})
@@ -87,10 +95,12 @@ for _i in range(12):
     _tgold = float(getattr(_prof.get(TORNIN), "gold", 0.0) or 0.0)
     _la = (_l.get("activity_state") or {}).get("activity_type")
     _ta = (_t.get("activity_state") or {}).get("activity_type")
-    print(f"[F1A-T{_i+1}] body_hunger={_lh} needs_hunger={_ln} food_fulfilled@{_lful} "
-          f"lusya_goods={_lg} lusya_gold={_lgold:.2f} tornin_goods={_tg} "
-          f"tornin_stock={_ts} tornin_gold={_tgold:.2f} "
-          f"lusya_act={_la} tornin_act={_ta} orders={_orders_view()}")
+    print(
+        f"[F1A-T{_i + 1}] body_hunger={_lh} needs_hunger={_ln} food_fulfilled@{_lful} "
+        f"lusya_goods={_lg} lusya_gold={_lgold:.2f} tornin_goods={_tg} "
+        f"tornin_stock={_ts} tornin_gold={_tgold:.2f} "
+        f"lusya_act={_la} tornin_act={_ta} orders={_orders_view()}"
+    )
 
 # DIAG-F1B: capability-карта — желания Люсьи и стоки продавцов (чтение SSOT)
 _p = gl._svc.get_or_create_economic_profiles("Open_road")
@@ -98,8 +108,9 @@ for _nid in sorted(_p):
     _stock = getattr(_p[_nid], "stock_for_sale", None)
     if isinstance(_stock, dict) and _stock:
         print(f"[F1B-CAP] stock {_nid}: {dict(_stock)}")
-print(f"[F1B-CAP] desires lusya: "
-      f"{[(d.get('subject_class'), d.get('urgency')) for d in (_l.get('desires') or [])][:6]}")
-print(f"[F1B-CAP] GOODS_PRICES keys: {sorted(__import__('app.core.constants', fromlist=['GOODS_PRICES']).GOODS_PRICES.keys())}")
+print(f"[F1B-CAP] desires lusya: {[(d.get('subject_class'), d.get('urgency')) for d in (_l.get('desires') or [])][:6]}")
+print(
+    f"[F1B-CAP] GOODS_PRICES keys: {sorted(__import__('app.core.constants', fromlist=['GOODS_PRICES']).GOODS_PRICES.keys())}"
+)
 
 print("[F1A-VERDICT] прогон завершён — разбирай маркеры GATE-F1A/F1E/[WORK] выше")

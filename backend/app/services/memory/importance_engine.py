@@ -2,6 +2,7 @@
 R1.3 + R5.3 — Importance Engine.
 Теперь учитывает не только тип события, но и восприятие NPC (clarity, stress, emotion).
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -35,9 +36,7 @@ def score_event(
     clarity снижает важность при плохом восприятии.
     Высокий стресс усиливает значимость структурных разрывов.
     """
-    event_type = (
-        event.get("type") or event.get("action_type") or event.get("event_type", "")
-    ).lower()
+    event_type = (event.get("type") or event.get("action_type") or event.get("event_type", "")).lower()
 
     # 1. Базовая важность
     base = 0.30
@@ -59,9 +58,7 @@ def score_event(
     # Высокий Surprise (delta в Котле) = яркая память, независимо от того, какой драйв победил.
     # ADR-O-206 Cut 4: Causal Purity.
     # Никаких производных аффективного состояния. Только ошибка модели мира.
-    prediction_error = abs(
-        event.get("prediction_error", 0.0)
-    )  # Чистый |O - P| из Котла
+    prediction_error = abs(event.get("prediction_error", 0.0))  # Чистый |O - P| из Котла
 
     if npc_stress > 70 and prediction_error > 0.2:
         stress_mod = 1.25  # Ошибка предсказания при высоком стрессе = яркая память
@@ -74,9 +71,7 @@ def score_event(
     return round(max(0.05, min(1.0, importance)), 4)
 
 
-def apply_decay(
-    events: List[Dict[str, Any]], rate: float = DECAY_RATE
-) -> List[Dict[str, Any]]:
+def apply_decay(events: List[Dict[str, Any]], rate: float = DECAY_RATE) -> List[Dict[str, Any]]:
     """
     Оставляем без изменений — используется для legacy dict событий.
     Для EventMemory decay происходит внутри .decayed().

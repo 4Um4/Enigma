@@ -99,9 +99,7 @@ class ReactionScore:
 # ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные функции
 # ─────────────────────────────────────────────────────────────────────────────
-def _get_npc_distance(
-    npc: Dict[str, Any], spatial_query: Optional["SpatialQueryService"]
-) -> float:
+def _get_npc_distance(npc: Dict[str, Any], spatial_query: Optional["SpatialQueryService"]) -> float:
     """Расстояние от NPC до игрока. ADR-048: Единственный источник истины — SpatialQueryService."""
     if not spatial_query:
         return 999.0
@@ -224,9 +222,7 @@ def get_reaction_order(
     scores = []
     for npc in npcs:
         try:
-            rs = _score_npc(
-                npc, scene_state, scene_changes, actor_id, spatial_query=spatial_query
-            )
+            rs = _score_npc(npc, scene_state, scene_changes, actor_id, spatial_query=spatial_query)
             if rs.score >= min_score:
                 scores.append(rs)
         except Exception as e:
@@ -236,9 +232,6 @@ def get_reaction_order(
     result = [rs.to_dict() for rs in scores[:MAX_SPEAKERS_PER_TURN]]
 
     if result:
-        logger.info(
-            f"[REACTION_PRIORITY] Порядок: "
-            f"{[(r['npc_name'], r['score'], r['reason']) for r in result]}"
-        )
+        logger.info(f"[REACTION_PRIORITY] Порядок: {[(r['npc_name'], r['score'], r['reason']) for r in result]}")
 
     return result

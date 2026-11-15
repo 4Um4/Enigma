@@ -22,7 +22,7 @@ from tests.gameplay.harness import TavernGameplayHarness
 
 _TARGETS = ("guard_borko", "thief_shadow")
 _LOCS = ("tavern", "city_gate")
-_DAY = 1440            # тиков в сутках (60с/тик)
+_DAY = 1440  # тиков в сутках (60с/тик)
 _TRACE: dict = {nid: [] for nid in _TARGETS}
 _ANOMALIES: list = []
 
@@ -42,15 +42,21 @@ def _snapshot_tick(tick: int, h: TavernGameplayHarness) -> None:
                 _TRACE[nid].append({"tick": tick, "scene_loc": loc, "present": False})
                 continue
             row = {"tick": tick, "scene_loc": loc, "present": True}
-            for f in ("location_id", "local_position", "position", "current_node",
-                      "intent", "intent_target", "activity"):
+            for f in (
+                "location_id",
+                "local_position",
+                "position",
+                "current_node",
+                "intent",
+                "intent_target",
+                "activity",
+            ):
                 row[f] = copy.deepcopy(entry.get(f))
             row["dwell"] = copy.deepcopy((scene.get("boundary_dwell") or {}).get(nid))
             _TRACE[nid].append(row)
     # Атомарность: NPC в ОБОИХ сценах одновременно = torn-state
     for nid in _TARGETS:
-        where = [r["scene_loc"] for r in _TRACE[nid]
-                 if r["tick"] == tick and r.get("present")]
+        where = [r["scene_loc"] for r in _TRACE[nid] if r["tick"] == tick and r.get("present")]
         if len(where) > 1:
             if not any("TORN-STATE" in a for a in _ANOMALIES):
                 _ANOMALIES.append(f"tick={tick} npc={nid} TORN-STATE in {sorted(where)} (FIRST)")
@@ -65,9 +71,13 @@ def _print_trajectory(nid: str) -> None:
             key = "ABSENT"
         else:
             lp = r.get("local_position") or {}
-            key = (r["scene_loc"], r.get("position"),
-                   round(lp.get("x", -1), 1), round(lp.get("y", -1), 1),
-                   r.get("intent"))
+            key = (
+                r["scene_loc"],
+                r.get("position"),
+                round(lp.get("x", -1), 1),
+                round(lp.get("y", -1), 1),
+                r.get("intent"),
+            )
         if key != prev:
             _log(f"  tick={r['tick']:>4} {key}")
             prev = key
@@ -105,6 +115,7 @@ def main() -> int:
         # Быстрый суточный прогон: час = 60 тиков одиноких (без снимка),
         # затем 2 «наблюдаемых» тика вокруг смены часа. Шум глушим.
         import logging
+
         for _n in ("app.services", "app.models", "app.domain"):
             logging.getLogger(_n).setLevel(logging.ERROR)
 
@@ -112,10 +123,10 @@ def main() -> int:
         _log(f"прогон {total} тиков (ускоренный: снимок каждый 1-й из 3)...")
         for tick in range(1, total + 1):
             h.advance_ticks(1)
-            if tick % 3 == 0:   # снимок каждый 3-й тик (30 игровых сек) —
+            if tick % 3 == 0:  # снимок каждый 3-й тик (30 игровых сек) —
                 _snapshot_tick(tick, h)  # точность ловли divergence сохранна
             if tick % 200 == 0:
-                _log(f"...tick {tick}, time={h.counters.game_time_seconds/3600:.1f}ч")
+                _log(f"...tick {tick}, time={h.counters.game_time_seconds / 3600:.1f}ч")
 
         # FIX: стабильный дамп трассы (tmpdir умирает с harness'ом)
         _dump = Path(__file__).resolve().parents[3] / "reports"

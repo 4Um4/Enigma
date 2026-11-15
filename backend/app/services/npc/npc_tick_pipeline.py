@@ -352,9 +352,7 @@ class NpcTickPipeline:
                             if _mem_evt:
                                 memory_events.append(_mem_evt)
                         except Exception as _perc_mem_err:
-                            logger.warning(
-                                f"[MEMORY] hearing perception apply failed " f"for {npc_id}: {_perc_mem_err}"
-                            )
+                            logger.warning(f"[MEMORY] hearing perception apply failed for {npc_id}: {_perc_mem_err}")
                     continue
 
             _npc_drf_ctx = drf_ctx.for_npc(npc_id) if drf_ctx else None  # noqa: ENIGMA001
@@ -843,7 +841,7 @@ class NpcTickPipeline:
                                 f"methods={_dc_h.method_weights}"
                             )
                 except Exception as _hunger_err:
-                    logger.warning(f"[CAUSAL_SLICE_HUNGER] producer failed (no-op) " f"for {npc_id}: {_hunger_err}")
+                    logger.warning(f"[CAUSAL_SLICE_HUNGER] producer failed (no-op) for {npc_id}: {_hunger_err}")
 
             # R7 CAUSAL SLICE 3 (ADR-O-396): grievance-проводка. Каскад
             # причин: threat (R5) > hunger (R6) > grievance (R7) — обида
@@ -888,7 +886,7 @@ class NpcTickPipeline:
                             f"methods={_dc_g.method_weights}"
                         )
                 except Exception as _griev_err:
-                    logger.warning(f"[CAUSAL_SLICE_GRIEVANCE] producer failed (no-op) " f"for {npc_id}: {_griev_err}")
+                    logger.warning(f"[CAUSAL_SLICE_GRIEVANCE] producer failed (no-op) for {npc_id}: {_griev_err}")
 
             # R8 CAUSAL SLICE 4 (ADR-O-398): affection-проводка. Каскад
             # причин: threat > hunger > grievance > affection. Тёплая
@@ -934,7 +932,7 @@ class NpcTickPipeline:
                             f"methods={_dc_a.method_weights}"
                         )
                 except Exception as _aff_err:
-                    logger.warning(f"[CAUSAL_SLICE_AFFECTION] producer failed (no-op) " f"for {npc_id}: {_aff_err}")
+                    logger.warning(f"[CAUSAL_SLICE_AFFECTION] producer failed (no-op) for {npc_id}: {_aff_err}")
 
             # R6: дубликат-черновик hunger-блока удалён (двойное применение
             # патча; урок D-R6-DUPLICATE-PATCH). Единственный блок — выше.

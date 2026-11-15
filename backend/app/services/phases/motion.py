@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/motion.py
 Зависимости: app.services.motion.motion_pipeline, app.domain.motion_core, app.services.spatial.world_topology_provider
 Основные сущности: process_continuous_motion
 """
+
 from __future__ import annotations
 
 import logging
@@ -12,9 +13,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
-def process_continuous_motion(
-    ctx: Any, orchestrator: Any, _spatial_svc: Optional[Any] = None
-) -> None:
+def process_continuous_motion(ctx: Any, orchestrator: Any, _spatial_svc: Optional[Any] = None) -> None:
     """ETKE-IK v1: Непрерывная кинематика (SteeringResolver + MotionIntegrator).
 
     Если у NPC есть DriveVector и нет активного MovementIntent,
@@ -167,9 +166,5 @@ def process_continuous_motion(
         )
 
     if continuous_changes and orchestrator._scene_manager:
-        orchestrator._apply_with_shadow_observation(
-            ctx, continuous_changes, phase_label="ETKE_CONTINUOUS"
-        )
-        logger.debug(
-            f"[ETKE] Processed continuous motion for {len(continuous_changes) // 3} NPCs"
-        )
+        orchestrator._apply_with_shadow_observation(ctx, continuous_changes, phase_label="ETKE_CONTINUOUS")
+        logger.debug(f"[ETKE] Processed continuous motion for {len(continuous_changes) // 3} NPCs")

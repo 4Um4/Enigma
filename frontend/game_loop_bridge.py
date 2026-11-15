@@ -80,9 +80,7 @@ class GameLoopBridge:
         if self._async_loop and self._async_loop.is_running():
             return
         self._async_loop = asyncio.new_event_loop()
-        self._async_thread = threading.Thread(
-            target=self._async_loop.run_forever, daemon=True
-        )
+        self._async_thread = threading.Thread(target=self._async_loop.run_forever, daemon=True)
         self._async_thread.start()
 
     def initialize(self) -> None:
@@ -94,6 +92,7 @@ class GameLoopBridge:
             return
 
         import importlib
+
         build_game_loop = importlib.import_module("app.services.game_loop_builder").build_game_loop
 
         self._loop = build_game_loop(self._data_dir)
@@ -155,6 +154,7 @@ class GameLoopBridge:
             # B2-FIX: Spatial Oracle no-silent-failure. Логируем ошибки, не глотаем.
             try:
                 import importlib
+
                 SpatialRegistry = importlib.import_module("app.services.spatial.spatial_registry").SpatialRegistry
 
                 _registry = SpatialRegistry.get_or_load(campaign_id)
@@ -177,6 +177,7 @@ class GameLoopBridge:
                         result.confirmed_location_id = location
                         # P2-02: структурный лог (без поведенческих изменений).
                         import importlib as _il
+
                         _log_fn = _il.import_module("app.services.spatial.oracle_log").log_oracle_decision
                         _log_fn(
                             tag="BRIDGE",
@@ -195,7 +196,10 @@ class GameLoopBridge:
                             campaign_state.metadata["player_world_y"] = world_y
                             # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with HTTP path.
                             import importlib
-                            get_campaign_state_service = importlib.import_module("app.services.campaign_state_service").get_campaign_state_service
+
+                            get_campaign_state_service = importlib.import_module(
+                                "app.services.campaign_state_service"
+                            ).get_campaign_state_service
 
                             get_campaign_state_service().save(campaign_id)
                     else:
@@ -203,9 +207,7 @@ class GameLoopBridge:
                             f"[SPATIAL_ORACLE] no chunks for ({world_x}, {world_y}). Fallback to saved location."
                         )
             except Exception as e:
-                logger.warning(
-                    f"[SPATIAL_ORACLE] find_chunks failed: {e}. Fallback to saved location."
-                )
+                logger.warning(f"[SPATIAL_ORACLE] find_chunks failed: {e}. Fallback to saved location.")
 
         # Resume-фикс (Direct-путь): финальная локация хода пишется в metadata
         # безусловно (не только в oracle-ветке). Паттерн importlib — паритет
@@ -213,15 +215,12 @@ class GameLoopBridge:
         if campaign_state is not None and location:
             try:
                 import importlib
-                _csvc = importlib.import_module(
-                    "app.services.campaign_state_service"
-                ).get_campaign_state_service()
+
+                _csvc = importlib.import_module("app.services.campaign_state_service").get_campaign_state_service()
                 campaign_state.metadata["current_location"] = location
                 _csvc.save(campaign_id)
             except Exception as e:
-                logger.warning(
-                    f"[BRIDGE] current_location persist failed: {e}"
-                )
+                logger.warning(f"[BRIDGE] current_location persist failed: {e}")
 
         async def _collect() -> None:
             async for event in self._loop.stream_turn(
@@ -230,9 +229,7 @@ class GameLoopBridge:
                 action_text=action_text,
                 location=location,
                 campaign_state=campaign_state,
-                player_position=(player_x, player_y)
-                if (player_x or player_y)
-                else None,
+                player_position=(player_x, player_y) if (player_x or player_y) else None,
             ):
                 etype = event.get("type", "")
 
@@ -259,9 +256,7 @@ class GameLoopBridge:
                         if is_dataclass(_ws_obj):
                             result.world_snapshot = asdict(_ws_obj)
                             # A2-FIX: npc_positions уже Dict (canonical). Адаптер удалён.
-                            result.npc_positions = result.world_snapshot.get(
-                                "npc_positions", {}
-                            )
+                            result.npc_positions = result.world_snapshot.get("npc_positions", {})
                         elif isinstance(_ws_obj, dict):
                             result.world_snapshot = _ws_obj
                             result.npc_positions = _ws_obj.get("npc_positions", {})
@@ -274,9 +269,7 @@ class GameLoopBridge:
             future.result()  # Блокируем до завершения
         else:
             # Fallback (на случай если bridge не инициализирован правильно)
-            logger.warning(
-                "[BRIDGE] Async loop not running, falling back to asyncio.run()"
-            )
+            logger.warning("[BRIDGE] Async loop not running, falling back to asyncio.run()")
             asyncio.run(_collect())
 
         result.dm_text = "".join(dm_parts)
@@ -288,9 +281,7 @@ class GameLoopBridge:
         if not isinstance(result.world_snapshot, dict):
             result.world_snapshot = {}
             result.npc_positions = {}
-            logger.warning(
-                "[BRIDGE] WorldSnapshotDTO missing in SSE 'done' event. Falling back to empty."
-            )
+            logger.warning("[BRIDGE] WorldSnapshotDTO missing in SSE 'done' event. Falling back to empty.")
         else:
             # Гарантируем, что npc_positions внутри world_snapshot синхронизированы с топ-уровнем
             result.npc_positions = result.world_snapshot.get("npc_positions", {})
@@ -304,6 +295,7 @@ class GameLoopBridge:
         if not self._ready or self._loop is None:
             return
         import importlib
+
         _enrich = importlib.import_module("app.services.scene_state_manager").enrich_scene_spatial
 
         _enrich(scene_state, campaign_id)
@@ -316,6 +308,7 @@ class GameLoopBridge:
         if not self._ready or self._loop is None:
             return None
         import importlib
+
         _build = importlib.import_module("app.services.player_cognition").build_perceived_scene
 
         return _build(scene_state, config)
@@ -383,6 +376,7 @@ class GameLoopBridge:
     def initialize_model_pool(self) -> None:
         """Инициализирует ModelPool в pygame процессе."""
         import importlib
+
         initialize_model_pool = importlib.import_module("app.services.llm.provider_manager").initialize_model_pool
 
         initialize_model_pool()
@@ -391,7 +385,10 @@ class GameLoopBridge:
         """Получает campaign_state для определения локации."""
         try:
             import importlib
-            get_campaign_state_service = importlib.import_module("app.services.campaign_state_service").get_campaign_state_service
+
+            get_campaign_state_service = importlib.import_module(
+                "app.services.campaign_state_service"
+            ).get_campaign_state_service
 
             service = get_campaign_state_service()
             return service.get_campaign_state(campaign_id)

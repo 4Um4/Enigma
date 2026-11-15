@@ -19,6 +19,7 @@ v3 approach:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -225,7 +226,7 @@ def main() -> int:
             # Walk loop._tick_orch
             to = getattr(loop, "_tick_orch", None)
             if to is not None:
-                print(f"  --- searching loop._tick_orch ---")
+                print("  --- searching loop._tick_orch ---")
                 for attr_name in sorted(dir(to)):
                     if attr_name.startswith("__"):
                         continue
@@ -326,11 +327,13 @@ def main() -> int:
                             else:
                                 result = method()
                             if result is not None:
-                                print(f"    .{method_name}() → type={type(result).__name__}, "
-                                      f"len={len(result) if hasattr(result, '__len__') else '?'}")
+                                print(
+                                    f"    .{method_name}() → type={type(result).__name__}, "
+                                    f"len={len(result) if hasattr(result, '__len__') else '?'}"
+                                )
                                 if isinstance(result, dict) and "maid_lusya" in result:
                                     npc_states_pre = result
-                                    print(f"    >>> FOUND maid_lusya in result dict")
+                                    print("    >>> FOUND maid_lusya in result dict")
                                     break
                                 elif isinstance(result, list) and result:
                                     print(f"    first item type: {type(result[0]).__name__}")
@@ -353,17 +356,14 @@ def main() -> int:
             intent_pre = getattr(lusya_state_pre, "intent", None)
             print(f"  intent (pre-tick): {intent_pre}")
         else:
-            print(f"\n  [maid_lusya state NOT FOUND pre-tick — expected; tick will load it]")
+            print("\n  [maid_lusya state NOT FOUND pre-tick — expected; tick will load it]")
 
         # =====================================================================
         # STEP 5: invoke tick
         # =====================================================================
         _print_section("STEP 5: invoke tick")
 
-        tick_method: Optional[callable] = None
         tick_method_name: Optional[str] = None
-        tick_args: Tuple = ()
-        tick_kwargs: Dict = {}
 
         # Try common tick method names with various signatures
         candidates_with_signatures: List[Tuple[str, callable]] = []
@@ -392,11 +392,18 @@ def main() -> int:
                 ("('Open_road',)", ("Open_road",), {}),
                 ("('Open_road', 'tavern')", ("Open_road", "tavern"), {}),
                 ("('Open_road', 'tavern', 1)", ("Open_road", "tavern", 1), {}),
-                ("(campaign_id='Open_road', location='tavern')", (), {"campaign_id": "Open_road", "location": "tavern"}),
+                (
+                    "(campaign_id='Open_road', location='tavern')",
+                    (),
+                    {"campaign_id": "Open_road", "location": "tavern"},
+                ),
                 ("(tick=1)", (), {"tick": 1}),
                 ("(campaign_id='Open_road', tick=1)", (), {"campaign_id": "Open_road", "tick": 1}),
-                ("('Open_road', 'tavern', 'player_insults', 'tavern_keeper_tornin')",
-                 ("Open_road", "tavern", "player_insults", "tavern_keeper_tornin"), {}),
+                (
+                    "('Open_road', 'tavern', 'player_insults', 'tavern_keeper_tornin')",
+                    ("Open_road", "tavern", "player_insults", "tavern_keeper_tornin"),
+                    {},
+                ),
             ]
             for desc, args, kwargs in arg_patterns:
                 try:
@@ -404,10 +411,7 @@ def main() -> int:
                     result = method(*args, **kwargs)
                     print(f"OK → {type(result).__name__ if result is not None else 'None'}")
                     tick_succeeded = True
-                    tick_method = method
                     tick_method_name = name
-                    tick_args = args
-                    tick_kwargs = kwargs
                     break
                 except TypeError as e:
                     print(f"TypeError: {str(e)[:80]}")
@@ -430,8 +434,8 @@ def main() -> int:
         elif tick_error:
             print(f"\n  >>> TICK REACHED LLM/DOWNSTREAM: {tick_error}")
         else:
-            print(f"\n  >>> ALL TICK METHODS FAILED — could not invoke tick")
-            print(f"  >>> Inspect candidate signatures above; loop API may differ")
+            print("\n  >>> ALL TICK METHODS FAILED — could not invoke tick")
+            print("  >>> Inspect candidate signatures above; loop API may differ")
 
         # =====================================================================
         # STEP 6: post-tick — find maid_lusya NPC state
@@ -473,7 +477,9 @@ def main() -> int:
                                     # Convert list of objects to dict by npc_id
                                     converted = {}
                                     for item in result:
-                                        nid = getattr(item, "npc_id", None) or (item.get("npc_id") if isinstance(item, dict) else None)
+                                        nid = getattr(item, "npc_id", None) or (
+                                            item.get("npc_id") if isinstance(item, dict) else None
+                                        )
                                         if nid:
                                             converted[nid] = item
                                     if converted:
@@ -485,7 +491,9 @@ def main() -> int:
             except Exception as e:
                 print(f"  _npc_manager post-tick search error: {e}")
 
-        print(f"\n  available NPCs post-tick: {list(npc_states_post.keys())[:20] if hasattr(npc_states_post, 'keys') else 'N/A'}")
+        print(
+            f"\n  available NPCs post-tick: {list(npc_states_post.keys())[:20] if hasattr(npc_states_post, 'keys') else 'N/A'}"
+        )
         lusya_state_post = npc_states_post.get("maid_lusya") if isinstance(npc_states_post, dict) else None
 
         if lusya_state_post is None:
@@ -494,7 +502,9 @@ def main() -> int:
             try:
                 nm = getattr(loop, "_npc_manager", None) or getattr(loop, "npc_manager", None)
                 if nm:
-                    method = getattr(nm, "get", None) or getattr(nm, "get_npc_state", None) or getattr(nm, "get_state", None)
+                    method = (
+                        getattr(nm, "get", None) or getattr(nm, "get_npc_state", None) or getattr(nm, "get_state", None)
+                    )
                     if method:
                         try:
                             lusya_state_post = method("maid_lusya")
@@ -525,11 +535,11 @@ def main() -> int:
                 intent_str = getattr(intent_value, "value", str(intent_value))
                 print(f"  intent value: {intent_str}")
                 if "spread_rumor" in str(intent_str).lower():
-                    print(f"\n  >>> maid_lusya's intent IS SPREAD_RUMOR!")
+                    print("\n  >>> maid_lusya's intent IS SPREAD_RUMOR!")
                 elif "talk" in str(intent_str).lower():
-                    print(f"\n  >>> maid_lusya's intent IS TALK (not SPREAD_RUMOR)")
+                    print("\n  >>> maid_lusya's intent IS TALK (not SPREAD_RUMOR)")
                 else:
-                    print(f"\n  >>> maid_lusya's intent is something else")
+                    print("\n  >>> maid_lusya's intent is something else")
 
             # Other relevant fields
             for field in ("intent_target", "current_intent_target", "target", "speech_target"):
@@ -538,7 +548,7 @@ def main() -> int:
                     print(f"  maid_lusya.{field} = {val!r}")
 
             # Print full state top-level
-            print(f"\n  --- maid_lusya state top-level attrs ---")
+            print("\n  --- maid_lusya state top-level attrs ---")
             try:
                 for k, v in vars(lusya_state_post).items():
                     if not k.startswith("__"):
@@ -620,8 +630,10 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

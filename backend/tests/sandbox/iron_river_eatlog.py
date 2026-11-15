@@ -6,6 +6,7 @@ path: /project/backend/tests/sandbox/iron_river_eatlog.py
     (а) Люсья: зависание STEP vs гейт; (б) Торнин: какой гейт режет TAKE.
 Запуск: cd backend; python tests/sandbox/iron_river_eatlog.py
 """
+
 import subprocess
 import sys
 
@@ -62,15 +63,16 @@ for t in range(1, 151):
 print("EATLOG " + json.dumps(out))
 """
 
+
 def main() -> int:
-    r = subprocess.run([sys.executable, "-c", _RUNNER],
-                       capture_output=True, text=True, cwd=".")
+    r = subprocess.run([sys.executable, "-c", _RUNNER], capture_output=True, text=True, cwd=".")
     # КЛЮЧЕВОЕ ОТЛИЧИЕ ОТ ГЕЙТА: полный вывод RUN'а наружу
     sys.stdout.write(r.stdout)
     if r.stderr.strip():
         print("--- STDERR tail ---")
         print("\n".join(r.stderr.strip().splitlines()[-15:]))
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

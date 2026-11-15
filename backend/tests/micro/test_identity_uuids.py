@@ -147,9 +147,9 @@ def test_avatar_continuity_preserved_with_uuids():
     store_avatar_intent(scene, _avatar_record(tick=2), 2)
 
     entries = [
-        e for e in scene["intent_lifecycle"].values()
-        if isinstance(e, dict)
-        and e.get("control_source") == "avatar_initiative"
+        e
+        for e in scene["intent_lifecycle"].values()
+        if isinstance(e, dict) and e.get("control_source") == "avatar_initiative"
     ]
     assert len(entries) == 1
 
@@ -191,9 +191,7 @@ def test_old_save_without_uuids_gets_them_on_first_load():
             "profile": {"character_id": "alice"},
             "state": {"npc_id": "alice"},
         }
-        (camp_dir / "player_avatar.json").write_text(
-            json.dumps(old_data, ensure_ascii=False), encoding="utf-8"
-        )
+        (camp_dir / "player_avatar.json").write_text(json.dumps(old_data, ensure_ascii=False), encoding="utf-8")
 
         svc = PlayerAvatarService(Path(tmp))
         uuids = svc.ensure_identity_uuids("camp1", "alice")
@@ -202,9 +200,7 @@ def test_old_save_without_uuids_gets_them_on_first_load():
         assert uuids.player_consciousness != uuids.avatar_consciousness
         assert uuids.player_consciousness != uuids.body
 
-        loaded = json.loads(
-            (camp_dir / "player_avatar.json").read_text(encoding="utf-8-sig")
-        )
+        loaded = json.loads((camp_dir / "player_avatar.json").read_text(encoding="utf-8-sig"))
         assert "identity_uuids" in loaded
 
 
@@ -233,4 +229,3 @@ def test_identity_uuids_rejects_avatar_equals_body():
 
     with pytest.raises(ValueError):
         IdentityUUIDs("p", "b", "b")
-        

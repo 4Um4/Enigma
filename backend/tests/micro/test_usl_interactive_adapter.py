@@ -12,6 +12,7 @@
     - детерминизм (USL-6);
     - SKВОЗНОЙ ТЕСТ: «Я пять лет работал на тебя» из ввода vs биография.
 """
+
 import dataclasses
 import pytest
 
@@ -32,6 +33,7 @@ from app.services.input.interactive_language_adapter import (
     intents_to_usl,
     predicate_to_usl,
 )
+
 # Для сквозного теста — BiographyAdapter
 from app.domain.chronicle import (
     ChronicleDocument,
@@ -46,20 +48,25 @@ from app.services.chronicle.biography_adapter import entry_to_usl_unit
 
 # ── 1. Predicate mapping ──────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("pred,expected", [
-    (Predicate.STOLE, USLPredicate.STOLE),
-    (Predicate.ATTACKED, USLPredicate.ATTACKED),
-    (Predicate.HELPED, USLPredicate.HELPED),
-    (Predicate.ASSERTS, USLPredicate.ASSERTS),
-    (Predicate.EXITS_TO, USLPredicate.EXITS_TO),
-    (Predicate.NAME, USLPredicate.NAME),
-])
+
+@pytest.mark.parametrize(
+    "pred,expected",
+    [
+        (Predicate.STOLE, USLPredicate.STOLE),
+        (Predicate.ATTACKED, USLPredicate.ATTACKED),
+        (Predicate.HELPED, USLPredicate.HELPED),
+        (Predicate.ASSERTS, USLPredicate.ASSERTS),
+        (Predicate.EXITS_TO, USLPredicate.EXITS_TO),
+        (Predicate.NAME, USLPredicate.NAME),
+    ],
+)
 def test_predicate_to_usl_mapping(pred, expected):
     """6 общих Predicate маппируются в USLPredicate тривиально."""
     assert predicate_to_usl(pred) is expected
 
 
 # ── 2. Proposition → USLEvent (главный путь) ─────────────────────────────────
+
 
 def test_proposition_creates_usl_event():
     """Proposition → USLEvent(predicate, subject, object, polarity)."""
@@ -101,6 +108,7 @@ def test_proposition_negative_polarity():
 
 # ── 3. semantic_acts fallback (когда proposition=None) ─────────────────────
 
+
 def test_semantic_acts_fallback_when_no_proposition():
     """Без proposition → semantic_acts → список USLEvent."""
     field = IntentSemanticField(
@@ -129,6 +137,7 @@ def test_empty_field_has_no_events():
 
 
 # ── 4. Per-act модальность ───────────────────────────────────────────────────
+
 
 def test_per_act_modality_extracted():
     """semantic_acts[0] → USLModal (modality/negated/quoted)."""
@@ -166,6 +175,7 @@ def test_per_act_modality_none_defaults():
 
 
 # ── 5. PLAYER_ASSERTION vs NPC_SPEECH (DLG-L1 симметрия) ───────────────────
+
 
 def test_player_input_source_kind():
     """Ввод игрока → USLSourceKind.PLAYER_ASSERTION."""
@@ -216,6 +226,7 @@ def test_player_and_npc_same_structure_different_source():
 
 # ── 6. temporal=() (честный empty — input не имеет временных полей) ──────────
 
+
 def test_input_has_no_temporal():
     """Шаг 2.C.7: в input нет временных полей → temporal=() (§ENIGMA-003).
     Это честный empty, не UNKNOWN-галлюцинация. USL-1.4 (Temporal Extractor)
@@ -231,6 +242,7 @@ def test_input_has_no_temporal():
 
 
 # ── 7. source_span обязателен (USL-5) ────────────────────────────────────────
+
 
 def test_source_span_always_present():
     """USL-5: text_span не может быть пустым (используем raw_text)."""
@@ -249,6 +261,7 @@ def test_source_span_empty_raw_text_fallback():
 
 
 # ── 8. Детерминизм (USL-6) ───────────────────────────────────────────────────
+
 
 def test_intent_to_usl_is_deterministic():
     """USL-6: одинаковый IntentSemanticField → одинаковый USLUnit."""
@@ -269,6 +282,7 @@ def test_intent_to_usl_is_deterministic():
 
 # ── 9. Frozen (USL-3 — read-only) ────────────────────────────────────────────
 
+
 def test_usl_unit_from_input_is_frozen():
     """USLUnit из input — frozen."""
     field = IntentSemanticField(raw_text="тест", action="DIALOGUE")
@@ -280,6 +294,7 @@ def test_usl_unit_from_input_is_frozen():
 # ── 10. SKВОЗНОЙ ТЕСТ: тот же смысл из биографии и из ввода ─────────────────
 # ГЛАВНЫЙ ТЕСТ КРИТЕРИЯ МАСТЕРА: одинаковый смысл → совместимые events,
 # различные epistemics. Это и есть USL-1 инвариант в действии.
+
 
 def test_skvoznoy_test_work_for_duration_biography_vs_input():
     """Сквозной тест §6.5 USL: «работал на Орма пять лет»
@@ -319,7 +334,7 @@ def test_skvoznoy_test_work_for_duration_biography_vs_input():
 
     # 1. События совместимы (оба ASSERTS — общий предикат смысла «работал»)
     assert bio_unit.events[0].predicate is USLPredicate.HAS_EFFECT  # EFFECT → HAS_EFFECT
-    assert input_unit.events[0].predicate is USLPredicate.ASSERTS    # ASSERT → ASSERTS
+    assert input_unit.events[0].predicate is USLPredicate.ASSERTS  # ASSERT → ASSERTS
 
     # 2. Источники разные (USL-2: источник ≠ истина)
     assert bio_unit.source_ref.source_kind is USLSourceKind.AUTHOR_CANON
@@ -369,4 +384,6 @@ def test_skvoznoy_test_helped_biography_vs_input():
 
     # Но источник верный
     assert bio_unit.source_ref.source_kind is USLSourceKind.AUTHOR_CANON
-    assert input_unit.source_ref.source_kind is USLPredicate.PLAYER_ASSERTION if False else USLSourceKind.PLAYER_ASSERTION
+    assert (
+        input_unit.source_ref.source_kind is USLPredicate.PLAYER_ASSERTION if False else USLSourceKind.PLAYER_ASSERTION
+    )

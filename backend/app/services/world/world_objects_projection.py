@@ -10,6 +10,7 @@ path: backend/app/services/world/world_objects_projection.py
 Зависимости: typing, app.domain.world_object
 Основные сущности: project_world_objects, WorldObjectProjection
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
@@ -29,6 +30,7 @@ def project_world_objects(
     OBJECT-TOPOLOGY, это его зона).
     """
     import logging
+
     _logger = logging.getLogger(__name__)
 
     if not snapshot_world_objects:
@@ -38,9 +40,7 @@ def project_world_objects(
         try:
             _obj = WorldObject.from_dict(_raw)
         except (KeyError, TypeError, ValueError) as _e:
-            _logger.warning(
-                f"[W3_PROJECTION] пропуск повреждённого объекта "
-                f"'{_oid}': {_e}")
+            _logger.warning(f"[W3_PROJECTION] пропуск повреждённого объекта '{_oid}': {_e}")
             continue
         if _obj.location_id == location_id:
             _result.append(_obj)

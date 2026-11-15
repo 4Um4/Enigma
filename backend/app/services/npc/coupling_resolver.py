@@ -8,6 +8,7 @@ path: /project/backend/app/services/npc/coupling_resolver.py
 - НЕ использует случайность (недетерминированность).
 - НЕ хранит состояние между тиками (Stateless).
 """
+
 from __future__ import annotations
 
 import logging
@@ -88,7 +89,7 @@ class CouplingResolver:
             motor_output_mult=motor_output_mult,
             memory_activation_mult=memory_activation_mult,
             imagination_mult=imagination_mult,
-            coupling_mode=coupling_mode
+            coupling_mode=coupling_mode,
         )
 
     def _resolve_mode(self, sleep_pressure: float, arousal: float) -> CouplingMode:

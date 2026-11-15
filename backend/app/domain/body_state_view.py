@@ -13,6 +13,7 @@ path: backend/app/domain/body_state_view.py
 Зависимости: dataclasses, typing, app.domain.vital_state
 Основные сущности: BodyStateView, build_body_state_view
 """
+
 from dataclasses import dataclass
 from typing import Any, Dict
 

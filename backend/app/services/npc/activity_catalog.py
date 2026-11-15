@@ -8,6 +8,7 @@ path: /project/backend/app/services/npc/activity_catalog.py
 Зависимости: app.domain.activity, app.domain.semantic_action
 Основные сущности: EAT_SPEC, ACTIVITY_CATALOG
 """
+
 from __future__ import annotations
 
 from typing import Dict
@@ -46,9 +47,7 @@ EAT_SPEC = ActivitySpec(
             duration_ticks=3,
         ),
     ),
-    success=SuccessCriterion(
-        kind=SuccessCriterionKind.NEED_BELOW, need_name="hunger", threshold=0.2
-    ),
+    success=SuccessCriterion(kind=SuccessCriterionKind.NEED_BELOW, need_name="hunger", threshold=0.2),
     interruption_policy=InterruptionPolicy.STUB,
     priority_hint=6.0,
 )
@@ -70,9 +69,7 @@ SERVE_SPEC = ActivitySpec(
             duration_ticks=2,
         ),
     ),
-    success=SuccessCriterion(
-        kind=SuccessCriterionKind.NEED_BELOW, need_name="", threshold=0.2
-    ),
+    success=SuccessCriterion(kind=SuccessCriterionKind.NEED_BELOW, need_name="", threshold=0.2),
     interruption_policy=InterruptionPolicy.STUB,
     priority_hint=5.0,
 )
@@ -82,6 +79,4 @@ ACTIVITY_CATALOG: Dict[str, ActivitySpec] = {
     SERVE_SPEC.serves_subject: SERVE_SPEC,
 }
 
-_SPEC_BY_TYPE: Dict[ActivityType, ActivitySpec] = {
-    spec.activity_type: spec for spec in ACTIVITY_CATALOG.values()
-}
+_SPEC_BY_TYPE: Dict[ActivityType, ActivitySpec] = {spec.activity_type: spec for spec in ACTIVITY_CATALOG.values()}

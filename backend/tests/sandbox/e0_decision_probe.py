@@ -9,7 +9,12 @@ Does NOT modify production code. DecisionHub wrapper is runner-level only:
   - only side effect: logs the result for analysis
   - restored after run
 """
-import json, sys, math, re, traceback
+
+import json
+import sys
+import math
+import re
+import traceback
 from pathlib import Path
 from datetime import datetime
 
@@ -48,8 +53,9 @@ def extract_npc_state(state):
 
     drives = getattr(state, "drives_runtime", None) or getattr(state, "drives", None)
     if isinstance(drives, dict):
-        r["drives"] = {k: round(float(v), 3) if isinstance(v, (int, float)) else str(v)[:50]
-                       for k, v in list(drives.items())[:10]}
+        r["drives"] = {
+            k: round(float(v), 3) if isinstance(v, (int, float)) else str(v)[:50] for k, v in list(drives.items())[:10]
+        }
     elif drives is not None:
         r["drives"] = str(drives)[:200]
     else:
@@ -71,8 +77,11 @@ def extract_npc_state(state):
     if isinstance(rel, dict):
         r["relationship_cache_count"] = len(rel)
         r["relationship_cache"] = {
-            target: {k: (round(float(v), 2) if isinstance(v, (int, float)) else str(v)[:30])
-                     for k, v in list(d.items())[:6]} if isinstance(d, dict) else str(d)[:80]
+            target: {
+                k: (round(float(v), 2) if isinstance(v, (int, float)) else str(v)[:30]) for k, v in list(d.items())[:6]
+            }
+            if isinstance(d, dict)
+            else str(d)[:80]
             for target, d in list(rel.items())[:5]
         }
     elif rel is not None:
@@ -115,7 +124,7 @@ def get_positions_and_distance(scene):
         tx = result["tavern_keeper_tornin"].get("x")
         ty = result["tavern_keeper_tornin"].get("y")
         if all(v is not None for v in [lx, ly, tx, ty]):
-            dist = round(math.sqrt((lx - tx)**2 + (ly - ty)**2), 2)
+            dist = round(math.sqrt((lx - tx) ** 2 + (ly - ty) ** 2), 2)
     except Exception:
         pass
     return result, dist
@@ -124,6 +133,7 @@ def get_positions_and_distance(scene):
 class DecisionHubCapture:
     """Runner-level wrapper. Calls original compute with same args, returns original result.
     Only side effect: logs the result. Does NOT modify args, result, order, or exceptions."""
+
     def __init__(self, original_compute):
         self.original = original_compute
         self.results = []
@@ -160,8 +170,10 @@ class DecisionHubCapture:
             return None
         try:
             if isinstance(trace, dict):
-                return {str(k): (round(float(v), 4) if isinstance(v, (int, float)) else str(v)[:40])
-                        for k, v in list(trace.items())[:15]}
+                return {
+                    str(k): (round(float(v), 4) if isinstance(v, (int, float)) else str(v)[:40])
+                    for k, v in list(trace.items())[:15]
+                }
             elif isinstance(trace, list):
                 return [str(x)[:80] for x in trace[:15]]
             else:
@@ -173,13 +185,20 @@ class DecisionHubCapture:
 def parse_log_for_decision_traces(log_text):
     """Parse [TRACE][DECISION_SCORE] and [DIAG_COMPONENTS] from run_log.txt"""
     traces = []
-    for m in re.finditer(r'\[TRACE\]\[DECISION_SCORE\]\s*npc=(\S+)\s+winner=(\S+)\s+top3=(\[.*?\])', log_text):
-        traces.append({"source": "TRACE_DECISION_SCORE", "npc": m.group(1),
-                       "winner": m.group(2), "top3": m.group(3)[:200]})
-    for m in re.finditer(r'\[DIAG_COMPONENTS\]\s*npc=(\S+)\s+intent=(\S+)\s+base=([\d.]+)\s*comps=(\{.*?\})', log_text):
-        traces.append({"source": "DIAG_COMPONENTS", "npc": m.group(1),
-                       "intent": m.group(2), "base": float(m.group(3)),
-                       "comps": m.group(4)[:300]})
+    for m in re.finditer(r"\[TRACE\]\[DECISION_SCORE\]\s*npc=(\S+)\s+winner=(\S+)\s+top3=(\[.*?\])", log_text):
+        traces.append(
+            {"source": "TRACE_DECISION_SCORE", "npc": m.group(1), "winner": m.group(2), "top3": m.group(3)[:200]}
+        )
+    for m in re.finditer(r"\[DIAG_COMPONENTS\]\s*npc=(\S+)\s+intent=(\S+)\s+base=([\d.]+)\s*comps=(\{.*?\})", log_text):
+        traces.append(
+            {
+                "source": "DIAG_COMPONENTS",
+                "npc": m.group(1),
+                "intent": m.group(2),
+                "base": float(m.group(3)),
+                "comps": m.group(4)[:300],
+            }
+        )
     return traces
 
 
@@ -210,6 +229,7 @@ def main():
         print(f"[E0-DECISION-PROBE] LLM URL: {url}")
 
         from tests.gameplay.harness import TavernGameplayHarness
+
         h = TavernGameplayHarness()
         h.new_game()
         raw_cid = h.campaign_id
@@ -233,8 +253,10 @@ def main():
             engine_found = True
             print(f"[E0-DECISION-PROBE] LifeEngine: {type(engine).__name__}")
             npc_states = engine.get_npc_states(cid)
-            print(f"[E0-DECISION-PROBE] npc_states type: {type(npc_states).__name__}, "
-                  f"len={len(npc_states) if hasattr(npc_states, '__len__') else '?'}")
+            print(
+                f"[E0-DECISION-PROBE] npc_states type: {type(npc_states).__name__}, "
+                f"len={len(npc_states) if hasattr(npc_states, '__len__') else '?'}"
+            )
             for nid in PAIR:
                 state = None
                 if isinstance(npc_states, dict):
@@ -243,9 +265,11 @@ def main():
                     state = next((s for s in npc_states if getattr(s, "npc_id", "") == nid), None)
                 npc_initial[nid] = extract_npc_state(state)
                 ns = npc_initial[nid]
-                print(f"[E0-DECISION-PROBE] {nid}: drives={ns.get('drives')}, "
-                      f"psyche={ns.get('psyche')}, will={ns.get('will_state')}, "
-                      f"stress={ns.get('stress')}, rel_count={ns.get('relationship_cache_count')}")
+                print(
+                    f"[E0-DECISION-PROBE] {nid}: drives={ns.get('drives')}, "
+                    f"psyche={ns.get('psyche')}, will={ns.get('will_state')}, "
+                    f"stress={ns.get('stress')}, rel_count={ns.get('relationship_cache_count')}"
+                )
         else:
             print("[E0-DECISION-PROBE] WARNING: LifeEngine not found")
 
@@ -256,16 +280,21 @@ def main():
             scene = gl.get_scene_state(cid) if hasattr(gl, "get_scene_state") else {}
         positions, dist = get_positions_and_distance(scene)
         positions_per_tick.append({"tick": 0, "positions": positions, "distance": dist})
-        print(f"[E0-DECISION-PROBE] Initial: Lusya={positions.get('maid_lusya')}, "
-              f"Tornin={positions.get('tavern_keeper_tornin')}, dist={dist}")
+        print(
+            f"[E0-DECISION-PROBE] Initial: Lusya={positions.get('maid_lusya')}, "
+            f"Tornin={positions.get('tavern_keeper_tornin')}, dist={dist}"
+        )
 
         # === Find DecisionHub ===
         tick_orch = tick_orch or getattr(gl, "_tick_orch", None)
         if tick_orch:
             print(f"[E0-DECISION-PROBE] TickOrch: {type(tick_orch).__name__}")
             to_attrs = [a for a in dir(tick_orch) if not a.startswith("__")]
-            to_interesting = [a for a in to_attrs if any(k in a.lower() for k in
-                ["decision", "npc", "pipeline", "hub", "compute", "phase"])]
+            to_interesting = [
+                a
+                for a in to_attrs
+                if any(k in a.lower() for k in ["decision", "npc", "pipeline", "hub", "compute", "phase"])
+            ]
             print(f"[E0-DECISION-PROBE] TickOrch attrs (filtered): {to_interesting[:20]}")
 
             dh, dh_name = find_attr(tick_orch, ["_decision_hub", "decision_hub", "_dh"])
@@ -276,8 +305,9 @@ def main():
                 if pipeline:
                     print(f"[E0-DECISION-PROBE] Pipeline: {type(pipeline).__name__} (attr={pnome})")
                     p_attrs = [a for a in dir(pipeline) if not a.startswith("__")]
-                    p_interesting = [a for a in p_attrs if any(k in a.lower() for k in
-                        ["decision", "hub", "dh", "compute"])]
+                    p_interesting = [
+                        a for a in p_attrs if any(k in a.lower() for k in ["decision", "hub", "dh", "compute"])
+                    ]
                     print(f"[E0-DECISION-PROBE] Pipeline attrs (filtered): {p_interesting[:15]}")
                     dh, dh_name = find_attr(pipeline, ["_decision_hub", "decision_hub", "_dh"])
                     if dh:
@@ -304,15 +334,21 @@ def main():
                     scene = gl.get_scene_state(cid) if hasattr(gl, "get_scene_state") else {}
                 positions, dist = get_positions_and_distance(scene)
                 status = res.get("status") if isinstance(res, dict) else str(res)[:50]
-                positions_per_tick.append({
-                    "tick": n, "positions": positions, "distance": dist,
-                    "status": status,
-                    "dh_calls_so_far": dh_capture.call_count if dh_capture else None,
-                })
+                positions_per_tick.append(
+                    {
+                        "tick": n,
+                        "positions": positions,
+                        "distance": dist,
+                        "status": status,
+                        "dh_calls_so_far": dh_capture.call_count if dh_capture else None,
+                    }
+                )
                 ticks_completed = n
                 in_range = "YES" if dist and dist <= SPEAK_RADIUS else "NO"
-                print(f"  T{n}: status={status}, dist={dist} (in_range={in_range}), "
-                      f"dh_calls={dh_capture.call_count if dh_capture else 'N/A'}")
+                print(
+                    f"  T{n}: status={status}, dist={dist} (in_range={in_range}), "
+                    f"dh_calls={dh_capture.call_count if dh_capture else 'N/A'}"
+                )
             except Exception as e:
                 print(f"  T{n} FAILED: {type(e).__name__}: {e}")
                 traceback.print_exc()
@@ -343,8 +379,10 @@ def main():
         sys.stderr = old_err
         log_file.close()
         print("[E0-DECISION-PROBE] Releasing LLM lease...")
-        try: release_lease()
-        except: pass
+        try:
+            release_lease()
+        except Exception:
+            pass
 
     # === POST-RUN ANALYSIS ===
     log_text = LOG_PATH.read_text(encoding="utf-8", errors="replace")
@@ -361,9 +399,15 @@ def main():
                 for k, v in st.items():
                     if "talk" in str(k).lower():
                         talk_in_wrapper = True
-                        talk_scores.append({"call": r["call_num"], "npc": r["npc_id"],
-                                            "event": r["event_reason"], "talk_score": v,
-                                            "winner": r["winner"]})
+                        talk_scores.append(
+                            {
+                                "call": r["call_num"],
+                                "npc": r["npc_id"],
+                                "event": r["event_reason"],
+                                "talk_score": v,
+                                "winner": r["winner"],
+                            }
+                        )
     for t in log_traces:
         blob = json.dumps(t, ensure_ascii=False)
         if "talk" in blob.lower():
@@ -418,13 +462,13 @@ def main():
 
     rp = OUT / "report.md"
     with open(rp, "w", encoding="utf-8") as f:
-        f.write(f"# E0-PILOT-3 Decision Probe Report\n\n")
+        f.write("# E0-PILOT-3 Decision Probe Report\n\n")
         f.write(f"Run: {RUN_ID} | {summary['timestamp']}\n")
         f.write(f"Campaign: {cid} | Ticks: {ticks_completed}/{N_TICKS}\n\n")
         if error:
             f.write(f"**ERROR:** {error}\n\n")
 
-        f.write(f"## 1. Runtime NPC psychology (initial)\n\n")
+        f.write("## 1. Runtime NPC psychology (initial)\n\n")
         for nid in PAIR:
             ns = npc_initial.get(nid, {})
             f.write(f"### {nid}\n")
@@ -439,19 +483,21 @@ def main():
             f.write(f"- relationship_cache: `{ns.get('relationship_cache')}`\n")
             f.write(f"- activity_state: `{ns.get('activity_state')}`\n\n")
 
-        f.write(f"## 2. Positions and distance\n\n")
+        f.write("## 2. Positions and distance\n\n")
         f.write(f"| Tick | Lusya | Tornin | Dist | In range (<= {SPEAK_RADIUS})? |\n")
-        f.write(f"|------|-------|--------|------|------|\n")
+        f.write("|------|-------|--------|------|------|\n")
         for pt in positions_per_tick:
             lus = pt["positions"].get("maid_lusya", {})
             tor = pt["positions"].get("tavern_keeper_tornin", {})
             d = pt["distance"]
-            f.write(f"| {pt['tick']} | {lus.get('node','?')}({lus.get('x')},{lus.get('y')}) | "
-                    f"{tor.get('node','?')}({tor.get('x')},{tor.get('y')}) | "
-                    f"{d} | {'YES' if d and d <= SPEAK_RADIUS else 'NO'} |\n")
+            f.write(
+                f"| {pt['tick']} | {lus.get('node', '?')}({lus.get('x')},{lus.get('y')}) | "
+                f"{tor.get('node', '?')}({tor.get('x')},{tor.get('y')}) | "
+                f"{d} | {'YES' if d and d <= SPEAK_RADIUS else 'NO'} |\n"
+            )
         f.write(f"\nLost proximity during run: **{lost_proximity}**\n\n")
 
-        f.write(f"## 3. DecisionHub\n\n")
+        f.write("## 3. DecisionHub\n\n")
         f.write(f"- Found: `{dh is not None}`\n")
         f.write(f"- Location: `{dh_location}`\n")
         f.write(f"- Wrapped (runner-level): `{dh_capture is not None}`\n")
@@ -459,36 +505,48 @@ def main():
         f.write(f"- compute() call count: `{dh_capture.call_count if dh_capture else 0}`\n\n")
 
         if dh_capture and dh_capture.results:
-            f.write(f"### DecisionHub calls (wrapper capture)\n\n")
-            f.write(f"| # | NPC | Event type | Reason | Winner | Score | Scores trace |\n")
-            f.write(f"|---|-----|-----------|--------|--------|-------|-------------|\n")
+            f.write("### DecisionHub calls (wrapper capture)\n\n")
+            f.write("| # | NPC | Event type | Reason | Winner | Score | Scores trace |\n")
+            f.write("|---|-----|-----------|--------|--------|-------|-------------|\n")
             for r in dh_capture.results:
-                f.write(f"| {r['call_num']} | {r['npc_id']} | {r['event_type']} | {r['event_reason']} | "
-                        f"**{r['winner']}** | {r['score']} | `{r['scores_trace']}` |\n")
-            f.write(f"\n")
+                f.write(
+                    f"| {r['call_num']} | {r['npc_id']} | {r['event_type']} | {r['event_reason']} | "
+                    f"**{r['winner']}** | {r['score']} | `{r['scores_trace']}` |\n"
+                )
+            f.write("\n")
 
         if log_traces:
-            f.write(f"### Log traces ([TRACE][DECISION_SCORE] / [DIAG_COMPONENTS])\n\n")
+            f.write("### Log traces ([TRACE][DECISION_SCORE] / [DIAG_COMPONENTS])\n\n")
             for t in log_traces[:15]:
                 f.write(f"- `{t}`\n")
-            f.write(f"\n")
+            f.write("\n")
         else:
-            f.write(f"### Log traces: **NONE found** — [TRACE][DECISION_SCORE] not printed (gated or DecisionHub not reached)\n\n")
+            f.write(
+                "### Log traces: **NONE found** — [TRACE][DECISION_SCORE] not printed (gated or DecisionHub not reached)\n\n"
+            )
 
-        f.write(f"## 4. TALK analysis\n\n")
+        f.write("## 4. TALK analysis\n\n")
         f.write(f"- TALK in wrapper candidates: `{talk_in_wrapper}`\n")
         f.write(f"- TALK in log traces: `{talk_in_log}`\n")
         f.write(f"- TALK scores: `{talk_scores}`\n")
         f.write(f"- **TALK status: {talk_status}**\n\n")
 
-        f.write(f"## 5. Verdict per conclusion\n\n")
+        f.write("## 5. Verdict per conclusion\n\n")
         v_runtime = "VERIFIED" if any(ns.get("drives") for ns in npc_initial.values()) else "UNVERIFIED"
-        v_dh_reached = "VERIFIED" if (dh_capture and dh_capture.call_count > 0) else ("UNVERIFIED" if not dh_capture else "PARTIALLY VERIFIED")
-        v_talk_candidate = "VERIFIED" if (talk_in_wrapper or talk_in_log) else ("UNVERIFIED" if not dh_capture else "PARTIALLY VERIFIED")
+        v_dh_reached = (
+            "VERIFIED"
+            if (dh_capture and dh_capture.call_count > 0)
+            else ("UNVERIFIED" if not dh_capture else "PARTIALLY VERIFIED")
+        )
+        v_talk_candidate = (
+            "VERIFIED"
+            if (talk_in_wrapper or talk_in_log)
+            else ("UNVERIFIED" if not dh_capture else "PARTIALLY VERIFIED")
+        )
         v_talk_blocked = "VERIFIED" if talk_status.startswith("BEFORE") else "NOT_APPLICABLE"
         v_proximity = "VERIFIED" if lost_proximity else ("PARTIALLY VERIFIED" if positions_per_tick else "UNVERIFIED")
 
-        f.write(f"| Conclusion | Status |\n|---|---|\n")
+        f.write("| Conclusion | Status |\n|---|---|\n")
         f.write(f"| Runtime psychology data exists (drives, psyche) | {v_runtime} |\n")
         f.write(f"| Execution reaches DecisionHub.compute | {v_dh_reached} |\n")
         f.write(f"| TALK appears among candidates | {v_talk_candidate} |\n")
@@ -505,7 +563,7 @@ def main():
             f.write(f"- relationship_cache_count: `{ns.get('relationship_cache_count')}`\n\n")
 
     # Console summary
-    print(f"[E0-DECISION-PROBE] DONE")
+    print("[E0-DECISION-PROBE] DONE")
     print(f"  Artifacts: {OUT}")
     print(f"  report.md: {rp}")
     print(f"  Ticks: {ticks_completed}/{N_TICKS}")

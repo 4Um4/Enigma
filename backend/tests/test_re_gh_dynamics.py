@@ -55,8 +55,7 @@ class TestTimeDriven:
             "relationship_state": {
                 "needs": {
                     "npc1": {
-                        "sexual": {"need_id": "sexual", "current_intensity": p,
-                                   "satiation": 0.0, "frustration": f},
+                        "sexual": {"need_id": "sexual", "current_intensity": p, "satiation": 0.0, "frustration": f},
                     }
                 }
             }

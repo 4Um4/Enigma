@@ -8,6 +8,7 @@ path: backend/tests/test_personality_rigidity.py
 
 Запуск: cd backend; python -m pytest tests/test_personality_rigidity.py -q --tb=line; cd ..
 """
+
 from app.models.npc_state import personality_from_legacy
 
 

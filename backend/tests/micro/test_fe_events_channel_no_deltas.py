@@ -51,12 +51,9 @@ def test_idle_tick_does_not_project_state_deltas() -> None:
         "significant_events (сырые StateDeltas) во фронт-канал (Rule 11)"
     )
     assert '"events": _idle_events' in body, (
-        "ADR-O-421: ожидается наблюдаемая проекция "
-        '"events": _idle_events в return idle_tick'
+        'ADR-O-421: ожидается наблюдаемая проекция "events": _idle_events в return idle_tick'
     )
-    assert "idle_event_projection" in body, (
-        "ADR-O-421: wiring проекции исчез из idle_tick (тихая регрессия)"
-    )
+    assert "idle_event_projection" in body, "ADR-O-421: wiring проекции исчез из idle_tick (тихая регрессия)"
 
 
 def test_routes_reads_aligned_events_key() -> None:

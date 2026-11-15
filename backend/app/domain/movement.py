@@ -6,6 +6,7 @@ path: backend/app/domain/movement.py
 
 - В будущем можно расширить до более сложной иерархии (например, MacroMovementIntent, LocalSteeringIntent), если потребуется более четкое разделение между разными типами перемещения.
 """
+
 from __future__ import annotations
 
 import enum
@@ -52,14 +53,12 @@ class MacroMovementGoal:
     # legacy B1.5 string-based path. Заполненный intent_type = новый путь
     # через CommitmentArbiter (единый verdict).
     intent_type: str = ""
-    domain: IntentDomain = (
-        IntentDomain.ROUTINE
-    )  # ДОЛГ 4.3: Онтологический домен намерения
+    domain: IntentDomain = IntentDomain.ROUTINE  # ДОЛГ 4.3: Онтологический домен намерения
     priority: float = 0.5  # 0.0–1.0, для разрешения конфликтов intent-ов
     target_local_xy: Optional[tuple[float, float]] = (
         None  # ADR-065: Точные координаты цели внутри узла (для подхода к игроку)
     )
-    intent_id: str = field(default_factory=lambda: str(uuid.uuid4())) # P1-09: Уникальный ID для трекинга
+    intent_id: str = field(default_factory=lambda: str(uuid.uuid4()))  # P1-09: Уникальный ID для трекинга
     # MOVEMENT-V2 (мандат Phase A): семантическая цель — «ГДЕ ХОЧУ ОКАЗАТЬСЯ».
     # Инвариант I-MV2: final_* НЕ мутируется навигацией (boundary/waypoint
     # перезаписывают только target_node_id). Пусто = цель совпадает с

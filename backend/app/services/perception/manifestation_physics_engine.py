@@ -39,9 +39,7 @@ class ManifestationPhysicsEngine:
         # 1. Извлекаем физиологию (Reality)
         pain = float(body_state.get("pain", 0.0)) if body_state else 0.0
         fatigue = float(body_state.get("fatigue", 0.0)) if body_state else 0.0
-        shock_impulse = (
-            float(body_state.get("shock_impulse", 0.0)) if body_state else 0.0
-        )
+        shock_impulse = float(body_state.get("shock_impulse", 0.0)) if body_state else 0.0
         _blood_loss = float(body_state.get("blood_loss", 0.0)) if body_state else 0.0
 
         # 2. Извлекаем психику (Reality)
@@ -59,28 +57,18 @@ class ManifestationPhysicsEngine:
         willpower = float(personality.get("willpower", 50.0)) / 100.0
 
         pk = npc_state.get("perceptual_kernel", {})
-        threat_gradient = (
-            float(pk.get("threat_gradient", 0.0)) if isinstance(pk, dict) else 0.0
-        )
-        aggression_inhibition = (
-            float(pk.get("aggression_inhibition", 0.0)) if isinstance(pk, dict) else 0.0
-        )
+        threat_gradient = float(pk.get("threat_gradient", 0.0)) if isinstance(pk, dict) else 0.0
+        aggression_inhibition = float(pk.get("aggression_inhibition", 0.0)) if isinstance(pk, dict) else 0.0
 
         # 3. Вычисляем ManifestationState (необратимое сжатие)
         return ManifestationState(
-            body=self._compute_body(
-                pain, shock_impulse, fatigue, stress, threat_gradient, willpower
-            ),
-            gaze=self._compute_gaze(
-                fear_of_player, threat_gradient, aggression_inhibition, traversal
-            ),
+            body=self._compute_body(pain, shock_impulse, fatigue, stress, threat_gradient, willpower),
+            gaze=self._compute_gaze(fear_of_player, threat_gradient, aggression_inhibition, traversal),
             voice=self._compute_voice(stress, fear_drive, shock_impulse, pain),
             breathing=self._compute_breathing(stress, pain, fear_drive, traversal),
             movement=self._compute_movement(traversal, fatigue, pain, shock_impulse),
             hands=self._compute_hands(threat_gradient, fear_drive, pain),
-            micro_expression=self._compute_micro_expression(
-                fear_drive, stress, pain, aggression_inhibition
-            ),
+            micro_expression=self._compute_micro_expression(fear_drive, stress, pain, aggression_inhibition),
         )
 
     def _compute_body(
@@ -93,9 +81,7 @@ class ManifestationPhysicsEngine:
         will: float,
     ) -> BodyManifestation:
         # muscle_tension: страх, агрессия, решимость
-        muscle_tension = min(
-            1.0, (threat * 0.5) + (stress / 100.0 * 0.4) + (pain / 100.0 * 0.3)
-        )
+        muscle_tension = min(1.0, (threat * 0.5) + (stress / 100.0 * 0.4) + (pain / 100.0 * 0.3))
         muscle_tension *= 1.0 - will * 0.2  # Воля подавляет внешние проявления
 
         # collapse: усталость, кровопотеря
@@ -129,9 +115,7 @@ class ManifestationPhysicsEngine:
             fixation_duration=0.0 if avoidance > 0.5 else 1.0,
         )
 
-    def _compute_voice(
-        self, stress: float, fear: float, shock: float, pain: float
-    ) -> VoiceManifestation:
+    def _compute_voice(self, stress: float, fear: float, shock: float, pain: float) -> VoiceManifestation:
         tremor = min(1.0, (stress / 100.0 * 0.4) + (fear * 0.3) + (pain / 100.0 * 0.2))
         pitch = 130.0 + (stress / 100.0 * 20.0) + (fear * 30.0)
 
@@ -151,9 +135,7 @@ class ManifestationPhysicsEngine:
 
         irregularity = min(1.0, (pain / 100.0 * 0.5) + (stress / 100.0 * 0.3))
 
-        return BreathingManifestation(
-            rate=rate, depth=min(1.0, 0.5 + (rate / 40.0)), irregularity=irregularity
-        )
+        return BreathingManifestation(rate=rate, depth=min(1.0, 0.5 + (rate / 40.0)), irregularity=irregularity)
 
     def _compute_movement(
         self, traversal: Dict[str, Any] | None, fatigue: float, pain: float, shock: float
@@ -162,9 +144,7 @@ class ManifestationPhysicsEngine:
             return MovementManifestation()
 
         speed = float(traversal.get("speed", 0.0))
-        coordination = max(
-            0.0, 1.0 - (fatigue / 100.0 * 0.4) - (pain / 100.0 * 0.3) - (shock * 0.3)
-        )
+        coordination = max(0.0, 1.0 - (fatigue / 100.0 * 0.4) - (pain / 100.0 * 0.3) - (shock * 0.3))
         tremor = min(1.0, (fatigue / 100.0 * 0.3) + (pain / 100.0 * 0.4))
 
         return MovementManifestation(
@@ -174,15 +154,11 @@ class ManifestationPhysicsEngine:
             precision=coordination,
         )
 
-    def _compute_hands(
-        self, threat: float, fear: float, pain: float
-    ) -> HandsManifestation:
+    def _compute_hands(self, threat: float, fear: float, pain: float) -> HandsManifestation:
         grip = min(1.0, (threat * 0.6) + (fear * 0.4))
         fidget = min(1.0, (fear * 0.5) + (pain / 100.0 * 0.2))
 
-        return HandsManifestation(
-            grip_strength=grip, fidget_intensity=fidget, gesture_active=False
-        )
+        return HandsManifestation(grip_strength=grip, fidget_intensity=fidget, gesture_active=False)
 
     def _compute_micro_expression(
         self, fear: float, stress: float, pain: float, inhib: float

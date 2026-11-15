@@ -1,7 +1,8 @@
-﻿"""
+"""
 path: /backend/tests/services/cognition/test_router_adapter.py
 Назначение: P5-B Step 3 — контракты RouterAdapter (ModelRouter → LLMClientProtocol).
 """
+
 from __future__ import annotations
 
 import threading
@@ -26,13 +27,15 @@ class _FakeRouter:
         system_prompt=None,
         priority: str = "canonical",
     ) -> str:
-        self.calls.append({
-            "agent_name": agent_name,
-            "prompt": prompt,
-            "params": params,
-            "system_prompt": system_prompt,
-            "priority": priority,
-        })
+        self.calls.append(
+            {
+                "agent_name": agent_name,
+                "prompt": prompt,
+                "params": params,
+                "system_prompt": system_prompt,
+                "priority": priority,
+            }
+        )
         return self._response
 
     def _abort_generation(self):
@@ -93,6 +96,7 @@ def test_adapter_works_without_abort_generation():
     class _MinimalRouter:
         def __init__(self):
             self.calls = 0
+
         def request_for_agent(self, agent_name, prompt, params=None, system_prompt=None, priority="canonical"):
             self.calls += 1
             return "YES"

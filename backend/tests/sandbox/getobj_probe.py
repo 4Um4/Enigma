@@ -1,5 +1,6 @@
 """S266: прямой вызов _get_object/WorldObjectStore.get на живой сцене —
 исключение? пустой subtree? возвращаемый None? Без логгеров-посредников."""
+
 import logging
 import os
 import shutil
@@ -13,8 +14,7 @@ sys.path.insert(0, ".")
 from app.core.config import settings
 
 _d = Path(tempfile.mkdtemp(prefix="gop_"))
-shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 settings.data_dir = str(_d)
 settings.saves_dir = tempfile.mkdtemp()
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
@@ -38,9 +38,12 @@ print("SSM wo:", len(sc.get("world_objects") or {}))
 # 2) WorldObjectStore.get на SSM-сцене
 try:
     obj = WorldObjectStore.get(sc, TARGET)
-    print("Store.get(SSM):", obj is not None,
-          getattr(obj, "state", "?") if obj else "-",
-          getattr(obj, "holder", "?") if obj else "-")
+    print(
+        "Store.get(SSM):",
+        obj is not None,
+        getattr(obj, "state", "?") if obj else "-",
+        getattr(obj, "holder", "?") if obj else "-",
+    )
 except Exception as ex:
     print("Store.get(SSM) EXCEPTION:", type(ex).__name__, ex)
     traceback.print_exc()
@@ -65,5 +68,4 @@ except Exception as ex:
 # 5) Ключ объекта: есть ли TARGET в subtree вообще?
 sub = sc.get("world_objects") or {}
 print("TARGET in SSM subtree:", TARGET in sub)
-print("Все food-ids:", [k for k, v in sub.items()
-      if isinstance(v, dict) and v.get("archetype") == "food_portion"][:8])
+print("Все food-ids:", [k for k, v in sub.items() if isinstance(v, dict) and v.get("archetype") == "food_portion"][:8])

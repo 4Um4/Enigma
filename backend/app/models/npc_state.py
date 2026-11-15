@@ -57,9 +57,7 @@ logger = logging.getLogger(__name__)
 # ADR-O-146: IMMUTABLE sentinel — dict() копия обязательна при присвоении.
 # Прямое присвоение _npc["body_state"] = BODY_STATE_DISABLED ЗАПРЕЩЕНО —
 # shared reference мутируется StateApplicator, заражая ВСЕХ NPC.
-BODY_STATE_DISABLED: Any = (
-    dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
-)
+BODY_STATE_DISABLED: Any = dict  # 陷阱 guard, используйте dict(BODY_STATE_DISABLED_DATA)
 BODY_STATE_DISABLED_DATA = {
     "disabled": True,
     "shock_impulse": 1.0,
@@ -70,7 +68,7 @@ BODY_STATE_DISABLED_DATA = {
     "fatigue": 100.0,
     # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
     "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
-    "arousal": 1.0,         # Физиологическое возбуждение (у отключенного тела максимум)
+    "arousal": 1.0,  # Физиологическое возбуждение (у отключенного тела максимум)
 }
 
 # Здоровое тело — инжектируется при New Game для NPC из static config.
@@ -94,7 +92,7 @@ BODY_STATE_HEALTHY = {
     "life_status": "ALIVE",
     # S188 ARCH-SLEEP Phase A: Непрерывные оси телесного режима
     "sleep_pressure": 0.0,  # Накопленная потребность сна (0.0-1.0)
-    "arousal": 0.0,         # Физиологическое возбуждение (покой = 0.0)
+    "arousal": 0.0,  # Физиологическое возбуждение (покой = 0.0)
 }
 
 
@@ -214,7 +212,9 @@ class EventMemory:
     known_by: Tuple[str, ...] = ()  # кто знает (immutable для frozen)
     hidden_from: Tuple[str, ...] = ()  # от кого скрыто (immutable для frozen)
     accessibility: float = 1.0  # 0..1, падает со временем отдельно от importance
-    secret_id: Optional[str] = None  # M1/P1+P2: идентичность ФАКТА канона (не экземпляра памяти); (npc_id, secret_id) = отношение «знает»; один факт живёт во многих памятях (holders/поколения/хроника)
+    secret_id: Optional[str] = (
+        None  # M1/P1+P2: идентичность ФАКТА канона (не экземпляра памяти); (npc_id, secret_id) = отношение «знает»; один факт живёт во многих памятях (holders/поколения/хроника)
+    )
 
     # Этап 6: контракты и обязательства
     fulfilled: bool = False  # обещание выполнено / долг погашен
@@ -238,9 +238,7 @@ class EventMemory:
         object.__setattr__(self, "clarity", max(0.0, min(1.0, self.clarity)))
         object.__setattr__(self, "confidence", max(0.0, min(1.0, self.confidence)))
         object.__setattr__(self, "decay_rate", max(0.0, min(1.0, self.decay_rate)))
-        object.__setattr__(
-            self, "accessibility", max(0.0, min(1.0, self.accessibility))
-        )
+        object.__setattr__(self, "accessibility", max(0.0, min(1.0, self.accessibility)))
 
     def decayed(self, game_days: float = 1.0, mode: str = "episodic") -> "EventMemory":
         """
@@ -263,13 +261,9 @@ class EventMemory:
         # Экспоненциальное затухание важности
         new_importance = self.importance * (_math.exp(-self.decay_rate * game_days))
         # Уверенность снижается медленнее — детали теряются постепенно
-        new_confidence = self.confidence * (
-            _math.exp(-self.decay_rate * 0.5 * game_days)
-        )
+        new_confidence = self.confidence * (_math.exp(-self.decay_rate * 0.5 * game_days))
         # Accessibility падает медленнее importance — вспомнить легче чем оценить значимость
-        new_accessibility = self.accessibility * (
-            _math.exp(-self.decay_rate * 0.3 * game_days)
-        )
+        new_accessibility = self.accessibility * (_math.exp(-self.decay_rate * 0.3 * game_days))
         new_stage = _resolve_stage(new_importance)
 
         return EventMemory(
@@ -315,14 +309,24 @@ class EventMemory:
         # в проде с рождения (замки тестировали фикстуры с ручными тегами).
         # Сшивка здесь, у потребителя: теггер каноничен для R8, не трогаем.
         _HOSTILE_ANY = (
-            "hostile", "theft", "vandalism", "combat",  # легаси-слова
-            "social:aggression", "social:physical_harm",
-            "social:intimidation", "social:property_harm",
-            "social:unknown_threat", "social:extreme_harm",
+            "hostile",
+            "theft",
+            "vandalism",
+            "combat",  # легаси-слова
+            "social:aggression",
+            "social:physical_harm",
+            "social:intimidation",
+            "social:property_harm",
+            "social:unknown_threat",
+            "social:extreme_harm",
         )
         _AFFILIATIVE_ANY = (
-            "gift", "trade", "alliance", "help",  # легаси-слова
-            "social:benevolence", "social:transaction",
+            "gift",
+            "trade",
+            "alliance",
+            "help",  # легаси-слова
+            "social:benevolence",
+            "social:transaction",
         )
         if any(tag in self.tags for tag in _HOSTILE_ANY):
             return ("resentment", round(self.importance * 0.1, 4))
@@ -615,17 +619,10 @@ class PerceptualKernel:
     somatic_urgency: float = 0.0  # (pain_norm + shock_norm) / 2.0
     # ADR-055: Attention Capture — прерывание когнитивной инерции бытовухи.
     # Не mind-control, а фокус внимания. DecisionHub решает, как реагировать.
-    recent_directive: Optional[Dict[str, Any]] = (
-        None  # {"source": str, "salience": float, "interrupts_routine": bool}
-    )
+    recent_directive: Optional[Dict[str, Any]] = None  # {"source": str, "salience": float, "interrupts_routine": bool}
 
     @staticmethod
-    def can_observe(
-        event: Any,
-        distance: float,
-        observer_id: str,
-        target_id: Optional[str] = None
-    ) -> bool:
+    def can_observe(event: Any, distance: float, observer_id: str, target_id: Optional[str] = None) -> bool:
         """Stage 1 Task 1.5: Event Visibility filter.
         Проверяет, может ли NPC воспринять событие.
         """
@@ -683,6 +680,7 @@ class NPCState:
 
     def __setattr__(self, name: str, value: Any) -> None:
         import sys
+
         _caller = sys._getframe(1).f_globals.get("__name__", "")
 
         for mod, fields in self._ALLOWED_WRITERS.items():
@@ -692,6 +690,7 @@ class NPCState:
                     return
 
         from app.errors import ArchitecturalViolationError
+
         raise ArchitecturalViolationError(name, _caller)
 
     npc_id: str
@@ -795,9 +794,7 @@ class NPCState:
     body_capabilities: BodyCapabilities = field(default_factory=BodyCapabilities)
     conditions: Dict[str, "Condition"] = field(default_factory=dict)
     wounds: List["Wound"] = field(default_factory=list)
-    threat_accumulator: "ThreatAccumulator" = field(
-        default_factory=lambda: ThreatAccumulator()
-    )
+    threat_accumulator: "ThreatAccumulator" = field(default_factory=lambda: ThreatAccumulator())
     posture: str = "standing"  # standing, staggered, prone
 
     @property
@@ -888,9 +885,7 @@ class NPCState:
                 # деградация при target=None) — отдельным шагом.
                 Intent.REQUEST_SERVICE,
             ):
-                raise ValueError(
-                    f"NPC {self.npc_id} has intent {self.intent.name} without target"
-                )
+                raise ValueError(f"NPC {self.npc_id} has intent {self.intent.name} without target")
 
     # ── Stage 1 Task 1.4: Causal Ledger API ────────────────────────────────
     def query_ledger(
@@ -914,6 +909,7 @@ class NPCState:
         Для полного замыкания (8 из 8) требуется интеграция с EventCompiler/MemoryManager.
         """
         from app.models.psychological import CausalChain
+
         # Пока ищем только саму дельту. Остальные шаги будут добавлены в Stage 1.
         _delta = None
         for entry in self.causal_ledger:
@@ -936,9 +932,7 @@ class NPCState:
 
     def get_top_narrative_facts(self, n: int = 2) -> Tuple[Any, ...]:
         """Top-N фактов по importance."""
-        return tuple(
-            sorted(self.narrative_cache, key=lambda f: f.importance, reverse=True)[:n]
-        )
+        return tuple(sorted(self.narrative_cache, key=lambda f: f.importance, reverse=True)[:n])
 
     def snapshot(self) -> Dict[str, Any]:
         """
@@ -1011,8 +1005,7 @@ class NPCState:
         # authority=CG-D-B1: персистенция обязательна (иначе каждый тик начинается
         # с accumulated=0.0 — гистерезис DecisionHub мёртв). Tuple-key → "from|to".
         npc_dict["pressure_accumulator"] = {
-            f"{_pk[0]}|{_pk[1]}": float(_pv)
-            for _pk, _pv in (state.pressure_accumulator or {}).items()
+            f"{_pk[0]}|{_pk[1]}": float(_pv) for _pk, _pv in (state.pressure_accumulator or {}).items()
         }
 
         # ADR-139: drives_runtime → npc_dict["drives"] (serialization mirror).
@@ -1042,9 +1035,7 @@ class NPCState:
         psyche["life_project"] = state.life_project
         psyche["life_project_state"] = state.life_project_state
         psyche["trauma_flags"] = (
-            list(state.trauma_markers)
-            if isinstance(state.trauma_markers, (set, list, tuple))
-            else []
+            list(state.trauma_markers) if isinstance(state.trauma_markers, (set, list, tuple)) else []
         )
         # Фаза A Шаг 8 (аудит P0 №3): beliefs не пережив границу тика, инерция
         # (0.70/0.75) работала с old=0 каждый тик. Сериализация: тип (значение
@@ -1104,9 +1095,7 @@ class NPCState:
 
         # causal_ledger — сериализация для God Mode и persistence
         if state.causal_ledger:
-            npc_dict["causal_ledger"] = [
-                entry.to_dict() for entry in state.causal_ledger
-            ]
+            npc_dict["causal_ledger"] = [entry.to_dict() for entry in state.causal_ledger]
 
         # body_state — ВСЯ физиология (pain, blood_loss, shock_impulse, injuries, statuses)
         # ADR-124 / Rule 44: Пишем ВСЕГДА когда body_state не None.
@@ -1253,7 +1242,9 @@ class NPCStateAdapter:
 
         # L2.7: LifeDirection — динамическая проекция L0.
         # P2: Обратная совместимость. Если нет life_project, берём старое life_direction или L0.
-        _life_project = psyche.get("life_project", psyche.get("life_direction", npc_dict.get("core_orientation", "survival")))
+        _life_project = psyche.get(
+            "life_project", psyche.get("life_direction", npc_dict.get("core_orientation", "survival"))
+        )
         _life_project_state = psyche.get("life_project_state", "ACTIVE")
 
         # [Этап A] Контракт applied_at_day: None = «никогда не накладывалась».
@@ -1281,9 +1272,7 @@ class NPCStateAdapter:
             # НЕ восстанавливаем из персистенса. SSOT = RelationshipStore.
             # Заполняется на этапе обогащения в tick_orchestrator / npc_tick_pipeline.
             relationship_cache={},
-            causal_ledger=[
-                CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])
-            ],
+            causal_ledger=[CausalEntry.from_dict(e) for e in npc_dict.get("causal_ledger", [])],
             # body_state — физиология (pain, blood_loss, shock_impulse, injuries, statuses)
             # Без этого state.body_state всегда пустой → StateApplicator пересоздаёт его каждый раз
             body_state=dict(npc_dict.get("body_state", {})),
@@ -1308,7 +1297,7 @@ class NPCStateAdapter:
             behavior_mask=BehaviorMaskState(
                 mask=BehaviorMask(psyche.get("behavior_mask", "none")),
                 intensity=float(psyche.get("behavior_mask_intensity", 0.0)),
-                applied_at_day=_mask_day
+                applied_at_day=_mask_day,
             ),
             emotion=_emotion_from_str(npc_dict.get("emotion", "neutral")),
             emotion_delta=float(npc_dict.get("emotion_delta", 0.0)),
@@ -1324,9 +1313,7 @@ class NPCStateAdapter:
             intent_target=npc_dict.get("intent_target") or None,
             intent_formed_at=int(npc_dict.get("intent_formed_at", 0) or 0),
             intent_duration=int(npc_dict.get("intent_duration", 0) or 0),
-            intent_progress_ticks=int(
-                npc_dict.get("intent_progress_ticks", 0) or 0
-            ),
+            intent_progress_ticks=int(npc_dict.get("intent_progress_ticks", 0) or 0),
             last_intent_change=int(npc_dict.get("last_intent_change", 0) or 0),
             # [A2/D-A02 / WARA §12.2] pressure_accumulator round-trip (см. writer
             # в to_persistence_dict). Десериализация "from|to"-ключа обратно в tuple.
@@ -1341,9 +1328,7 @@ class NPCStateAdapter:
             # COMBAT_CAPABLE_ROLES всегда видел пустую роль («пустая =
             # не блокируем») — 62 ambush Торнина за сессию.
             current_role=str(
-                npc_dict.get("current_role", "")
-                or (npc_dict.get("status_profile") or {}).get("title", "")
-                or ""
+                npc_dict.get("current_role", "") or (npc_dict.get("status_profile") or {}).get("title", "") or ""
             ),
         )
 

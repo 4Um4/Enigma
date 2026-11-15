@@ -38,13 +38,7 @@ from pathlib import Path
 
 GUARD = "_ue_l1_readiness"
 
-_SRC_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "app"
-    / "services"
-    / "game_loop"
-    / "npc_orchestration.py"
-)
+_SRC_PATH = Path(__file__).resolve().parents[3] / "app" / "services" / "game_loop" / "npc_orchestration.py"
 
 _SRC_CACHE = None
 
@@ -89,9 +83,7 @@ def test_gate_marker_unified():
 
 def test_suppression_warning_observable():
     """5: подавление фиксации наблюдаемо в консоли."""
-    assert "[UE-GATE-L1] L1-фиксация директивы подавлена" in _src(), (
-        "warning подавления исчез — молчаливое подавление"
-    )
+    assert "[UE-GATE-L1] L1-фиксация директивы подавлена" in _src(), "warning подавления исчез — молчаливое подавление"
 
 
 def test_commit_try_body_intact():
@@ -111,4 +103,3 @@ def test_guard_defaults_to_resolved():
     assert 'getattr(_ue_l1_params, "intent_readiness", "RESOLVED")' in _src(), (
         "дефолт RESOLVED потерян — контексты без readiness сломаются"
     )
-    

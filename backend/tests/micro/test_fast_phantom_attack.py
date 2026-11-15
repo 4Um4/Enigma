@@ -20,9 +20,7 @@ def _fast_attack_field(target="денег"):
     return IntentSemanticField(
         action=ActionType.ATTACK,
         raw_text="Эй! а денег дашь?",
-        proposition=Proposition(
-            subject_id="player", predicate=Predicate.ATTACKED, object_id=target
-        ),
+        proposition=Proposition(subject_id="player", predicate=Predicate.ATTACKED, object_id=target),
     )
 
 
@@ -34,9 +32,7 @@ class _FakeLLMClient:
             "action": "DIALOGUE",
             "speech_act": "question",
             "requested_outcome": "give money",
-            "semantic_acts": [
-                {"type": "QUESTION", "params": {"topic": "give money"}}
-            ],
+            "semantic_acts": [{"type": "QUESTION", "params": {"topic": "give money"}}],
         }
 
 
@@ -52,9 +48,7 @@ def test_phantom_attack_corrected_to_llm_class():
     fast = _fast_attack_field("денег")
     # нерезолвнутая сущность ("денег" не в npc_positions) → фантом-детект
     out = c._enrich(fast, {"action": "DIALOGUE"}, {"npc_positions": {}})
-    assert out.action != ActionType.ATTACK, (
-        f"RC2: фантомный ATTACK не скорректирован (action={out.action})"
-    )
+    assert out.action != ActionType.ATTACK, f"RC2: фантомный ATTACK не скорректирован (action={out.action})"
     assert out.proposition is None  # фантом снят
 
 
@@ -66,14 +60,10 @@ def test_real_attack_not_broken():
     fast = IntentSemanticField(
         action=ActionType.ATTACK,
         raw_text="ударить Горана",
-        proposition=Proposition(
-            subject_id="player", predicate=Predicate.ATTACKED, object_id="goran"
-        ),
+        proposition=Proposition(subject_id="player", predicate=Predicate.ATTACKED, object_id="goran"),
     )
     # "goran" резолвнут (в npc_positions) → пропозишн-ветка не срабатывает
-    out = c._enrich(
-        fast, {"action": "ATTACK"}, {"npc_positions": {"merchant_goran": {}}}
-    )
+    out = c._enrich(fast, {"action": "ATTACK"}, {"npc_positions": {"merchant_goran": {}}})
     assert out.action == ActionType.ATTACK
 
 

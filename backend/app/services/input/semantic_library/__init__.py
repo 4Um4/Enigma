@@ -50,10 +50,8 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
     while idx < len(lines) and not lines[idx].strip():
         idx += 1
     if idx >= len(lines) or not lines[idx].startswith(_MODULE_DECL_PREFIX):
-        raise SemanticLibraryError(
-            f"{source}: первая значащая строка обязана быть '{_MODULE_DECL_PREFIX}<name>'"
-        )
-    declared_name = lines[idx][len(_MODULE_DECL_PREFIX):].strip()
+        raise SemanticLibraryError(f"{source}: первая значащая строка обязана быть '{_MODULE_DECL_PREFIX}<name>'")
+    declared_name = lines[idx][len(_MODULE_DECL_PREFIX) :].strip()
     if not declared_name:
         raise SemanticLibraryError(f"{source}: пустое имя модуля в декларации")
     idx += 1
@@ -73,7 +71,7 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
     for line in lines[idx:]:
         if line.startswith(_SECTION_PREFIX):
             _flush()
-            current = line[len(_SECTION_PREFIX):].strip()
+            current = line[len(_SECTION_PREFIX) :].strip()
             if current in sections:
                 raise SemanticLibraryError(f"{source}: дубликат секции '{current}'")
             buf = []
@@ -83,9 +81,7 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
             key, _, value = line[2:].partition(":")
             meta[key.strip()] = value.strip()
         elif line.strip():
-            raise SemanticLibraryError(
-                f"{source}: строка вне секций и метаданных: {line[:60]!r}"
-            )
+            raise SemanticLibraryError(f"{source}: строка вне секций и метаданных: {line[:60]!r}")
     _flush()
 
     missing = [s for s in _REQUIRED_SECTIONS if s not in sections]
@@ -93,9 +89,7 @@ def _parse_module(text: str, source: Path) -> SemanticModule:
         raise SemanticLibraryError(f"{source}: отсутствуют обязательные секции {missing}")
     unknown = set(sections) - _ALLOWED_SECTIONS
     if unknown:
-        raise SemanticLibraryError(
-            f"{source}: неизвестные секции {sorted(unknown)} (схема закрыта)"
-        )
+        raise SemanticLibraryError(f"{source}: неизвестные секции {sorted(unknown)} (схема закрыта)")
     return SemanticModule(
         name=declared_name,
         enum_tail=sections.get("enum-tail"),
@@ -112,9 +106,7 @@ def load_module(name: str, base_path: Optional[Union[str, Path]] = None) -> Sema
         raise SemanticLibraryError(f"модуль не найден: {path}")
     module = _parse_module(path.read_text(encoding="utf-8-sig"), path)
     if module.name != name:
-        raise SemanticLibraryError(
-            f"{path}: декларация '{module.name}' != имени файла '{name}'"
-        )
+        raise SemanticLibraryError(f"{path}: декларация '{module.name}' != имени файла '{name}'")
     return module
 
 

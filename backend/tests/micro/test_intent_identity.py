@@ -62,8 +62,7 @@ def test_replay_after_save_load_same_ids():
     assert scene_loaded["intent_ordinals"]["player"] == 2
     _, ord3_loaded = next_intent_identity(scene_loaded, "player", "attack")
 
-    assert ord3_full == ord3_loaded, \
-        f"Save/load broke ordinal: {ord3_full} != {ord3_loaded}"
+    assert ord3_full == ord3_loaded, f"Save/load broke ordinal: {ord3_full} != {ord3_loaded}"
 
 
 # ── Монотонность ────────────────────────────────────────────────────
@@ -119,8 +118,7 @@ def test_same_owner_different_actions_shared_ordinal():
     # IDs различаются (action в ID, ordinal в ID)
     id1 = intent_id_str(0, "player", "attack", ord1)
     id3 = intent_id_str(0, "player", "attack", ord3)
-    assert id1 != id3, \
-        "Same action different ordinal should produce different IDs"
+    assert id1 != id3, "Same action different ordinal should produce different IDs"
 
 
 # ── Восстановление счётчиков из сохранения ──────────────────────────

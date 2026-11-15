@@ -3,6 +3,7 @@
 Вычисляет linguistic_integrity для NPC (L2.5 проекция).
 Формула: willpower * class_factor * age_factor * identity_attachment
 """
+
 from __future__ import annotations
 
 from app.domain.memetic.voice_archetype import VoiceArchetype
@@ -26,12 +27,7 @@ class LinguisticIntegrityCalculator:
         class_factor = voice_archetype.class_factor  # 0..1, из архетипа
         age_factor = self._age_factor(npc_age)
 
-        integrity = (
-            willpower_norm
-            * class_factor
-            * age_factor
-            * identity_attachment
-        )
+        integrity = willpower_norm * class_factor * age_factor * identity_attachment
 
         return max(0.0, min(1.0, integrity))
 

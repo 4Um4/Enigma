@@ -34,7 +34,7 @@ _TRUST_SCALE: float = 100.0
 _UNKNOWN_SOURCE_TRUST: float = 50.0
 
 # ADR-O-360 (Phase C): прямая достоверность канала наблюдения.
-    # Калибруемый параметр, НЕ онтологическая константа: observation доминирует
+# Калибруемый параметр, НЕ онтологическая константа: observation доминирует
 # над testimony, но confidence ≠ truth (Invariant V), поэтому строго < 1.0.
 # Модуляция (освещение/дистанция/угол) — отдельными ADR.
 DIRECT_OBSERVATION_RELIABILITY: float = 0.9
@@ -60,9 +60,7 @@ class TrustBasedReliabilityProvider:
         self._store = relationship_store
         self._campaign_id = campaign_id
 
-    def get_reliability(
-        self, observer: str, source: str, context: Optional[dict] = None
-    ) -> float:
+    def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
         """
         Возвращает надёжность источника в диапазоне [-1.0, 1.0].
         0.0 = нейтрально (нет данных / нейтральный trust),

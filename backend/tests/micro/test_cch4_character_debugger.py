@@ -8,6 +8,7 @@ T-CCH-07 (вертикаль «звон кружки → avoidance») — жив
 содержит trace); здесь проверяем структурный доступ к causal_ledger через
 endpoint.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -34,6 +35,7 @@ from app.domain.chronicle import (
 
 
 # ── Fixture: изоляция глобального store ──────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def _reset_store_global():
@@ -80,13 +82,16 @@ def _make_store_with_canon(tmp_path: Path, npc_id: str = "test_npc") -> Chronicl
 
 class _FakeApp:
     """Минимальный FastAPI app mock с app.state.game_loop=None."""
+
     class _State:
         game_loop = None
+
     state = _State()
 
 
 class _FakeRequest:
     """Минимальный Request mock для get_game_loop."""
+
     app = _FakeApp()
 
 

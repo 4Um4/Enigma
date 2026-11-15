@@ -2,6 +2,7 @@
 map_editor/ui/property_builder.py
 Генерация содержимого панели свойств (PropertyPanel) в зависимости от выбранного объекта.
 """
+
 from data_manager import load_npc_visual_casting
 from sprite_registry import sprite_registry
 
@@ -141,19 +142,17 @@ class PropertyBuilder:
                             }
                         )
                     elif isinstance(value, (int, float)):
-                        items.append(
-                            {"type": "value", "label": label, "value": f"{value}"}
-                        )
+                        items.append({"type": "value", "label": label, "value": f"{value}"})
                     else:
-                        items.append(
-                            {"type": "value", "label": label, "value": str(value)}
-                        )
+                        items.append({"type": "value", "label": label, "value": str(value)})
 
         elif obj_type == "portal":
             p = next(
-                (o for o in loc.get("objects", [])
-                 if o.get("id") == obj_key
-                 and o.get("type") in ("door", "window", "door_transition", "gap", "hatch")),
+                (
+                    o
+                    for o in loc.get("objects", [])
+                    if o.get("id") == obj_key and o.get("type") in ("door", "window", "door_transition", "gap", "hatch")
+                ),
                 None,
             )
             if p:
@@ -234,9 +233,7 @@ class PropertyBuilder:
                 ]
 
         elif obj_type == "npc":
-            npc = next(
-                (n for n in loc.get("npcs", []) if n.get("ref_id") == obj_key), None
-            )
+            npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == obj_key), None)
             if npc:
                 npc_name = next(
                     (nn["name"] for nn in core._npc_list if nn["id"] == npc["ref_id"]),

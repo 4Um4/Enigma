@@ -35,12 +35,12 @@ ATTENTION_VISION_BLIND_MULT: float = 0.2
 # ── P3b (M4, вердикт Мастера): накопитель свидетельства ─────────────
 # E_{t+1} = clamp01(λ·E_t + e_t); e_t ∈ [−1, 1] — свидетельство ОДНОГО
 # наблюдения. Все значения калибруемые, не законы мира (§ENIGMA-001).
-ATTENTION_EVIDENCE_LAMBDA: float = 0.85       # забывание (Мастер: λ < 1)
-ATTENTION_EVIDENCE_RADIAL_W: float = 0.5      # вес радиального сближения
-ATTENTION_EVIDENCE_ALIGN_W: float = 0.35      # вес alignment (гейтится d*)
-ATTENTION_EVIDENCE_TURN_W: float = 0.3        # субъект повернулся ко мне
+ATTENTION_EVIDENCE_LAMBDA: float = 0.85  # забывание (Мастер: λ < 1)
+ATTENTION_EVIDENCE_RADIAL_W: float = 0.5  # вес радиального сближения
+ATTENTION_EVIDENCE_ALIGN_W: float = 0.35  # вес alignment (гейтится d*)
+ATTENTION_EVIDENCE_TURN_W: float = 0.3  # субъект повернулся ко мне
 ATTENTION_EVIDENCE_STILL_PENALTY: float = 0.15  # движение прекратилось
-ATTENTION_EVIDENCE_RADIAL_REF: float = 1.0    # нормировка скорости, м/тик
+ATTENTION_EVIDENCE_RADIAL_REF: float = 1.0  # нормировка скорости, м/тик
 ATTENTION_EVIDENCE_TURN_MIN_RAD: float = 0.2  # шумовой пол поворота, рад
 # Масштаб, на котором d* отличает «ко мне» от «мимо» (урок барсука:
 # d*=0.4 → «идёт ко мне», d*=3.8 → «проходит рядом» — Мастер §5).

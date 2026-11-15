@@ -38,10 +38,10 @@ from app.services.phases.decision import (  # noqa: E402
 )
 
 _PASS = "PASS"
-_FAIL_TARGET = "FAIL_TARGET"        # красный by design: будущая семантика отсутствует
+_FAIL_TARGET = "FAIL_TARGET"  # красный by design: будущая семантика отсутствует
 _FUTURE = "NOT_IMPLEMENTED_FUTURE"  # направляющий: канал не построен
-_FAIL = "FAIL"                      # регресс-щит: авария
-_INVALID = "INVALID"                # предусловие гарнеса нарушено — не целевой красный
+_FAIL = "FAIL"  # регресс-щит: авария
+_INVALID = "INVALID"  # предусловие гарнеса нарушено — не целевой красный
 
 # Фасад-классы FAKE_SUBMISSION (инвариант T1 не зависит от выбора механики)
 _INCONSISTENT = ("attack", "intimidate", "warn")
@@ -111,7 +111,8 @@ def _check_t1(rec_ctrl: Dict[str, Any], rec_treat: Dict[str, Any]) -> Dict[str, 
     if delta <= 0.0:
         return _mk("T1", _PASS, f"инвариант держится: ΔD={delta:+.4f}")
     return _mk(
-        "T1", _FAIL_TARGET,
+        "T1",
+        _FAIL_TARGET,
         f"маска УЛУЧИЛА позицию несовместимых: ΔD={delta:+.4f} "
         f"(D_ctrl={dc:+.4f} -> D_treat={dt:+.4f}). Зелёнеет при ЛЮБОЙ корректной "
         f"механике подавления (SPEC E-BM1 §2.6); текущая — знак-слепое умножение base.",
@@ -139,7 +140,8 @@ def _check_t2(fin_f0: Dict[str, Any]) -> Dict[str, str]:
     if i2 > i1 + 1e-9:
         return _mk("T2", _PASS, f"приверженность отвечает состоянию: {i1} -> {i2}")
     return _mk(
-        "T2", _FAIL_TARGET,
+        "T2",
+        _FAIL_TARGET,
         f"приверженность заморожена: fear 0.61->0.90, intensity {i1} -> {i2}. "
         f"Цель (SPEC §2.1, поправка №3): пересчёт из актуального состояния; "
         f"сегодня гейт обновления смотрит только на тип маски.",
@@ -150,18 +152,27 @@ def _future_stubs() -> List[Dict[str, str]]:
     """Направляющие контракты: каналы не построены; выводятся в отчёт, чтобы
     будущее решение имело готовую точку приёмки."""
     return [
-        _mk("T3", _FUTURE,
+        _mk(
+            "T3",
+            _FUTURE,
             "Контекстность: изменение наблюдаемости/угрозы меняет выбор, не только "
             "скор (flee-триада: наблюдаемость / цена разоблачения / цена отказа). "
-            "Зелёнеет при: стратегия предъявления читает observability."),
-        _mk("T4", _FUTURE,
+            "Зелёнеет при: стратегия предъявления читает observability.",
+        ),
+        _mk(
+            "T4",
+            _FUTURE,
             "Контрфактическая причинность (проверка H-PL): отмена скрытой цели или "
             "закрытие окна прекращает подготовку. Зелёнеет при: связке "
-            "цель->окно->действие (C'-композиция)."),
-        _mk("T5", _FUTURE,
+            "цель->окно->действие (C'-композиция).",
+        ),
+        _mk(
+            "T5",
+            _FUTURE,
             "Рефлекторный этаж COLLAPSE: прямая угроза при сломанной воле оставляет "
             "спасение возможным. Зелёнеет при: контракте рефлексов ниже воли "
-            "(COLLAPSE = состояние, не стратегия)."),
+            "(COLLAPSE = состояние, не стратегия).",
+        ),
     ]
 
 
@@ -173,17 +184,20 @@ def _check_shield(
     """Регресс-щит: этап A жив + граница состояние/стратегия не стёрта."""
     out: List[Dict[str, str]] = []
     fw = rec_f0.get("fake_writes")
-    out.append(_mk("R1", _PASS if fw == 0 else _FAIL,
-                   f"F0 контроль чист: fake_writes={fw} (ожидание 0)"))
+    out.append(_mk("R1", _PASS if fw == 0 else _FAIL, f"F0 контроль чист: fake_writes={fw} (ожидание 0)"))
     po = rec_f70.get("phase_origin_mask_writes")
-    out.append(_mk("R2", _PASS if po == 0 else _FAIL,
-                   f"ORDER-фикс этапа A жив: phase_origin={po} (ожидание 0)"))
+    out.append(_mk("R2", _PASS if po == 0 else _FAIL, f"ORDER-фикс этапа A жив: phase_origin={po} (ожидание 0)"))
     work = copy.deepcopy(fin_f0)
     caps = _phase_call_inplace(work, trust=50.0, fear=70.0)
     m = next((c.get("mask_after") for c in caps), None)
-    out.append(_mk("R3", _PASS if m in (None, "none") else _FAIL,
-                   f"разделение: страх+положительное доверие -> mask={m} (ожидание none; "
-                   f"подлинная симпатия — не стратегия притворства)"))
+    out.append(
+        _mk(
+            "R3",
+            _PASS if m in (None, "none") else _FAIL,
+            f"разделение: страх+положительное доверие -> mask={m} (ожидание none; "
+            f"подлинная симпатия — не стратегия притворства)",
+        )
+    )
     return out
 
 
@@ -207,8 +221,7 @@ def main() -> int:
     results.extend(_future_stubs())
 
     # Контур REGRESSION (зелёные гейты)
-    results.extend(_check_shield(
-        legs_rec["LEG-F0"], legs_rec["LEG-F70"], legs_fin["LEG-F0"]))
+    results.extend(_check_shield(legs_rec["LEG-F0"], legs_rec["LEG-F70"], legs_fin["LEG-F0"]))
 
     for r in results:
         _marks = {
@@ -228,11 +241,11 @@ def main() -> int:
     n_invalid = sum(1 for r in results if r["status"] == _INVALID)
 
     _REPORT.parent.mkdir(parents=True, exist_ok=True)
-    _REPORT.write_text(json.dumps(results, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
+    _REPORT.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"Итог: TARGET_RED={n_red} FUTURE={n_future} PASS={n_pass} "
-          f"FAIL={n_fail} INVALID={n_invalid} report={_REPORT}")
+    print(
+        f"Итог: TARGET_RED={n_red} FUTURE={n_future} PASS={n_pass} FAIL={n_fail} INVALID={n_invalid} report={_REPORT}"
+    )
     # exit != 0 только при провале регресс-щита или невалидности гарнеса:
     # целевой красный — регистрация уровня, не авария конвейера.
     return 1 if (n_fail or n_invalid) else 0

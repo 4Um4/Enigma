@@ -43,17 +43,18 @@ class SocialActionPayload(TypedDict, total=False):
     """S201: Канонический payload для SOCIAL_ACTION.
     Включает все семантические поля из расширенного IntentSemanticField (S199).
     """
-    action: str                   # ActionType (ATTACK, DIALOGUE, STEAL, etc.)
-    actor: str                    # npc_id или "player"
-    target: str                   # npc_id или object_id
-    speech_act: str               # SpeechAct enum value
-    social_intent: str            # SocialIntent enum value
+
+    action: str  # ActionType (ATTACK, DIALOGUE, STEAL, etc.)
+    actor: str  # npc_id или "player"
+    target: str  # npc_id или object_id
+    speech_act: str  # SpeechAct enum value
+    social_intent: str  # SocialIntent enum value
     proposition: Optional[Dict[str, Any]]  # Serialized Proposition
     physical_force: float
     emotional_charge: float
     social_pressure: float
-    visibility: str               # "public" / "private" / "whisper"
-    radius: float                # 0.0-20.0
+    visibility: str  # "public" / "private" / "whisper"
+    radius: float  # 0.0-20.0
 
 
 # ── EventDTO ──
@@ -98,9 +99,7 @@ class EventDTO:
             # event_tick, ordinal). Payload — DATA, не identity. ordinal=0
             # легален только для путей с доказанной кардинальностью 1
             # ((type, source, tick) → максимум одно событие).
-            _seed_str = f"{event_type}:{source}:{_final_ts}:{ordinal}".encode(
-                "utf-8"
-            )
+            _seed_str = f"{event_type}:{source}:{_final_ts}:{ordinal}".encode("utf-8")
             event_id = UUID(hex=hashlib.md5(_seed_str).hexdigest())
 
         return cls(
@@ -133,7 +132,7 @@ class EventDTO:
             payload=payload,
             visibility=_visibility,
             radius=_radius,
-            persistence_level="session"
+            persistence_level="session",
         )
 
 

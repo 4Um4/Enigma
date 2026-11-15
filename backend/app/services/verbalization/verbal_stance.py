@@ -15,9 +15,7 @@ path: backend/app/services/verbalization/verbal_stance.py
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-StanceType = Literal[
-    "угрожает", "давит", "изучает", "отмахивается", "подчиняется", "наблюдает", "отрешён"
-]
+StanceType = Literal["угрожает", "давит", "изучает", "отмахивается", "подчиняется", "наблюдает", "отрешён"]
 ToneType = Literal["агрессивный", "холодный", "нейтральный", "саркастичный", "испуганный", "напряжённый"]
 UrgencyLabel = Literal["фоновая", "умеренная", "высокая", "критическая"]
 

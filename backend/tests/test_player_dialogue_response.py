@@ -96,9 +96,7 @@ def test_explicit_player_dialogue_does_not_fabricate_reply_without_decision():
     )
     intents = []
 
-    _ensure_direct_player_reply(
-        state, _NPC_ID, SimpleNamespace(emotion="curious"), intents
-    )
+    _ensure_direct_player_reply(state, _NPC_ID, SimpleNamespace(emotion="curious"), intents)
 
     assert intents == []
 
@@ -139,12 +137,8 @@ def test_explicit_player_dialogue_normalizes_decision_created_reply():
     )
     intents = [existing_npc_to_npc, decision_reply]
 
-    _ensure_direct_player_reply(
-        state, _NPC_ID, SimpleNamespace(emotion="curious"), intents
-    )
-    _ensure_direct_player_reply(
-        state, _NPC_ID, SimpleNamespace(emotion="curious"), intents
-    )
+    _ensure_direct_player_reply(state, _NPC_ID, SimpleNamespace(emotion="curious"), intents)
+    _ensure_direct_player_reply(state, _NPC_ID, SimpleNamespace(emotion="curious"), intents)
 
     assert len(intents) == 2
     assert intents[0] is existing_npc_to_npc
@@ -165,9 +159,7 @@ def test_explicit_player_dialogue_normalizes_decision_created_reply():
         ("player_interacts", "maid_lusya", "DIALOGUE"),
     ],
 )
-def test_nonverbal_idle_or_other_target_does_not_create_reply(
-    event_type, target_id, semantic_action
-):
+def test_nonverbal_idle_or_other_target_does_not_create_reply(event_type, target_id, semantic_action):
     state = SimpleNamespace(
         hub_event=_event(
             event_type=event_type,
@@ -223,9 +215,7 @@ def test_direct_reply_is_exposed_as_named_ui_reaction():
         [{"npc_id": _NPC_ID, "name": "Торнин Серебряная Луна"}],
     )
 
-    assert dm_result["npc_reactions"] == [
-        "Торнин Серебряная Луна: Я тебя слушаю."
-    ]
+    assert dm_result["npc_reactions"] == ["Торнин Серебряная Луна: Я тебя слушаю."]
 
 
 @pytest.mark.parametrize(
@@ -236,9 +226,7 @@ def test_direct_reply_is_exposed_as_named_ui_reaction():
         ("   \n\t", 0),
     ],
 )
-def test_player_reply_is_materialized_and_delivered_to_player(
-    monkeypatch, reply_text, expected_count
-):
+def test_player_reply_is_materialized_and_delivered_to_player(monkeypatch, reply_text, expected_count):
     class EventBus:
         def __init__(self):
             self.events = []

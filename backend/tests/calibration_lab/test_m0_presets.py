@@ -11,6 +11,7 @@ path: backend/tests/calibration_lab/test_m0_presets.py
 
 Запуск: cd backend; python -m pytest tests/calibration_lab  -q --tb=line; cd .
 """
+
 import types
 from pathlib import Path
 
@@ -75,16 +76,12 @@ class TestPresetValidator:
         return f
 
     def test_unknown_constant_rejected(self, tmp_path: Path) -> None:
-        f = self._write(
-            tmp_path, "meta:\n  preset_id: x\nconstants:\n  SCORE_NOISE_RANGE_X: 0.1\n"
-        )
+        f = self._write(tmp_path, "meta:\n  preset_id: x\nconstants:\n  SCORE_NOISE_RANGE_X: 0.1\n")
         with pytest.raises(CalibrationPresetError, match="нет в app.core.constants"):
             load_preset(f)
 
     def test_plan_param_rejected_with_distinct_message(self, tmp_path: Path) -> None:
-        f = self._write(
-            tmp_path, "meta:\n  preset_id: x\nconstants:\n  forgiveness_rate: 0.8\n"
-        )
+        f = self._write(tmp_path, "meta:\n  preset_id: x\nconstants:\n  forgiveness_rate: 0.8\n")
         with pytest.raises(CalibrationPresetError, match="ЗАПЛАНИРОВАН"):
             load_preset(f)
 
@@ -98,9 +95,7 @@ class TestPresetValidator:
         with pytest.raises(CalibrationPresetError, match="ADR-O-360"):
             load_preset(f)
 
-    def test_direct_observation_reliability_valid_with_fake_module(
-        self, tmp_path: Path
-    ) -> None:
+    def test_direct_observation_reliability_valid_with_fake_module(self, tmp_path: Path) -> None:
         fake = types.ModuleType("fake_constants")
         fake.DIRECT_OBSERVATION_RELIABILITY = 0.9
         f = self._write(
@@ -113,8 +108,7 @@ class TestPresetValidator:
     def test_identity_rigidity_out_of_range_rejected(self, tmp_path: Path) -> None:
         f = self._write(
             tmp_path,
-            "meta:\n  preset_id: x\nnpc_overrides:\n  \"*\":\n    psyche:\n"
-            "      identity_rigidity: 1.5\n",
+            'meta:\n  preset_id: x\nnpc_overrides:\n  "*":\n    psyche:\n      identity_rigidity: 1.5\n',
         )
         with pytest.raises(CalibrationPresetError, match="вне диапазона"):
             load_preset(f)
@@ -122,8 +116,7 @@ class TestPresetValidator:
     def test_unknown_psyche_key_rejected(self, tmp_path: Path) -> None:
         f = self._write(
             tmp_path,
-            "meta:\n  preset_id: x\nnpc_overrides:\n  \"*\":\n    psyche:\n"
-            "      identity_rigidty: 0.5\n",
+            'meta:\n  preset_id: x\nnpc_overrides:\n  "*":\n    psyche:\n      identity_rigidty: 0.5\n',
         )
         with pytest.raises(CalibrationPresetError, match="не поддержан"):
             load_preset(f)
@@ -131,7 +124,7 @@ class TestPresetValidator:
     def test_drives_must_sum_to_one(self, tmp_path: Path) -> None:
         f = self._write(
             tmp_path,
-            "meta:\n  preset_id: x\nnpc_overrides:\n  \"*\":\n    drives:\n"
+            'meta:\n  preset_id: x\nnpc_overrides:\n  "*":\n    drives:\n'
             "      control: 0.4\n      significance: 0.2\n      fear: 0.2\n"
             "      desire: 0.1\n",
         )
@@ -141,7 +134,7 @@ class TestPresetValidator:
     def test_valid_drives_accepted(self, tmp_path: Path) -> None:
         f = self._write(
             tmp_path,
-            "meta:\n  preset_id: x\nnpc_overrides:\n  \"*\":\n    drives:\n"
+            'meta:\n  preset_id: x\nnpc_overrides:\n  "*":\n    drives:\n'
             "      control: 0.25\n      significance: 0.25\n      fear: 0.25\n"
             "      desire: 0.25\n",
         )
@@ -160,7 +153,7 @@ class TestPresetValidator:
             load_preset(f)
 
     def test_empty_override_rejected(self, tmp_path: Path) -> None:
-        f = self._write(tmp_path, "meta:\n  preset_id: x\nnpc_overrides:\n  \"*\": {}\n")
+        f = self._write(tmp_path, 'meta:\n  preset_id: x\nnpc_overrides:\n  "*": {}\n')
         with pytest.raises(CalibrationPresetError, match="пустой оверрайд"):
             load_preset(f)
 

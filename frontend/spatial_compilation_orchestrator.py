@@ -87,6 +87,7 @@ class SpatialCompilationOrchestrator:
             if str(backend_path) not in sys.path:
                 sys.path.insert(0, str(backend_path))
             import importlib
+
             SpatialRegistry = importlib.import_module("app.services.spatial.spatial_registry").SpatialRegistry
         except ImportError:
             # Fallback — minimal frontend-only registry
@@ -134,25 +135,12 @@ class SpatialCompilationOrchestrator:
             project_root = Path(".")
 
         candidate = (
-            project_root
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "compiled"
-            / "spatial_registry.json"
+            project_root / "frontend" / "map_editor" / "campaigns" / campaign_id / "compiled" / "spatial_registry.json"
         )
         if candidate.exists():
             return candidate
 
-        candidate2 = (
-            project_root
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "compiled"
-            / "spatial_registry.json"
-        )
+        candidate2 = project_root / "map_editor" / "campaigns" / campaign_id / "compiled" / "spatial_registry.json"
         if candidate2.exists():
             return candidate2
 
@@ -184,10 +172,7 @@ class _MinimalFrontendRegistry:
             origin_y = float(chunk.get("origin_y", 0))
             width = float(chunk.get("width", 0))
             height = float(chunk.get("height", 0))
-            if (
-                origin_x <= world_x <= origin_x + width
-                and origin_y <= world_y <= origin_y + height
-            ):
+            if origin_x <= world_x <= origin_x + width and origin_y <= world_y <= origin_y + height:
                 result.append(chunk)
         return result
 

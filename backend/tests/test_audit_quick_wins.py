@@ -2,6 +2,7 @@
 """REGRESSION :: аудит v0.5.3.9.0, пакет быстрых побед (№1-5, 11, 15, 22).
 Запуск: python -X utf8 backend/tests/test_audit_quick_wins.py
 """
+
 import ast
 import inspect
 import re
@@ -47,16 +48,12 @@ def src(p):
 # ---------- T1 (№1): битый импорт удалён, request пробрасывается ----------
 def test_t1_reset_relationships():
     tree = ast.parse(src(RD))
-    mods = [
-        n.module
-        for n in ast.walk(tree)
-        if isinstance(n, ast.ImportFrom) and n.module
-    ]
+    mods = [n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module]
     assert not any(m.startswith("app.core.game_loop") for m in mods), mods
     fn = next(
-        n for n in ast.walk(tree)
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and n.name == "reset_campaign_relationships"
+        n
+        for n in ast.walk(tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "reset_campaign_relationships"
     )
     names = [a.arg for a in fn.args.args]
     assert "request" in names and "campaign_id" in names, names
@@ -67,6 +64,7 @@ def test_t2_contract_field():
     from dataclasses import fields
 
     from app.services.npc.npc_tick_contracts import NpcTickServices
+
     f = {x.name for x in fields(NpcTickServices)}
     assert "crystallized_belief_store" in f, f
     dummy = object()
@@ -84,6 +82,7 @@ def test_t3_wiring():
     assert len(re.findall(r"npc_services=_npc_svc", t)) == 2, "ожидается ровно 2 точки проброса"
     from app.services.tick_orchestrator import TickOrchestrator
     from app.services.world.time_skip_executor import TimeSkipExecutor
+
     assert "npc_services" in inspect.signature(TickOrchestrator.execute).parameters
     assert "npc_services" in inspect.signature(TimeSkipExecutor.skip).parameters
 
@@ -127,6 +126,7 @@ def test_t6_endpoint_functional():
 
         class L:  # memory_manager=None -> ветка честного {'status':'error'}
             memory_manager = None
+
         return L()
 
     orig = acc.get_game_loop
@@ -152,9 +152,7 @@ def _scale_inventory(path):
     tree = ast.parse(src(path))
     found = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and any(
-            isinstance(t, ast.Name) and t.id == "SCALE" for t in node.targets
-        ):
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "SCALE" for t in node.targets):
             found.append((node.lineno, "Assign", getattr(node.value, "value", "<сложное>")))
         elif isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "SCALE":
             v = getattr(node.value, "value", "<без значения>") if node.value else "<только аннотация>"

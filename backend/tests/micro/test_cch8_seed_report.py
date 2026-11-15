@@ -11,6 +11,7 @@
 8. регрессии затронутых тестов;
 9. (control) отчёт отражает фактический seed, а не повторяет фикстуру.
 """
+
 from __future__ import annotations
 
 from app.services.chronicle.chronicle_seeder import (
@@ -82,9 +83,10 @@ def test_3_canonical_gaps_vs_runtime_materialization_separation():
                 assert e.skip_reason is not None
             # NOT_APPLICABLE — kind вне seedable, structural может быть OK
             if e.seed_result == "NOT_APPLICABLE":
-                assert e.source_kind not in (
-                    "EVENT", "KNOWLEDGE_LINK", "RELATIONSHIP", "EFFECT", "BELIEF_SEED"
-                ) or e.source_kind == "EFFECT"
+                assert (
+                    e.source_kind not in ("EVENT", "KNOWLEDGE_LINK", "RELATIONSHIP", "EFFECT", "BELIEF_SEED")
+                    or e.source_kind == "EFFECT"
+                )
 
 
 def test_4_determinism_two_runs_identical():
@@ -108,6 +110,7 @@ def test_5_no_side_effect_no_game_loop_import():
     в модуле на верхнем уровне."""
     import app.services.chronicle.chronicle_seeder as seeder_mod
     import inspect
+
     src = inspect.getsource(seeder_mod)
     # Не должно импортировать mutators на топ-уровне
     forbidden_top = [
@@ -134,9 +137,7 @@ def test_7_existing_seeder_behavior_preserved():
     for npc_id in CANON_NPCS:
         full = build_full_seed(npc_id)
         assert full is not None
-        assert set(full.keys()) == {
-            "memories", "knowledge", "relationships", "imprints", "beliefs"
-        }
+        assert set(full.keys()) == {"memories", "knowledge", "relationships", "imprints", "beliefs"}
         assert isinstance(full["memories"], tuple)
         assert isinstance(full["knowledge"], tuple)
         assert isinstance(full["relationships"], dict)
@@ -175,14 +176,9 @@ def test_9_control_report_matches_actual_seed_not_fixture():
     r2 = build_seed_report(npc_id2)
     assert r2 is not None
     # Ищем trauma EFFECTs — они должны быть SKIPPED с reason
-    trauma_skipped = [
-        e for e in r2.entries
-        if e.source_kind == "EFFECT" and e.seed_result == "SKIPPED"
-    ]
+    trauma_skipped = [e for e in r2.entries if e.source_kind == "EFFECT" and e.seed_result == "SKIPPED"]
     # blacksmith_orm имеет 2 trauma без triggers (B4 audit)
-    assert len(trauma_skipped) >= 2, (
-        f"blacksmith_orm: expected >=2 trauma SKIPPED, got {len(trauma_skipped)}"
-    )
+    assert len(trauma_skipped) >= 2, f"blacksmith_orm: expected >=2 trauma SKIPPED, got {len(trauma_skipped)}"
     for te in trauma_skipped:
         assert te.skip_reason == "trauma without triggers", (
             f"{te.entry_id}: expected 'trauma without triggers', got '{te.skip_reason}'"

@@ -24,6 +24,7 @@ backend/app/services/economy/psycho_economy.py
 Зависимости: app.models.economy.NeedType
 Основные сущности: PsychoEconomy, DECAY_WEIGHTS
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -144,9 +145,7 @@ class PsychoEconomy:
         """
         control_effect = (self.profile.control - 0.25) * 1.5
         desire_effect = (self.profile.desire - 0.25) * -1.2
-        fear_effect = (
-            self.profile.fear - 0.25
-        ) * 0.5  # страх → накопление "на чёрный день"
+        fear_effect = (self.profile.fear - 0.25) * 0.5  # страх → накопление "на чёрный день"
 
         tendency = 0.5 + control_effect + desire_effect + fear_effect
         return max(0.0, min(1.0, tendency))
@@ -158,9 +157,7 @@ class PsychoEconomy:
         High desire + low fear → ищет риск
         """
         fear_effect = (self.profile.fear - 0.25) * -1.5
-        control_effect = (
-            self.profile.control - 0.25
-        ) * 0.5  # контроль → рассчитанный риск
+        control_effect = (self.profile.control - 0.25) * 0.5  # контроль → рассчитанный риск
         desire_effect = (self.profile.desire - 0.25) * 1.0
 
         tolerance = 0.5 + fear_effect + control_effect + desire_effect

@@ -10,6 +10,7 @@ path: /project/backend/tests/micro/test_idle_event_projection.py
     app.services.spatial.spatial_query_service
 Основные сущности: test_* (18 замков)
 """
+
 from __future__ import annotations
 
 import copy
@@ -95,10 +96,7 @@ def test_flag_default_on_and_overridable(monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_extractor_activity_outcome_ok_fail() -> None:
     assert iep._value_activity_outcome(_EAT_OK) == "eat:ok"
-    assert (
-        iep._value_activity_outcome({"activity_type": "eat", "success": False})
-        == "eat:fail"
-    )
+    assert iep._value_activity_outcome({"activity_type": "eat", "success": False}) == "eat:fail"
 
 
 def test_extractor_activity_outcome_fail_loud() -> None:
@@ -126,9 +124,7 @@ def test_membrane_near_far(monkeypatch: pytest.MonkeyPatch) -> None:
         [_evt("activity_outcome", payload=_EAT_OK)],
         _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(3.0, 0.0)}),
     )
-    assert [p.to_front() for p in near] == [
-        {"cause": "activity_outcome", "target": "npc_a", "value": "eat:ok"}
-    ]
+    assert [p.to_front() for p in near] == [{"cause": "activity_outcome", "target": "npc_a", "value": "eat:ok"}]
     far = iep.project_idle_events(
         [_evt("activity_outcome", payload=_EAT_OK)],
         _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(50.0, 0.0)}),
@@ -154,9 +150,7 @@ def test_whisper_addressee_player_perceives(monkeypatch: pytest.MonkeyPatch) -> 
         visibility="whisper",
     )
     out = iep.project_idle_events([evt], _scene({"npc_a": _pos(0.0, 0.0)}))
-    assert [p.to_front() for p in out] == [
-        {"cause": "theft", "target": "npc_a", "value": "player"}
-    ]
+    assert [p.to_front() for p in out] == [{"cause": "theft", "target": "npc_a", "value": "player"}]
 
 
 def test_whisper_other_addressee_not_player(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -177,9 +171,7 @@ def test_private_event_never_projected(monkeypatch: pytest.MonkeyPatch) -> None:
     """§17.3: private видит только источник; вплотную — всё равно нет."""
     monkeypatch.setattr(SpatialQueryService, "visibility", lambda s, a, b: True)
     evt = _evt("activity_outcome", payload=_EAT_OK, visibility="private")
-    out = iep.project_idle_events(
-        [evt], _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(1.0, 0.0)})
-    )
+    out = iep.project_idle_events([evt], _scene({"player": _pos(0.0, 0.0), "npc_a": _pos(1.0, 0.0)}))
     assert out == []
 
 

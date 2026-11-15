@@ -20,16 +20,22 @@ class TestP709CognitiveDissonance:
     @pytest.fixture
     def base_actions(self) -> list:
         return [
-            PlayerAction(action_id="act_1", tick=1, actor_id="player", action_type=ActionType.HELP, target_id="maid_lusya"),
-            PlayerAction(action_id="act_2", tick=2, actor_id="player", action_type=ActionType.ATTACK, target_id="merchant_goran"),
-            PlayerAction(action_id="act_3", tick=3, actor_id="player", action_type=ActionType.BLACKMAIL, target_id="guard_borko")
+            PlayerAction(
+                action_id="act_1", tick=1, actor_id="player", action_type=ActionType.HELP, target_id="maid_lusya"
+            ),
+            PlayerAction(
+                action_id="act_2", tick=2, actor_id="player", action_type=ActionType.ATTACK, target_id="merchant_goran"
+            ),
+            PlayerAction(
+                action_id="act_3", tick=3, actor_id="player", action_type=ActionType.BLACKMAIL, target_id="guard_borko"
+            ),
         ]
 
     def test_no_contradictions_in_consistent_actions(self, tracker):
         """Нет противоречий, если игрок последователен."""
         actions = [
             PlayerAction(action_id="a1", tick=1, actor_id="p", action_type=ActionType.HELP, target_id="npc1"),
-            PlayerAction(action_id="a2", tick=2, actor_id="p", action_type=ActionType.HELP, target_id="npc2")
+            PlayerAction(action_id="a2", tick=2, actor_id="p", action_type=ActionType.HELP, target_id="npc2"),
         ]
         contradictions = tracker.detect_contradictions(actions)
         assert len(contradictions) == 0
@@ -47,7 +53,7 @@ class TestP709CognitiveDissonance:
         """Повторный анализ тех же действий не создаёт дублей."""
         tracker.detect_contradictions(base_actions)
         initial_count = len(tracker.get_all_contradictions())
-        
+
         tracker.detect_contradictions(base_actions)
         assert len(tracker.get_all_contradictions()) == initial_count
 
@@ -55,7 +61,13 @@ class TestP709CognitiveDissonance:
         """3+ противоречий вызывают критический диссонанс."""
         # Добавим ещё одно действие для 3-го противоречия
         actions = base_actions + [
-            PlayerAction(action_id="act_4", tick=4, actor_id="player", action_type=ActionType.BRIBE, target_id="tavern_keeper_tornin")
+            PlayerAction(
+                action_id="act_4",
+                tick=4,
+                actor_id="player",
+                action_type=ActionType.BRIBE,
+                target_id="tavern_keeper_tornin",
+            )
         ]
         # HELP + ATTACK (0.8)
         # HELP + BLACKMAIL (0.7)
@@ -67,5 +79,8 @@ class TestP709CognitiveDissonance:
     def test_validation_emotional_weight(self):
         """Валидация веса противоречия."""
         from app.models.cognitive_dissonance import Contradiction
+
         with pytest.raises(ValueError):
-            Contradiction(contradiction_id="c1", action_a_id="a", action_b_id="b", description="d", emotional_weight=1.5)
+            Contradiction(
+                contradiction_id="c1", action_a_id="a", action_b_id="b", description="d", emotional_weight=1.5
+            )

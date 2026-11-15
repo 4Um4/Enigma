@@ -189,12 +189,9 @@ class TemporalEngine:
             "sim_tick": tick,
             "updated_at": datetime.now().isoformat(),  # §15.2: Persistence metadata
             # created_at пишется один раз при создании — не перезаписывается
-            "created_at": _existing.get("created_at")
-            or datetime.now().isoformat(),  # §15.2: Persistence metadata
+            "created_at": _existing.get("created_at") or datetime.now().isoformat(),  # §15.2: Persistence metadata
         }
         try:
-            path.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         except OSError as e:
             logger.error(f"[TEMPORAL_ENGINE] Ошибка сохранения tick: {e}")

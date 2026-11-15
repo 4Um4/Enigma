@@ -72,9 +72,7 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     # Бэкенд вычисляет структурное давление, Фронтенд генерирует кино.
 
     # Стабильность восприятия: чистота сенсорного потока (1.0 = идеальное зрение/слух)
-    perceptual_stability = max(
-        0.0, min(1.0, consciousness - (pain * 0.2) - (blood_loss * 0.3))
-    )
+    perceptual_stability = max(0.0, min(1.0, consciousness - (pain * 0.2) - (blood_loss * 0.3)))
 
     # Когнитивная когерентность: хватка за реальность (1.0 = полное понимание происходящего)
     cognitive_coherence = max(
@@ -86,14 +84,10 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     )
 
     # Сенсорный шум: галлюцинаторный/болевой фон
-    sensory_noise = max(
-        0.0, min(1.0, (pain * 0.4) + (blood_loss * 0.5) + ((1.0 - consciousness) * 0.6))
-    )
+    sensory_noise = max(0.0, min(1.0, (pain * 0.4) + (blood_loss * 0.5) + ((1.0 - consciousness) * 0.6)))
 
     # Моторное расстройство: тремор, замедление
-    motor_disruption = max(
-        0.0, min(1.0, (pain * 0.5) + (fatigue * 0.4) + ((1.0 - consciousness) * 0.8))
-    )
+    motor_disruption = max(0.0, min(1.0, (pain * 0.5) + (fatigue * 0.4) + ((1.0 - consciousness) * 0.8)))
 
     # Перцептивная задержка: время сборки реальности (шок, диссоциация)
     perceptual_latency = max(
@@ -102,9 +96,7 @@ def assemble_avatar_presentation(player_dict: Dict[str, Any]) -> AvatarStateDTO:
     )
 
     # Скорость возврата в норму (инерция восстановления сознания)
-    reality_reconciliation_rate = max(
-        0.05, min(1.0, willpower * 0.7 + (1.0 - fatigue) * 0.3)
-    )
+    reality_reconciliation_rate = max(0.05, min(1.0, willpower * 0.7 + (1.0 - fatigue) * 0.3))
 
     # Визуальные маркеры
     blood_visibility = min(1.0, blood_loss * 1.5)

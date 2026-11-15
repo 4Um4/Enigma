@@ -431,9 +431,7 @@ class SceneOutcomeBuilder:
             for npc in frame.focus_npcs:
                 # intent как описание: "observe" → "наблюдает осторожно"
                 intent_desc = INTENT_DESCRIPTIONS.get(
-                    npc.intent
-                    if isinstance(npc.intent, str)
-                    else getattr(npc.intent, "value", str(npc.intent)),
+                    npc.intent if isinstance(npc.intent, str) else getattr(npc.intent, "value", str(npc.intent)),
                     "наблюдает",
                 )
                 gender = getattr(npc, "gender", "male")
@@ -462,9 +460,7 @@ class SceneOutcomeBuilder:
                 # emotion с гендерным окончанием через pymorphy3
                 if npc.emotion:
                     emotion_key = (
-                        npc.emotion
-                        if isinstance(npc.emotion, str)
-                        else getattr(npc.emotion, "value", str(npc.emotion))
+                        npc.emotion if isinstance(npc.emotion, str) else getattr(npc.emotion, "value", str(npc.emotion))
                     )
                     emotion_base = EMOTION_DESCRIPTIONS.get(emotion_key, "")
                     if emotion_base:
@@ -484,15 +480,10 @@ class SceneOutcomeBuilder:
                 if npc.author_notes:
                     _npc_blocks.append(f"Инструкция: {npc.author_notes}")
                 if npc.memory_hints:
-                    _npc_blocks.append(
-                        "Воспоминания:\n"
-                        + "\n".join(f"- {m}" for m in npc.memory_hints)
-                    )
+                    _npc_blocks.append("Воспоминания:\n" + "\n".join(f"- {m}" for m in npc.memory_hints))
                 if _npc_blocks:
                     _npc_name = npc.name or npc.npc_id
-                    blocks.append(
-                        f"[{_npc_name} — характер и память]\n" + "\n".join(_npc_blocks)
-                    )
+                    blocks.append(f"[{_npc_name} — характер и память]\n" + "\n".join(_npc_blocks))
 
         # 2. Фоновые NPC — кратко
         if frame.background_npcs:
@@ -505,18 +496,13 @@ class SceneOutcomeBuilder:
 
         # 4. Изменения сцены
         if frame.scene_line:
-            blocks.append(
-                "Изменения в сцене:\n" + "\n".join(f"- {c}" for c in frame.scene_line)
-            )
+            blocks.append("Изменения в сцене:\n" + "\n".join(f"- {c}" for c in frame.scene_line))
 
         # Скрытое давление — только если критично
         critical_latent = [s for s in frame.hidden_pressure if s.intensity >= 0.7]
         if critical_latent:
             latent_lines = [f"- {s.description}" for s in critical_latent]
-            blocks.append(
-                "Скрытое давление (для стиля, не для прямого описания):\n"
-                + "\n".join(latent_lines)
-            )
+            blocks.append("Скрытое давление (для стиля, не для прямого описания):\n" + "\n".join(latent_lines))
 
         if not blocks:
             # Фоллбэк: пустой мир ≠ отсутствие контекста. LLM должна знать, что сцена спокойна.
@@ -608,11 +594,7 @@ class SceneOutcomeBuilder:
         voice_constraints = self._build_voice_constraints(npc_id, context, profile)
 
         # Symbolic Interpretation Layer: вывод психологии из наблюдаемых действий
-        _intent_str = (
-            decision.intent.value
-            if hasattr(decision.intent, "value")
-            else str(decision.intent)
-        )
+        _intent_str = decision.intent.value if hasattr(decision.intent, "value") else str(decision.intent)
         psychological = self._project_psychology(
             real_state if real_state is not None else {}, intent=_intent_str, emotion_tag=emotion
         )
@@ -640,35 +622,23 @@ class SceneOutcomeBuilder:
                 _hints = []
                 for _item in _raw_cache[:3]:  # top-3
                     _summary = (
-                        _item.get("summary", "")
-                        if isinstance(_item, dict)
-                        else getattr(_item, "summary", "")  # noqa: ENIGMA002
+                        _item.get("summary", "") if isinstance(_item, dict) else getattr(_item, "summary", "")  # noqa: ENIGMA002
                     )
                     _is_secret = (
-                        _item.get("is_secret", False)
-                        if isinstance(_item, dict)
-                        else getattr(_item, "is_secret", False)
+                        _item.get("is_secret", False) if isinstance(_item, dict) else getattr(_item, "is_secret", False)
                     )
                     # Фильтрация: если тайна скрыта от игрока — не показываем содержание
                     _hidden_from = (
-                        _item.get("hidden_from", [])
-                        if isinstance(_item, dict)
-                        else getattr(_item, "hidden_from", ())
+                        _item.get("hidden_from", []) if isinstance(_item, dict) else getattr(_item, "hidden_from", ())
                     )
                     if isinstance(_hidden_from, tuple):
                         _hidden_from = list(_hidden_from)
                     if _is_secret and "player" in _hidden_from:
                         # LLM знает что тайна есть, но не знает содержания
-                        _tags = (
-                            _item.get("tags", [])
-                            if isinstance(_item, dict)
-                            else getattr(_item, "tags", ())
-                        )
+                        _tags = _item.get("tags", []) if isinstance(_item, dict) else getattr(_item, "tags", ())
                         if isinstance(_tags, tuple):
                             _tags = list(_tags)
-                        _hint_tags = ", ".join(
-                            t for t in _tags[:2] if t not in ("secret",)
-                        )
+                        _hint_tags = ", ".join(t for t in _tags[:2] if t not in ("secret",))
                         _hints.append(
                             f"[СЕКРЕТ — НЕ РАСКРЫВАТЬ] У тебя есть тайна{_hint_tags and f' про {_hint_tags}' or ''}"
                         )
@@ -684,9 +654,7 @@ class SceneOutcomeBuilder:
             or (real_state.get("name") if isinstance(real_state, dict) else None)  # noqa: ENIGMA001
             or npc_id,
             description_snippet=_desc_snippet,
-            intent=decision.intent.value
-            if hasattr(decision.intent, "value")
-            else str(decision.intent),
+            intent=decision.intent.value if hasattr(decision.intent, "value") else str(decision.intent),
             emotion=emotion,
             gender=getattr(profile, "gender", "male") if profile else "male",
             salience=salience,
@@ -728,9 +696,7 @@ class SceneOutcomeBuilder:
         # 2. Emotional intensity (0-1)
         # Сумма абсолютных изменений стресса и страха
         emotional_raw = abs(deltas.stress_delta) + abs(deltas.fear_delta)
-        emotional_intensity = min(
-            1.0, emotional_raw / 0.5
-        )  # 0.5 суммарной дельты = максимум
+        emotional_intensity = min(1.0, emotional_raw / 0.5)  # 0.5 суммарной дельты = максимум
 
         # 3. Action relevance (0 или 1)
         # NPC направляет intent на игрока
@@ -741,11 +707,7 @@ class SceneOutcomeBuilder:
         is_major = 1.0 if tier == "major" else 0.0
 
         # 5. Target boost — игрок обратился к этому NPC
-        is_target = (
-            0.4
-            if context.player_target_id and npc_id == context.player_target_id
-            else 0.0
-        )
+        is_target = 0.4 if context.player_target_id and npc_id == context.player_target_id else 0.0
 
         # Взвешенная сумма
         salience = (
@@ -806,25 +768,14 @@ class SceneOutcomeBuilder:
             )
 
         # Вычисляем ET-компоненты (legacy)
-        raw_stress = sum(
-            abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta)
-            for d in decisions
-        )
-        raw_fear = sum(
-            abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta)
-            for d in decisions
-        )
+        raw_stress = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta) for d in decisions)
+        raw_fear = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta) for d in decisions)
         raw_sum = raw_stress + raw_fear
         _ET = min(TENSION_CAP, raw_sum / 0.5)
 
         # Trend (из ET — не зависит от ST/NE)
-        has_trauma = any(
-            LegacyStateDeltaAdapter.collapse(d.deltas).new_trauma for d in decisions
-        )
-        has_will_override = any(
-            LegacyStateDeltaAdapter.collapse(d.deltas).will_state_override
-            for d in decisions
-        )
+        has_trauma = any(LegacyStateDeltaAdapter.collapse(d.deltas).new_trauma for d in decisions)
+        has_will_override = any(LegacyStateDeltaAdapter.collapse(d.deltas).will_state_override for d in decisions)
 
         if has_trauma or has_will_override:
             trend = TensionTrend.SPIKE
@@ -902,11 +853,7 @@ class SceneOutcomeBuilder:
         seen: set[str] = set()
         for d in decisions:
             if d.narrative_fact:
-                fact_text = (
-                    d.narrative_fact
-                    if isinstance(d.narrative_fact, str)
-                    else str(d.narrative_fact)
-                )
+                fact_text = d.narrative_fact if isinstance(d.narrative_fact, str) else str(d.narrative_fact)
                 if fact_text and fact_text not in seen:
                     seen.add(fact_text)
                     changes.append(fact_text)

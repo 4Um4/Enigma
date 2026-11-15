@@ -36,10 +36,7 @@ def _axes(h, npc_id: str) -> dict:
         f"{sorted((h.inspect_npc(npc_id) or {}).keys())[:25]}"
     )
     _out = {k: float(_b[k]) for k in _b if isinstance(_b.get(k), (int, float))}
-    assert "hydration" in _out, (
-        f"GC09: ось hydration отсутствует в body_state {npc_id}: "
-        f"{sorted(_b.keys())}"
-    )
+    assert "hydration" in _out, f"GC09: ось hydration отсутствует в body_state {npc_id}: {sorted(_b.keys())}"
     return _out
 
 
@@ -77,9 +74,9 @@ def test_gc09a_body_writes_in_production_ticks(harness):
         # S2B.4 one-way: nutrition только теряется (медленнее воды)
         if _nut0 is not None and _nut1 is not None:
             assert _nut1 < _nut0, (
-                f"GC09-A FAIL ({_n}): nutrition не упала за 25 тиков "
-                f"({_nut0}→{_nut1}) — тот же suspect-контур"
+                f"GC09-A FAIL ({_n}): nutrition не упала за 25 тиков ({_nut0}→{_nut1}) — тот же suspect-контур"
             )
+
 
 def test_gc09b_body_exhaustion_blocks_intents(harness):
     """GC-09B-full R1-санация (S254/Мастер 2026-09-11): оригинальный GREEN
@@ -110,12 +107,14 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
 
     _state_A = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
     _personality = load_profile_from_legacy_json(_copy.deepcopy(_raw))
-    _drives = EffectiveDrives.from_dict(
-        {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
-    )
+    _drives = EffectiveDrives.from_dict({"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25})
     _event = EventContext(
-        event_type="social", actor_id="player", success=True,
-        intensity=1.0, distance=3.0, witness_count=2,
+        event_type="social",
+        actor_id="player",
+        success=True,
+        intensity=1.0,
+        distance=3.0,
+        witness_count=2,
     )
 
     _state_B = load_l2_state_from_runtime_dict(_copy.deepcopy(_raw))
@@ -123,7 +122,16 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
 
     _applicator = object.__new__(StateApplicator)
     _applicator._apply_physiology_deltas(
-        _state_B, 0.0, 0.0, +90.0, 0.0, [], [], [], 0.0, energy_delta=-90.0,
+        _state_B,
+        0.0,
+        0.0,
+        +90.0,
+        0.0,
+        [],
+        [],
+        [],
+        0.0,
+        energy_delta=-90.0,
     )
     _b_body = _state_B.body_state or {}
     assert _b_body.get("fatigue", 0.0) > 50.0, "GC09-B guard: мутация не применилась"
@@ -135,12 +143,18 @@ def test_gc09b_body_exhaustion_blocks_intents(harness):
 
     def _decide(st):
         _ctx = translate_kernel_to_context(
-            kernel=PerceptualKernel(), body_state=dict(st.body_state or {}),
-            social_input_ema=0.0, gregariousness=0.5, has_active_commitment=False,
+            kernel=PerceptualKernel(),
+            body_state=dict(st.body_state or {}),
+            social_input_ema=0.0,
+            gregariousness=0.5,
+            has_active_commitment=False,
         )
         return DecisionHub(seed=0).compute(  # R1: FRESH hub на каждый decide
-            state=st, personality=_personality, effective_drives=_drives,
-            event=_event, decision_ctx=_ctx,
+            state=st,
+            personality=_personality,
+            effective_drives=_drives,
+            event=_event,
+            decision_ctx=_ctx,
         )
 
     try:

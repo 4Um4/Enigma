@@ -57,10 +57,7 @@ def validate_location_top_level(data: dict, source: str) -> list[str]:
     координаты сама — файл без флага она прочтёт как мировые напрямую.
     """
     if not isinstance(data, dict):
-        return [
-            f"{source}: локация должна быть JSON-объектом, "
-            f"получен {type(data).__name__}"
-        ]
+        return [f"{source}: локация должна быть JSON-объектом, получен {type(data).__name__}"]
     errors: list[str] = []
     for key in _LOC_REQUIRED_KEYS:
         if key not in data:
@@ -86,10 +83,7 @@ def validate_location(data: dict, source: str) -> list[str]:
     from data_manager import _validate_location_objects  # цикл модулей — лениво
 
     if not isinstance(data, dict):
-        return [
-            f"{source}: локация должна быть JSON-объектом, "
-            f"получен {type(data).__name__}"
-        ]
+        return [f"{source}: локация должна быть JSON-объектом, получен {type(data).__name__}"]
     errors = validate_location_top_level(data, source)
     errors.extend(_check_origin_size(data, source))
     errors.extend(_check_spawn(data, source))
@@ -146,9 +140,7 @@ def _check_walls(data: dict, source: str) -> list[str]:
             continue
         wid = wall["id"]
         if not isinstance(wid, str) or not wid:
-            errors.append(
-                f"{source}: стена <index {idx}>: поле 'id' — непустая строка"
-            )
+            errors.append(f"{source}: стена <index {idx}>: поле 'id' — непустая строка")
             continue
         if wid in seen:
             errors.append(f"{source}: стена {wid}: дублирующийся id")
@@ -157,10 +149,7 @@ def _check_walls(data: dict, source: str) -> list[str]:
         for key in ("x1", "y1", "x2", "y2"):
             value = wall.get(key)
             if not _is_num(value):
-                errors.append(
-                    f"{source}: стена {wid}: поле '{key}' — число "
-                    f"(получено {type(value).__name__})"
-                )
+                errors.append(f"{source}: стена {wid}: поле '{key}' — число (получено {type(value).__name__})")
             else:
                 coords[key] = value
         if len(coords) == 4:
@@ -187,9 +176,7 @@ def _check_rooms(data: dict, source: str) -> list[str]:
             continue
         rid = room["id"]
         if not isinstance(rid, str) or not rid:
-            errors.append(
-                f"{source}: комната <index {idx}>: поле 'id' — непустая строка"
-            )
+            errors.append(f"{source}: комната <index {idx}>: поле 'id' — непустая строка")
             continue
         if rid in seen:
             errors.append(f"{source}: комната {rid}: дублирующийся id")
@@ -204,14 +191,8 @@ def _check_rooms(data: dict, source: str) -> list[str]:
             errors.append(f"{source}: комната {rid}: polygon — список из ≥3 точек")
         else:
             for pidx, point in enumerate(polygon):
-                if (
-                    not isinstance(point, (list, tuple))
-                    or len(point) != 2
-                    or not all(_is_num(c) for c in point)
-                ):
-                    errors.append(
-                        f"{source}: комната {rid}: polygon точка {pidx} — пара чисел"
-                    )
+                if not isinstance(point, (list, tuple)) or len(point) != 2 or not all(_is_num(c) for c in point):
+                    errors.append(f"{source}: комната {rid}: polygon точка {pidx} — пара чисел")
                     break
         if not _is_num(room.get("area_sqm")):
             errors.append(f"{source}: комната {rid}: поле 'area_sqm' — число")
@@ -244,11 +225,7 @@ def _check_nodes(data: dict, source: str) -> list[str]:
 def _check_npcs(data: dict, source: str) -> list[str]:
     """NPC: ref_id, позиция; room_id (если есть) обязан существовать."""
     errors: list[str] = []
-    room_ids = {
-        room.get("id")
-        for room in (data.get("rooms") or [])
-        if isinstance(room, dict)
-    }
+    room_ids = {room.get("id") for room in (data.get("rooms") or []) if isinstance(room, dict)}
     seen: set[str] = set()
     for idx, npc in enumerate(data.get("npcs") or []):
         if not isinstance(npc, dict):
@@ -259,26 +236,17 @@ def _check_npcs(data: dict, source: str) -> list[str]:
             continue
         ref = npc["ref_id"]
         if not isinstance(ref, str) or not ref:
-            errors.append(
-                f"{source}: npc <index {idx}>: поле 'ref_id' — непустая строка"
-            )
+            errors.append(f"{source}: npc <index {idx}>: поле 'ref_id' — непустая строка")
             continue
         if ref in seen:
             errors.append(f"{source}: npc {ref}: дублирующийся ref_id в локации")
         seen.add(ref)
         pos = npc.get("position")
-        if (
-            not isinstance(pos, dict)
-            or not _is_num(pos.get("x"))
-            or not _is_num(pos.get("y"))
-        ):
+        if not isinstance(pos, dict) or not _is_num(pos.get("x")) or not _is_num(pos.get("y")):
             errors.append(f"{source}: npc {ref}: position без числовых x/y")
         room_id = npc.get("room_id")
         if room_id is not None and room_id not in room_ids:
-            errors.append(
-                f"{source}: npc {ref}: room_id '{room_id}' ссылается на "
-                f"несуществующую комнату"
-            )
+            errors.append(f"{source}: npc {ref}: room_id '{room_id}' ссылается на несуществующую комнату")
     return errors
 
 
@@ -295,9 +263,7 @@ def _check_labels(data: dict, source: str) -> list[str]:
             continue
         lid = label["id"]
         if not isinstance(lid, str) or not lid:
-            errors.append(
-                f"{source}: надпись <index {idx}>: поле 'id' — непустая строка"
-            )
+            errors.append(f"{source}: надпись <index {idx}>: поле 'id' — непустая строка")
             continue
         if lid in seen:
             errors.append(f"{source}: надпись {lid}: дублирующийся id")
@@ -363,10 +329,7 @@ def _check_levels(data: dict, source: str) -> list[str]:
             continue
         lid = lvl.get("id")
         if not isinstance(lid, int) or isinstance(lid, bool):
-            errors.append(
-                f"{source}: levels[{idx}]: поле 'id' — целое "
-                f"(может быть отрицательным)"
-            )
+            errors.append(f"{source}: levels[{idx}]: поле 'id' — целое (может быть отрицательным)")
             continue
         if lid in seen_ids:
             errors.append(f"{source}: levels[{idx}]: дублирующийся id={lid}")
@@ -374,15 +337,10 @@ def _check_levels(data: dict, source: str) -> list[str]:
         level_ids.add(lid)
         label = lvl.get("label")
         if not isinstance(label, str) or not label:
-            errors.append(
-                f"{source}: levels[{idx}] (id={lid}): поле 'label' — непустая строка"
-            )
+            errors.append(f"{source}: levels[{idx}] (id={lid}): поле 'label' — непустая строка")
         elevation = lvl.get("elevation")
         if elevation is not None and not _is_num(elevation):
-            errors.append(
-                f"{source}: levels[{idx}] (id={lid}): "
-                f"поле 'elevation' — число (опционально)"
-            )
+            errors.append(f"{source}: levels[{idx}] (id={lid}): поле 'elevation' — число (опционально)")
 
     if level_ids:
         for entity_type in ("objects", "walls", "rooms", "npcs"):
@@ -394,15 +352,10 @@ def _check_levels(data: dict, source: str) -> list[str]:
                 if level is None:
                     continue
                 if not isinstance(level, int) or isinstance(level, bool):
-                    errors.append(
-                        f"{source}: {entity_type}[{idx}]: поле 'level' — целое"
-                    )
+                    errors.append(f"{source}: {entity_type}[{idx}]: поле 'level' — целое")
                     continue
                 if level not in level_ids:
-                    errors.append(
-                        f"{source}: {entity_type}[{idx}]: "
-                        f"level={level} не найден в levels[]"
-                    )
+                    errors.append(f"{source}: {entity_type}[{idx}]: level={level} не найден в levels[]")
         nodes = data.get("nodes") or {}
         for name, node in nodes.items():
             if not isinstance(node, dict):
@@ -414,9 +367,7 @@ def _check_levels(data: dict, source: str) -> list[str]:
                 errors.append(f"{source}: узел {name}: поле 'level' — целое")
                 continue
             if level not in level_ids:
-                errors.append(
-                    f"{source}: узел {name}: level={level} не найден в levels[]"
-                )
+                errors.append(f"{source}: узел {name}: level={level} не найден в levels[]")
     return errors
 
 
@@ -455,10 +406,7 @@ def _check_spatial_contract(data: dict, source: str) -> list[str]:
     gcs = data.get("grid_cell_size")
     if gcs is not None:
         if not _is_num(gcs) or gcs <= 0:
-            errors.append(
-                f"{source}: grid_cell_size — положительное число "
-                f"(получено {gcs!r})"
-            )
+            errors.append(f"{source}: grid_cell_size — положительное число (получено {gcs!r})")
 
     wb = data.get("world_boundary")
     if wb is not None:
@@ -468,8 +416,7 @@ def _check_spatial_contract(data: dict, source: str) -> list[str]:
             mode = wb.get("mode")
             if mode not in ("open", "hard", "transition"):
                 errors.append(
-                    f"{source}: world_boundary.mode — один из "
-                    f"'open', 'hard', 'transition' (получено {mode!r})"
+                    f"{source}: world_boundary.mode — один из 'open', 'hard', 'transition' (получено {mode!r})"
                 )
 
     for entity_type in ("objects", "walls", "rooms", "npcs"):
@@ -478,10 +425,7 @@ def _check_spatial_contract(data: dict, source: str) -> list[str]:
                 continue
             sref = ent.get("spatial_ref")
             if sref is not None and not isinstance(sref, str):
-                errors.append(
-                    f"{source}: {entity_type}[{idx}]: "
-                    f"spatial_ref — строка (получено {type(sref).__name__})"
-                )
+                errors.append(f"{source}: {entity_type}[{idx}]: spatial_ref — строка (получено {type(sref).__name__})")
 
     return errors
 
@@ -503,20 +447,13 @@ def validate_campaign_meta(data: object, source: str) -> dict:
     перезаписывается write-gate'ом. Категория 1 (AR-ME-3).
     """
     if not isinstance(data, dict):
-        raise ValueError(
-            f"{source}: campaign.json должен быть JSON-объектом, "
-            f"получен {type(data).__name__}"
-        )
+        raise ValueError(f"{source}: campaign.json должен быть JSON-объектом, получен {type(data).__name__}")
     missing = [k for k in _META_REQUIRED_KEYS if k not in data]
     if missing:
         raise ValueError(
-            f"{source}: campaign.json не является meta кампании — "
-            f"отсутствуют поля {missing} (похоже на тело локации?)"
+            f"{source}: campaign.json не является meta кампании — отсутствуют поля {missing} (похоже на тело локации?)"
         )
     for key in _META_REQUIRED_KEYS:
         if not isinstance(data[key], str):
-            raise ValueError(
-                f"{source}: поле '{key}' должно быть строкой, "
-                f"получен {type(data[key]).__name__}"
-            )
+            raise ValueError(f"{source}: поле '{key}' должно быть строкой, получен {type(data[key]).__name__}")
     return data

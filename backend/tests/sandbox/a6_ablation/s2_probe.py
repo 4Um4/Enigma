@@ -3,6 +3,7 @@
 SCOPE (variant C): hunger and affection do not accept allies parameter.
 They are NOT wrapped — pass through unchanged, no side effect.
 """
+
 from contextlib import contextmanager
 from typing import Dict, List, NamedTuple, Optional
 
@@ -11,7 +12,7 @@ from app.services.npc.causal_slice_grievance import GrievanceDesiredChangeProduc
 
 
 _PRODUCER_TAGS = (
-    (ThreatDesiredChangeProducer,    "threat"),
+    (ThreatDesiredChangeProducer, "threat"),
     (GrievanceDesiredChangeProducer, "grievance"),
 )
 
@@ -40,14 +41,17 @@ def probe_producer_calls():
             tick_id = getattr(kwargs.get("state"), "tick_id", None)
             allies = kwargs.get("allies", 0)
             weights = dict(result.method_weights) if result is not None else {}
-            captured.append(ProducerCall(
-                tag=tag_name,
-                npc_id=npc_id,
-                tick_id=tick_id,
-                allies=int(allies),
-                method_weights=weights,
-            ))
+            captured.append(
+                ProducerCall(
+                    tag=tag_name,
+                    npc_id=npc_id,
+                    tick_id=tick_id,
+                    allies=int(allies),
+                    method_weights=weights,
+                )
+            )
             return result
+
         return _wrapper
 
     try:

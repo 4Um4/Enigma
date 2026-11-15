@@ -4,6 +4,7 @@
   08_semantic_report.md — таблица «пункт → LLM items → вердикт → ошибки»
   08_semantic_report.json — машина-читаемая версия
 """
+
 from __future__ import annotations
 
 import json
@@ -128,11 +129,15 @@ def semantic_verdict(point_n: int, text: str, items: List[Dict[str, Any]]) -> Di
             if isinstance(v, str):
                 payload_words.update(v.lower().split())
 
-    text_words = set(text_lower.split())
+    set(text_lower.split())
     # Не делаем жёсткую проверку — она даёт много false positive
 
     verdict = "OK" if not issues else "ISSUES"
-    return {"verdict": verdict, "issues": issues, "severity": "HIGH" if any("ZERO" in i or "выдум" in i for i in issues) else "MID" if issues else "LOW"}
+    return {
+        "verdict": verdict,
+        "issues": issues,
+        "severity": "HIGH" if any("ZERO" in i or "выдум" in i for i in issues) else "MID" if issues else "LOW",
+    }
 
 
 def build_report(npc_id: str) -> Dict[str, Any]:
@@ -164,26 +169,28 @@ def build_report(npc_id: str) -> Dict[str, Any]:
         else:
             verdict_data = semantic_verdict(n, text, items)
 
-        per_point.append({
-            "point_n": n,
-            "frag_ord": frag_ord,
-            "text_preview": text[:200],
-            "text_full_chars": len(text),
-            "items_count": len(items),
-            "items": [
-                {
-                    "kind": it.get("kind"),
-                    "payload_keys": list(it.get("draft_payload", {}).keys()),
-                    "confidence": it.get("confidence"),
-                    "needs_confirmation": it.get("needs_confirmation"),
-                    "has_question": it.get("question") is not None,
-                }
-                for it in items
-            ],
-            "verdict": verdict_data["verdict"],
-            "issues": verdict_data["issues"],
-            "severity": verdict_data["severity"],
-        })
+        per_point.append(
+            {
+                "point_n": n,
+                "frag_ord": frag_ord,
+                "text_preview": text[:200],
+                "text_full_chars": len(text),
+                "items_count": len(items),
+                "items": [
+                    {
+                        "kind": it.get("kind"),
+                        "payload_keys": list(it.get("draft_payload", {}).keys()),
+                        "confidence": it.get("confidence"),
+                        "needs_confirmation": it.get("needs_confirmation"),
+                        "has_question": it.get("question") is not None,
+                    }
+                    for it in items
+                ],
+                "verdict": verdict_data["verdict"],
+                "issues": verdict_data["issues"],
+                "severity": verdict_data["severity"],
+            }
+        )
 
     # Анализ draft
     draft_entries = draft.get("document", {}).get("entries", [])
@@ -225,27 +232,29 @@ def build_report(npc_id: str) -> Dict[str, Any]:
     # Markdown
     md = [
         f"# Semantic audit: {npc_id}",
-        f"",
-        f"## Draft summary",
-        f"",
+        "",
+        "## Draft summary",
+        "",
         f"- Entries: {len(draft_entries)}",
         f"- by_kind: {by_kind}",
         f"- by_provenance: {by_provenance}",
         f"- object_id: null={object_id_null} set={object_id_set}",
         f"- open_questions: {open_questions_count}",
         f"- author_text in draft: {'present' if draft_author_text else 'EMPTY'}",
-        f"",
-        f"## Per-point semantic verdict",
-        f"",
-        f"| # | chars | items | verdict | severity | issues |",
-        f"|---|-------|-------|---------|----------|--------|",
+        "",
+        "## Per-point semantic verdict",
+        "",
+        "| # | chars | items | verdict | severity | issues |",
+        "|---|-------|-------|---------|----------|--------|",
     ]
     for p in per_point:
         label = "HDR" if p["point_n"] == 0 else f"#{p['point_n']}"
         issues_str = "; ".join(p["issues"][:3]) if p["issues"] else "—"
-        md.append(f"| {label} | {p['text_full_chars']} | {p['items_count']} | {p['verdict']} | {p['severity']} | {issues_str} |")
+        md.append(
+            f"| {label} | {p['text_full_chars']} | {p['items_count']} | {p['verdict']} | {p['severity']} | {issues_str} |"
+        )
 
-    md.append(f"\n## Detailed issues\n")
+    md.append("\n## Detailed issues\n")
     for p in per_point:
         if p["issues"]:
             label = "HDR" if p["point_n"] == 0 else f"#{p['point_n']}"

@@ -31,17 +31,17 @@ ACTION_INTENSITY: dict[str, float] = {
 # кража игрока так же тиха, как кража NPC. Радиусы калибруемы (Calibration
 # Laboratory, ADR-O-361 — преcеты).
 ACTION_PERCEPTION_RADIUS: dict[str, float] = {
-    "player_attacks": 15.0,   # бой слышен (базовый уровень, как и был)
+    "player_attacks": 15.0,  # бой слышен (базовый уровень, как и был)
     "attack": 15.0,
-    "player_steals": 3.0,     # кража ТИХАЯ: заметить может только тот, кто рядом (LOS решает perception_filter)
+    "player_steals": 3.0,  # кража ТИХАЯ: заметить может только тот, кто рядом (LOS решает perception_filter)
     "theft": 3.0,
-    "player_threatens": 10.0, # громкая фраза
+    "player_threatens": 10.0,  # громкая фраза
     "player_insults": 10.0,
-    "player_flees": 8.0,      # топот
+    "player_flees": 8.0,  # топот
     "player_interacts": 6.0,
-    "dialogue": 6.0,          # разговорная громкость
+    "dialogue": 6.0,  # разговорная громкость
     "move": 4.0,
-    "stealth": 2.0,           # крадущийся игрок почти беззвучен
+    "stealth": 2.0,  # крадущийся игрок почти беззвучен
 }
 
 # Потолок для незарегистрированных действий: 999.0 ЗАПРЕЩЁН (ADR-L9.1/ADR-148 —
@@ -64,7 +64,5 @@ WEAPON_REACH_M: dict[str, float] = {"нож": 0.6, "палка": 0.9}
 def action_perception_radius(action_type: str) -> float:
     """S210: единая точка резолва радиуса действия. Неизвестное → дефолт."""
     return ACTION_PERCEPTION_RADIUS.get(
-        action_type, ACTION_PERCEPTION_RADIUS.get(
-            action_type.lower(), _DEFAULT_ACTION_RADIUS
-        )
+        action_type, ACTION_PERCEPTION_RADIUS.get(action_type.lower(), _DEFAULT_ACTION_RADIUS)
     )

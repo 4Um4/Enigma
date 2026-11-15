@@ -11,6 +11,7 @@ path: backend/tests/calibration_lab/test_m0_materializer.py
 
 Запуск: cd backend; python -m pytest tests/calibration_lab/ -q --tb=line; cd ..
 """
+
 import sys
 import types
 from pathlib import Path
@@ -66,9 +67,7 @@ class TestMaterializePreset:
 
     def test_drives_replaced_whole(self) -> None:
         drives = {"control": 0.25, "significance": 0.25, "fear": 0.25, "desire": 0.25}
-        preset = Preset(
-            preset_id="drv", npc_overrides={"*": NpcOverride(drives=drives)}
-        )
+        preset = Preset(preset_id="drv", npc_overrides={"*": NpcOverride(drives=drives)})
         with materialize_preset(preset):
             npcs = load_npcs_merged()
             assert _find(npcs, "maid_lusya")["drives"] == drives
@@ -103,9 +102,7 @@ class TestMaterializePreset:
     def test_unknown_npc_in_overrides_loud_fail(self) -> None:
         preset = Preset(
             preset_id="ghost",
-            npc_overrides={
-                "npc_ghost": NpcOverride(psyche={"identity_rigidity": 0.5})
-            },
+            npc_overrides={"npc_ghost": NpcOverride(psyche={"identity_rigidity": 0.5})},
         )
         with pytest.raises(MaterializationError, match="npc_ghost"):
             with materialize_preset(preset):

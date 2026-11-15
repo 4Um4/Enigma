@@ -63,7 +63,9 @@ def test_minor_npc_cannot_perceive_far_target() -> None:
     """Minor NPC (радиус 3м) не воспринимает цель на 8м."""
     scene = _scene()
     out = extract_scene_for_npc(
-        scene, "npc_a", ["npc_far"],
+        scene,
+        "npc_a",
+        ["npc_far"],
         perception_radius=PERCEPTION_RADIUS["minor"],
     )
     assert not any(x["npc_id"] == "npc_far" for x in out["nearby"])
@@ -73,7 +75,9 @@ def test_major_npc_perceives_far_target() -> None:
     """Major NPC (радиус 15м) воспринимает цель на 8м."""
     scene = _scene()
     out = extract_scene_for_npc(
-        scene, "npc_a", ["npc_far"],
+        scene,
+        "npc_a",
+        ["npc_far"],
         perception_radius=PERCEPTION_RADIUS["major"],
     )
     assert any(x["npc_id"] == "npc_far" for x in out["nearby"])
@@ -149,13 +153,12 @@ def test_sound_reach_modified_by_noise_and_density() -> None:
 
 def test_perception_filter_uses_spatial_runtime() -> None:
     from unittest.mock import MagicMock
+
     scene = _scene()
 
     _distances = {"npc_b": 5.0, "npc_far": 25.0}
     mock_sq = MagicMock()
-    mock_sq.player_distances.side_effect = (
-        lambda ids: {nid: _distances.get(nid, 999.0) for nid in ids}
-    )
+    mock_sq.player_distances.side_effect = lambda ids: {nid: _distances.get(nid, 999.0) for nid in ids}
 
     assert _can_see("npc_b", mock_sq, "tavern_silver_wolf", scene) is True
     assert _can_hear("npc_far", mock_sq, radius=1.0, scene_state=scene) is False
@@ -214,7 +217,8 @@ def test_sound_bleeds_to_adjacent_loud_event() -> None:
     scene["environment_modifiers"]["density"] = 0.0
     # sound_reach(10.0) = 10 + 1.0*4 - 0 = 14.0 > 12.0 → должен просочиться
     adjacent = sound_bleeds_to_adjacent(
-        scene, base_radius=10.0,
+        scene,
+        base_radius=10.0,
         bleed_threshold=12.0,
         data_dir=str(Path(__file__).parent.parent / "data"),
     )
@@ -229,7 +233,8 @@ def test_sound_bleeds_quiet_event_stays_local() -> None:
     scene["environment_modifiers"]["density"] = 0.5
     # sound_reach(2.0) = 2 + 0 - 0.5*3 = 0.5 < 12.0 → не просачивается
     adjacent = sound_bleeds_to_adjacent(
-        scene, base_radius=2.0,
+        scene,
+        base_radius=2.0,
         bleed_threshold=12.0,
         data_dir=str(Path(__file__).parent.parent / "data"),
     )

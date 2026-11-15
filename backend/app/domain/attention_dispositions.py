@@ -18,6 +18,7 @@ path: backend/app/domain/attention_dispositions.py
 Зависимости: typing (домен чист, §1.2).
 Основные сущности: get_attention_disposition.
 """
+
 from typing import Dict, Mapping, Optional
 
 # Дефолт недоступных драйвов — нейтральная середина пирамиды (не 0: ноль

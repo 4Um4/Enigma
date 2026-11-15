@@ -4,6 +4,7 @@ path: /project/backend/app/services/social/end_screen_narrator.py
 Зависимости: app.models.fate, app.models.evaluation
 Основные сущности: EndScreenNarrator
 """
+
 from __future__ import annotations
 
 from app.models.fate import FateState
@@ -14,9 +15,12 @@ class EndScreenNarrator:
 
     @staticmethod
     def narrate_verdict(score: int) -> str:
-        if score >= 80: return "Вы стали легендой Таверны Серебряной Луны. Ваше имя будут помнить долгие годы."
-        if score >= 50: return "Вы неплохо проявили себя, но многие тайны так и остались погребены во мраке."
-        if score >= 20: return "Вы ушли ни с чем, оставив после себя лишь ворох слухов и неразрешённых противоречий."
+        if score >= 80:
+            return "Вы стали легендой Таверны Серебряной Луны. Ваше имя будут помнить долгие годы."
+        if score >= 50:
+            return "Вы неплохо проявили себя, но многие тайны так и остались погребены во мраке."
+        if score >= 20:
+            return "Вы ушли ни с чем, оставив после себя лишь ворох слухов и неразрешённых противоречий."
         return "Ваш визит прошёл впустую. Мир остался безучастным к вашему присутствию."
 
     @staticmethod
@@ -28,20 +32,26 @@ class EndScreenNarrator:
                 "broken": f"{npc_id} сломлен духовно и физически, его дни сочтены.",
                 "liberated": f"{npc_id} освободился от своих демонов и начал новую жизнь.",
                 "empowered": f"{npc_id} обрёл силу и влияние, став вершителем судеб.",
-                "imprisoned": f"{npc_id} брошен в темницу за свои деяния."
+                "imprisoned": f"{npc_id} брошен в темницу за свои деяния.",
             }
-            return outcomes.get(fate_state.resolved_fate.value, f"Судьба {npc_id} разрешилась: {fate_state.resolved_fate.value}.")
+            return outcomes.get(
+                fate_state.resolved_fate.value, f"Судьба {npc_id} разрешилась: {fate_state.resolved_fate.value}."
+            )
 
         traj = fate_state.fate_trajectory.value
         stab = fate_state.stability
         threat = fate_state.threat_level
 
-        if traj == "critical": return f"{npc_id} находится на грани гибели. Угроза вокруг него сгущается."
+        if traj == "critical":
+            return f"{npc_id} находится на грани гибели. Угроза вокруг него сгущается."
         if traj == "deteriorating":
-            if threat > 0.5: return f"Жизнь {npc_id} висит на волоске. Он окружён врагами и опасностями."
+            if threat > 0.5:
+                return f"Жизнь {npc_id} висит на волоске. Он окружён врагами и опасностями."
             return f"Дела {npc_id} идут всё хуже. Он медленно теряет почву под ногами."
-        if traj == "improving" and stab > 0.9: return f"{npc_id} расцветает. Он чувствует себя в безопасности и смотрит в будущее с надеждой."
-        if traj == "stable": return f"Жизнь {npc_id} идёт своим чередом, без взлётов и падений."
+        if traj == "improving" and stab > 0.9:
+            return f"{npc_id} расцветает. Он чувствует себя в безопасности и смотрит в будущее с надеждой."
+        if traj == "stable":
+            return f"Жизнь {npc_id} идёт своим чередом, без взлётов и падений."
         return f"Положение {npc_id} неопределённо."
 
     @staticmethod
@@ -49,11 +59,18 @@ class EndScreenNarrator:
         src_name = "Игрок" if src == "player" else src
         tgt_name = "Игрока" if tgt == "player" else tgt
 
-        if trust > 70: return f"{src_name} глубоко предан {tgt_name}."
-        if trust > 30 and fear < 20: return f"{src_name} доверяет {tgt_name} и ценит их общество."
-        if trust < -70: return f"{src_name} люто ненавидит {tgt_name}."
-        if trust < -30: return f"{src_name} испытывает сильную антипатию к {tgt_name}."
-        if fear > 70: return f"{src_name} до смерти боится {tgt_name}."
-        if fear > 30 and trust < 0: return f"{src_name} опасается {tgt_name} и старается избегать их."
-        if trust > 0 and fear > 0: return f"{src_name} уважает {tgt_name}, но и побаивается его."
+        if trust > 70:
+            return f"{src_name} глубоко предан {tgt_name}."
+        if trust > 30 and fear < 20:
+            return f"{src_name} доверяет {tgt_name} и ценит их общество."
+        if trust < -70:
+            return f"{src_name} люто ненавидит {tgt_name}."
+        if trust < -30:
+            return f"{src_name} испытывает сильную антипатию к {tgt_name}."
+        if fear > 70:
+            return f"{src_name} до смерти боится {tgt_name}."
+        if fear > 30 and trust < 0:
+            return f"{src_name} опасается {tgt_name} и старается избегать их."
+        if trust > 0 and fear > 0:
+            return f"{src_name} уважает {tgt_name}, но и побаивается его."
         return f"{src_name} относится к {tgt_name} нейтрально."

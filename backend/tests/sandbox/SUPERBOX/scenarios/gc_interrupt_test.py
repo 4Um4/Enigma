@@ -1,4 +1,4 @@
-﻿"""
+"""
 # path: /project/backend/tests/sandbox/SUPERBOX/scenarios/gc_interrupt_test.py
 # Назначение: SUPERBOX gc_interrupt_test (GC-INTERRUPT-01) — приёмка
 #   «вмешательство третьего агента»: A↔player в разговоре; B атакует из
@@ -16,6 +16,7 @@
 #   _task_dict_fixture (gc_dialogue_test; санкционированный import S3.13).
 # Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.gc_interrupt_test; cd ..
 """
+
 import logging
 import sys
 import time
@@ -67,6 +68,7 @@ def _npc_pos(scene, npc_id):
 
 def _dist(ax, ay, bx, by):
     import math
+
     return math.hypot(ax - bx, ay - by)
 
 
@@ -75,7 +77,7 @@ def _canon(h):
 
 
 def _state_of(h, npc_id):
-    for _n in (h.game_loop._get_life_engine().get_npc_states(CAMPAIGN) or []):
+    for _n in h.game_loop._get_life_engine().get_npc_states(CAMPAIGN) or []:
         if (_n.get("npc_id") or _n.get("id")) == npc_id:
             return _n
     return None
@@ -90,19 +92,25 @@ def _phase6_intent(h, intent_type, speaker, target, topic):
     _sem = "shout" if intent_type == "attack" else "normal"
     _emo = "angry" if intent_type == "attack" else "NEUTRAL"
     _intent = CommunicationIntent(
-        speaker=speaker, audience=target, topic=topic,
-        intent_type=intent_type, emotional_state=_emo,
+        speaker=speaker,
+        audience=target,
+        topic=topic,
+        intent_type=intent_type,
+        emotional_state=_emo,
         exposure_level=ExposureLevel.from_semantic(_sem),
         target_id=target,
     )
-    run_phase_6_post_decision(SimpleNamespace(
-        communication_intents=[_intent],
-        campaign_id=CAMPAIGN,
-        tick_number=int(_sc.get("tick", 0)) + 1,
-        scene_state=_sc,
-        npc_services=None,
-        all_npcs_raw=list((_sc.get("npc_positions") or {}).keys()),
-    ), h.game_loop._tick_orch)
+    run_phase_6_post_decision(
+        SimpleNamespace(
+            communication_intents=[_intent],
+            campaign_id=CAMPAIGN,
+            tick_number=int(_sc.get("tick", 0)) + 1,
+            scene_state=_sc,
+            npc_services=None,
+            all_npcs_raw=list((_sc.get("npc_positions") or {}).keys()),
+        ),
+        h.game_loop._tick_orch,
+    )
     h.game_loop.scene_manager.save_scene_state(CAMPAIGN, _sc)
     return _sc
 
@@ -130,9 +138,10 @@ def _gate_window(h, sched, tap, owner):
 
 def _flee_provider(real_prov, npc_id):
     """Копии, не кэш-мутации (R3): мир остаётся чистым после окна."""
+
     def _prov(cid):
         _out = []
-        for _n in (real_prov(cid) or []):
+        for _n in real_prov(cid) or []:
             if isinstance(_n, dict) and (_n.get("npc_id") or _n.get("id")) == npc_id:
                 _c = dict(_n)
                 _c["intent"] = "flee"
@@ -140,13 +149,14 @@ def _flee_provider(real_prov, npc_id):
             else:
                 _out.append(_n)
         return _out
+
     return _prov
 
 
 def _dead_flee_provider(real_prov, npc_id):
     def _prov(cid):
         _out = []
-        for _n in (real_prov(cid) or []):
+        for _n in real_prov(cid) or []:
             if isinstance(_n, dict) and (_n.get("npc_id") or _n.get("id")) == npc_id:
                 _c = dict(_n)
                 _c["intent"] = "flee"
@@ -159,6 +169,7 @@ def _dead_flee_provider(real_prov, npc_id):
             else:
                 _out.append(_n)
         return _out
+
     return _prov
 
 
@@ -196,8 +207,7 @@ def main() -> int:
         # ── I1: production-рождение (Фаза 6 + save) ──
         _sc1 = _phase6_intent(h, "talk", _A, "player", "smalltalk")
         _birth = next(
-            (t for t in (_sc1.get("pending_tasks") or [])
-             if t.get("owner_id") == _A and t.get("kind") == "dialogue"),
+            (t for t in (_sc1.get("pending_tasks") or []) if t.get("owner_id") == _A and t.get("kind") == "dialogue"),
             None,
         )
         i1 = _birth is not None
@@ -213,20 +223,21 @@ def main() -> int:
             _sched._npc_states_provider = _real_prov
         _i2_gate = any("stale-intent-gate" in m and _A in m for m in _lines2)
         _i2_no_speak = not [
-            e for e in SPY["events"][_mark_i2:]
-            if e.type == EventType.NPC_SPOKE.value
-            and getattr(e, "source", "") == _A
+            e
+            for e in SPY["events"][_mark_i2:]
+            if e.type == EventType.NPC_SPOKE.value and getattr(e, "source", "") == _A
         ]
-        print(f"[I2] flee → INTERRUPT_TASK_STALE_INTENT — "
-              f"гейт={'✅' if _i2_gate else '❌'}, "
-              f"реплика A не материализована — {'✅' if _i2_no_speak else '❌'}")
+        print(
+            f"[I2] flee → INTERRUPT_TASK_STALE_INTENT — "
+            f"гейт={'✅' if _i2_gate else '❌'}, "
+            f"реплика A не материализована — {'✅' if _i2_no_speak else '❌'}"
+        )
         ok = ok and _i2_gate and _i2_no_speak
 
         # I2b: терминал в реестре
         _hist = (dict(h.get_scene_fresh() or {}).get("commitment_history") or {}).get(_A, []) or []
         _i2_registry = any(
-            (e or {}).get("status") == "INTERRUPTED"
-            and (e or {}).get("interrupt_reason") == "TASK_STALE_INTENT"
+            (e or {}).get("status") == "INTERRUPTED" and (e or {}).get("interrupt_reason") == "TASK_STALE_INTENT"
             for e in _hist
         )
         _i2b_mark = "✅" if _i2_registry else "⚠️ зеркала OFF (by design, не блокер)"
@@ -238,13 +249,12 @@ def main() -> int:
         _mark_i3 = len(SPY["events"])
         _gate_window(h, _sched, _sched_tap, _A)
         _spoke = [
-            e for e in SPY["events"][_mark_i3:]
-            if e.type == EventType.NPC_SPOKE.value
-            and getattr(e, "source", "") == _A
+            e
+            for e in SPY["events"][_mark_i3:]
+            if e.type == EventType.NPC_SPOKE.value and getattr(e, "source", "") == _A
         ]
         i3 = bool(_spoke)
-        print(f"[I3] контроль (intent(A)={_i3_intent}) → warn-реплика материализована — "
-              f"{'✅' if i3 else '❌'}")
+        print(f"[I3] контроль (intent(A)={_i3_intent}) → warn-реплика материализована — {'✅' if i3 else '❌'}")
         ok = ok and i3
 
         # ── I4: смерть сильнее flee ──
@@ -283,18 +293,23 @@ def main() -> int:
                 break
         _n1 = _state_of(h, _A)
         _hp1 = ((_n1 or {}).get("body_state") or {}).get("current_hp")
-        _i51_mark = "✅" if _A_flee else (
-            f"⚠️ не уронили (hp: {_hp0}→{_hp1}; flee-контур: hp<30%/threat>30 — "
-            f"калибровка боя вне скоупа среза; см. I5-β)"
+        _i51_mark = (
+            "✅"
+            if _A_flee
+            else (
+                f"⚠️ не уронили (hp: {_hp0}→{_hp1}; flee-контур: hp<30%/threat>30 — "
+                f"калибровка боя вне скоупа среза; см. I5-β)"
+            )
         )
-        print(f"[I5.1] серия атак B→A ({'прошла' if _atk_ok else 'ошибка'}, "
-              f"hp {_hp0}→{_hp1}) → A intent=flee — {_i51_mark}")
+        print(
+            f"[I5.1] серия атак B→A ({'прошла' if _atk_ok else 'ошибка'}, "
+            f"hp {_hp0}→{_hp1}) → A intent=flee — {_i51_mark}"
+        )
 
         if _A_flee:
             _lines5 = _gate_window(h, _sched, _sched_tap, _A)
             i5 = any("stale-intent-gate" in m and _A in m for m in _lines5)
-            print(f"[I5.2] гейт из чистой причинности (РЕАЛЬНЫЙ провайдер) — "
-                  f"{'✅' if i5 else '❌'}")
+            print(f"[I5.2] гейт из чистой причинности (РЕАЛЬНЫЙ провайдер) — {'✅' if i5 else '❌'}")
             ok = ok and i5
         else:
             _n = _state_of(h, _A)
@@ -313,9 +328,11 @@ def main() -> int:
         _pre_stale = [m for m in _sched_tap.lines[:_idx5] if "stale-intent-gate" in m]
         _post_stale = [m for m in _sched_tap.lines[_idx5:] if "stale-intent-gate" in m]
         i6 = all(_A in m for m in _pre_stale)
-        _i6_note = (f"до-боевых хитов={len(_pre_stale)} (все — A); "
-                    f"после-боевых={len(_post_stale)} (эмерджентные свидетели боя — "
-                    f"легитимная работа гейта, не отказ)")
+        _i6_note = (
+            f"до-боевых хитов={len(_pre_stale)} (все — A); "
+            f"после-боевых={len(_post_stale)} (эмерджентные свидетели боя — "
+            f"легитимная работа гейта, не отказ)"
+        )
         print(f"[I6] абляция: до боя — только воля A — {'✅' if i6 else '❌'}; {_i6_note}")
         ok = ok and i6
 
@@ -325,8 +342,10 @@ def main() -> int:
             h.advance_ticks(1)
             time.sleep(0.8)
         i7 = h.counters.ticks > _t_before
-        print(f"[I7] мир жив — ticks+={h.counters.ticks - _t_before}, "
-              f"moved={h.counters.npc_moved} — {'✅' if i7 else '❌'}")
+        print(
+            f"[I7] мир жив — ticks+={h.counters.ticks - _t_before}, "
+            f"moved={h.counters.npc_moved} — {'✅' if i7 else '❌'}"
+        )
         ok = ok and i7
 
     print("=" * 64)

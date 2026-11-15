@@ -81,7 +81,7 @@ async def main() -> None:
             if _warm is not None:
                 break
         except Exception as _warm_err:
-            print(f"[WARMUP] модель ещё грузится ({_attempt+1}/12): {_warm_err}")
+            print(f"[WARMUP] модель ещё грузится ({_attempt + 1}/12): {_warm_err}")
         time.sleep(5.0)
     else:
         print("ИТОГО M1: INVALID RUN (модель не прогрелась за 60с) — не измерение.")
@@ -105,15 +105,9 @@ async def main() -> None:
             status = "FALSE-POSITIVE"
         else:
             status = "MISS"
-        print(
-            f"[{status}] {phrase!r} -> name={name!r} "
-            f"acts={[a.get('type') for a in _acts_of(field)]}"
-        )
+        print(f"[{status}] {phrase!r} -> name={name!r} acts={[a.get('type') for a in _acts_of(field)]}")
         time.sleep(0.5)
-    print(
-        f"\nИТОГО M1: recognition={ok}/11, false_positives={false_positive}/2, "
-        f"target recognition>=10/11"
-    )
+    print(f"\nИТОГО M1: recognition={ok}/11, false_positives={false_positive}/2, target recognition>=10/11")
 
 
 if __name__ == "__main__":

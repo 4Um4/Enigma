@@ -48,9 +48,7 @@ def resolve_affected_npcs(event: Any) -> list[str]:
         EventType.NPC_PROXIMITY_CLOSE.value,
         EventType.NPC_PROXIMITY_LEAVE.value,
     ):
-        affected.extend(
-            (event.payload.get("npc_a", ""), event.payload.get("npc_b", ""))
-        )
+        affected.extend((event.payload.get("npc_a", ""), event.payload.get("npc_b", "")))
 
     return [n for n in affected if n]
 
@@ -88,9 +86,7 @@ def build_npc_snapshots(
         # удалена); плоский вход = повреждённый legacy → санитайзер сбрасывает
         # в {} (поведение сохранено дословно; pinned: test_build_npc_snapshots).
         existing_rc = npc.get("relationship_cache", {})
-        if isinstance(existing_rc, dict) and any(
-            isinstance(v, dict) for v in existing_rc.values()
-        ):
+        if isinstance(existing_rc, dict) and any(isinstance(v, dict) for v in existing_rc.values()):
             relationship_cache = dict(existing_rc)
         else:
             relationship_cache = {}
@@ -118,9 +114,7 @@ def build_npc_snapshots(
         _player_trust = float(ss.get("trust", 0.0))
         _player_fear = float(ss.get("fear_of_player", 0.0))
         _player_debt = float(ss.get("debt", 0.0))
-        if "player" not in relationship_cache and (
-            _player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0
-        ):
+        if "player" not in relationship_cache and (_player_trust != 0.0 or _player_fear != 0.0 or _player_debt != 0.0):
             relationship_cache["player"] = {
                 "trust": _player_trust,
                 "fear": _player_fear,
@@ -156,12 +150,8 @@ def build_npc_snapshots(
             _velocity = (float(_vel_raw[0]), float(_vel_raw[1]))
         else:
             _velocity = (0.0, 0.0)
-        _activity = str(
-            npc.get("activity", "") or npc.get("routine", {}).get("current", "") or ""
-        )
-        _coupling_mode = str(
-            (body_state.get("coupling_profile") or {}).get("coupling_mode", "") or ""
-        )
+        _activity = str(npc.get("activity", "") or npc.get("routine", {}).get("current", "") or "")
+        _coupling_mode = str((body_state.get("coupling_profile") or {}).get("coupling_mode", "") or "")
         _body_mass = float(body_state.get("body_mass", 1.0))
 
         _raw_injuries = body_state.get("injuries", [])
@@ -225,42 +215,27 @@ def _reduce_additive(p1: Any, p2: Any) -> Any:
         return EmotionPayload(
             stress_delta=p1.stress_delta + p2.stress_delta,
             emotion_delta=p1.emotion_delta + p2.emotion_delta,
-            emotion_tag=p2.emotion_tag
-            if p2.emotion_tag is not None
-            else p1.emotion_tag,
+            emotion_tag=p2.emotion_tag if p2.emotion_tag is not None else p1.emotion_tag,
             new_trauma=p2.new_trauma if p2.new_trauma is not None else p1.new_trauma,
-            affective_load=p2.affective_load
-            if p2.affective_load is not None
-            else p1.affective_load,
+            affective_load=p2.affective_load if p2.affective_load is not None else p1.affective_load,
         )
     if isinstance(p1, ReputationPayload):
-        return ReputationPayload(
-            reputation_delta=p1.reputation_delta + p2.reputation_delta
-        )
+        return ReputationPayload(reputation_delta=p1.reputation_delta + p2.reputation_delta)
     if isinstance(p1, IdentityPayload):
         return IdentityPayload(
-            identity_integrity_delta=p1.identity_integrity_delta
-            + p2.identity_integrity_delta,
-            pressure_resistance_delta=p1.pressure_resistance_delta
-            + p2.pressure_resistance_delta,
+            identity_integrity_delta=p1.identity_integrity_delta + p2.identity_integrity_delta,
+            pressure_resistance_delta=p1.pressure_resistance_delta + p2.pressure_resistance_delta,
             will_state_override=p2.will_state_override
             if p2.will_state_override is not None
             else p1.will_state_override,
             # S115: раньше эти поля терялись при агрегации (мерджился только
             # trio identity_integrity/pressure/will_state — остальные обнулялись).
             compliance_bias_delta=p1.compliance_bias_delta + p2.compliance_bias_delta,
-            aggression_inhibition_delta=p1.aggression_inhibition_delta
-            + p2.aggression_inhibition_delta,
-            initiative_suppression_delta=p1.initiative_suppression_delta
-            + p2.initiative_suppression_delta,
-            recent_directive_data=p2.recent_directive_data
-            or p1.recent_directive_data,
-            drives_snapshot=p2.drives_snapshot
-            if p2.drives_snapshot is not None
-            else p1.drives_snapshot,
-            strain_snapshot=p2.strain_snapshot
-            if p2.strain_snapshot is not None
-            else p1.strain_snapshot,
+            aggression_inhibition_delta=p1.aggression_inhibition_delta + p2.aggression_inhibition_delta,
+            initiative_suppression_delta=p1.initiative_suppression_delta + p2.initiative_suppression_delta,
+            recent_directive_data=p2.recent_directive_data or p1.recent_directive_data,
+            drives_snapshot=p2.drives_snapshot if p2.drives_snapshot is not None else p1.drives_snapshot,
+            strain_snapshot=p2.strain_snapshot if p2.strain_snapshot is not None else p1.strain_snapshot,
         )
     if isinstance(p1, PerceptionPayload):
         return PerceptionPayload(
@@ -397,8 +372,8 @@ def create_tick_context(
     eco_profile: Any = None,  # S151: Профиль игрока для EmbodiedStatusDTO
     active_location_id: str = "",  # PLAYER-STUB LAW: локация игрока (гейт стабов)
     mvp_controller: Any = None,  # ENIGMA SELF-HEALING: For MvpPipelineProbe (N1, M-03)
-    epistemic_store: Any = None, # S189: Epistemic Core (ADR-O-354)
-    epistemic_context_resolver: Any = None, # S189: Epistemic Core (ADR-O-354)
+    epistemic_store: Any = None,  # S189: Epistemic Core (ADR-O-354)
+    epistemic_context_resolver: Any = None,  # S189: Epistemic Core (ADR-O-354)
 ) -> "_TickContext":
     """[S98] Чистая сборка _TickContext для TickOrchestrator.execute().
 
@@ -419,6 +394,7 @@ def create_tick_context(
     # владения живой сценой (SMOKE-уровень: SceneStateManager —
     # единственный писатель до коммита; фазы получают overlay).
     import os as _os
+
     if _os.environ.get("EPOCH_INPUT_TRANSPORT", "copy") == "move":
         input_snapshot = scene_state
     else:
@@ -430,6 +406,7 @@ def create_tick_context(
     # Терминальная материализация — orchestrator, единая точка перед
     # сборкой TickResultDTO (overlay.commit() → dict для SSM deepcopy).
     from app.domain.world_epoch import TickOverlay, WorldEpoch
+
     _epoch = WorldEpoch(tick_number, input_snapshot)
     _overlay = TickOverlay(_epoch)
 
@@ -514,12 +491,18 @@ def create_tick_context(
     # иначе сидирование съело бы интент на пустом _time_ctx.
     if _is_player and shared_context is not None:
         _pending = getattr(shared_context, "pending_movement_intents", None)  # noqa: ENIGMA002
-        print(f"[Z-DIAG] is_player=True pending={len(_pending or [])} "
-              f"shared={type(shared_context).__name__} id={id(shared_context)}")
+        print(
+            f"[Z-DIAG] is_player=True pending={len(_pending or [])} "
+            f"shared={type(shared_context).__name__} id={id(shared_context)}"
+        )
         if _pending:
             ctx.movement_intents = list(_pending)
             shared_context.pending_movement_intents = []
-            print(f"[Z-FIX] factory seeded {len(ctx.movement_intents)} player movement intents")  # print: logger.info невидим в sandbox (S216)
+            print(
+                f"[Z-FIX] factory seeded {len(ctx.movement_intents)} player movement intents"
+            )  # print: logger.info невидим в sandbox (S216)
     elif shared_context is not None:
-        print(f"[Z-DIAG] is_player=False interventions={[(getattr(i,'source','?'), getattr(i,'payload',{}).get('semantic_action','?')) for i in interventions][:3]}")  # noqa: ENIGMA002
+        print(
+            f"[Z-DIAG] is_player=False interventions={[(getattr(i, 'source', '?'), getattr(i, 'payload', {}).get('semantic_action', '?')) for i in interventions][:3]}"
+        )  # noqa: ENIGMA002
     return ctx

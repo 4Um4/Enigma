@@ -10,6 +10,7 @@ import os
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+
 class TestPhase1Implementation:
     """Наглядные тесты статуса реализации Фазы 1 (Polishing)."""
 
@@ -18,7 +19,7 @@ class TestPhase1Implementation:
         goran_path = os.path.join(BASE_DIR, "config", "npc", "individuals", "goran.json")
         with open(goran_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         assert "routine" in data, "S-03 FAILED: У Горана отсутствует 'routine'"
         assert "schedule" in data["routine"], "S-03 FAILED: У Горана отсутствует 'schedule'"
         assert len(data["routine"]["schedule"]) > 0, "S-03 FAILED: Schedule пустой"
@@ -30,6 +31,7 @@ class TestPhase1Implementation:
         # речь → ClaimEvent (эпистемика S188), не угроза. Канонический
         # DANGER-канал — player_attacks. Смысл Bridge 3 сохранён.
         from app.services.npc.belief_transition_engine import _THREAT_TYPES
+
         assert "player_attacks" in _THREAT_TYPES, "Bridge 3 FAILED: player_attacks отсутствует в _THREAT_TYPES"
         print("\n[Bridge 3] PASSED: player_spoke добавлен в _THREAT_TYPES.")
 
@@ -38,8 +40,10 @@ class TestPhase1Implementation:
         path = os.path.join(BASE_DIR, "backend", "app", "services", "execution", "dialogue_executor.py")
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        
-        assert "self._get_context(task.campaign_id, task.owner_id)" in content, "L-01 FAILED: Аргументы context_provider перевёрнуты"
+
+        assert "self._get_context(task.campaign_id, task.owner_id)" in content, (
+            "L-01 FAILED: Аргументы context_provider перевёрнуты"
+        )
         assert "ResponseValidator" in content, "L-02 FAILED: ResponseValidator не используется"
         assert "system_prompt = (" in content, "L-04 FAILED: system_prompt отсутствует"
         assert "_target_name = _target_ctx.get" in content, "L-05 FAILED: target_id не резолвится в имя"
@@ -50,6 +54,7 @@ class TestPhase1Implementation:
     def test_t_07_topic_extractor_phrases(self):
         """T-07: Фразы игрока должны маппиться в темы."""
         from app.services.npc.topic_extractor import _PHRASE_TO_TOPIC
+
         assert "как дела" in _PHRASE_TO_TOPIC, "T-07 FAILED: Фраза 'как дела' не замапплена"
         print("\n[T-07] PASSED: Фразы игрока маппятся в темы.")
 
@@ -58,6 +63,7 @@ class TestPhase1Implementation:
         path = os.path.join(BASE_DIR, "backend", "app", "services", "npc", "npc_tick_pipeline.py")
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        assert "CrystallizedBeliefModifierResolver" in content and "_drive_modifiers_for_hub" in content, \
+        assert "CrystallizedBeliefModifierResolver" in content and "_drive_modifiers_for_hub" in content, (
             "T-06 FAILED: Beliefs не влияют на DecisionHub"
+        )
         print("\n[T-06] PASSED: Beliefs влияют на DecisionHub.")

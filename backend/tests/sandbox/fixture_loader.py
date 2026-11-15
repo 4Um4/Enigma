@@ -11,6 +11,7 @@ path: backend/tests/sandbox/fixture_loader.py
 
 Запуск: python -m py_compile backend/app/services/tick_utils.py backend/tests/sandbox/fixture_loader.py
 """
+
 from pathlib import Path
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "campaign_open_road"

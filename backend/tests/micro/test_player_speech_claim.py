@@ -82,9 +82,7 @@ def test_player_speech_claim_in_radius_creates_belief():
     sub.on_player_spoke(_evt("ACCUSE"))  # target_id=None: только геометрия
     assert store.records, "G1: слышащие NPC в радиусе получили ClaimEvent"
     _lst = {r.listener_id for r in store.records}
-    assert "maid_lusya" in _lst and "merchant_goran" in _lst, (
-        "G1: оба в радиусе (2/3 м) услышали"
-    )
+    assert "maid_lusya" in _lst and "merchant_goran" in _lst, "G1: оба в радиусе (2/3 м) услышали"
     _c = next(r for r in store.records if r.listener_id == "maid_lusya")
     assert _c.proposition.subject_id == "merchant_goran"
     assert _c.proposition.predicate.value == "stole"

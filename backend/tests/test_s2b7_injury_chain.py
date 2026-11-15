@@ -111,17 +111,14 @@ def _find_survivable_leg_wound(sub: CombatSubscriber, ctx: Phase8Context):
         for _t in _SEED_TICKS:
             _res = sub.handle([_hit("leg_l", _force, float(_t))], ctx)
             for _d in _res.deltas:
-                if not any(
-                    i.functional_loss > 0.0 for i in _d.payload.add_injuries
-                ):
+                if not any(i.functional_loss > 0.0 for i in _d.payload.add_injuries):
                     continue
                 _raw = _npc_raw()
                 _apply_strike(_d.payload, _raw)
                 if _raw["body_state"]["life_status"] == "ALIVE":
                     return _raw, _d.payload
     raise AssertionError(
-        "за всю лестницу сил/сидов не найдено выживаемой раны ноги — "
-        "цепь удара или пороги жизни недоступны"
+        "за всю лестницу сил/сидов не найдено выживаемой раны ноги — цепь удара или пороги жизни недоступны"
     )
 
 
@@ -180,13 +177,6 @@ class TestS2B7InjuryChain:
         # S2B.7-5: leg injury → movement capability ↓ — через СТОИМОСТЬ
         # движения (закон №8), не бинарный veto; ноги не ветят is_capable.
         _engine = BodyEngine()
-        _w_cost = _engine.handle(
-            [dict(_snap_w, velocity=(0.8, 0.0))], "t", 3
-        )[0].payload.fatigue_delta
-        _h_cost = _engine.handle(
-            [dict(_snap_h, velocity=(0.8, 0.0))], "t", 3
-        )[0].payload.fatigue_delta
-        assert _w_cost > _h_cost, (
-            f"раненая нога не удорожила движение: wounded={_w_cost} "
-            f"healthy={_h_cost}"
-        )
+        _w_cost = _engine.handle([dict(_snap_w, velocity=(0.8, 0.0))], "t", 3)[0].payload.fatigue_delta
+        _h_cost = _engine.handle([dict(_snap_h, velocity=(0.8, 0.0))], "t", 3)[0].payload.fatigue_delta
+        assert _w_cost > _h_cost, f"раненая нога не удорожила движение: wounded={_w_cost} healthy={_h_cost}"

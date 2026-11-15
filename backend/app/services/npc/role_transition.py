@@ -191,13 +191,9 @@ class RoleTransition:
             return check
 
         # Списание стоимости (Фаза 4-ROLE.3)
-        if economic_profile is not None and economic_profile.can_afford(
-            self.TRANSITION_COST
-        ):
+        if economic_profile is not None and economic_profile.can_afford(self.TRANSITION_COST):
             economic_profile.spend(self.TRANSITION_COST)
-            logger.info(
-                f"[ROLE] {state.npc_id}: списано {self.TRANSITION_COST}G за смену роли"
-            )
+            logger.info(f"[ROLE] {state.npc_id}: списано {self.TRANSITION_COST}G за смену роли")
 
         # Запись в историю
         entry = RoleChangeEntry(
@@ -224,10 +220,7 @@ class RoleTransition:
             role_history=new_history,
         )
 
-        logger.info(
-            f"[ROLE] {state.npc_id}: {state.current_role} → {target_role} "
-            f"(tick={tick}, reason={reason})"
-        )
+        logger.info(f"[ROLE] {state.npc_id}: {state.current_role} → {target_role} (tick={tick}, reason={reason})")
 
         # Возвращаем результат — вызывающий код (game_loop) должен:
         # 1. Загрузить activity_map из нового archetype

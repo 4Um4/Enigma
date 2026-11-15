@@ -20,15 +20,17 @@ def _ev(source: str, effect: float, weight: float = 1.0, tick: int = 0) -> Trait
     # Минимальный валидный TraitDriftEvent: детектор читает только
     # source_id / effect_value / observation_weight (ADR-O-305A: event_type игнорируется)
     return TraitDriftEvent(
-        tick_id=tick, target_id="npc_x", source_id=source,
-        effect_value=effect, observation_weight=weight, event_type="test",
+        tick_id=tick,
+        target_id="npc_x",
+        source_id=source,
+        effect_value=effect,
+        observation_weight=weight,
+        event_type="test",
     )
 
 
 def _assert_evidence_equal(baseline: list, candidate: list) -> None:
-    assert len(baseline) == len(candidate), (
-        f"количество evidence разошлось: {len(baseline)} vs {len(candidate)}"
-    )
+    assert len(baseline) == len(candidate), f"количество evidence разошлось: {len(baseline)} vs {len(candidate)}"
     for b, c in zip(baseline, candidate):
         assert b.source_id == c.source_id, f"source_id: {b.source_id} vs {c.source_id}"
         # Побитовые сравнения (==), не approx — Taboo ADR-O-400
@@ -36,8 +38,7 @@ def _assert_evidence_equal(baseline: list, candidate: list) -> None:
             f"cumulative_effect: {b.cumulative_effect!r} vs {c.cumulative_effect!r}"
         )
         assert b.behavior_variance == c.behavior_variance, (
-            f"behavior_variance: {b.behavior_variance!r} vs {c.behavior_variance!r} "
-            f"(source={b.source_id})"
+            f"behavior_variance: {b.behavior_variance!r} vs {c.behavior_variance!r} (source={b.source_id})"
         )
 
 
@@ -46,14 +47,15 @@ def _run_oracle(events: list, split: int) -> None:
     baseline = PatternDetector().detect(list(events))
 
     state = WatermarkState()
-    state.update(events[:split])       # H1
-    state.update(events[split:])       # H2
+    state.update(events[:split])  # H1
+    state.update(events[split:])  # H2
     candidate = state.to_evidence()
 
     _assert_evidence_equal(baseline, candidate)
 
 
 # ─── Фиксированные edge-кейсы ───────────────────────────────────────
+
 
 def test_oracle_empty_and_below_threshold():
     # 0 событий; 1-2 события (< MIN_EVENTS=3) — пустые списки в обоих путях
@@ -76,9 +78,15 @@ def test_oracle_zero_and_negative_zero():
 def test_oracle_multi_source_order():
     # Порядок evidence_list = порядок первого появления source (order contract)
     events = [
-        _ev("b", 0.3), _ev("a", 0.1), _ev("b", -0.2),
-        _ev("c", 0.5), _ev("a", 0.4), _ev("c", -0.1),
-        _ev("a", 0.6), _ev("b", 0.7), _ev("c", 0.8),
+        _ev("b", 0.3),
+        _ev("a", 0.1),
+        _ev("b", -0.2),
+        _ev("c", 0.5),
+        _ev("a", 0.4),
+        _ev("c", -0.1),
+        _ev("a", 0.6),
+        _ev("b", 0.7),
+        _ev("c", 0.8),
     ]
     _run_oracle(events, 4)
     _run_oracle(events, 1)
@@ -87,7 +95,10 @@ def test_oracle_multi_source_order():
 def test_oracle_weighted_cumulative():
     # cumulative = Σ(effect × weight) — последовательный float; weights ≠ 1
     events = [
-        _ev("w", 0.1, 0.5), _ev("w", -0.3, 0.9), _ev("w", 0.2, 1.7), _ev("w", 0.4, 0.3),
+        _ev("w", 0.1, 0.5),
+        _ev("w", -0.3, 0.9),
+        _ev("w", 0.2, 1.7),
+        _ev("w", 0.4, 0.3),
     ]
     _run_oracle(events, 2)
 
@@ -117,6 +128,7 @@ _floats = st.floats(min_value=-1.0, max_value=1.0, allow_nan=False, allow_infini
 _weights = st.floats(min_value=0.01, max_value=10.0, allow_nan=False, allow_infinity=False)
 _event = st.tuples(st.sampled_from(["s1", "s2", "s3", "s4"]), _floats, _weights)
 
+
 @given(
     data=st.lists(_event, min_size=0, max_size=60),
     seed=st.integers(min_value=0, max_value=1 << 30),
@@ -129,12 +141,16 @@ def test_oracle_pbt_splits(data, seed):
 
 # ─── Watermark (ветка 2): монотонность + tail-read + round-trip ─────
 
+
 def test_watermark_tail_equals_full():
     # Tail-read (t_from=last+1) + ingest_tail == полное чтение + update.
     # События с МОНТОННЫМИ tick (контракт ветки 2: писатели коммитят с текущим тиком).
     events = [
-        _ev("a", 0.1, tick=1), _ev("a", 0.2, tick=2), _ev("a", 0.3, tick=3),
-        _ev("b", -0.4, tick=4), _ev("a", 0.5, tick=5),
+        _ev("a", 0.1, tick=1),
+        _ev("a", 0.2, tick=2),
+        _ev("a", 0.3, tick=3),
+        _ev("b", -0.4, tick=4),
+        _ev("a", 0.5, tick=5),
     ]
     baseline = PatternDetector().detect(list(events))
 
@@ -142,9 +158,7 @@ def test_watermark_tail_equals_full():
     # Визит 1 (тик 2): хвост = события tick <= 2
     state.ingest_tail([e for e in events if e.tick_id <= 2])
     # Визит 2 (тик 5): хвост = t_from = last_seen_tick + 1 (ровно как врезка integration:410)
-    state.ingest_tail([
-        e for e in events if e.tick_id > state.last_seen_tick
-    ])
+    state.ingest_tail([e for e in events if e.tick_id > state.last_seen_tick])
     _assert_evidence_equal(baseline, state.to_evidence())
 
 
@@ -169,9 +183,14 @@ def test_watermark_roundtrip_with_tick():
 
 # ─── Persistence round-trip (§12/ADR-O-400 контракт 3) ──────────────
 
+
 def test_oracle_roundtrip():
     events = [
-        _ev("a", 0.1), _ev("b", -0.2), _ev("a", 0.3, 0.7), _ev("b", 0.4), _ev("a", -0.5),
+        _ev("a", 0.1),
+        _ev("b", -0.2),
+        _ev("a", 0.3, 0.7),
+        _ev("b", 0.4),
+        _ev("a", -0.5),
     ]
     state = WatermarkState()
     state.update(events)

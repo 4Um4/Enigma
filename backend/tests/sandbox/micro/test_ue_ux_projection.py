@@ -10,6 +10,7 @@
 Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_ux_projection.py -q; cd ..
 """
+
 import pytest
 
 from app.domain.intent_profile import ActionType, IntentSemanticField
@@ -32,14 +33,20 @@ _SCENE = {
 def _resolve(raw: str, sf: IntentSemanticField, action_type: str):
     """Фабрика (§13.4): живой IntentResolution через resolve_player_intent."""
     return resolve_player_intent(
-        raw_action=raw, action_type=action_type, target="",
-        player_dict=None, scene_context=_SCENE, semantic_field=sf,
+        raw_action=raw,
+        action_type=action_type,
+        target="",
+        player_dict=None,
+        scene_context=_SCENE,
+        semantic_field=sf,
     )
 
 
 @pytest.mark.xfail(strict=True, reason="UX-UE-01 ①: поля проекции не реализованы (Этап 2)")
 def test_projection_readiness_partial():
-    res = _resolve("Не бей его.", IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его."), "player_attacks")
+    res = _resolve(
+        "Не бей его.", IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его."), "player_attacks"
+    )
     proj = build_intent_projection(res)
     assert proj is not None
     assert proj.get("readiness") == "PARTIAL"
@@ -68,8 +75,9 @@ def test_projection_resolved_readiness_without_candidates():
 
 @pytest.mark.xfail(strict=True, reason="UX-UE-01 ①: поля проекции не реализованы (Этап 2)")
 def test_projection_failed_reason_llm_status():
-    sf = IntentSemanticField(action=ActionType.UNCERTAIN, raw_text="хм",
-                             comprehension_facts={"llm_status": "UNAVAILABLE"})
+    sf = IntentSemanticField(
+        action=ActionType.UNCERTAIN, raw_text="хм", comprehension_facts={"llm_status": "UNAVAILABLE"}
+    )
     res = _resolve("хм", sf, "player_interacts")
     proj = build_intent_projection(res)
     assert proj.get("readiness") == "FAILED"

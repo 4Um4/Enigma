@@ -1,6 +1,7 @@
 # backend/scripts/patch_prompt_d5_d7.py
 # Идемпотентное расширение D-блока: D5, D6, D7
-import sys, pathlib
+import pathlib
+import sys
 
 PROMPT_PATH = pathlib.Path("backend/prompts/chronicle_decompose_system.txt")
 MARKER = "D5. PORTRET приоритет"
@@ -104,6 +105,7 @@ target_hint = имя организации. Скалярный target_hint=Ор
 
 """
 
+
 def main():
     if not PROMPT_PATH.exists():
         print(f"ERROR: {PROMPT_PATH} not found", file=sys.stderr)
@@ -112,7 +114,7 @@ def main():
     text = PROMPT_PATH.read_text(encoding="utf-8")
 
     if MARKER in text:
-        print(f"[skip] D5-D7 уже присутствуют")
+        print("[skip] D5-D7 уже присутствуют")
         return
 
     # Вставляем ПЕРЕД D4 (т.к. D5 ссылается на D4, D6 ссылается на D5/D2)
@@ -123,8 +125,9 @@ def main():
 
     new_text = text.replace(anchor, D_BLOCK + "\n" + anchor)
     PROMPT_PATH.write_text(new_text, encoding="utf-8")
-    print(f"[ok] D5-D8 inserted before D4")
+    print("[ok] D5-D8 inserted before D4")
     print(f"     size: {len(text)} -> {len(new_text)} bytes")
+
 
 if __name__ == "__main__":
     main()

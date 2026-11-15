@@ -7,6 +7,7 @@
 4. Существующий draft с author_text — decompose без full — author_text сохраняется
 5. Новый draft без author_text_full → NOT_DECOMPOSED с явной ошибкой прослеживаемости
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -45,15 +46,18 @@ def _install_decomposer(monkeypatch: pytest.MonkeyPatch) -> None:
     class _FakeDecomposer:
         async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
             from types import SimpleNamespace as NS
+
             return NS(
                 ok=True,
-                items=[NS(
-                    kind=EntryKind.EVENT,
-                    draft_payload={"summary": "test", "day": None},
-                    confidence=0.9,
-                    question=None,
-                    needs_confirmation=False,
-                )],
+                items=[
+                    NS(
+                        kind=EntryKind.EVENT,
+                        draft_payload={"summary": "test", "day": None},
+                        confidence=0.9,
+                        question=None,
+                        needs_confirmation=False,
+                    )
+                ],
                 age_anchors=[],
                 error=None,
                 raw_response="{}",
@@ -114,9 +118,7 @@ def test_repeated_decompose_does_not_overwrite_author_text(tmp_path, monkeypatch
     other_text = "Другой текст, не должен примениться"
     asyncio.run(_decompose(0, "1. 146 лет.", author_text_full=other_text))
     doc = _load_doc(store)
-    assert doc.author_text == _FULL_TEXT, (
-        "существующий author_text не должен затираться новым запросом"
-    )
+    assert doc.author_text == _FULL_TEXT, "существующий author_text не должен затираться новым запросом"
 
 
 def test_existing_author_text_preserved(tmp_path, monkeypatch):

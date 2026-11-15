@@ -8,6 +8,7 @@ path: /project/backend/app/domain/idle_projection.py
 Зависимости: dataclasses, typing
 Основные сущности: IdleEventProjection, ProjectionValue
 """
+
 from dataclasses import dataclass
 from typing import Dict, Union
 

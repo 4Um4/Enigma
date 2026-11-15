@@ -8,6 +8,7 @@ path: /project/backend/tests/micro/test_npc_addressing_ack.py
     frontend.game_loop_bridge
 Основные сущности: тесты battery 1-12
 """
+
 from __future__ import annotations
 
 import threading
@@ -84,6 +85,7 @@ def _make_tick_orch_with_event(campaign_id="camp_A", npc_id="lusya"):
 
 class _FakeTickOrch:
     """Fake TickOrchestrator for GameLoop tests."""
+
     def __init__(self, sub):
         self._npc_addressing_sub = sub
         self.ack_calls = []
@@ -325,8 +327,8 @@ def test_11_invalid_event_id_no_ack():
     assert ack_idx > guard_idx, "ACK must be inside 'if _addr_npc and _addr_eid' guard"
 
     # Verify ACK is indented more than the guard
-    guard_line = src[src.rfind("\n", 0, guard_idx) + 1:guard_idx]
-    ack_line = src[src.rfind("\n", 0, ack_idx) + 1:ack_idx]
+    guard_line = src[src.rfind("\n", 0, guard_idx) + 1 : guard_idx]
+    ack_line = src[src.rfind("\n", 0, ack_idx) + 1 : ack_idx]
     assert len(ack_line) > len(guard_line), "ACK must be more indented than guard"
 
 
@@ -351,8 +353,6 @@ def test_12_ack_error_preserves_state():
     assert except_idx > ack_idx, "ACK must have except handler"
 
     # Verify except doesn't re-raise (just logs)
-    except_block = src[except_idx:except_idx + 200]
-    assert "logger" in except_block or "pass" in except_block, (
-        "Except must log or pass, not re-raise"
-    )
+    except_block = src[except_idx : except_idx + 200]
+    assert "logger" in except_block or "pass" in except_block, "Except must log or pass, not re-raise"
     assert "raise" not in except_block[:100], "Except must not re-raise"

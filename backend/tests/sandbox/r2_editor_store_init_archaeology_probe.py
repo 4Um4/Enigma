@@ -21,8 +21,12 @@ R2-EDITOR-STORE-INIT archaeology probe — READ-ONLY source survey.
   - Запускать сам game_launcher (он падает).
   - Создавать фиктивный store.
 """
+
 from __future__ import annotations
-import os, sys, subprocess, traceback
+import os
+import sys
+import subprocess
+import traceback
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 import io
@@ -93,12 +97,14 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
 
-def _grep_in_file(path: Path, patterns: List[str], context_before: int = 0, context_after: int = 0) -> List[Tuple[int, str, List[str]]]:
+def _grep_in_file(
+    path: Path, patterns: List[str], context_before: int = 0, context_after: int = 0
+) -> List[Tuple[int, str, List[str]]]:
     """Search for patterns in a file. Returns list of (line_no, matched_line, context_lines)."""
     if not path.exists():
         return []
@@ -113,7 +119,7 @@ def _grep_in_file(path: Path, patterns: List[str], context_before: int = 0, cont
                 ctx = []
                 for j in range(max(0, i - context_before), min(len(lines), i + context_after + 1)):
                     if j != i:
-                        ctx.append(f"L{j+1:4d}: {lines[j]}")
+                        ctx.append(f"L{j + 1:4d}: {lines[j]}")
                 out.append((i + 1, line, ctx))
                 break
     return out
@@ -191,10 +197,10 @@ def step2_catalog_panel_class() -> None:
         # Find class CatalogPanel definition + show 30 lines
         for i, line in enumerate(lines):
             if line.startswith("class CatalogPanel") or line.startswith("class CatalogStore"):
-                print(f"\n  === {line.rstrip()} (at L{i+1}) ===")
+                print(f"\n  === {line.rstrip()} (at L{i + 1}) ===")
                 # Show next 30 lines
                 for j in range(i, min(i + 40, len(lines))):
-                    print(f"  L{j+1:4d}: {lines[j]}")
+                    print(f"  L{j + 1:4d}: {lines[j]}")
                 break
 
         # Find .store = assignment
@@ -233,9 +239,9 @@ def step3_blueprint_editor_class() -> None:
             continue
         start, end = bounds
         lines = src.split("\n")
-        print(f"\nFull BlueprintEditor class (L{start+1}–L{end}):")
+        print(f"\nFull BlueprintEditor class (L{start + 1}–L{end}):")
         for j in range(start, min(end, start + 100)):
-            print(f"L{j+1:4d}: {lines[j]}")
+            print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -274,9 +280,9 @@ def step4_editor_core_init() -> None:
             print(f"\n[method {method_name} not found in EditorCore]")
             continue
         start, end = method_bounds
-        print(f"\n--- method {method_name} (L{start+1}–L{end}) ---")
+        print(f"\n--- method {method_name} (L{start + 1}–L{end}) ---")
         for j in range(start, end):
-            print(f"L{j+1:4d}: {lines[j]}")
+            print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -298,10 +304,10 @@ def step5_game_launcher_launch_editor() -> None:
             print(line)
         return
     start, end = bounds
-    print(f"\nFound _launch_editor at L{start+1}, ends at L{end}")
+    print(f"\nFound _launch_editor at L{start + 1}, ends at L{end}")
     lines = src.split("\n")
     for j in range(start, end):
-        print(f"L{j+1:4d}: {lines[j]}")
+        print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -335,7 +341,7 @@ def step6_git_log_recent_changes() -> None:
                 if rel not in target_files:
                     target_files.append(rel)
 
-    print(f"\nTarget files for git log:")
+    print("\nTarget files for git log:")
     for tf in target_files:
         print(f"  - {tf}")
 
@@ -360,7 +366,7 @@ def step6_git_log_recent_changes() -> None:
             print(f"  [git log exception: {e}]")
 
     # Also: full file listing recent changes (last 10 commits touching frontend/map_editor)
-    print(f"\n--- git log for frontend/map_editor (last 15 commits) ---")
+    print("\n--- git log for frontend/map_editor (last 15 commits) ---")
     try:
         cmd = ["git", "log", "--oneline", "--no-decorate", "-15", "--", "frontend/map_editor"]
         result = subprocess.run(
@@ -396,7 +402,12 @@ def step7_circular_imports_and_lazy_init() -> None:
             for i, line in enumerate(src.split("\n"), 1):
                 line_stripped = line.strip()
                 if line_stripped.startswith("import ") or line_stripped.startswith("from "):
-                    if "CatalogPanel" in line or "CatalogStore" in line or "catalog_store" in line or "catalog_panel" in line:
+                    if (
+                        "CatalogPanel" in line
+                        or "CatalogStore" in line
+                        or "catalog_store" in line
+                        or "catalog_panel" in line
+                    ):
                         rel = py_file.relative_to(PROJECT_ROOT)
                         print(f"  {rel} L{i}: {line.rstrip()}")
 
@@ -426,10 +437,10 @@ def step7_circular_imports_and_lazy_init() -> None:
                 if "catalog" in line.lower() and ("try:" in line or "except" in line or "raise" in line):
                     # Show 2 lines context
                     rel = py_file.relative_to(PROJECT_ROOT)
-                    print(f"  {rel} L{i+1}: {line.rstrip()}")
+                    print(f"  {rel} L{i + 1}: {line.rstrip()}")
                     for j in range(max(0, i - 1), min(len(lines), i + 2)):
                         if j != i:
-                            print(f"  {rel} L{j+1}: {lines[j].rstrip()}")
+                            print(f"  {rel} L{j + 1}: {lines[j].rstrip()}")
                     print()
 
 
@@ -473,9 +484,19 @@ frontend/map_editor/templates, etc.
             except Exception:
                 continue
             for i, line in enumerate(src.split("\n"), 1):
-                if any(kw in line for kw in ["catalog_path", "load_catalog", "catalog_file",
-                                              "CatalogStore(", "CatalogStore.load", "store.load",
-                                              "store = ", "self.store ="]):
+                if any(
+                    kw in line
+                    for kw in [
+                        "catalog_path",
+                        "load_catalog",
+                        "catalog_file",
+                        "CatalogStore(",
+                        "CatalogStore.load",
+                        "store.load",
+                        "store = ",
+                        "self.store =",
+                    ]
+                ):
                     rel = py_file.relative_to(PROJECT_ROOT)
                     print(f"  {rel} L{i}: {line.rstrip()}")
 

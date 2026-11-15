@@ -9,8 +9,12 @@ R2-BUTTERFLY-B5-OBSTACLES v2 — чтение реализаций трёх пр
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import List
 import io
@@ -39,14 +43,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_butterfly_b5_obstacles_v2.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -66,7 +76,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -119,22 +129,22 @@ def read1_prop_target_in_reach() -> None:
                 print(f"\n  L{i}: {line.rstrip()}")
                 for j in range(max(0, i - 5), min(len(lines), i + 10)):
                     if j != i - 1:
-                        print(f"  L{j+1}: {lines[j].rstrip()}")
+                        print(f"  L{j + 1}: {lines[j].rstrip()}")
         return
 
     start, end = bounds
     print(f"\nFound _prop_target_in_reach at L{start + 1}, ends at L{end}")
     print(f"Function body ({end - start} lines):\n")
     for j in range(start, end):
-        print(f"L{j+1:4d}: {lines[j]}")
+        print(f"L{j + 1:4d}: {lines[j]}")
 
     # Also show context around L613 (the warning log)
-    print(f"\n--- Контекст L605-620 (вокруг warning PROP_TARGET_IN_REACH) ---")
+    print("\n--- Контекст L605-620 (вокруг warning PROP_TARGET_IN_REACH) ---")
     for line in _read_lines(pd_path, 605, 620):
         print(line)
 
     # Read test_butterfly_cold_start.py to understand test conditions
-    print(f"\n--- test_butterfly_cold_start.py — условия тестов ---")
+    print("\n--- test_butterfly_cold_start.py — условия тестов ---")
     test_path = _BACKEND / "tests/micro/test_butterfly_cold_start.py"
     if test_path.exists():
         test_src = test_path.read_text(encoding="utf-8", errors="replace")
@@ -151,10 +161,17 @@ def read2_belief_revision_engine() -> None:
 
     # Search for BeliefRevisionEngine
     greps = [
-        "BeliefRevisionEngine", "belief_revision", "revise_belief",
-        "update_confidence", "compute_confidence", "testimony_confidence",
-        "_CLAIM_WEIGHT", "trust_factor", "reliability",
-        "source_confidence", "witness_confidence",
+        "BeliefRevisionEngine",
+        "belief_revision",
+        "revise_belief",
+        "update_confidence",
+        "compute_confidence",
+        "testimony_confidence",
+        "_CLAIM_WEIGHT",
+        "trust_factor",
+        "reliability",
+        "source_confidence",
+        "witness_confidence",
     ]
 
     for pattern in greps:
@@ -167,7 +184,7 @@ def read2_belief_revision_engine() -> None:
                 continue
             try:
                 src = f.read_text(encoding="utf-8", errors="replace")
-            except:
+            except Exception:
                 continue
             for i, line in enumerate(src.split("\n"), 1):
                 if pattern in line:
@@ -190,21 +207,28 @@ def read2_belief_revision_engine() -> None:
         src = bre_path.read_text(encoding="utf-8", errors="replace")
         lines = src.split("\n")
         # Show all confidence-related code
-        print(f"\n--- Строки с confidence ---")
+        print("\n--- Строки с confidence ---")
         for i, line in enumerate(lines, 1):
-            if "confidence" in line.lower() or "trust" in line.lower() or "reliability" in line.lower() or "weight" in line.lower():
+            if (
+                "confidence" in line.lower()
+                or "trust" in line.lower()
+                or "reliability" in line.lower()
+                or "weight" in line.lower()
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
         # Show full functions that compute confidence
-        print(f"\n--- Полные функции с confidence ---")
+        print("\n--- Полные функции с confidence ---")
         for i, line in enumerate(lines):
-            if "def " in line and ("confidence" in line.lower() or "revise" in line.lower() or "update" in line.lower()):
+            if "def " in line and (
+                "confidence" in line.lower() or "revise" in line.lower() or "update" in line.lower()
+            ):
                 bounds = _find_function_bounds(src, line.split("(")[0].split("def ")[-1].strip())
                 if bounds:
                     s, e = bounds
-                    print(f"\n  Function at L{s+1}–L{e}:")
+                    print(f"\n  Function at L{s + 1}–L{e}:")
                     for j in range(s, e):
-                        print(f"  L{j+1}: {lines[j]}")
+                        print(f"  L{j + 1}: {lines[j]}")
     else:
         print("[BeliefRevisionEngine file not found]")
 
@@ -240,14 +264,24 @@ def read3_epistemic_context_resolver() -> None:
         print(f"L{i:4d}: {line}")
 
     # Also check epistemology.py for EpistemicRecord / EpistemicContext
-    print(f"\n--- app/domain/epistemology.py (key parts) ---")
+    print("\n--- app/domain/epistemology.py (key parts) ---")
     epi_path = _BACKEND / "app/domain/epistemology.py"
     if epi_path.exists():
         src = epi_path.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line for kw in ["class Epistemic", "report_proposition", "confidence",
-                                          "CONFIDENCE_THRESHOLD", "testimony", "source_id",
-                                          "original_source_id", "Predicate"]):
+            if any(
+                kw in line
+                for kw in [
+                    "class Epistemic",
+                    "report_proposition",
+                    "confidence",
+                    "CONFIDENCE_THRESHOLD",
+                    "testimony",
+                    "source_id",
+                    "original_source_id",
+                    "Predicate",
+                ]
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
 
@@ -282,26 +316,26 @@ def read5_post_decision_spread_rumor() -> None:
     lines = src.split("\n")
 
     # Find SPREAD_RUMOR handling
-    print(f"\n--- Строки с SPREAD_RUMOR / spread_rumor ---")
+    print("\n--- Строки с SPREAD_RUMOR / spread_rumor ---")
     for i, line in enumerate(lines, 1):
         if "SPREAD_RUMOR" in line or "spread_rumor" in line:
             print(f"  L{i}: {line.rstrip()}")
 
     # Show full context around PROP_TARGET_IN_REACH (L600-650)
-    print(f"\n--- Контекст L580-650 (вокруг PROP_TARGET_IN_REACH и SPREAD_RUMOR) ---")
+    print("\n--- Контекст L580-650 (вокруг PROP_TARGET_IN_REACH и SPREAD_RUMOR) ---")
     for line in _read_lines(pd_path, 580, 650):
         print(line)
 
     # Show the function that handles SPREAD_RUMOR
-    print(f"\n--- Поиск функции, обрабатывающей spread_rumor ---")
+    print("\n--- Поиск функции, обрабатывающей spread_rumor ---")
     for i, line in enumerate(lines):
         if ("def " in line and "spread" in line.lower()) or ("def " in line and "rumor" in line.lower()):
             bounds = _find_function_bounds(src, line.split("(")[0].split("def ")[-1].strip())
             if bounds:
                 s, e = bounds
-                print(f"\n  Function at L{s+1}–L{e}:")
+                print(f"\n  Function at L{s + 1}–L{e}:")
                 for j in range(s, min(e, s + 60)):
-                    print(f"  L{j+1}: {lines[j]}")
+                    print(f"  L{j + 1}: {lines[j]}")
 
 
 # ============================================================================
@@ -310,7 +344,7 @@ def read5_post_decision_spread_rumor() -> None:
 def final_summary() -> None:
     _print_section("ИТОГ — полная карта препятствий")
 
-    print(f"""
+    print("""
 =============================================================================
 ПОЛНАЯ КАРТА ПРЕПЯТСТВИЙ ДЛЯ BUTTERFLY B5
 =============================================================================
@@ -396,23 +430,41 @@ def main() -> int:
     print(f"OUT_FILE: {OUT_FILE}")
     print("=" * 78)
 
-    try: read1_prop_target_in_reach()
-    except Exception as e: print(f"[read1 error: {e}]"); traceback.print_exc()
+    try:
+        read1_prop_target_in_reach()
+    except Exception as e:
+        print(f"[read1 error: {e}]")
+        traceback.print_exc()
 
-    try: read2_belief_revision_engine()
-    except Exception as e: print(f"[read2 error: {e}]"); traceback.print_exc()
+    try:
+        read2_belief_revision_engine()
+    except Exception as e:
+        print(f"[read2 error: {e}]")
+        traceback.print_exc()
 
-    try: read3_epistemic_context_resolver()
-    except Exception as e: print(f"[read3 error: {e}]"); traceback.print_exc()
+    try:
+        read3_epistemic_context_resolver()
+    except Exception as e:
+        print(f"[read3 error: {e}]")
+        traceback.print_exc()
 
-    try: read4_claim_event_subscriber()
-    except Exception as e: print(f"[read4 error: {e}]"); traceback.print_exc()
+    try:
+        read4_claim_event_subscriber()
+    except Exception as e:
+        print(f"[read4 error: {e}]")
+        traceback.print_exc()
 
-    try: read5_post_decision_spread_rumor()
-    except Exception as e: print(f"[read5 error: {e}]"); traceback.print_exc()
+    try:
+        read5_post_decision_spread_rumor()
+    except Exception as e:
+        print(f"[read5 error: {e}]")
+        traceback.print_exc()
 
-    try: final_summary()
-    except Exception as e: print(f"[final error: {e}]"); traceback.print_exc()
+    try:
+        final_summary()
+    except Exception as e:
+        print(f"[final error: {e}]")
+        traceback.print_exc()
 
     try:
         OUT_FILE.parent.mkdir(parents=True, exist_ok=True)

@@ -29,6 +29,7 @@ CONSTRAINTS:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -132,7 +133,7 @@ _TARGET_LOGGERS = [
     "app.services.npc.state_applicator",
     "app.services.events.intent_event_adapter",
     "app",  # catch-all
-    "",    # root
+    "",  # root
 ]
 
 
@@ -160,6 +161,7 @@ def _reset_log_capture() -> None:
 # ============================================================================
 class _EventBusSpy:
     """Wrap EventBus.publish to capture all published events."""
+
     def __init__(self):
         self.published_events: List[Tuple[str, Any]] = []  # (event_type, event)
         self._installed = False
@@ -227,9 +229,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -271,6 +271,7 @@ def _inspect_obj(obj: Any, depth: int = 0, max_depth: int = 2) -> Any:
 def _find_sub_and_store(bus) -> Tuple[Optional[Any], Optional[Any]]:
     """Find ClaimEventSubscriber + its store."""
     from app.services.events.claim_event_subscriber import ClaimEventSubscriber
+
     sub = None
     for attr in ("_subscribers", "_handlers", "_callbacks"):
         if not hasattr(bus, attr):
@@ -332,8 +333,7 @@ def _find_npc_state(loop, npc_id: str) -> Tuple[Optional[Any], str]:
             method = getattr(nm, method_name, None)
             if method is None:
                 continue
-            for args in [(npc_id,), ("Open_road", npc_id),
-                         ("Open_road", "tavern", npc_id)]:
+            for args in [(npc_id,), ("Open_road", npc_id), ("Open_road", "tavern", npc_id)]:
                 try:
                     result = method(*args)
                     if result is not None:
@@ -375,9 +375,9 @@ def _read_decision_hub_build_communication() -> None:
     bounds = _find_function_bounds(src, "_build_communication")
     if bounds:
         s, e = bounds
-        print(f"  _build_communication at L{s+1}..L{e}:")
+        print(f"  _build_communication at L{s + 1}..L{e}:")
         for j in range(s, e):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
     else:
         print("  [_build_communication not found]")
 
@@ -396,10 +396,10 @@ def _read_dialogue_executor_spread_rumor() -> None:
         if "spread_rumor" in line.lower():
             ctx_start = max(0, i - 5)
             ctx_end = min(len(lines), i + 10)
-            print(f"\n  >>> L{i+1}: {line.rstrip()}")
+            print(f"\n  >>> L{i + 1}: {line.rstrip()}")
             for j in range(ctx_start, ctx_end):
                 marker = ">>>" if j + 1 == i + 1 else "   "
-                print(f"  {marker} L{j+1:4d}: {lines[j]}")
+                print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 def _read_task_scheduler_fast_path() -> None:
@@ -416,10 +416,10 @@ def _read_task_scheduler_fast_path() -> None:
         if "spread_rumor" in line.lower() or "fast-path" in line.lower() or "FAST" in line:
             ctx_start = max(0, i - 3)
             ctx_end = min(len(lines), i + 15)
-            print(f"\n  >>> L{i+1}: {line.rstrip()}")
+            print(f"\n  >>> L{i + 1}: {line.rstrip()}")
             for j in range(ctx_start, ctx_end):
                 marker = ">>>" if j + 1 == i + 1 else "   "
-                print(f"  {marker} L{j+1:4d}: {lines[j]}")
+                print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 def _read_game_loop_fast_path_npc_spoke() -> None:
@@ -449,10 +449,10 @@ def _read_game_loop_fast_path_npc_spoke() -> None:
             continue
         for r in range(ctx_start, ctx_end):
             seen_ranges.add(r)
-        print(f"\n  >>> L{i+1}: {lines[i].rstrip()}")
+        print(f"\n  >>> L{i + 1}: {lines[i].rstrip()}")
         for j in range(ctx_start, ctx_end):
             marker = ">>>" if j + 1 == i + 1 else "   "
-            print(f"  {marker} L{j+1:4d}: {lines[j]}")
+            print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 def _read_intent_event_adapter() -> None:
@@ -481,9 +481,9 @@ def _read_state_applicator_apply_intent() -> None:
     bounds = _find_function_bounds(src, "_apply_intent")
     if bounds:
         s, e = bounds
-        print(f"  _apply_intent at L{s+1}..L{e}:")
+        print(f"  _apply_intent at L{s + 1}..L{e}:")
         for j in range(s, e):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -559,7 +559,7 @@ def main() -> int:
 
         # Install EventBus spy
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # =====================================================================
         # STEP 3: publish PLAYER_INSULTS (B5-D1 chain confirmed)
@@ -583,7 +583,7 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  published")
+        print("  published")
 
         expected_prop = Proposition(
             subject_id="player",
@@ -594,8 +594,12 @@ def main() -> int:
         rec_lusya = store.get("maid_lusya", expected_prop)
         rec_borko = store.get("guard_borko", expected_prop)
         rec_tornin_pre = store.get("tavern_keeper_tornin", expected_prop)
-        print(f"  maid_lusya belief: confidence={getattr(rec_lusya, 'confidence', None)} source_id={getattr(rec_lusya, 'source_id', None)}")
-        print(f"  guard_borko belief: confidence={getattr(rec_borko, 'confidence', None)} source_id={getattr(rec_borko, 'source_id', None)}")
+        print(
+            f"  maid_lusya belief: confidence={getattr(rec_lusya, 'confidence', None)} source_id={getattr(rec_lusya, 'source_id', None)}"
+        )
+        print(
+            f"  guard_borko belief: confidence={getattr(rec_borko, 'confidence', None)} source_id={getattr(rec_borko, 'source_id', None)}"
+        )
         print(f"  tavern_keeper_tornin belief (pre-tick): {rec_tornin_pre}")
 
         # Clear log capture + EventBus spy for clean tick measurement
@@ -614,7 +618,7 @@ def main() -> int:
         # Get initial guard_borko state
         borko_state_pre, _ = _find_npc_state(loop, "guard_borko")
         if borko_state_pre:
-            print(f"  guard_borko pre-tick:")
+            print("  guard_borko pre-tick:")
             print(f"    intent: {getattr(borko_state_pre, 'intent', None)}")
             print(f"    intent_target: {getattr(borko_state_pre, 'intent_target', None)}")
             print(f"    position: {getattr(borko_state_pre, 'position', None)}")
@@ -653,7 +657,7 @@ def main() -> int:
             try:
                 if store:
                     tornin_all_records = store.get_all_for_agent("tavern_keeper_tornin") or []
-            except Exception as e:
+            except Exception:
                 pass
 
             snapshot = {
@@ -679,13 +683,15 @@ def main() -> int:
                 snapshot["npc_spoke_details"] = []
                 for nse in npc_spoke_events[:5]:
                     p = getattr(nse, "payload", {}) or {}
-                    snapshot["npc_spoke_details"].append({
-                        "source": getattr(nse, "source", "?"),
-                        "target_id": p.get("target_id"),
-                        "intent_type": p.get("intent_type"),
-                        "content": str(p.get("content", ""))[:100],
-                        "has_proposition": bool(p.get("proposition")),
-                    })
+                    snapshot["npc_spoke_details"].append(
+                        {
+                            "source": getattr(nse, "source", "?"),
+                            "target_id": p.get("target_id"),
+                            "intent_type": p.get("intent_type"),
+                            "content": str(p.get("content", ""))[:100],
+                            "has_proposition": bool(p.get("proposition")),
+                        }
+                    )
 
             # Capture SPREAD_RUMOR events (EventType.SPREAD_RUMOR)
             spread_rumor_events = [e for t, e in tick_events if "spread_rumor" in t.lower()]
@@ -710,7 +716,11 @@ def main() -> int:
                 snapshot["comm_logs"] = comm_logs[:5]
 
             # Capture executor logs
-            exec_logs = [l for l in tick_logs if "executor" in l.lower() or "execute" in l.lower() or "task_scheduler" in l.lower()]
+            exec_logs = [
+                l
+                for l in tick_logs
+                if "executor" in l.lower() or "execute" in l.lower() or "task_scheduler" in l.lower()
+            ]
             snapshot["exec_logs_count"] = len(exec_logs)
             if exec_logs:
                 snapshot["exec_logs"] = exec_logs[:5]
@@ -733,15 +743,15 @@ def main() -> int:
                 for pl in snapshot["proactive_logs"]:
                     print(f"      {pl[:200]}")
             if "dh_borko_logs" in snapshot:
-                print(f"    dh_borko_logs:")
+                print("    dh_borko_logs:")
                 for dl in snapshot["dh_borko_logs"]:
                     print(f"      {dl[:200]}")
             if "comm_logs" in snapshot:
-                print(f"    comm_logs:")
+                print("    comm_logs:")
                 for cl in snapshot["comm_logs"]:
                     print(f"      {cl[:200]}")
             if "exec_logs" in snapshot:
-                print(f"    exec_logs:")
+                print("    exec_logs:")
                 for el in snapshot["exec_logs"]:
                     print(f"      {el[:200]}")
 
@@ -756,8 +766,7 @@ def main() -> int:
         _print_section("STEP 5: comprehensive final report")
 
         # 5a. CommunicationIntent creation analysis
-        print(f"\n  === A. CommunicationIntent creation ===")
-        all_logs = []
+        print("\n  === A. CommunicationIntent creation ===")
         for snap in tick_snapshots:
             # Re-derive full logs from saved snapshots
             pass
@@ -773,7 +782,7 @@ def main() -> int:
             print(f"    {pl[:200]}")
 
         # 5b. Execution analysis
-        print(f"\n  === B. Execution ===")
+        print("\n  === B. Execution ===")
         all_exec = []
         for snap in tick_snapshots:
             if "exec_logs" in snap:
@@ -783,26 +792,30 @@ def main() -> int:
             print(f"    {el[:200]}")
 
         # 5c. Publication analysis
-        print(f"\n  === C. NPC_SPOKE publication ===")
+        print("\n  === C. NPC_SPOKE publication ===")
         total_npc_spoke = sum(snap["npc_spoke_count"] for snap in tick_snapshots)
         total_spread_rumor_events = sum(snap["spread_rumor_event_count"] for snap in tick_snapshots)
         print(f"  Total NPC_SPOKE events across all ticks: {total_npc_spoke}")
         print(f"  Total SPREAD_RUMOR events across all ticks: {total_spread_rumor_events}")
-        print(f"\n  NPC_SPOKE details per tick:")
+        print("\n  NPC_SPOKE details per tick:")
         for snap in tick_snapshots:
             if snap["npc_spoke_count"] > 0:
                 print(f"    tick {snap['tick']}: {snap['npc_spoke_count']} NPC_SPOKE events")
                 if "npc_spoke_details" in snap:
                     for d in snap["npc_spoke_details"]:
-                        print(f"      source={d['source']} target={d['target_id']} intent={d['intent_type']} has_prop={d['has_proposition']}")
+                        print(
+                            f"      source={d['source']} target={d['target_id']} intent={d['intent_type']} has_prop={d['has_proposition']}"
+                        )
 
         # 5d. Tornin belief reception
-        print(f"\n  === D. Tornin belief reception ===")
+        print("\n  === D. Tornin belief reception ===")
         for snap in tick_snapshots:
-            tornin_str = snap["tornin_belief"]
+            snap["tornin_belief"]
             if snap["tornin_belief_confidence"] is not None:
-                print(f"    tick {snap['tick']}: Tornin belief! confidence={snap['tornin_belief_confidence']} "
-                      f"source_id={snap['tornin_belief_source_id']} original={snap['tornin_belief_original_source_id']}")
+                print(
+                    f"    tick {snap['tick']}: Tornin belief! confidence={snap['tornin_belief_confidence']} "
+                    f"source_id={snap['tornin_belief_source_id']} original={snap['tornin_belief_original_source_id']}"
+                )
             else:
                 print(f"    tick {snap['tick']}: no belief (total records: {snap['tornin_total_records']})")
 
@@ -813,15 +826,15 @@ def main() -> int:
 
         # Check chain completion
         chain = {
-            "A_intent_selected": any(snap["borko_intent"] and "spread_rumor" in snap["borko_intent"].lower()
-                                     for snap in tick_snapshots),
+            "A_intent_selected": any(
+                snap["borko_intent"] and "spread_rumor" in snap["borko_intent"].lower() for snap in tick_snapshots
+            ),
             "B_proactive_move": any(snap["proactive_logs_count"] > 0 for snap in tick_snapshots),
             "C_npc_spoke_published": any(snap["npc_spoke_count"] > 0 for snap in tick_snapshots),
-            "D_tornin_belief_created": any(snap["tornin_belief_confidence"] is not None
-                                           for snap in tick_snapshots),
+            "D_tornin_belief_created": any(snap["tornin_belief_confidence"] is not None for snap in tick_snapshots),
         }
 
-        print(f"  Chain stage completion:")
+        print("  Chain stage completion:")
         for stage, completed in chain.items():
             print(f"    {stage}: {'✓' if completed else '✗'}")
 
@@ -831,13 +844,15 @@ def main() -> int:
             for snap in tick_snapshots:
                 if snap["tornin_belief_confidence"] is not None:
                     print(f"  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed at tick {snap['tick']}")
-                    print(f"  >>> guard_borko's SPREAD_RUMOR reached tavern_keeper_tornin")
-                    print(f"  >>> Tornin's belief:")
+                    print("  >>> guard_borko's SPREAD_RUMOR reached tavern_keeper_tornin")
+                    print("  >>> Tornin's belief:")
                     print(f"      confidence: {snap['tornin_belief_confidence']}")
                     print(f"      source_id: {snap['tornin_belief_source_id']}")
                     print(f"      original_source_id: {snap['tornin_belief_original_source_id']}")
-                    provenance_ok = (snap['tornin_belief_source_id'] == 'guard_borko'
-                                    and snap['tornin_belief_original_source_id'] == 'player')
+                    provenance_ok = (
+                        snap["tornin_belief_source_id"] == "guard_borko"
+                        and snap["tornin_belief_original_source_id"] == "player"
+                    )
                     print(f"  >>> Provenance chain preserved: {provenance_ok}")
                     break
         elif chain["C_npc_spoke_published"]:
@@ -857,7 +872,7 @@ def main() -> int:
         else:
             print("  >>> VERDICT: DEFECT — SPREAD_RUMOR not selected by guard_borko")
             print("  >>> (unexpected — B5-E2 confirmed it was selected)")
-            print(f"  >>> Borko intent progression:")
+            print("  >>> Borko intent progression:")
             for snap in tick_snapshots:
                 print(f"    tick {snap['tick']}: {snap['borko_intent']}")
 
@@ -871,6 +886,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:

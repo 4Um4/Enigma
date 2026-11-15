@@ -72,6 +72,7 @@ class SpatialFactory:
             if cached_fp == current_fp and current_fp != "":
                 # BUG-SPATIAL-029 FIX: Обновляем overlay перед возвратом кэшированного сервиса
                 from app.services.spatial.spatial_overlay import build_overlay_from_scene
+
                 cached_svc.set_overlay(build_overlay_from_scene(scene_state))
                 return cached_svc
             # S-03.1: Карта изменена или отсутствует — инвалидируем кэш

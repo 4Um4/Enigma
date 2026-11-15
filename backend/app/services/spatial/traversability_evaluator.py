@@ -16,6 +16,7 @@ from app.services.spatial.local_traversal_planner import LocalTraversalPlanner
 
 logger = logging.getLogger(__name__)
 
+
 class TraversabilityEvaluator:
     """Pure function evaluator. Делегирует построение плана в LocalTraversalPlanner."""
 
@@ -34,8 +35,4 @@ class TraversabilityEvaluator:
                 return TraversalFeasibility(possible=True, mode=TraversalMode.JUMP, required_capability="can_jump")
             return TraversalFeasibility(possible=True, mode=TraversalMode.WALK)
 
-        return TraversalFeasibility(
-            possible=False,
-            mode=TraversalMode.NONE,
-            reason=plan.reason or "PLAN_BLOCKED"
-        )
+        return TraversalFeasibility(possible=False, mode=TraversalMode.NONE, reason=plan.reason or "PLAN_BLOCKED")

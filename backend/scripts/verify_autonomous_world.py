@@ -122,7 +122,7 @@ def test_autonomous_world():
         failures.append(f"A: time only advanced {time_delta}s (expected >3000)")
         print(f"❌ A FAILED: time advanced {time_delta}s (expected >3000)")
     else:
-        print(f"✅ A PASSED: time advanced {time_delta}s ({time_delta/60:.1f} minutes)")
+        print(f"✅ A PASSED: time advanced {time_delta}s ({time_delta / 60:.1f} minutes)")
 
     # B. NPC двигаются
     moved = 0

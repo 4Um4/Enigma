@@ -18,8 +18,8 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union, cast
 
-from app.domain.epistemology import Predicate
 from app.domain.epistemic_dispositions import get_epistemic_disposition
+from app.domain.epistemology import Predicate
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -812,10 +812,10 @@ class DecisionHub:
         # Корректируем utility интентов на основе конкретных убеждений о конкретных целях.
         # Это позволяет NPC учитывать новую информацию без жёстких предписаний.
         target_aware_scores = dict(scores)
-        if epistemic_context and getattr(epistemic_context, 'recent_beliefs', None):
-            archetype = getattr(personality, 'archetype', 'commoner')
+        if epistemic_context and getattr(epistemic_context, "recent_beliefs", None):
+            archetype = getattr(personality, "archetype", "commoner")
             disposition = get_epistemic_disposition(archetype)
-            
+
             for intent in list(target_aware_scores.keys()):
                 # Tentatively resolve target for this specific intent
                 tentative_target = self._resolve_target(
@@ -827,18 +827,18 @@ class DecisionHub:
                     pending_response_target=pending_response_target,
                     epistemic_context=epistemic_context,
                 )
-                
+
                 if tentative_target:
                     for belief in epistemic_context.recent_beliefs:
-                        # A19.5 Semantic Fix: Диспозиции реакции (report, attack, warn) 
+                        # A19.5 Semantic Fix: Диспозиции реакции (report, attack, warn)
                         # относятся к актору события (subject_id), а не к жертве (object_id).
                         if tentative_target == belief.subject_id:
                             modifier = disposition.get(intent, 0.0) * belief.confidence
                             target_aware_scores[intent] = round(target_aware_scores[intent] + modifier, 4)
                             break
-                        # Если tentative_target == belief.object_id (жертва), мы намеренно 
+                        # Если tentative_target == belief.object_id (жертва), мы намеренно
                         # НЕ применяем модификаторы актора, чтобы не наказывать жертву.
-        
+
         best_candidate_str, best_score = max(target_aware_scores.items(), key=lambda x: x[1])  # (str, float)
 
         # ── Commitment Model: порог смены intent ──

@@ -5,6 +5,7 @@
 Зависимости: intent_compressor, scripts.llm_server_manager
 Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.ue4_probe; cd ..
 """
+
 from __future__ import annotations
 
 import asyncio

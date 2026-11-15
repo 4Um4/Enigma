@@ -7,6 +7,7 @@ path: /project/backend/tests/sandbox/f3_combat_smoke.py
 Зависимости: app.services.game_loop_builder, app.domain.events.EventDTO
 Запуск: cd backend; python tests/sandbox/f3_combat_smoke.py
 """
+
 import json
 import shutil
 import sys
@@ -86,9 +87,7 @@ _bus.publish(_evt)
 gl.idle_tick("Open_road")  # Фаза 8: CombatSubscriber → ImpactEngine
 
 _st = gl._get_life_engine().get_npc_states("Open_road")
-_torn = next(
-    (n for n in _st if n.get("npc_id") == "tavern_keeper_tornin"), {}
-)
+_torn = next((n for n in _st if n.get("npc_id") == "tavern_keeper_tornin"), {})
 _bs = _torn.get("body_state", {}) or {}
 _res = {
     "hp": _bs.get("current_hp"),

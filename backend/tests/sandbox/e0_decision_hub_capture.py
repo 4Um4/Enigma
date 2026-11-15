@@ -6,7 +6,11 @@ Output: reports/experiments/e0_pilot_4/{run_log.txt, report.md, summary.json}
 SAFETY: Class-level wrapper on DecisionHub.compute (reversible). Instance wrapper on _phase_5_decision (reversible).
         Both call original with same args, return original result, do not catch exceptions.
 """
-import json, sys, inspect, traceback
+
+import json
+import sys
+import inspect
+import traceback
 from pathlib import Path
 from datetime import datetime
 
@@ -31,27 +35,34 @@ def safe_str(v, maxlen=80):
     except Exception:
         return "<unstr>"
 
+
 def safe_float(v):
     try:
         return round(float(v), 4)
     except Exception:
         return safe_str(v, 40)
 
+
 def extract_dict_safe(obj, max_items=15):
     """Extract readable dict from object (dict, or object with __dict__)."""
     if obj is None:
         return None
     if isinstance(obj, dict):
-        return {str(k): (safe_float(v) if isinstance(v, (int, float)) else safe_str(v, 50))
-                for k, v in list(obj.items())[:max_items]}
+        return {
+            str(k): (safe_float(v) if isinstance(v, (int, float)) else safe_str(v, 50))
+            for k, v in list(obj.items())[:max_items]
+        }
     try:
         vd = vars(obj)
         if vd:
-            return {str(k): (safe_float(v) if isinstance(v, (int, float)) else safe_str(v, 50))
-                    for k, v in list(vd.items())[:max_items]}
+            return {
+                str(k): (safe_float(v) if isinstance(v, (int, float)) else safe_str(v, 50))
+                for k, v in list(vd.items())[:max_items]
+            }
     except TypeError:
         pass
     return safe_str(obj, 200)
+
 
 def extract_state_brief(state):
     if state is None:
@@ -77,6 +88,7 @@ def extract_state_brief(state):
         r["rel_cache_count"] = 0
     return r
 
+
 def extract_personality_brief(p):
     if p is None:
         return {"_error": "None"}
@@ -95,6 +107,7 @@ def extract_personality_brief(p):
     r["voice_profile"] = safe_str(getattr(p, "voice_profile", ""), 30)
     return r
 
+
 def extract_event_brief(event):
     if event is None:
         return {"_error": "None"}
@@ -111,6 +124,7 @@ def extract_event_brief(event):
     # All attrs
     r["all_attrs"] = extract_dict_safe(event, 10)
     return r
+
 
 def extract_result_brief(result):
     if result is None:
@@ -139,17 +153,19 @@ def extract_result_brief(result):
 DH_CALLS = []
 DH_ORIGINAL = None
 
+
 def install_dh_wrapper():
     global DH_ORIGINAL
     from app.services.npc.decision_hub import DecisionHub
+
     DH_ORIGINAL = DecisionHub.compute
-    
+
     def wrapped_compute(self, *args, **kwargs):
         call_num = len(DH_CALLS) + 1
         state = args[0] if args else kwargs.get("state")
         personality = args[1] if len(args) > 1 else kwargs.get("personality")
         event = args[2] if len(args) > 2 else kwargs.get("event")
-        
+
         entry = {
             "call_num": call_num,
             "timestamp": datetime.now().isoformat(),
@@ -158,24 +174,26 @@ def install_dh_wrapper():
             "personality": extract_personality_brief(personality),
             "event": extract_event_brief(event),
         }
-        
+
         # Call original — same args, same kwargs, same self
         result = DH_ORIGINAL(self, *args, **kwargs)
-        
+
         # Capture result — read-only
         entry["result"] = extract_result_brief(result)
         DH_CALLS.append(entry)
-        
+
         # Return original result — unchanged
         return result
-    
+
     DecisionHub.compute = wrapped_compute
     return DecisionHub
+
 
 def restore_dh_wrapper():
     global DH_ORIGINAL
     if DH_ORIGINAL is not None:
         from app.services.npc.decision_hub import DecisionHub
+
         DecisionHub.compute = DH_ORIGINAL
         DH_ORIGINAL = None
 
@@ -183,9 +201,10 @@ def restore_dh_wrapper():
 # === _phase_5_decision instance wrapper ===
 PHASE5_LOG = []
 
+
 def install_phase5_wrapper(tick_orch):
     original = tick_orch._phase_5_decision
-    
+
     def wrapped_phase5(*args, **kwargs):
         entry = {
             "call_num": len(PHASE5_LOG) + 1,
@@ -202,9 +221,10 @@ def install_phase5_wrapper(tick_orch):
         except Exception as e:
             entry["error"] = f"{type(e).__name__}: {e}"
             raise
-    
+
     tick_orch._phase_5_decision = wrapped_phase5
     return original
+
 
 def restore_phase5_wrapper(tick_orch, original):
     if original is not None:
@@ -223,7 +243,7 @@ def get_npc_states_via_snapshot(gl, cid):
                 params = list(sig.parameters.keys())
             except (ValueError, TypeError):
                 params = ["?"]
-            
+
             # Try different call signatures
             result = None
             for call_args in [(cid,), (cid, "tavern"), ()]:
@@ -232,10 +252,10 @@ def get_npc_states_via_snapshot(gl, cid):
                     break
                 except TypeError:
                     continue
-            
+
             if result is None:
                 continue
-            
+
             states = {}
             if isinstance(result, dict):
                 for nid in PAIR:
@@ -249,9 +269,9 @@ def get_npc_states_via_snapshot(gl, cid):
                         nid = item.get("id") or item.get("npc_id")
                     if nid in PAIR:
                         states[nid] = item
-            
+
             return states, method_name, params
-        except Exception as e:
+        except Exception:
             continue
     return {}, "none", []
 
@@ -268,7 +288,11 @@ def get_relationships_via_rel_store(gl, cid):
         if fn:
             try:
                 if method == "get_pair":
-                    pair_data = fn(cid, PAIR[0], PAIR[1]) if len(inspect.signature(fn).parameters) >= 3 else fn(PAIR[0], PAIR[1])
+                    pair_data = (
+                        fn(cid, PAIR[0], PAIR[1])
+                        if len(inspect.signature(fn).parameters) >= 3
+                        else fn(PAIR[0], PAIR[1])
+                    )
                     result[f"{method}({PAIR[0]},{PAIR[1]})"] = extract_dict_safe(pair_data)
                 elif method == "get_all_for_source":
                     for nid in PAIR:
@@ -284,7 +308,7 @@ def main():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout = log_file
     sys.stderr = log_file
-    
+
     print(f"[E0-PILOT-4] START {datetime.now().isoformat()}")
     url = None
     error = None
@@ -297,23 +321,25 @@ def main():
     ticks_completed = 0
     positions_per_tick = []
     dh_sig = None
-    
+
     try:
         print("[E0-PILOT-4] Acquiring LLM lease...")
         url = ensure_llm(label="experiment:E0-pilot4")
         print(f"[E0-PILOT-4] LLM URL: {url}")
-        
+
         from tests.gameplay.harness import TavernGameplayHarness
+
         h = TavernGameplayHarness()
         h.new_game()
         raw_cid = h.campaign_id
         cid = raw_cid() if callable(raw_cid) else str(raw_cid)
         gl = h.game_loop
         print(f"[E0-PILOT-4] Campaign={cid}")
-        
+
         # === Inspect DecisionHub.compute signature ===
         try:
             from app.services.npc.decision_hub import DecisionHub
+
             sig = inspect.signature(DecisionHub.compute)
             dh_sig = str(sig)
             params = list(sig.parameters.keys())
@@ -321,7 +347,7 @@ def main():
             print(f"[E0-PILOT-4] DecisionHub.compute params: {params}")
         except Exception as e:
             print(f"[E0-PILOT-4] DecisionHub import/sig failed: {e}")
-        
+
         # === NPCState via _resolve_npcs_snapshot ===
         npc_states_data_source = "none"
         states_result = get_npc_states_via_snapshot(gl, cid)
@@ -338,42 +364,51 @@ def main():
                             "psyche": item.get("psyche"),
                             "stress": item.get("stress"),
                             "will_state": item.get("will_state"),
-                            "relationship_cache": (item.get("relationship_cache", {}) if isinstance(item.get("relationship_cache"), dict) else None),
-                            "rel_cache_count": len(item.get("relationship_cache", {})) if isinstance(item.get("relationship_cache"), dict) else 0,
+                            "relationship_cache": (
+                                item.get("relationship_cache", {})
+                                if isinstance(item.get("relationship_cache"), dict)
+                                else None
+                            ),
+                            "rel_cache_count": len(item.get("relationship_cache", {}))
+                            if isinstance(item.get("relationship_cache"), dict)
+                            else 0,
                         }
                     else:
                         npc_states_data[nid] = extract_state_brief(item)
                         npc_states_data[nid]["source"] = "object"
             print(f"[E0-PILOT-4] NPC states via {npc_states_data_source}: {list(npc_states_data.keys())}")
         else:
-            print(f"[E0-PILOT-4] NPC states: NONE accessible via snapshot methods")
-        
+            print("[E0-PILOT-4] NPC states: NONE accessible via snapshot methods")
+
         # Log NPC states
         for nid in PAIR:
             ns = npc_states_data.get(nid, {})
-            print(f"[E0-PILOT-4] {nid}: drives={ns.get('drives')}, psyche={ns.get('psyche')}, "
-                  f"will={ns.get('will_state')}, stress={ns.get('stress')}, rel_count={ns.get('rel_cache_count')}")
-        
+            print(
+                f"[E0-PILOT-4] {nid}: drives={ns.get('drives')}, psyche={ns.get('psyche')}, "
+                f"will={ns.get('will_state')}, stress={ns.get('stress')}, rel_count={ns.get('rel_cache_count')}"
+            )
+
         # === Relationships via _rel_store ===
         rel_data = get_relationships_via_rel_store(gl, cid)
         print(f"[E0-PILOT-4] rel_store: {rel_data.get('type')}")
         for k, v in rel_data.items():
             if k != "type" and not k.endswith("_error"):
                 print(f"[E0-PILOT-4] rel {k}: {v}")
-        
+
         # === Install DecisionHub class-level wrapper ===
         install_dh_wrapper()
         dh_installed = True
-        print(f"[E0-PILOT-4] DecisionHub.compute wrapped (class-level, reversible)")
-        
+        print("[E0-PILOT-4] DecisionHub.compute wrapped (class-level, reversible)")
+
         # === Install _phase_5_decision wrapper ===
         tick_orch = getattr(gl, "_tick_orch", None)
         if tick_orch:
             phase5_original = install_phase5_wrapper(tick_orch)
-            print(f"[E0-PILOT-4] _phase_5_decision wrapped (instance, reversible)")
-        
+            print("[E0-PILOT-4] _phase_5_decision wrapped (instance, reversible)")
+
         # === Run 5 ticks ===
         import math
+
         for n in range(1, N_TICKS + 1):
             try:
                 res = gl.idle_tick(cid)
@@ -400,22 +435,30 @@ def main():
                         tx = positions["tavern_keeper_tornin"]["x"]
                         ty = positions["tavern_keeper_tornin"]["y"]
                         if all(v is not None for v in [lx, ly, tx, ty]):
-                            dist = round(math.sqrt((lx-tx)**2 + (ly-ty)**2), 2)
+                            dist = round(math.sqrt((lx - tx) ** 2 + (ly - ty) ** 2), 2)
                     except Exception:
                         pass
                 status = res.get("status") if isinstance(res, dict) else str(res)[:50]
-                positions_per_tick.append({"tick": n, "distance": dist, "status": status,
-                                           "dh_calls_so_far": len(DH_CALLS),
-                                           "phase5_calls_so_far": len(PHASE5_LOG)})
+                positions_per_tick.append(
+                    {
+                        "tick": n,
+                        "distance": dist,
+                        "status": status,
+                        "dh_calls_so_far": len(DH_CALLS),
+                        "phase5_calls_so_far": len(PHASE5_LOG),
+                    }
+                )
                 ticks_completed = n
                 in_range = "YES" if dist and dist <= SPEAK_RADIUS else "NO"
-                print(f"  T{n}: status={status}, dist={dist}({in_range}), "
-                      f"dh_calls={len(DH_CALLS)}, phase5_calls={len(PHASE5_LOG)}")
+                print(
+                    f"  T{n}: status={status}, dist={dist}({in_range}), "
+                    f"dh_calls={len(DH_CALLS)}, phase5_calls={len(PHASE5_LOG)}"
+                )
             except Exception as e:
                 print(f"  T{n} FAILED: {type(e).__name__}: {e}")
                 traceback.print_exc()
                 break
-        
+
     except Exception as e:
         error = f"{type(e).__name__}: {e}"
         traceback.print_exc()
@@ -427,39 +470,41 @@ def main():
         if tick_orch and phase5_original is not None:
             restore_phase5_wrapper(tick_orch, phase5_original)
             print(f"[E0-PILOT-4] _phase_5_decision restored (total calls: {len(PHASE5_LOG)})")
-        
+
         sys.stdout = old_out
         sys.stderr = old_err
         log_file.close()
         print("[E0-PILOT-4] Releasing LLM lease...")
-        try: release_lease()
-        except: pass
-    
+        try:
+            release_lease()
+        except Exception:
+            pass
+
     # === POST-RUN ANALYSIS ===
-    
+
     # Filter DH calls for Lusya/Tornin
     pair_calls = [c for c in DH_CALLS if c.get("state", {}).get("npc_id", "") in PAIR]
-    
+
     # Check WORLD_TICK events
     world_tick_events = [c for c in DH_CALLS if c.get("event", {}).get("is_world_tick", False)]
     non_world_tick = [c for c in DH_CALLS if not c.get("event", {}).get("is_world_tick", False)]
-    
+
     # Check TALK in candidates
     talk_present = [c for c in DH_CALLS if c.get("result", {}).get("talk_in_candidates", False)]
     talk_absent = [c for c in DH_CALLS if not c.get("result", {}).get("talk_in_candidates", False)]
-    
+
     # Event types summary
     event_types = {}
     for c in DH_CALLS:
         et = c.get("event", {}).get("event_type", "?")
         event_types[et] = event_types.get(et, 0) + 1
-    
+
     # Winners summary
     winners = {}
     for c in DH_CALLS:
         w = c.get("result", {}).get("winner", "?")
         winners[w] = winners.get(w, 0) + 1
-    
+
     summary = {
         "run_id": RUN_ID,
         "timestamp": datetime.now().isoformat(),
@@ -483,21 +528,21 @@ def main():
         "dh_calls": DH_CALLS,
         "phase5_log": PHASE5_LOG,
     }
-    
+
     sp = OUT / "summary.json"
     with open(sp, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
-    
+
     rp = OUT / "report.md"
     with open(rp, "w", encoding="utf-8") as f:
-        f.write(f"# E0-PILOT-4 DecisionHub Runtime Capture Report\n\n")
+        f.write("# E0-PILOT-4 DecisionHub Runtime Capture Report\n\n")
         f.write(f"Run: {RUN_ID} | {summary['timestamp']}\n")
         f.write(f"Campaign: {cid} | Ticks: {ticks_completed}/{N_TICKS}\n\n")
         if error:
             f.write(f"**ERROR:** {error}\n\n")
-        
+
         f.write(f"## DecisionHub.compute signature\n\n```\n{dh_sig}\n```\n\n")
-        
+
         f.write(f"## NPC states (via {npc_states_data_source})\n\n")
         for nid in PAIR:
             ns = npc_states_data.get(nid, {})
@@ -507,10 +552,12 @@ def main():
             f.write(f"- will_state: `{ns.get('will_state')}`\n")
             f.write(f"- stress: `{ns.get('stress')}`\n")
             f.write(f"- rel_cache_count: `{ns.get('rel_cache_count')}`\n\n")
-        
-        f.write(f"## Relationships (via _rel_store)\n\n```json\n{json.dumps(rel_data, ensure_ascii=False, indent=2, default=str)}\n```\n\n")
-        
-        f.write(f"## DecisionHub calls summary\n\n")
+
+        f.write(
+            f"## Relationships (via _rel_store)\n\n```json\n{json.dumps(rel_data, ensure_ascii=False, indent=2, default=str)}\n```\n\n"
+        )
+
+        f.write("## DecisionHub calls summary\n\n")
         f.write(f"- Total compute() calls: **{len(DH_CALLS)}**\n")
         f.write(f"- Calls for Lusya/Tornin: **{len(pair_calls)}**\n")
         f.write(f"- _phase_5_decision calls: **{len(PHASE5_LOG)}**\n")
@@ -518,44 +565,58 @@ def main():
         f.write(f"- Non-WORLD_TICK events: **{len(non_world_tick)}**\n")
         f.write(f"- TALK in candidates: **{len(talk_present)}**\n")
         f.write(f"- TALK absent: **{len(talk_absent)}**\n\n")
-        
-        f.write(f"### Event types received by DecisionHub\n\n")
+
+        f.write("### Event types received by DecisionHub\n\n")
         for et, count in event_types.items():
             f.write(f"- `{et}`: {count}\n")
-        f.write(f"\n")
-        
-        f.write(f"### Winners\n\n")
+        f.write("\n")
+
+        f.write("### Winners\n\n")
         for w, count in winners.items():
             f.write(f"- `{w}`: {count}\n")
-        f.write(f"\n")
-        
+        f.write("\n")
+
         if DH_CALLS:
-            f.write(f"## DecisionHub calls (detail)\n\n")
+            f.write("## DecisionHub calls (detail)\n\n")
             for c in DH_CALLS:
                 st = c.get("state", {})
                 ev = c.get("event", {})
                 rs = c.get("result", {})
-                f.write(f"### Call #{c['call_num']}: NPC={st.get('npc_id','?')}\n")
-                f.write(f"- Event: `{ev.get('event_type','?')}` reason=`{ev.get('reason','')}` is_world_tick=`{ev.get('is_world_tick')}`\n")
-                f.write(f"- State: drives=`{st.get('drives_runtime')}` will=`{st.get('will_state')}` consciousness=`{st.get('consciousness')}`\n")
-                f.write(f"- Personality: drives_base=`{c.get('personality',{}).get('drives_base')}`\n")
-                f.write(f"- Winner: **{rs.get('winner','?')}** score={rs.get('score')}\n")
+                f.write(f"### Call #{c['call_num']}: NPC={st.get('npc_id', '?')}\n")
+                f.write(
+                    f"- Event: `{ev.get('event_type', '?')}` reason=`{ev.get('reason', '')}` is_world_tick=`{ev.get('is_world_tick')}`\n"
+                )
+                f.write(
+                    f"- State: drives=`{st.get('drives_runtime')}` will=`{st.get('will_state')}` consciousness=`{st.get('consciousness')}`\n"
+                )
+                f.write(f"- Personality: drives_base=`{c.get('personality', {}).get('drives_base')}`\n")
+                f.write(f"- Winner: **{rs.get('winner', '?')}** score={rs.get('score')}\n")
                 f.write(f"- TALK in candidates: `{rs.get('talk_in_candidates')}` talk_score=`{rs.get('talk_score')}`\n")
                 f.write(f"- Scores trace: `{rs.get('scores_trace')}`\n\n")
-        
+
         if PHASE5_LOG:
-            f.write(f"## _phase_5_decision calls\n\n")
+            f.write("## _phase_5_decision calls\n\n")
             for p in PHASE5_LOG:
-                f.write(f"- #{p['call_num']}: args={p['args_count']} returned={p.get('returned')} error={p.get('error','')}\n")
-            f.write(f"\n")
-        
+                f.write(
+                    f"- #{p['call_num']}: args={p['args_count']} returned={p.get('returned')} error={p.get('error', '')}\n"
+                )
+            f.write("\n")
+
         # === 7 QUESTIONS ===
-        f.write(f"## Answers to 7 questions\n\n")
-        
-        q1 = "YES" if pair_calls else ("NO — compute() not called for pair" if len(DH_CALLS) == 0 else "NO — compute() called but not for pair NPCs")
+        f.write("## Answers to 7 questions\n\n")
+
+        q1 = (
+            "YES"
+            if pair_calls
+            else (
+                "NO — compute() not called for pair"
+                if len(DH_CALLS) == 0
+                else "NO — compute() called but not for pair NPCs"
+            )
+        )
         f.write(f"**Q1. Is DecisionHub called for Lusya and Tornin?**\n→ **{q1}**\n")
         f.write(f"   Evidence: {len(DH_CALLS)} total calls, {len(pair_calls)} for pair NPCs.\n\n")
-        
+
         if not pair_calls:
             phase5_called = len(PHASE5_LOG) > 0
             if phase5_called:
@@ -564,27 +625,29 @@ def main():
                 q2 = "phase 5 NOT entered — path breaks before _phase_5_decision (in earlier phase or pipeline entry)"
             f.write(f"**Q2. Where does the path break?**\n→ **{q2}**\n\n")
         else:
-            f.write(f"**Q2. (N/A — compute() is called)**\n\n")
-        
+            f.write("**Q2. (N/A — compute() is called)**\n\n")
+
         talk_any = len(talk_present) > 0
         q3 = "YES" if talk_any else ("NO" if DH_CALLS else "UNVERIFIED — compute() not called")
         f.write(f"**Q3. Is TALK among candidates?**\n→ **{q3}**\n")
         f.write(f"   Evidence: {len(talk_present)} calls with TALK, {len(talk_absent)} without.\n\n")
-        
+
         if talk_any:
-            f.write(f"**Q4. Why does TALK lose?**\n→ See scores_trace in call details above.\n\n")
+            f.write("**Q4. Why does TALK lose?**\n→ See scores_trace in call details above.\n\n")
         else:
-            f.write(f"**Q4. (N/A — TALK not in candidates)**\n\n")
-        
+            f.write("**Q4. (N/A — TALK not in candidates)**\n\n")
+
         if DH_CALLS and not talk_any:
-            f.write(f"**Q5. At what stage is TALK excluded?**\n→ Check scores_trace: if TALK not in scores_trace keys, excluded BEFORE scoring (relevance=0 for non-WORLD_TICK events). If in keys with score=0, excluded AT scoring.\n\n")
+            f.write(
+                "**Q5. At what stage is TALK excluded?**\n→ Check scores_trace: if TALK not in scores_trace keys, excluded BEFORE scoring (relevance=0 for non-WORLD_TICK events). If in keys with score=0, excluded AT scoring.\n\n"
+            )
         else:
-            f.write(f"**Q5. (N/A)**\n\n")
-        
+            f.write("**Q5. (N/A)**\n\n")
+
         q6 = "See event_types above" if DH_CALLS else "UNVERIFIED — compute() not called"
         f.write(f"**Q6. What event type does DecisionHub receive?**\n→ **{q6}**\n")
         f.write(f"   WORLD_TICK events: {len(world_tick_events)}, Non-WORLD_TICK: {len(non_world_tick)}\n\n")
-        
+
         if DH_CALLS:
             wt = len(world_tick_events)
             nwt = len(non_world_tick)
@@ -599,14 +662,16 @@ def main():
         else:
             q7 = "UNVERIFIED — DecisionHub.compute not called, cannot determine"
         f.write(f"**Q7. Does WORLD_TICK absence affect result?**\n→ **{q7}**\n\n")
-        
-        f.write(f"## Positions and distance\n\n")
+
+        f.write("## Positions and distance\n\n")
         for pt in positions_per_tick:
-            f.write(f"- T{pt['tick']}: dist={pt['distance']} dh_calls={pt['dh_calls_so_far']} phase5={pt['phase5_calls_so_far']}\n")
-        f.write(f"\n")
-    
+            f.write(
+                f"- T{pt['tick']}: dist={pt['distance']} dh_calls={pt['dh_calls_so_far']} phase5={pt['phase5_calls_so_far']}\n"
+            )
+        f.write("\n")
+
     # Console
-    print(f"[E0-PILOT-4] DONE")
+    print("[E0-PILOT-4] DONE")
     print(f"  Artifacts: {OUT}")
     print(f"  report.md: {rp}")
     print(f"  Ticks: {ticks_completed}/{N_TICKS}")

@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /project/backend/tests/micro/test_materializer_radius.py
 Назначение: D0 (GC-DIALOGUE-01) — замок SSOT-радиуса материализатора: EventDTO
     NPC_SPOKE / COMMUNICATION_CLAIM обязаны нести radius = exposure_radius
@@ -44,9 +44,7 @@ def _speech_event(events):
 def test_materializer_normal_radius_from_ssot():
     events = DialogueMaterializer().materialize(_artifact("normal"))
     _ev = _speech_event(events)
-    assert _ev.radius == exposure_radius("normal") == 6.0, (
-        "D0: normal-речь несёт SSOT-радиус 6.0, не хардкод 10.0"
-    )
+    assert _ev.radius == exposure_radius("normal") == 6.0, "D0: normal-речь несёт SSOT-радиус 6.0, не хардкод 10.0"
 
 
 def test_materializer_whisper_radius_from_ssot():
@@ -58,9 +56,7 @@ def test_materializer_whisper_radius_from_ssot():
 
 def test_materializer_soliloquy_sentinel_whisper_class():
     # D4: сентинел → whisper-класс независимо от входного semantic
-    events = DialogueMaterializer().materialize(
-        _artifact("normal", target_id=SELF_TALK_SENTINEL)
-    )
+    events = DialogueMaterializer().materialize(_artifact("normal", target_id=SELF_TALK_SENTINEL))
     _ev = _speech_event(events)
     assert _ev.radius == exposure_radius("whisper")
     assert _ev.visibility == "whisper"
@@ -76,10 +72,14 @@ def test_materializer_claim_radius_follows_speech():
     # P5-B: явный PassthroughVerifier — без verifier'а materializer fail-closed,
     # claim suppress'ится. PassthroughVerifier сохраняет старый контракт radius-теста.
     from app.services.cognition.proposition_verifier import PassthroughVerifier
-    events = DialogueMaterializer(proposition_verifier=PassthroughVerifier()).materialize(_artifact("secret", proposition=_prop))
+
+    events = DialogueMaterializer(proposition_verifier=PassthroughVerifier()).materialize(
+        _artifact("secret", proposition=_prop)
+    )
     _claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)
     # S197: клейм едет с той же мембраной, что и речь (secret → 1.5)
     assert _claim.radius == exposure_radius("secret") == 1.5
+
 
 def test_materializer_secret_claim_radius():
     # P5-B: явный PassthroughVerifier — это structural-test для radius
@@ -87,14 +87,15 @@ def test_materializer_secret_claim_radius():
     # Без verifier'а materializer теперь fail-closed — claim suppress'ится.
     # PassthroughVerifier сохраняет старый контракт P1-P4 для radius-теста.
     from app.services.cognition.proposition_verifier import PassthroughVerifier
+
     _prop = {
         "subject_id": "thief_shadow",
         "predicate": "ACCUSED_OF",
         "object_id": "merchant_goran",
         "polarity": True,
     }
-    events = DialogueMaterializer(
-        proposition_verifier=PassthroughVerifier()
-    ).materialize(_artifact("secret", proposition=_prop))
+    events = DialogueMaterializer(proposition_verifier=PassthroughVerifier()).materialize(
+        _artifact("secret", proposition=_prop)
+    )
     _claim = next(e for e in events if e.type == EventType.COMMUNICATION_CLAIM.value)
     assert _claim.radius == exposure_radius("secret") == 1.5

@@ -66,17 +66,13 @@ class PerceptualAttentionService:
                         PeripheralCueDTO(
                             npc_id=event.source_cluster,
                             cue_key=self._seed_to_cue_key(event.semantic_seed),
-                            hover_text=OBSERVATION_TEXTS.get(
-                                event.semantic_seed, event.semantic_seed
-                            ),
+                            hover_text=OBSERVATION_TEXTS.get(event.semantic_seed, event.semantic_seed),
                         )
                     )
                 elif event.category in ("ATMOSPHERE", "CENTRAL"):
                     active_perceptions.append(
                         ActivePerception(
-                            text=OBSERVATION_TEXTS.get(
-                                event.semantic_seed, event.semantic_seed
-                            ),
+                            text=OBSERVATION_TEXTS.get(event.semantic_seed, event.semantic_seed),
                             intensity=event.salience,
                             decay_rate=-0.05,
                             created_tick=current_tick,

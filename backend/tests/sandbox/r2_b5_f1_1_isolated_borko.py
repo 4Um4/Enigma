@@ -29,6 +29,7 @@ Actually, simpler: block ALL comm_claims to Tornin except Borko's.
 NPC_SPOKE without proposition won't trigger on_claim_event fallback
 (spread_rumor has no mapping).
 """
+
 from __future__ import annotations
 
 import os
@@ -70,13 +71,17 @@ class TeeStream:
 
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
 
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -97,8 +102,10 @@ class _LogCapture(logging.Handler):
         self.records: List[logging.LogRecord] = []
 
     def emit(self, record: logging.LogRecord) -> None:
-        try: self.records.append(record)
-        except: pass
+        try:
+            self.records.append(record)
+        except Exception:
+            pass
 
     def messages(self) -> List[str]:
         return [f"[{r.levelname}] {r.name}: {r.getMessage()}" for r in self.records]
@@ -130,6 +137,7 @@ class _IsolationSpy:
     Control A: allow_borko=False → ALL blocked
     Experiment B: allow_borko=True → Borko allowed, others blocked
     """
+
     def __init__(self, allow_borko: bool = False):
         self.published_events: List[Tuple[str, Any]] = []
         self.blocked_events: List[Tuple[str, Any]] = []
@@ -140,7 +148,8 @@ class _IsolationSpy:
         self._bus = None
 
     def install(self, bus) -> bool:
-        if self._installed: return True
+        if self._installed:
+            return True
         self._bus = bus
         self._orig_publish = bus.publish
         bus.publish = self._spy_publish
@@ -169,8 +178,11 @@ class _IsolationSpy:
                         # BLOCK this comm_claim (not from Borko, or Control A)
                         self.blocked_events.append((ev_type, event))
                         return  # DON'T publish
-        except: pass
-        self.published_events.append((ev_type, event)) if "communication_claim" not in str(getattr(event, "type", "?")).lower() else None
+        except Exception:
+            pass
+        self.published_events.append((ev_type, event)) if "communication_claim" not in str(
+            getattr(event, "type", "?")
+        ).lower() else None
         return self._orig_publish(event)
 
     def clear(self) -> None:
@@ -183,10 +195,12 @@ class _IsolationSpy:
 # Parsing helpers
 # ============================================================================
 def _parse_why_decision(msg: str) -> Optional[Dict[str, Any]]:
-    if "[WHY][DECISION]" not in msg: return None
+    if "[WHY][DECISION]" not in msg:
+        return None
     out: Dict[str, Any] = {}
     m = re.search(r"npc=(\S+?)\s*\|", msg)
-    if m: out["npc"] = m.group(1)
+    if m:
+        out["npc"] = m.group(1)
     m = re.search(r"winner=(\S+)\s+\(([\-\d.]+)\)", msg)
     if m:
         out["winner"] = m.group(1)
@@ -194,50 +208,68 @@ def _parse_why_decision(msg: str) -> Optional[Dict[str, Any]]:
     m = re.search(r"comps=(\{[^}]+\})", msg)
     if m:
         try:
-            import ast; out["comps"] = ast.literal_eval(m.group(1))
-        except: out["comps_raw"] = m.group(1)
+            import ast
+
+            out["comps"] = ast.literal_eval(m.group(1))
+        except Exception:
+            out["comps_raw"] = m.group(1)
     return out
 
 
 def _parse_trace_decision_score(msg: str) -> Optional[Dict[str, Any]]:
-    if "[TRACE][DECISION_SCORE]" not in msg: return None
+    if "[TRACE][DECISION_SCORE]" not in msg:
+        return None
     out: Dict[str, Any] = {}
     m = re.search(r"npc=(\S+?)\s", msg)
-    if m: out["npc"] = m.group(1)
+    if m:
+        out["npc"] = m.group(1)
     m = re.search(r"winner=(\S+)", msg)
-    if m: out["winner"] = m.group(1)
+    if m:
+        out["winner"] = m.group(1)
     m = re.search(r"top3=\[(.+)\]", msg)
     if m:
         try:
-            import ast; out["top3"] = ast.literal_eval("[" + m.group(1) + "]")
-        except: out["top3_raw"] = m.group(1)
+            import ast
+
+            out["top3"] = ast.literal_eval("[" + m.group(1) + "]")
+        except Exception:
+            out["top3_raw"] = m.group(1)
     return out
 
 
 def _collect_npc_decision_data(logs: List[str], npc_id: str) -> Dict[str, Any]:
     data: Dict[str, Any] = {"why_decision": None, "trace_decision_score": None, "dh_main": None}
     for msg in logs:
-        if npc_id not in msg: continue
-        for parser, key in [(_parse_why_decision, "why_decision"), (_parse_trace_decision_score, "trace_decision_score")]:
+        if npc_id not in msg:
+            continue
+        for parser, key in [
+            (_parse_why_decision, "why_decision"),
+            (_parse_trace_decision_score, "trace_decision_score"),
+        ]:
             parsed = parser(msg)
             if parsed and parsed.get("npc") == npc_id:
                 data[key] = parsed
         if "[DECISION_HUB]" in msg and npc_id in msg and "DECISION_HUB_RETURN" not in msg:
             m = re.search(r"intent=(\S+)", msg)
-            if m: data["dh_main"] = m.group(1)
+            if m:
+                data["dh_main"] = m.group(1)
             m = re.search(r"score=([\-\d.]+)", msg)
-            if m: data["dh_score"] = float(m.group(1))
+            if m:
+                data["dh_score"] = float(m.group(1))
     return data
 
 
 def _clear_event_bus() -> None:
     from app.services.events.event_bus import get_event_bus
+
     bus = get_event_bus()
     for attr in ("_handlers", "_subscribers", "_callbacks", "_listeners"):
         if hasattr(bus, attr):
             val = getattr(bus, attr)
-            if isinstance(val, dict): val.clear()
-            elif isinstance(val, list): val.clear()
+            if isinstance(val, dict):
+                val.clear()
+            elif isinstance(val, list):
+                val.clear()
 
 
 # ============================================================================
@@ -276,31 +308,43 @@ def _run_experiment(
 
     sub = None
     for attr in ("_subscribers", "_handlers", "_callbacks"):
-        if not hasattr(bus, attr): continue
+        if not hasattr(bus, attr):
+            continue
         container = getattr(bus, attr)
-        if not isinstance(container, dict): continue
+        if not isinstance(container, dict):
+            continue
         for ev_type, cbs in container.items():
-            if cbs is None: continue
-            try: iter_cbs = list(cbs)
-            except TypeError: iter_cbs = [cbs]
+            if cbs is None:
+                continue
+            try:
+                iter_cbs = list(cbs)
+            except TypeError:
+                iter_cbs = [cbs]
             for cb in iter_cbs:
                 target_obj = getattr(cb, "__self__", None)
                 if target_obj and isinstance(target_obj, ClaimEventSubscriber):
-                    sub = target_obj; break
-                if sub: break
-            if sub: break
-        if sub: break
+                    sub = target_obj
+                    break
+                if sub:
+                    break
+            if sub:
+                break
+        if sub:
+            break
     store = getattr(sub, "_store", None) if sub else None
 
     resolver = None
     for parent_name in ("_tick_orch", "_svc"):
         parent = getattr(loop, parent_name, None)
-        if parent is None: continue
+        if parent is None:
+            continue
         for attr_name in ("_resolver", "_epistemic_context_resolver"):
             val = getattr(parent, attr_name, None)
             if isinstance(val, EpistemicContextResolver):
-                resolver = val; break
-        if resolver: break
+                resolver = val
+                break
+        if resolver:
+            break
 
     spy = _IsolationSpy(allow_borko=allow_borko)
     spy.install(bus)
@@ -333,13 +377,17 @@ def _run_experiment(
     bus.publish(evt)
 
     tornin_pre = store.get("tavern_keeper_tornin", expected_prop) if store else None
-    print(f"  Tornin initial belief: source_id={getattr(tornin_pre, 'source_id', None)} "
-          f"conf={getattr(tornin_pre, 'confidence', None)} "
-          f"orig={getattr(tornin_pre, 'original_source_id', None)}")
+    print(
+        f"  Tornin initial belief: source_id={getattr(tornin_pre, 'source_id', None)} "
+        f"conf={getattr(tornin_pre, 'confidence', None)} "
+        f"orig={getattr(tornin_pre, 'original_source_id', None)}"
+    )
 
     ctx_pre = resolver.resolve("tavern_keeper_tornin") if resolver else None
-    print(f"  Tornin ctx pre-tick: max_conf={getattr(ctx_pre, 'max_confidence', None)} "
-          f"report_prop={getattr(ctx_pre, 'report_proposition', None)}")
+    print(
+        f"  Tornin ctx pre-tick: max_conf={getattr(ctx_pre, 'max_confidence', None)} "
+        f"report_prop={getattr(ctx_pre, 'report_proposition', None)}"
+    )
 
     # Run ticks
     tick_data: List[Dict[str, Any]] = []
@@ -372,18 +420,26 @@ def _run_experiment(
         for ev in npc_spoke_events:
             if getattr(ev, "source", "") == "tavern_keeper_tornin":
                 p = getattr(ev, "payload", {}) or {}
-                tornin_speech.append({
-                    "target": p.get("target_id"),
-                    "intent": p.get("intent_type"),
-                    "text": str(p.get("text", ""))[:200],
-                })
+                tornin_speech.append(
+                    {
+                        "target": p.get("target_id"),
+                        "intent": p.get("intent_type"),
+                        "text": str(p.get("text", ""))[:200],
+                    }
+                )
 
         tick_info = {
             "tick": tick_num,
             "status": status,
-            "tornin_winner": tornin_dh.get("why_decision", {}).get("winner", "N/A") if tornin_dh.get("why_decision") else "N/A",
-            "tornin_score": tornin_dh.get("why_decision", {}).get("winner_score", "N/A") if tornin_dh.get("why_decision") else "N/A",
-            "tornin_top3": tornin_dh.get("trace_decision_score", {}).get("top3", "N/A") if tornin_dh.get("trace_decision_score") else "N/A",
+            "tornin_winner": tornin_dh.get("why_decision", {}).get("winner", "N/A")
+            if tornin_dh.get("why_decision")
+            else "N/A",
+            "tornin_score": tornin_dh.get("why_decision", {}).get("winner_score", "N/A")
+            if tornin_dh.get("why_decision")
+            else "N/A",
+            "tornin_top3": tornin_dh.get("trace_decision_score", {}).get("top3", "N/A")
+            if tornin_dh.get("trace_decision_score")
+            else "N/A",
             "tornin_comps": tornin_dh.get("why_decision", {}).get("comps", {}) if tornin_dh.get("why_decision") else {},
             "borko_intent": borko_dh.get("dh_main", "N/A"),
             "npc_spoke_count": len(npc_spoke_events),
@@ -395,7 +451,9 @@ def _run_experiment(
             "tornin_orig": getattr(tornin_rec, "original_source_id", None) if tornin_rec else None,
             "tornin_last_tick": getattr(tornin_rec, "last_updated_tick", None) if tornin_rec else None,
             "tornin_ctx_max_conf": getattr(ctx_after, "max_confidence", None) if ctx_after else None,
-            "tornin_ctx_report_prop": str(getattr(ctx_after, "report_proposition", None))[:80] if ctx_after and getattr(ctx_after, "report_proposition", None) else None,
+            "tornin_ctx_report_prop": str(getattr(ctx_after, "report_proposition", None))[:80]
+            if ctx_after and getattr(ctx_after, "report_proposition", None)
+            else None,
             "tornin_speech": tornin_speech,
             "all_npc_spoke_details": [],
             "blocked_details": [],
@@ -403,18 +461,22 @@ def _run_experiment(
 
         for ev in npc_spoke_events[:8]:
             p = getattr(ev, "payload", {}) or {}
-            tick_info["all_npc_spoke_details"].append({
-                "source": getattr(ev, "source", "?"),
-                "target": p.get("target_id"),
-                "intent": p.get("intent_type"),
-                "text": str(p.get("text", ""))[:120],
-            })
+            tick_info["all_npc_spoke_details"].append(
+                {
+                    "source": getattr(ev, "source", "?"),
+                    "target": p.get("target_id"),
+                    "intent": p.get("intent_type"),
+                    "text": str(p.get("text", ""))[:120],
+                }
+            )
         for ev_type, ev in blocked[:5]:
             p = getattr(ev, "payload", {}) or {}
-            tick_info["blocked_details"].append({
-                "source": getattr(ev, "source", "?"),
-                "target": p.get("target_id"),
-            })
+            tick_info["blocked_details"].append(
+                {
+                    "source": getattr(ev, "source", "?"),
+                    "target": p.get("target_id"),
+                }
+            )
 
         tick_data.append(tick_info)
 
@@ -425,15 +487,21 @@ def _run_experiment(
         if tick_info["tornin_comps"]:
             print(f"    Tornin comps: {tick_info['tornin_comps']}")
         print(f"    Borko: {tick_info['borko_intent']}")
-        print(f"    Events: NPC_SPOKE={tick_info['npc_spoke_count']} COMM_CLAIM={tick_info['comm_claim_count']} "
-              f"Blocked={tick_info['blocked_count']} BorkoClaims={tick_info['borko_claims_count']}")
-        print(f"    Tornin belief: source={tick_info['tornin_source_id']} "
-              f"conf={tick_info['tornin_confidence']} tick={tick_info['tornin_last_tick']} "
-              f"orig={tick_info['tornin_orig']}")
-        print(f"    Tornin ctx: max_conf={tick_info['tornin_ctx_max_conf']} "
-              f"report_prop={tick_info['tornin_ctx_report_prop']}")
+        print(
+            f"    Events: NPC_SPOKE={tick_info['npc_spoke_count']} COMM_CLAIM={tick_info['comm_claim_count']} "
+            f"Blocked={tick_info['blocked_count']} BorkoClaims={tick_info['borko_claims_count']}"
+        )
+        print(
+            f"    Tornin belief: source={tick_info['tornin_source_id']} "
+            f"conf={tick_info['tornin_confidence']} tick={tick_info['tornin_last_tick']} "
+            f"orig={tick_info['tornin_orig']}"
+        )
+        print(
+            f"    Tornin ctx: max_conf={tick_info['tornin_ctx_max_conf']} "
+            f"report_prop={tick_info['tornin_ctx_report_prop']}"
+        )
         if tick_info["tornin_speech"]:
-            print(f"    Tornin SPEECH:")
+            print("    Tornin SPEECH:")
             for s in tick_info["tornin_speech"]:
                 print(f"      →{s['target']} intent={s['intent']} text={s['text'][:120]}")
         for d in tick_info["all_npc_spoke_details"]:
@@ -473,9 +541,12 @@ def _run_experiment(
         ts = loop._get_task_scheduler()
         if hasattr(ts, "_executor_pool"):
             ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-    except: pass
+    except Exception:
+        pass
     del loop
-    import gc; gc.collect()
+    import gc
+
+    gc.collect()
 
     return result
 
@@ -513,15 +584,23 @@ def main() -> int:
         _print_section("A vs B COMPARISON")
 
         # Epistemic state
-        print(f"\n  === Epistemic state ===")
+        print("\n  === Epistemic state ===")
         print(f"  {'Field':<30} {'Control A':<25} {'Experiment B':<25} {'Changed'}")
         fields = [
             ("pre source_id", data_A["tornin_pre"]["source_id"], data_B["tornin_pre"]["source_id"]),
             ("pre confidence", data_A["tornin_pre"]["confidence"], data_B["tornin_pre"]["confidence"]),
             ("final source_id", data_A["tornin_final"]["source_id"], data_B["tornin_final"]["source_id"]),
-            ("final orig_source", data_A["tornin_final"]["original_source_id"], data_B["tornin_final"]["original_source_id"]),
+            (
+                "final orig_source",
+                data_A["tornin_final"]["original_source_id"],
+                data_B["tornin_final"]["original_source_id"],
+            ),
             ("final confidence", data_A["tornin_final"]["confidence"], data_B["tornin_final"]["confidence"]),
-            ("final last_tick", data_A["tornin_final"]["last_updated_tick"], data_B["tornin_final"]["last_updated_tick"]),
+            (
+                "final last_tick",
+                data_A["tornin_final"]["last_updated_tick"],
+                data_B["tornin_final"]["last_updated_tick"],
+            ),
             ("ctx_pre max_conf", data_A["ctx_pre"]["max_confidence"], data_B["ctx_pre"]["max_confidence"]),
             ("ctx_final max_conf", data_A["ctx_final"]["max_confidence"], data_B["ctx_final"]["max_confidence"]),
         ]
@@ -530,17 +609,19 @@ def main() -> int:
             print(f"  {name:<30} {str(va):<25} {str(vb):<25} {changed}")
 
         # DecisionHub per tick
-        print(f"\n  === DecisionHub per tick — Tornin ===")
+        print("\n  === DecisionHub per tick — Tornin ===")
         print(f"  {'Tick':<6} {'A winner':<20} {'A score':<10} {'B winner':<20} {'B score':<10} {'Changed'}")
         for i in range(min(len(data_A["tick_data"]), len(data_B["tick_data"]))):
             ta = data_A["tick_data"][i]
             tb = data_B["tick_data"][i]
             changed = "YES" if ta["tornin_winner"] != tb["tornin_winner"] else "no"
-            print(f"  {i+1:<6} {str(ta['tornin_winner']):<20} {str(ta['tornin_score']):<10} "
-                  f"{str(tb['tornin_winner']):<20} {str(tb['tornin_score']):<10} {changed}")
+            print(
+                f"  {i + 1:<6} {str(ta['tornin_winner']):<20} {str(ta['tornin_score']):<10} "
+                f"{str(tb['tornin_winner']):<20} {str(tb['tornin_score']):<10} {changed}"
+            )
 
         # Borko claims in B
-        print(f"\n  === Borko COMMUNICATION_CLAIM in Experiment B ===")
+        print("\n  === Borko COMMUNICATION_CLAIM in Experiment B ===")
         total_borko_claims = sum(t["borko_claims_count"] for t in data_B["tick_data"])
         print(f"  Total Borko comm_claims to Tornin: {total_borko_claims}")
         for t in data_B["tick_data"]:
@@ -548,7 +629,7 @@ def main() -> int:
                 print(f"    Tick {t['tick']}: {t['borko_claims_count']} Borko comm_claim(s)")
 
         # Blocked events
-        print(f"\n  === Blocked events ===")
+        print("\n  === Blocked events ===")
         print(f"  Control A: {sum(t['blocked_count'] for t in data_A['tick_data'])} total blocked")
         print(f"  Experiment B: {sum(t['blocked_count'] for t in data_B['tick_data'])} total blocked")
         for data, label in [(data_A, "A"), (data_B, "B")]:
@@ -557,7 +638,7 @@ def main() -> int:
                     print(f"    {label} Tick {t['tick']}: {d['source']}→{d['target']}")
 
         # Tornin's speech
-        print(f"\n  === Tornin's NPC_SPOKE (speech FROM Tornin) ===")
+        print("\n  === Tornin's NPC_SPOKE (speech FROM Tornin) ===")
         for data, label in [(data_A, "A"), (data_B, "B")]:
             for t in data["tick_data"]:
                 for s in t["tornin_speech"]:
@@ -574,35 +655,35 @@ def main() -> int:
         source_a = data_A["tornin_final"]["source_id"]
         source_b = data_B["tornin_final"]["source_id"]
 
-        print(f"\n  1. Epistemic state change?")
+        print("\n  1. Epistemic state change?")
         print(f"     A: source={source_a}, conf={conf_a}")
         print(f"     B: source={source_b}, conf={conf_b}")
         epistemic_changed = (source_a != source_b) or (conf_a != conf_b and conf_a is not None and conf_b is not None)
         if epistemic_changed:
-            print(f"     >>> YES — Borko's corroboration causally changed Tornin's belief")
+            print("     >>> YES — Borko's corroboration causally changed Tornin's belief")
         else:
-            print(f"     >>> NO — epistemic state same")
+            print("     >>> NO — epistemic state same")
 
         winners_a = [t["tornin_winner"] for t in data_A["tick_data"]]
         winners_b = [t["tornin_winner"] for t in data_B["tick_data"]]
         any_winner_change = any(a != b for a, b in zip(winners_a, winners_b))
 
-        print(f"\n  2. DecisionHub winner change?")
+        print("\n  2. DecisionHub winner change?")
         print(f"     A: {winners_a}")
         print(f"     B: {winners_b}")
         if any_winner_change:
-            print(f"     >>> YES — Tornin's decisions differ")
+            print("     >>> YES — Tornin's decisions differ")
             for i, (a, b) in enumerate(zip(winners_a, winners_b)):
                 if a != b:
-                    print(f"     >>> Tick {i+1}: A={a} → B={b}")
+                    print(f"     >>> Tick {i + 1}: A={a} → B={b}")
         else:
-            print(f"     >>> NO — same winners in all ticks")
+            print("     >>> NO — same winners in all ticks")
 
         scores_a = [t["tornin_score"] for t in data_A["tick_data"]]
         scores_b = [t["tornin_score"] for t in data_B["tick_data"]]
         any_score_change = any(a != b for a, b in zip(scores_a, scores_b) if a != "N/A" and b != "N/A")
 
-        print(f"\n  3. Scores change?")
+        print("\n  3. Scores change?")
         print(f"     A: {scores_a}")
         print(f"     B: {scores_b}")
         print(f"     {'YES' if any_score_change else 'NO'}")
@@ -610,7 +691,7 @@ def main() -> int:
         # Tornin's speech
         tornin_speech_a = sum(len(t["tornin_speech"]) for t in data_A["tick_data"])
         tornin_speech_b = sum(len(t["tornin_speech"]) for t in data_B["tick_data"])
-        print(f"\n  4. Tornin's speech change?")
+        print("\n  4. Tornin's speech change?")
         print(f"     A: {tornin_speech_a} NPC_SPOKE from Tornin")
         print(f"     B: {tornin_speech_b} NPC_SPOKE from Tornin")
 
@@ -630,15 +711,15 @@ def main() -> int:
         print()
 
         if epistemic_changed and any_winner_change:
-            print(f"  >>> VERDICT: PASS — Borko's corroboration ALONE causally changed Tornin's behavior")
+            print("  >>> VERDICT: PASS — Borko's corroboration ALONE causally changed Tornin's behavior")
         elif epistemic_changed and any_score_change:
-            print(f"  >>> VERDICT: PARTIAL — epistemic state + scores changed, but winner didn't")
+            print("  >>> VERDICT: PARTIAL — epistemic state + scores changed, but winner didn't")
         elif epistemic_changed:
-            print(f"  >>> VERDICT: PARTIAL — epistemic state changed, but behavior didn't")
+            print("  >>> VERDICT: PARTIAL — epistemic state changed, but behavior didn't")
         elif borko_claims_b == 0:
-            print(f"  >>> VERDICT: INCONCLUSIVE — Borko didn't transmit in this run")
+            print("  >>> VERDICT: INCONCLUSIVE — Borko didn't transmit in this run")
         else:
-            print(f"  >>> VERDICT: needs manual inspection")
+            print("  >>> VERDICT: needs manual inspection")
 
     except Exception as e:
         print(f"[FATAL: {e}]")
@@ -664,10 +745,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    try: rc = main()
+    try:
+        rc = main()
     except Exception as e:
         print(f"\n[FATAL] {type(e).__name__}: {e}")
         traceback.print_exc()
         rc = 1
-    finally: sys.stdout = _orig_stdout
+    finally:
+        sys.stdout = _orig_stdout
     sys.exit(rc)

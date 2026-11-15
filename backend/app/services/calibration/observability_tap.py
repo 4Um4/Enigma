@@ -11,6 +11,7 @@ path: backend/app/services/calibration/observability_tap.py
 Зависимости: app.services.events.event_bus, event_types.
 Основные сущности: ObservabilityTap, DECISION_EVENT_VALUES, SUBSCRIBED_EVENT_TYPES.
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,17 +44,19 @@ SUBSCRIBED_EVENT_TYPES: Tuple[EventType, ...] = (
 
 # Решенческие события (выход IntentEventAdapter._INTENT_EVENT_MAP + NPC_SPOKE):
 # источник метрик DecisionDiversity / LoopRate / EventResponsiveness (ТЗ 14.2).
-DECISION_EVENT_VALUES: frozenset = frozenset({
-    EventType.NPC_SPOKE.value,
-    EventType.OFFER_JOB.value,
-    EventType.REQUEST_SERVICE.value,
-    EventType.SPREAD_RUMOR.value,
-    EventType.CALL_FOR_HELP.value,
-    EventType.CHANGE_ROLE.value,
-    EventType.WARN.value,
-    EventType.TRADE.value,
-    EventType.REPORT.value,
-})
+DECISION_EVENT_VALUES: frozenset = frozenset(
+    {
+        EventType.NPC_SPOKE.value,
+        EventType.OFFER_JOB.value,
+        EventType.REQUEST_SERVICE.value,
+        EventType.SPREAD_RUMOR.value,
+        EventType.CALL_FOR_HELP.value,
+        EventType.CHANGE_ROLE.value,
+        EventType.WARN.value,
+        EventType.TRADE.value,
+        EventType.REPORT.value,
+    }
+)
 
 
 class ObservabilityTap:

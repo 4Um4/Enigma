@@ -6,6 +6,7 @@ path: backend/app/services/dto.py
 Основные сущности: ReductionPolicy, DELTA_POLICY_REGISTRY, SemanticFrame, TickPlayerResultDTO, _TickContext, DMContextDTO
 
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -187,9 +188,7 @@ class _TickContext:
     actions: list = field(default_factory=list)
     player_intent: Optional["IntentDTO"] = None  # ADR-031: Канонический интент
     is_player_turn: bool = False  # S116 FIX: Флаг хода игрока для execute_persistence
-    player_pressure: Optional["IntentPressureProfile"] = (
-        None  # ADR-031 Fix: Вектор давления из Фазы 1
-    )
+    player_pressure: Optional["IntentPressureProfile"] = None  # ADR-031 Fix: Вектор давления из Фазы 1
     rules_result: Dict[str, Any] = field(default_factory=dict)
     r3_direct_mode: bool = True
     # Фаза 10: данные для коммита (мостируются из TickBuffer GameLoop)

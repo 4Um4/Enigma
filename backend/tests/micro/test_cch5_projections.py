@@ -185,9 +185,7 @@ class TestProjectionRoundTrip:
         """origin_events-проекция сохраняет summary/importance из канона."""
         doc = _make_doc(
             "test_npc",
-            entries=(
-                _make_event("e1", "test_npc", "Произошло событие", importance=0.8),
-            ),
+            entries=(_make_event("e1", "test_npc", "Произошло событие", importance=0.8),),
         )
         oe = proj.build_origin_events_projection("test_npc", doc)
         assert oe["_projection"] == "origin_events"
@@ -265,7 +263,10 @@ class TestTruthRelationDirection:
             entries=(
                 _make_event("event_c", "test_npc", "Основание", is_secret=True),
                 _make_event(
-                    "event_e", "test_npc", "Зависимое", is_secret=True,
+                    "event_e",
+                    "test_npc",
+                    "Зависимое",
+                    is_secret=True,
                     causes=(cause_to_c,),
                 ),
             ),
@@ -274,8 +275,8 @@ class TestTruthRelationDirection:
         assert ts is not None
         assert len(ts["relations"]) == 1
         r = ts["relations"][0]
-        assert r["source_secret_id"] == "event_e"   # зависящий (E)
-        assert r["target_secret_id"] == "event_c"   # основание (C)
+        assert r["source_secret_id"] == "event_e"  # зависящий (E)
+        assert r["target_secret_id"] == "event_c"  # основание (C)
         assert r["relation_type"] == "DEPENDS_ON"
         assert r["strength"] == proj.TRUTH_RELATION_STRENGTH
 
@@ -288,7 +289,10 @@ class TestTruthRelationDirection:
             entries=(
                 _make_event("event_c", "test_npc", "Основание", is_secret=True),
                 _make_event(
-                    "event_e", "test_npc", "Зависимое", is_secret=True,
+                    "event_e",
+                    "test_npc",
+                    "Зависимое",
+                    is_secret=True,
                     causes=(cause_to_c,),
                 ),
             ),
@@ -306,7 +310,10 @@ class TestTruthRelationDirection:
             entries=(
                 _make_event("non_secret_event", "test_npc", "Не секрет"),
                 _make_event(
-                    "secret_e", "test_npc", "Секрет", is_secret=True,
+                    "secret_e",
+                    "test_npc",
+                    "Секрет",
+                    is_secret=True,
                     causes=(cause_to_nonsecret,),
                 ),
             ),
@@ -322,10 +329,7 @@ class TestTruthRelationDirection:
         cause_trait = CauseRef(cause_kind=CauseKind.TRAIT, origin_ref="some_entry")
         doc = _make_doc(
             "test_npc",
-            entries=(
-                _make_event("secret_e", "test_npc", "Секрет", is_secret=True,
-                            causes=(cause_trait,)),
-            ),
+            entries=(_make_event("secret_e", "test_npc", "Секрет", is_secret=True, causes=(cause_trait,)),),
         )
         ts, diag = proj.build_truth_state_projection({"test_npc": doc}, "test_campaign")
         assert ts is not None
@@ -395,25 +399,18 @@ class TestEmptyInitialHolders:
 
 
 class TestBlockedReferences:
-    """C2: структурно повреждённые ссылки → блокировка публикации.
-    """
+    """C2: структурно повреждённые ссылки → блокировка публикации."""
 
     def test_dangling_cause_origin_ref_blocks(self, isolated_projections_root):
         """cause.origin_ref → несуществующий entry_id → BLOCKED."""
         cause_dangling = CauseRef(cause_kind=CauseKind.EVENT, origin_ref="nonexistent")
         doc = _make_doc(
             "test_npc",
-            entries=(
-                _make_event("secret_e", "test_npc", "Секрет", is_secret=True,
-                            causes=(cause_dangling,)),
-            ),
+            entries=(_make_event("secret_e", "test_npc", "Секрет", is_secret=True, causes=(cause_dangling,)),),
         )
         ts, diag = proj.build_truth_state_projection({"test_npc": doc}, "test_campaign")
         assert ts is None  # блокировка
-        assert any(
-            b["reason"] == "dangling_cause_origin_ref"
-            for b in diag["blocked_references"]
-        )
+        assert any(b["reason"] == "dangling_cause_origin_ref" for b in diag["blocked_references"])
 
     def test_unresolved_subject_blocks(self, isolated_projections_root):
         """subject_id = WHITE_SPOT → не можем создать npc_id → BLOCKED."""
@@ -430,10 +427,7 @@ class TestBlockedReferences:
         doc = _make_doc("test_npc", entries=(entry,))
         ts, diag = proj.build_truth_state_projection({"test_npc": doc}, "test_campaign")
         assert ts is None
-        assert any(
-            b["reason"] == "subject_unresolved"
-            for b in diag["blocked_references"]
-        )
+        assert any(b["reason"] == "subject_unresolved" for b in diag["blocked_references"])
 
     def test_unknown_participant_blocks(self, isolated_projections_root):
         """participants содержит NPC не из known_npcs → BLOCKED."""
@@ -442,22 +436,19 @@ class TestBlockedReferences:
             entries=(_make_event("e1", "test_npc", "Секрет", is_secret=True),),
         )
         ts, diag = proj.build_truth_state_projection(
-            {"test_npc": doc}, "test_campaign",
+            {"test_npc": doc},
+            "test_campaign",
             known_npcs={"other_npc"},  # test_npc не в списке
         )
         assert ts is None
-        assert any(
-            b["reason"] == "unknown_participant"
-            for b in diag["blocked_references"]
-        )
+        assert any(b["reason"] == "unknown_participant" for b in diag["blocked_references"])
 
 
 # ── Атомарность публикации (A3) ──────────────────────────────────────────────
 
 
 class TestPublishAtomicity:
-    """A3: при ошибке старый current.json действующий.
-    """
+    """A3: при ошибке старый current.json действующий."""
 
     def test_successful_publish_creates_generation(self, isolated_projections_root):
         """Успешная публикация → current.json указывает на новое поколение."""
@@ -465,9 +456,7 @@ class TestPublishAtomicity:
             "test_npc",
             entries=(_make_event("e1", "test_npc", "Событие"),),
         )
-        result = proj.publish_generation(
-            {"test_npc": doc}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result = proj.publish_generation({"test_npc": doc}, "test_campaign", known_npcs={"test_npc"})
         assert result["status"] == proj.STATUS_OK
         assert result["generation_id"] is not None
         current = proj.read_current_pointer()
@@ -493,9 +482,7 @@ class TestPublishAtomicity:
             "test_npc",
             entries=(_make_event("e1", "test_npc", "Событие"),),
         )
-        result1 = proj.publish_generation(
-            {"test_npc": doc_ok}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result1 = proj.publish_generation({"test_npc": doc_ok}, "test_campaign", known_npcs={"test_npc"})
         assert result1["status"] == proj.STATUS_OK
         old_generation = result1["generation_id"]
 
@@ -503,14 +490,9 @@ class TestPublishAtomicity:
         cause_dangling = CauseRef(cause_kind=CauseKind.EVENT, origin_ref="nonexistent")
         doc_bad = _make_doc(
             "test_npc",
-            entries=(
-                _make_event("secret_e", "test_npc", "Секрет", is_secret=True,
-                            causes=(cause_dangling,)),
-            ),
+            entries=(_make_event("secret_e", "test_npc", "Секрет", is_secret=True, causes=(cause_dangling,)),),
         )
-        result2 = proj.publish_generation(
-            {"test_npc": doc_bad}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result2 = proj.publish_generation({"test_npc": doc_bad}, "test_campaign", known_npcs={"test_npc"})
         assert result2["status"] == proj.STATUS_BLOCKED
 
         # current.json всё ещё указывает на старое поколение
@@ -524,9 +506,7 @@ class TestPublishAtomicity:
             "test_npc",
             entries=(_make_event("e1", "test_npc", "Обычное событие", is_secret=False),),
         )
-        result = proj.publish_generation(
-            {"test_npc": doc}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result = proj.publish_generation({"test_npc": doc}, "test_campaign", known_npcs={"test_npc"})
         assert result["status"] == proj.STATUS_OK
         assert result["truth_state_status"] == proj.STATUS_EMPTY
         assert result["files"]["truth_state"] is None
@@ -540,9 +520,7 @@ class TestPublishAtomicity:
                 _make_event("e2", "test_npc", "Секрет", is_secret=True),
             ),
         )
-        result = proj.publish_generation(
-            {"test_npc": doc}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result = proj.publish_generation({"test_npc": doc}, "test_campaign", known_npcs={"test_npc"})
         gen_path = proj._generations_dir() / result["generation_id"]
         manifest = json.loads((gen_path / "manifest.json").read_text(encoding="utf-8"))
         # Файлы перечислены:
@@ -559,9 +537,7 @@ class TestPublishAtomicity:
             "test_npc",
             entries=(_make_event("e1", "test_npc", "Обычное"),),
         )
-        result = proj.publish_generation(
-            {"test_npc": doc}, "test_campaign", known_npcs={"test_npc"}
-        )
+        result = proj.publish_generation({"test_npc": doc}, "test_campaign", known_npcs={"test_npc"})
         gen_path = proj._generations_dir() / result["generation_id"]
         manifest = json.loads((gen_path / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["files"]["truth_state"] is None

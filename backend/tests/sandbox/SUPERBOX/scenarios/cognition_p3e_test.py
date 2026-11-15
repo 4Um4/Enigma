@@ -58,6 +58,7 @@ atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 release_lease = lambda: None  # noqa: E731 — fallback if SDK unavailable
 try:
     from app.services.llm.runtime.client import ensure_llm, release_lease
+
     ensure_llm(label="cog_p3e")
 except Exception as _e:
     print(f"[P3E] LLM недоступна ({_e})")
@@ -78,11 +79,11 @@ ALL_NPC = G3_NPC + ("merchant_goran", "blacksmith_orm", "tavern_keeper_tornin")
 _T_WARM, _T_PASSBY, _T_HOLD, _T_WITHDRAW, _T_RET = 4, 8, 3, 8, 4
 _STEP, _STOP = 1.2, 1.8
 
-_TAPE: List[Dict[str, Any]] = []      # per-tick лента (главный артефакт)
-_MOV: List[Dict[str, Any]] = []       # движковые интенты (обёртка, per-tick drain)
-_B0: Dict[str, Dict[str, Any]] = {}   # baseline до стимуляции (поправка №4)
+_TAPE: List[Dict[str, Any]] = []  # per-tick лента (главный артефакт)
+_MOV: List[Dict[str, Any]] = []  # движковые интенты (обёртка, per-tick drain)
+_B0: Dict[str, Dict[str, Any]] = {}  # baseline до стимуляции (поправка №4)
 _G4_EVENTS: List[Dict[str, Any]] = []  # материализации реакций
-_G2_CHAIN: List[Dict[str, Any]] = []   # связки E→inference→cog→decision
+_G2_CHAIN: List[Dict[str, Any]] = []  # связки E→inference→cog→decision
 
 
 def _xy(e):
@@ -111,8 +112,14 @@ def _scene(w):
 
 def _intent(w, npc) -> str:
     try:
-        st = next((s for s in w.game_loop._get_life_engine().get_npc_states(CAMPAIGN)
-                   if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc), None)
+        st = next(
+            (
+                s
+                for s in w.game_loop._get_life_engine().get_npc_states(CAMPAIGN)
+                if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc
+            ),
+            None,
+        )
         if st is None:
             return ""
         it = st.get("intent")
@@ -128,8 +135,17 @@ def _att(ss, npc) -> Dict[str, Any]:
 def _snapshot(w, t: int, phase: str) -> Dict[str, Any]:
     ss = _scene(w) or {}
     pos = ss.get("npc_positions") or {}
-    row = {"t": t, "phase": phase, "pos": pos,
-           "E": {}, "att_phase": {}, "intent": {}, "hd": {}, "trav": {}, "mov": list(_MOV)}
+    row = {
+        "t": t,
+        "phase": phase,
+        "pos": pos,
+        "E": {},
+        "att_phase": {},
+        "intent": {},
+        "hd": {},
+        "trav": {},
+        "mov": list(_MOV),
+    }
     _MOV.clear()
     for n in ALL_NPC:
         row["E"][n] = round(float(_att(ss, n).get("approach_evidence", 0.0)), 2)
@@ -144,13 +160,15 @@ def _snapshot(w, t: int, phase: str) -> Dict[str, Any]:
 
 def _install_mov_wrapper():
     from app.services.spatial import movement_engine as _me
+
     orig = _me.MovementEngine.process_intents
 
     def _w(self, intents, *a, __o=orig, **kw):
         _res = __o(self, intents, *a, **kw)
-        _MOV.extend({"actor": str(getattr(i, "actor_id", "") or ""),
-                     "reason": str(getattr(i, "reason", "") or "")}
-                    for i in (intents or []))
+        _MOV.extend(
+            {"actor": str(getattr(i, "actor_id", "") or ""), "reason": str(getattr(i, "reason", "") or "")}
+            for i in (intents or [])
+        )
         return _res
 
     _me.MovementEngine.process_intents = _w  # type: ignore[method-assign]
@@ -163,13 +181,13 @@ def _restore_mov(w):
 
 def _print_tape_row(r, focus: str = ""):
     marks = []
-    for n in (ALL_NPC if not focus else (focus,)):
-        marks.append(f"{n.split('_')[-1]}:E{r['E'][n]}/{r['att_phase'][n][:4]}/{r['intent'][n][:12]}"
-                     f"/h{r['hd'][n]}/tr{r['trav'][n][:3]}")
-    mov_f = [m["reason"] for m in r["mov"]] if not focus else \
-        [m["reason"] for m in r["mov"] if m["actor"] == focus]
-    print(f"[T{r['t']:02d}|{r['phase']}] " + " | ".join(marks)
-          + (f" | mov={mov_f}" if mov_f else ""))
+    for n in ALL_NPC if not focus else (focus,):
+        marks.append(
+            f"{n.split('_')[-1]}:E{r['E'][n]}/{r['att_phase'][n][:4]}/{r['intent'][n][:12]}"
+            f"/h{r['hd'][n]}/tr{r['trav'][n][:3]}"
+        )
+    mov_f = [m["reason"] for m in r["mov"]] if not focus else [m["reason"] for m in r["mov"] if m["actor"] == focus]
+    print(f"[T{r['t']:02d}|{r['phase']}] " + " | ".join(marks) + (f" | mov={mov_f}" if mov_f else ""))
 
 
 def _bearing_to(a, b) -> float:
@@ -222,6 +240,7 @@ async def main_async() -> int:
     print("SUPERBOX-COGNITION-P3E: APPROACH RESPONSE (поведенческая причинность)")
     print("=" * 64)
     from app.services.llm.provider_manager import initialize_model_pool
+
     initialize_model_pool()
     world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=str(_REPO / "data")))
 
@@ -230,10 +249,15 @@ async def main_async() -> int:
             world.game_loop.idle_tick(CAMPAIGN)
 
     async def put(x, y):
-        await world.game_loop.run_turn(ChatTurnRequest(
-            world_id=WORLD, campaign_id=CAMPAIGN, location=LOCATION,
-            actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
-            player_position=(x, y)))
+        await world.game_loop.run_turn(
+            ChatTurnRequest(
+                world_id=WORLD,
+                campaign_id=CAMPAIGN,
+                location=LOCATION,
+                actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+                player_position=(x, y),
+            )
+        )
 
     wrap = _install_mov_wrapper()
     try:
@@ -244,10 +268,15 @@ async def main_async() -> int:
             _print_tape_row(r)
         base_row = _TAPE[-1]
         for n in ALL_NPC:
-            _B0[n] = {"hd": base_row["hd"][n], "trav": base_row["trav"][n],
-                      "mov": [m for m in base_row["mov"] if m["actor"] == n],
-                      "intent": base_row["intent"][n], "E": base_row["E"][n],
-                      "xy": base_row["xy"].get(n)}
+            _B0[n] = {
+                "hd": base_row["hd"][n],
+                "trav": base_row["trav"][n],
+                "mov": [m for m in base_row["mov"] if m["actor"] == n],
+                "intent": base_row["intent"][n],
+                "E": base_row["E"][n],
+                "xy": base_row["xy"].get(n),
+            }
+
         # Динамический выбор G3-тройки по B0-фильтру (run2-диагноз):
         # стационарная (нет MOVING-traversal), intent≠flee, coupling≠SLEEP*,
         # не player. Порядок — по disposition-весу observe (тяжёлый→лёгкий,
@@ -262,8 +291,9 @@ async def main_async() -> int:
                 _ok = []
                 for n in ALL_NPC:
                     _b = _B0[n]
-                    _sleepy = str(((_scene(world) or {}).get("npc_positions") or {})
-                                  .get(n, {}).get("activity", "")).lower()
+                    _sleepy = str(
+                        ((_scene(world) or {}).get("npc_positions") or {}).get(n, {}).get("activity", "")
+                    ).lower()
                     if require_stationary and _b["trav"] in ("MOVING",):
                         continue
                     if _b["intent"] in ("flee",):
@@ -272,26 +302,34 @@ async def main_async() -> int:
                         continue
                     _ok.append(n)
                 return _ok
+
             _ok = _filter(True)
             if len(_ok) < 2:
                 _ok = _filter(False)
             return tuple(sorted(_ok[:3]))
+
         global G3_NPC
         G3_NPC = _pick_g3_targets()
         if not G3_NPC:
             # Дефицит целей (все спят/бегут) — честный RED с диагнозом,
             # не краш сценария (директива: RED = данные для разбора).
-            print("[P3E] RED-ПРИЧИНА: пул G3-целей пуст (все NPC отсеяны "
-                  "B0-фильтром: спят/бегут/движутся). Сценарий завершён досрочно.")
+            print(
+                "[P3E] RED-ПРИЧИНА: пул G3-целей пуст (все NPC отсеяны "
+                "B0-фильтром: спят/бегут/движутся). Сценарий завершён досрочно."
+            )
             try:
                 release_lease()
             except Exception:  # noqa: BLE001
                 pass
             print("P3E ИТОГО: RED (нет субъектов восприятия)")
             return 1
-        print(f"[B0] baseline зафиксирован: G3-цели={G3_NPC} | "
-              + " | ".join(f"{n.split('_')[-1]}:h{_B0[n]['hd']}/tr{_B0[n]['trav']}/"
-                           f"mov{len(_B0[n]['mov'])}/{_B0[n]['intent']}" for n in G3_NPC))
+        print(
+            f"[B0] baseline зафиксирован: G3-цели={G3_NPC} | "
+            + " | ".join(
+                f"{n.split('_')[-1]}:h{_B0[n]['hd']}/tr{_B0[n]['trav']}/mov{len(_B0[n]['mov'])}/{_B0[n]['intent']}"
+                for n in G3_NPC
+            )
+        )
 
         # ── Фаза P: pass-by мимо G1-цели (G1: близко ≠ ко мне) ──
         # P3e-run3 диагноз: хардкод maid_lusya падал (KeyError) при её
@@ -313,8 +351,7 @@ async def main_async() -> int:
             _d0 = math.hypot(px - _sp[0], py - _sp[1])
             _steps0 = max(1, int(_d0 / _STEP)) if _d0 > 0.5 else 0
             for _k in range(_steps0):
-                await put(_sp[0] + (px - _sp[0]) / _d0 * _STEP,
-                          _sp[1] + (py - _sp[1]) / _d0 * _STEP)
+                await put(_sp[0] + (px - _sp[0]) / _d0 * _STEP, _sp[1] + (py - _sp[1]) / _d0 * _STEP)
                 t += 1
                 r = _snapshot(world, t, "P")
                 _print_tape_row(r, _g1_npc)
@@ -348,8 +385,7 @@ async def main_async() -> int:
             decision_rows = []
             for step_i in range(10):
                 ss = _scene(world) or {}
-                p, g = _xy((ss.get("npc_positions") or {}).get("player")), \
-                    _xy((ss.get("npc_positions") or {}).get(npc))
+                p, g = _xy((ss.get("npc_positions") or {}).get("player")), _xy((ss.get("npc_positions") or {}).get(npc))
                 if not (p and g):
                     idle(1)
                     r = _snapshot(world, t, "A")
@@ -432,15 +468,20 @@ async def main_async() -> int:
         # fear-драйв), не реакция. Ложная реакция = интент-класс, ОТСУТСТВУЮЩИЙ
         # в baseline (например, approach/warn к игроку), не её фон.
         _b0_reasons = " ".join(m["reason"] for m in b0_l["mov"])
-        _new_reactive = [m for m in mov_l
-                         if ("approach" in m["reason"] or "warn" in m["reason"])
-                         and all(k not in _b0_reasons for k in ("approach", "warn"))]
+        _new_reactive = [
+            m
+            for m in mov_l
+            if ("approach" in m["reason"] or "warn" in m["reason"])
+            and all(k not in _b0_reasons for k in ("approach", "warn"))
+        ]
         if _new_reactive:
             g1_phys = False
     g1 = (g1_e < _ETH) and g1_phys
     ok = ok and g1
-    print(f"[G1] {'PASS' if g1 else 'FAIL'}: pass-by max E={g1_e:.2f} < {_ETH}; "
-          f"физических ложных реакций={'нет' if g1_phys else 'ЕСТЬ'} — «близко ≠ ко мне»")
+    print(
+        f"[G1] {'PASS' if g1 else 'FAIL'}: pass-by max E={g1_e:.2f} < {_ETH}; "
+        f"физических ложных реакций={'нет' if g1_phys else 'ЕСТЬ'} — «близко ≠ ко мне»"
+    )
 
     # G2 — цепочка до решения (поправка №1: реакция условна)
     chain_ok = {}
@@ -460,8 +501,10 @@ async def main_async() -> int:
         _G2_CHAIN.append({"npc": npc, "chain": chain, "complete": bool(e_cross)})
     g2 = sum(1 for v in chain_ok.values() if v) >= 1
     ok = ok and g2
-    print(f"[G2] {'PASS' if g2 else 'FAIL'}: E-пробой+inference-цепочка у "
-          f"{sum(1 for v in chain_ok.values() if v)}/3 NPC (решение — характер-зависимо; см. ленту)")
+    print(
+        f"[G2] {'PASS' if g2 else 'FAIL'}: E-пробой+inference-цепочка у "
+        f"{sum(1 for v in chain_ok.values() if v)}/3 NPC (решение — характер-зависимо; см. ленту)"
+    )
 
     # G3 — disposition входит в cognition и меняет utility (поправка №2)
     g3_parts = []
@@ -480,16 +523,22 @@ async def main_async() -> int:
     # P3e-run5: допуск ±0.25 (живой мир: движущиеся цели/стагнация окон
     # размывают entry-точку) при ОБЯЗАТЕЛЬНОМ живом cog-входе у ≥2 из 3 —
     # доказательство, что хаб получил сравнимый перцептивный вход.
-    comp_ok = (sum(1 for v in entry_e.values() if v >= _ETH) >= 2
-               and (max(entry_e.values()) - min(entry_e.values())) <= 0.25)
-    g3_parts.append(f"сопоставимость E на входе хаба: {comp_ok} "
-                    f"({ {n.split('_')[-1]: round(v,2) for n,v in entry_e.items()} }; "
-                    f"пики: { {n.split('_')[-1]: round(v,2) for n,v in peaks.items()} })")
+    comp_ok = (
+        sum(1 for v in entry_e.values() if v >= _ETH) >= 2 and (max(entry_e.values()) - min(entry_e.values())) <= 0.25
+    )
+    g3_parts.append(
+        f"сопоставимость E на входе хаба: {comp_ok} "
+        f"({ {n.split('_')[-1]: round(v, 2) for n, v in entry_e.items()} }; "
+        f"пики: { {n.split('_')[-1]: round(v, 2) for n, v in peaks.items()} })"
+    )
     g3_parts.append("cog-веса различаются: см. [COG_UTIL] cog= трейс (Disposition-канал жив)")
     g3 = comp_ok
     ok = ok and g3
-    print(f"[G3] {'PASS' if g3 else 'FAIL'}: " + "; ".join(g3_parts)
-          + " — «одинаковый стимул, disposition меняет utility (различие winner — доп-подтверждение)»")
+    print(
+        f"[G3] {'PASS' if g3 else 'FAIL'}: "
+        + "; ".join(g3_parts)
+        + " — «одинаковый стимул, disposition меняет utility (различие winner — доп-подтверждение)»"
+    )
 
     # G4 — материализация реактивных решений (поправка №1: только реактивных)
     print("[G4] материализация (T_before/decision/after):")
@@ -503,20 +552,28 @@ async def main_async() -> int:
         # intent ≠ B0-intent ИЛИ пассивная остановка движения, жившего в B0.
         _b0_i = _B0[npc]["intent"]
         _b0_moved = bool(_B0[npc]["mov"])
-        reactive_rows = [r for r in rows
-                         if r["E"][npc] >= _ETH
-                         and (r["intent"][npc] != _b0_i
-                              or (_b0_moved and not [m for m in r["mov"] if m["actor"] == npc]))]
+        reactive_rows = [
+            r
+            for r in rows
+            if r["E"][npc] >= _ETH
+            and (r["intent"][npc] != _b0_i or (_b0_moved and not [m for m in r["mov"] if m["actor"] == npc]))
+        ]
         ev = _reaction_check(npc, reactive_rows or rows, base_row)
         _G4_EVENTS.append(ev)
-        status = "MATERIALIZED" if ev["materialized"] else ("нет реактивного решения" if not reactive_rows else "НЕ МАТЕРИАЛИЗОВАНО")
+        status = (
+            "MATERIALIZED"
+            if ev["materialized"]
+            else ("нет реактивного решения" if not reactive_rows else "НЕ МАТЕРИАЛИЗОВАНО")
+        )
         print(f"  {npc}: {status}" + (f" — {ev['signals']}" if ev["signals"] else ""))
         if reactive_rows and not ev["materialized"]:
             ok = False
     any_reactive = any(e["materialized"] for e in _G4_EVENTS)
     ok = ok and any_reactive
-    print(f"[G4] {'PASS' if any_reactive else 'FAIL'}: ≥1 реакция физически проявлена "
-          f"(отличимость от baseline B0; пассивный класс = остановка при живом внимании)")
+    print(
+        f"[G4] {'PASS' if any_reactive else 'FAIL'}: ≥1 реакция физически проявлена "
+        f"(отличимость от baseline B0; пассивный класс = остановка при живом внимании)"
+    )
 
     # G5 — возврат к существующей жизни
     x_rows = [r for r in _TAPE if r["phase"] in ("X", "R")]
@@ -536,8 +593,10 @@ async def main_async() -> int:
         _own_mov_last3 = [m for r in x_rows[-3:] for m in r["mov"] if m["actor"] == npc]
         alive = (intent_fin != "observe") or (intent_fin == b0_intent) or bool(_own_mov_last3)
         stuck = (e_fin < _ETH) and (intent_fin == "observe") and not mov_after
-        g5_parts.append(f"{npc.split('_')[-1]}: E={e_fin:.2f} intent={intent_fin} "
-                        f"mov_after={len(mov_after)} alive={alive} stuck={stuck}")
+        g5_parts.append(
+            f"{npc.split('_')[-1]}: E={e_fin:.2f} intent={intent_fin} "
+            f"mov_after={len(mov_after)} alive={alive} stuck={stuck}"
+        )
         if stuck:
             ok = False
     g5 = not any("stuck=True" in p for p in g5_parts)
@@ -560,15 +619,20 @@ async def main_async() -> int:
     # делят строки на стимул-фазы (P/A/H: контроллер+восприятие+решение —
     # обязаны совпадать) и свободные (X/R: мир живёт без стимула —
     # DEBT-QUIESCE-класс async/needs, фиксируется, не RED).
-    print("[G6] классификация: Compare вне сценария; стимул-фазы P/A/H — "
-          "SIMULATION (обязаны быть идентичны); X/R — свободная жизнь мира.")
+    print(
+        "[G6] классификация: Compare вне сценария; стимул-фазы P/A/H — "
+        "SIMULATION (обязаны быть идентичны); X/R — свободная жизнь мира."
+    )
 
     print("=" * 64)
     print(f"P3E ИТОГО: {'GREEN' if ok else 'RED'}")
-    print("СЦЕНА ГЛАЗАМИ ИГРОКА: Игрок прошёл мимо — никто не дёрнулся. "
-          "Подошёл к Люсе — она поняла, что к ней, и отреагала по-своему. "
-          "Подошёл к Борко и Вору — каждый по-своему. Ушёл — все вернулись к своим делам."
-          if ok else "Сцена не состоялась — см. пер-tick ленту и звено разрыва.")
+    print(
+        "СЦЕНА ГЛАЗАМИ ИГРОКА: Игрок прошёл мимо — никто не дёрнулся. "
+        "Подошёл к Люсе — она поняла, что к ней, и отреагала по-своему. "
+        "Подошёл к Борко и Вору — каждый по-своему. Ушёл — все вернулись к своим делам."
+        if ok
+        else "Сцена не состоялась — см. пер-tick ленту и звено разрыва."
+    )
     return 0 if ok else 1
 
 

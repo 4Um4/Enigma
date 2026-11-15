@@ -14,6 +14,7 @@ path: backend/app/services/social/social_decay_handler.py
 - в будущем можно добавить отдельные контракты для разных типов idle-обработчиков (например, для репутационного дрейфа, для социальных связей и т.д.), чтобы обеспечить более строгую типизацию и ясность в коде. Но на начальном этапе достаточно общего протокола IdleTickHandler, который может обрабатывать любые аспекты NPC state, не мутируя исходные данные и возвращая дельты для применения. Это позволит нам гибко добавлять новые механики в фазу 0.5 без необходимости менять контракт каждого обработчика.
 - важно, что эти обработчики не мутируют all_npcs_raw, а возвращают List[StateDeltas], который оркестратор применяет через StateApplicator.apply_batch(). Это обеспечивает чистоту данных и предсказуемость изменений в NPC state, а также позволяет легко отслеживать и логировать изменения, вызванные каждым обработчиком.
 """
+
 from __future__ import annotations
 
 import logging
@@ -64,12 +65,8 @@ class SocialDecayHandler:
                 current_trust = float(rel_data.get("trust", 0.0))
                 current_fear = float(rel_data.get("fear", 0.0))
                 # Базовое значение: из base_vals, из rel_data, или текущее (нет дрейфа)
-                _base_trust_raw = base_vals.get(
-                    target, rel_data.get("base_trust", current_trust)
-                )
-                base_trust = float(
-                    _base_trust_raw if _base_trust_raw is not None else current_trust
-                )
+                _base_trust_raw = base_vals.get(target, rel_data.get("base_trust", current_trust))
+                base_trust = float(_base_trust_raw if _base_trust_raw is not None else current_trust)
                 # Fear drift к нулю — страх не должен застревать навсегда
                 base_fear = 0.0
 
@@ -107,9 +104,6 @@ class SocialDecayHandler:
                 )
 
         if results:
-            logger.debug(
-                f"[SOCIAL_DECAY] {campaign_id} tick={current_tick}: "
-                f"{len(results)} drift deltas"
-            )
+            logger.debug(f"[SOCIAL_DECAY] {campaign_id} tick={current_tick}: {len(results)} drift deltas")
 
         return results

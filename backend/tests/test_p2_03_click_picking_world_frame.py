@@ -64,6 +64,7 @@ def frontend_path():
 def context_resolver_cls(frontend_path):
     """ContextResolver класс."""
     from world_context import ContextResolver
+
     return ContextResolver
 
 
@@ -77,7 +78,7 @@ _TAVERN_ORIGIN_Y = 5.018000000000007
 
 # maid_lusya local_position после P1-04 миграции (мировой фрейм)
 _MAID_LUSYA_WORLD_X = 33.0207  # 7.987 + 25.033
-_MAID_LUSYA_WORLD_Y = 6.8444   # 1.826 + 5.018
+_MAID_LUSYA_WORLD_Y = 6.8444  # 1.826 + 5.018
 
 # maid_lusya local_position ДО P1-04 (легаси, локальный фрейм)
 _MAID_LUSYA_LOCAL_X = 7.987
@@ -97,6 +98,7 @@ def test_world_frame_click_camera_identity(context_resolver_cls) -> None:
     Рендер-камера: cam_x = _render_px*40 - W/2 (тот же identity).
     → камеры совпадают → B-11 устранён для мирового файла.
     """
+
     # Мок resolver с identity (мировой файл)
     class _MockResolver:
         def local_to_world(self, x, y, loc_id):
@@ -136,6 +138,7 @@ def test_legacy_frame_click_camera_shifted(context_resolver_cls) -> None:
     После P2-03: клик-камера = (px+origin)*40 - W/2 (МИРОВОЙ px) → совпадает с рендер.
     B-11 устранён для легаси-файла.
     """
+
     # Мок resolver с +origin (легаси-файл, global_coords=false)
     class _MockResolverLegacy:
         def local_to_world(self, x, y, loc_id):
@@ -205,11 +208,8 @@ def test_handle_click_signature_has_resolver_params(frontend_path) -> None:
 
     # Найти def _handle_click и проверить параметры
     import re
-    match = re.search(
-        r"def _handle_click\([^)]*\)",
-        content,
-        re.DOTALL
-    )
+
+    match = re.search(r"def _handle_click\([^)]*\)", content, re.DOTALL)
     assert match, "def _handle_click не найден"
     sig = match.group(0)
     assert "resolver" in sig, f"resolver нет в signature: {sig}"
@@ -242,16 +242,17 @@ def test_symmetry_with_render_camera(frontend_path) -> None:
 
     # Найти render pattern
     import re
+
     render_pattern = re.search(
         r"_render_px,\s*_render_py\s*=\s*px,\s*py\s*\n\s*if\s+_world_ctx\s+is\s+not\s+None:\s*\n\s*_render_px,\s*_render_py\s*=\s*_resolver\.local_to_world",
-        content
+        content,
     )
     assert render_pattern, "render pattern (L2254-2256) не найден"
 
     # Найти click pattern
     click_pattern = re.search(
         r"_world_px,\s*_world_py\s*=\s*px,\s*py\s*\n\s*if\s+resolver\s+is\s+not\s+None\s+and\s+world_ctx\s+is\s+not\s+None:\s*\n\s*_world_px,\s*_world_py\s*=\s*resolver\.local_to_world",
-        content
+        content,
     )
     assert click_pattern, "click pattern (L2686-2690) не найден — P2-03 не применён"
 

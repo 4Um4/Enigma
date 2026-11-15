@@ -19,8 +19,14 @@ R2-FLEE-ROOT-CAUSE v2 — четыре проверки + контрольный
 
 READ-ONLY. Никаких production-изменений, JSON, геометрии, adjacency.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -148,7 +154,7 @@ def check1_compile_graph_path() -> None:
             marker = "  ← BOUNDARY ROLE"
         elif "return " in line and func_start < j < boundary_call_line:
             marker = "  ← EARLY RETURN"
-        print(f"L{j+1:4d}: {line}{marker}")
+        print(f"L{j + 1:4d}: {line}{marker}")
 
 
 # ============================================================================
@@ -201,12 +207,14 @@ def check2_graph_state_before_boundary() -> None:
         for k, v in graph.items():
             role = getattr(v, "role", None)
             if role is not None and "BOUNDARY" in str(role):
-                boundary_nodes_before.append({
-                    "key": k,
-                    "x": getattr(v, "x", None),
-                    "y": getattr(v, "y", None),
-                    "role": str(role),
-                })
+                boundary_nodes_before.append(
+                    {
+                        "key": k,
+                        "x": getattr(v, "x", None),
+                        "y": getattr(v, "y", None),
+                        "role": str(role),
+                    }
+                )
         captured_state["boundary_nodes_in_graph_before"] = boundary_nodes_before
 
         # Now call the original function
@@ -217,7 +225,7 @@ def check2_graph_state_before_boundary() -> None:
     gc_module._create_boundary_nodes = _capturing_fn
 
     try:
-        result = gc_module.compile_graph(data, location_id="tavern")
+        gc_module.compile_graph(data, location_id="tavern")
     except Exception as e:
         print(f"[compile error: {e}]")
         traceback.print_exc()
@@ -226,20 +234,20 @@ def check2_graph_state_before_boundary() -> None:
         # Restore
         gc_module._create_boundary_nodes = original_fn
 
-    print(f"\n>>> Состояние graph ПЕРЕД _create_boundary_nodes:")
+    print("\n>>> Состояние graph ПЕРЕД _create_boundary_nodes:")
     print(f"  location_id: {captured_state.get('location_id')}")
     print(f"  adjacency: {captured_state.get('adjacency')}")
     print(f"  origin: {captured_state.get('origin')}")
     print(f"  size: {captured_state.get('size')}")
     print(f"  graph size: {captured_state.get('graph_size_before')} entries")
 
-    print(f"\n  Ключевые проверки:")
+    print("\n  Ключевые проверки:")
     print(f"    'tavern:exit_east' в graph: {captured_state.get('tavern_exit_east_in_graph')}")
     print(f"    'exit_east' (без префикса) в graph: {captured_state.get('exit_east_in_graph')}")
     print(f"    'tavern:exit_south' в graph: {captured_state.get('tavern_exit_south_in_graph')}")
     print(f"    'exit_south' (без префикса) в graph: {captured_state.get('exit_south_in_graph')}")
 
-    print(f"\n  Координаты (если найдены):")
+    print("\n  Координаты (если найдены):")
     for key in ("tavern:exit_east", "exit_east", "tavern:exit_south", "exit_south"):
         coords_key = f"coords_of_{key}"
         role_key = f"role_of_{key}"
@@ -248,15 +256,15 @@ def check2_graph_state_before_boundary() -> None:
         else:
             print(f"    {key}: НЕ в graph")
 
-    print(f"\n  Boundary nodes уже в graph (перед _create_boundary_nodes):")
+    print("\n  Boundary nodes уже в graph (перед _create_boundary_nodes):")
     bn_before = captured_state.get("boundary_nodes_in_graph_before", [])
     if bn_before:
         for bn in bn_before:
             print(f"    {bn['key']}: ({bn['x']}, {bn['y']}) role={bn['role']}")
     else:
-        print(f"    [нет узлов с role=BOUNDARY в graph перед вызовом]")
+        print("    [нет узлов с role=BOUNDARY в graph перед вызовом]")
 
-    print(f"\n  Все ключи graph (первые 30, отсортированные):")
+    print("\n  Все ключи graph (первые 30, отсортированные):")
     for k in captured_state.get("graph_keys_before", [])[:30]:
         print(f"    {k}")
 
@@ -309,13 +317,28 @@ def check3_operations_between() -> None:
 
     # Print all lines, highlighting operations that modify graph
     suspicious_keywords = [
-        "del graph", "graph.clear", "graph.pop", "graph.update",
-        "graph = ", "graph[", "graph =",
-        "nodes_to_remove", "nodes_to_delete", "remove_node",
-        "filter", "exclude", "skip",
-        "NodeRole.BOUNDARY", "role == ", "role != ",
-        "boundary", "exit_east", "exit_south",
-        "return ", "if not", "if _has",
+        "del graph",
+        "graph.clear",
+        "graph.pop",
+        "graph.update",
+        "graph = ",
+        "graph[",
+        "graph =",
+        "nodes_to_remove",
+        "nodes_to_delete",
+        "remove_node",
+        "filter",
+        "exclude",
+        "skip",
+        "NodeRole.BOUNDARY",
+        "role == ",
+        "role != ",
+        "boundary",
+        "exit_east",
+        "exit_south",
+        "return ",
+        "if not",
+        "if _has",
     ]
 
     for j in range(nodes_loading_end, boundary_call_line + 1):
@@ -329,7 +352,7 @@ def check3_operations_between() -> None:
                 break
         # Only print if non-empty or has marker
         if line.strip() or marker:
-            print(f"L{j+1:4d}: {line}{marker}")
+            print(f"L{j + 1:4d}: {line}{marker}")
 
 
 # ============================================================================
@@ -355,9 +378,19 @@ def check4_boundary_role_handling() -> None:
             print(f"  L{i}: {line.rstrip()}")
 
     print("\n--- Все строки, где может происходить удаление/фильтрация узлов ---")
-    delete_keywords = ["del graph", "graph.pop", "graph.clear", "remove_from_graph",
-                       "filter_out", "skip_node", "exclude_node", "if role == NodeRole.BOUNDARY",
-                       "if role != NodeRole.BOUNDARY", "if n.role == ", "if node.role == "]
+    delete_keywords = [
+        "del graph",
+        "graph.pop",
+        "graph.clear",
+        "remove_from_graph",
+        "filter_out",
+        "skip_node",
+        "exclude_node",
+        "if role == NodeRole.BOUNDARY",
+        "if role != NodeRole.BOUNDARY",
+        "if n.role == ",
+        "if node.role == ",
+    ]
     for i, line in enumerate(lines, 1):
         for kw in delete_keywords:
             if kw in line:
@@ -403,8 +436,8 @@ def control_experiment_existing_node() -> None:
         _h = float(size.get("h", 10.0))
 
         _DIR_OFFSETS = {
-            "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
-            "west":  (_ox + 1.0,      _oy + _h / 2.0),
+            "east": (_ox + _w - 1.0, _oy + _h / 2.0),
+            "west": (_ox + 1.0, _oy + _h / 2.0),
             "north": (_ox + _w / 2.0, _oy + _h - 1.0),
             "south": (_ox + _w / 2.0, _oy + 1.0),
         }
@@ -443,7 +476,7 @@ def control_experiment_existing_node() -> None:
             experiment_log.append(entry)
 
         # Print experiment results
-        print(f"\n>>> КОНТРОЛЬНЫЙ ЭКСПЕРИМЕНТ — _existing_node для каждого direction:")
+        print("\n>>> КОНТРОЛЬНЫЙ ЭКСПЕРИМЕНТ — _existing_node для каждого direction:")
         for e in experiment_log:
             print(f"\n  Direction: {e['direction']}")
             print(f"    neighbor_loc_id: {e['neighbor_loc_id']}")
@@ -467,7 +500,7 @@ def control_experiment_existing_node() -> None:
     # Patch and run
     gc_module._create_boundary_nodes = _experiment_fn
     try:
-        result = gc_module.compile_graph(data, location_id="tavern")
+        gc_module.compile_graph(data, location_id="tavern")
     except Exception as e:
         print(f"[compile error: {e}]")
         traceback.print_exc()

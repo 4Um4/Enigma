@@ -9,19 +9,15 @@ path: backend/tests/calibration_lab/test_m0_superbox.py
 Зависимости: superbox_adapter, pytest.
 Основные сущности: TestSuperboxOverlayDelta.
 """
+
 from pathlib import Path
 
 import pytest
 from app.services.calibration.superbox_adapter import SuperboxAdapter
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_GOLDEN = str(
-    _REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"
-)
-_SUSPECT = (
-    "tests/sandbox/SUPERBOX/scenarios/"
-    "epistemic_second_order_attribution_test.py"
-)
+_GOLDEN = str(_REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml")
+_SUSPECT = "tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_attribution_test.py"
 
 
 @pytest.mark.slow

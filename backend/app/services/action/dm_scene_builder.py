@@ -51,18 +51,12 @@ class DMSceneBuilder:
         Salience Engine фильтрует объекты по важности.
         """
         all_npcs = spatial_data.get("npcs", [])
-        nearby_npcs = self._filter_by_visibility(
-            all_npcs, player_location, spatial_data
-        )
+        nearby_npcs = self._filter_by_visibility(all_npcs, player_location, spatial_data)
         los = self._calculate_los(nearby_npcs, player_location, spatial_data)
         modifiers = self._get_environmental_modifiers(spatial_data)
 
         # Salience Engine: фильтруем объекты перед передачей в LLM
-        _event_type = (
-            getattr(raw_event, "event_type", "player_interacts")
-            if raw_event
-            else "player_interacts"
-        )
+        _event_type = getattr(raw_event, "event_type", "player_interacts") if raw_event else "player_interacts"
         _raw_objects = spatial_data.get("objects", {})
         # objects может быть list из scene_state — нормализуем в dict
         if isinstance(_raw_objects, list):

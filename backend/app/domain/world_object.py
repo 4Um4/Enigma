@@ -21,6 +21,7 @@ path: backend/app/domain/world_object.py
     CarrierMode, ObjectRelation, build_world_object,
     apply_relation_transition, relocate_object
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -51,6 +52,7 @@ _K_INTERACTION_HISTORY_REF = "interaction_history_ref"
 class WorldObjectState(str, Enum):
     """Базовые состояния объекта (damage track).
     Archetype-specific FSMs (CLOSED/OPEN/LOCKED) — в W3."""
+
     INTACT = "INTACT"
     DAMAGED = "DAMAGED"
     BROKEN = "BROKEN"
@@ -62,6 +64,7 @@ class ObjectRelationKind(str, Enum):
     хранение — single-side: каждое отношение живёт ровно в одном поле
     WorldObject. ObjectRelation (DTO ниже) — только проекция для
     запросов, никогда не источник истины."""
+
     LOCATED_AT = "LOCATED_AT"
     SUPPORTED_BY = "SUPPORTED_BY"
     CONTAINED_BY = "CONTAINED_BY"
@@ -77,10 +80,11 @@ class CarrierMode(str, Enum):
     истины. Конфликты сверх carrier-режимов (можно ли взять занятый
     стул и т.п.) — калибруемая ПОЛИТИКА (W2/W3), не онтология
     (вердикт Мастера, S226)."""
-    FREE = "FREE"              # авторитет позиции: location_id + position
-    HELD = "HELD"              # позиция производная от holder (npc_id)
-    CONTAINED = "CONTAINED"    # позиция производная от container_id
-    ATTACHED = "ATTACHED"      # позиция производная от attachment (host)
+
+    FREE = "FREE"  # авторитет позиции: location_id + position
+    HELD = "HELD"  # позиция производная от holder (npc_id)
+    CONTAINED = "CONTAINED"  # позиция производная от container_id
+    ATTACHED = "ATTACHED"  # позиция производная от attachment (host)
 
 
 @dataclass(frozen=True)
@@ -89,9 +93,10 @@ class ObjectRelation:
     из полей WorldObject по запросу. Семантика target_id зависит от kind:
     npc_id (OCCUPIED_BY, HELD_BY, USED_BY), object_id (SUPPORTED_BY,
     CONTAINED_BY, host ATTACHED_TO), location_id (LOCATED_AT)."""
+
     kind: ObjectRelationKind
     target_id: str
-    slot: Optional[str] = None   # только ATTACHED_TO
+    slot: Optional[str] = None  # только ATTACHED_TO
 
 
 @dataclass(frozen=True)
@@ -108,24 +113,24 @@ class WorldObject:
     """
 
     # ── Идентичность и размещение ──────────────────────────────────
-    object_id: str                                # детерминированный; uuid4 запрещён
-    archetype: str                                # "door", "chair", "container", ...
-    location_id: str                              # LOCATED_AT: текущая локация
-    position: Tuple[float, float]                 # мир (метры); авторитетна только в FREE
-    state: str                                    # archetype-specific FSM (W3)
+    object_id: str  # детерминированный; uuid4 запрещён
+    archetype: str  # "door", "chair", "container", ...
+    location_id: str  # LOCATED_AT: текущая локация
+    position: Tuple[float, float]  # мир (метры); авторитетна только в FREE
+    state: str  # archetype-specific FSM (W3)
 
     # ── Топологические отношения (canonical, single-side) ──────────
-    holder: Optional[str] = None                  # HELD_BY: npc_id
-    container_id: Optional[str] = None            # CONTAINED_BY: object_id
-    supported_by: Optional[str] = None            # SUPPORTED_BY: object_id
+    holder: Optional[str] = None  # HELD_BY: npc_id
+    container_id: Optional[str] = None  # CONTAINED_BY: object_id
+    supported_by: Optional[str] = None  # SUPPORTED_BY: object_id
     attachment: Optional[Tuple[str, str]] = None  # ATTACHED_TO: (host_id, slot) — атомарно
-    occupancy: Optional[str] = None               # OCCUPIED_BY: npc_id (chair/bed)
-    used_by: Optional[str] = None                 # USED_BY: npc_id (tool in hand)
+    occupancy: Optional[str] = None  # OCCUPIED_BY: npc_id (chair/bed)
+    used_by: Optional[str] = None  # USED_BY: npc_id (tool in hand)
 
     # ── Прочее ─────────────────────────────────────────────────────
-    ownership: Optional[str] = None               # npc_id владельца
-    damage: float = 0.0                           # 0.0 (intact) ... 1.0 (destroyed)
-    interaction_history_ref: Optional[str] = None # ref в L1Chronicle (W3)
+    ownership: Optional[str] = None  # npc_id владельца
+    damage: float = 0.0  # 0.0 (intact) ... 1.0 (destroyed)
+    interaction_history_ref: Optional[str] = None  # ref в L1Chronicle (W3)
 
     def __post_init__(self) -> None:
         """Онтологическая валидация на границе создания — контракт,
@@ -134,39 +139,32 @@ class WorldObject:
         if not self.object_id:
             raise OntologyViolationError("WorldObject: object_id пуст")
         if not self.location_id:
-            raise OntologyViolationError(
-                f"WorldObject {self.object_id}: location_id пуст")
+            raise OntologyViolationError(f"WorldObject {self.object_id}: location_id пуст")
         if not 0.0 <= self.damage <= 1.0:
-            raise OntologyViolationError(
-                f"WorldObject {self.object_id}: damage={self.damage} вне [0.0, 1.0]")
+            raise OntologyViolationError(f"WorldObject {self.object_id}: damage={self.damage} вне [0.0, 1.0]")
         if self.attachment is not None:
             _host, _slot = self.attachment
             if not _host or not _slot:
                 raise OntologyViolationError(
                     f"WorldObject {self.object_id}: attachment обязан быть "
-                    f"(host_id, slot) с непустыми компонентами — атомарность")
+                    f"(host_id, slot) с непустыми компонентами — атомарность"
+                )
         # Carrier exclusivity: ровно один источник авторитета позиции.
-        _carriers = [
-            _c for _c in (self.holder, self.container_id, self.attachment)
-            if _c is not None
-        ]
+        _carriers = [_c for _c in (self.holder, self.container_id, self.attachment) if _c is not None]
         if len(_carriers) > 1:
             raise OntologyViolationError(
                 f"WorldObject {self.object_id}: несколько carrier-отношений "
                 f"(holder/container_id/attachment) — позиция не может иметь "
-                f"два источника истины")
+                f"два источника истины"
+            )
         # SUPPORTED_BY онтологически совместим только с FREE: держимая/
         # вложенная/прикреплённая вещь не может одновременно «лежать на».
         if self.supported_by is not None and _carriers:
-            raise OntologyViolationError(
-                f"WorldObject {self.object_id}: SUPPORTED_BY несовместим с "
-                f"carrier-отношением")
+            raise OntologyViolationError(f"WorldObject {self.object_id}: SUPPORTED_BY несовместим с carrier-отношением")
         # OCCUPIED_BY совместим только с FREE: сидящий NPC привязан к
         # позиции стула; стул в чужом carrier-режиме рвёт эту цепочку.
         if self.occupancy is not None and _carriers:
-            raise OntologyViolationError(
-                f"WorldObject {self.object_id}: OCCUPIED_BY несовместим с "
-                f"carrier-отношением")
+            raise OntologyViolationError(f"WorldObject {self.object_id}: OCCUPIED_BY несовместим с carrier-отношением")
 
     @property
     def carrier_mode(self) -> CarrierMode:
@@ -184,34 +182,24 @@ class WorldObject:
         tuple). Содержимое контейнера сюда НЕ входит — это запрос к
         WorldObjectStore по container_id (inverse-проекция)."""
         rels: List[ObjectRelation] = [
-            ObjectRelation(kind=ObjectRelationKind.LOCATED_AT,
-                           target_id=self.location_id),
+            ObjectRelation(kind=ObjectRelationKind.LOCATED_AT, target_id=self.location_id),
         ]
         if self.supported_by is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.SUPPORTED_BY,
-                target_id=self.supported_by))
+            rels.append(ObjectRelation(kind=ObjectRelationKind.SUPPORTED_BY, target_id=self.supported_by))
         if self.container_id is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.CONTAINED_BY,
-                target_id=self.container_id))
+            rels.append(ObjectRelation(kind=ObjectRelationKind.CONTAINED_BY, target_id=self.container_id))
         if self.occupancy is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.OCCUPIED_BY,
-                target_id=self.occupancy))
+            rels.append(ObjectRelation(kind=ObjectRelationKind.OCCUPIED_BY, target_id=self.occupancy))
         if self.holder is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.HELD_BY,
-                target_id=self.holder))
+            rels.append(ObjectRelation(kind=ObjectRelationKind.HELD_BY, target_id=self.holder))
         if self.attachment is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.ATTACHED_TO,
-                target_id=self.attachment[0],
-                slot=self.attachment[1]))
+            rels.append(
+                ObjectRelation(
+                    kind=ObjectRelationKind.ATTACHED_TO, target_id=self.attachment[0], slot=self.attachment[1]
+                )
+            )
         if self.used_by is not None:
-            rels.append(ObjectRelation(
-                kind=ObjectRelationKind.USED_BY,
-                target_id=self.used_by))
+            rels.append(ObjectRelation(kind=ObjectRelationKind.USED_BY, target_id=self.used_by))
         return tuple(rels)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -227,7 +215,8 @@ class WorldObject:
             _K_SUPPORTED_BY: self.supported_by,
             _K_ATTACHMENT: (
                 [self.attachment[0], self.attachment[1]]  # noqa: ENIGMA001
-                if self.attachment is not None else None
+                if self.attachment is not None
+                else None
             ),
             _K_OCCUPANCY: self.occupancy,
             _K_USED_BY: self.used_by,
@@ -254,7 +243,8 @@ class WorldObject:
             supported_by=d.get(_K_SUPPORTED_BY),
             attachment=(
                 (_att_raw[0], _att_raw[1])  # noqa: ENIGMA001
-                if _att_raw is not None else None
+                if _att_raw is not None
+                else None
             ),
             occupancy=d.get(_K_OCCUPANCY),
             used_by=d.get(_K_USED_BY),
@@ -338,27 +328,23 @@ def apply_relation_transition(
     """
     if kind is ObjectRelationKind.LOCATED_AT:
         raise OntologyViolationError(
-            f"WorldObject {obj.object_id}: LOCATED_AT меняется только "
-            f"через relocate_object — позиция не отношение")
+            f"WorldObject {obj.object_id}: LOCATED_AT меняется только через relocate_object — позиция не отношение"
+        )
 
     if target_id is None:
         # ── RELEASE ────────────────────────────────────────────────
-        _field = (
-            _CARRIER_FIELDS.get(kind)
-            or _FREE_ONLY_FIELDS.get(kind)
-            or _INDEPENDENT_FIELDS.get(kind)
-        )
+        _field = _CARRIER_FIELDS.get(kind) or _FREE_ONLY_FIELDS.get(kind) or _INDEPENDENT_FIELDS.get(kind)
         if _field is None:
             raise OntologyViolationError(f"Неизвестный kind отношения: {kind}")
         if getattr(obj, _field) is None:
             raise OntologyViolationError(
                 f"WorldObject {obj.object_id}: release {kind.value} — "
-                f"отношение не установлено (STRICT: рассинхрон конвейера)")
+                f"отношение не установлено (STRICT: рассинхрон конвейера)"
+            )
         return dataclass_replace(obj, **{_field: None})
 
     if not target_id:
-        raise OntologyViolationError(
-            f"WorldObject {obj.object_id}: пустой target_id для {kind.value}")
+        raise OntologyViolationError(f"WorldObject {obj.object_id}: пустой target_id для {kind.value}")
 
     # ── ESTABLISH ─────────────────────────────────────────────────
     if kind in _CARRIER_FIELDS:
@@ -366,21 +352,21 @@ def apply_relation_transition(
             raise OntologyViolationError(
                 f"WorldObject {obj.object_id}: establish {kind.value} при "
                 f"carrier_mode={obj.carrier_mode.value} — сначала явный "
-                f"release текущего carrier (auto-release запрещён)")
+                f"release текущего carrier (auto-release запрещён)"
+            )
         if kind is ObjectRelationKind.ATTACHED_TO:
             if slot is None or not slot:
                 raise OntologyViolationError(
-                    f"WorldObject {obj.object_id}: ATTACHED_TO требует slot "
-                    f"— отношение атомарно (host_id, slot)")
-            return dataclass_replace(
-                obj, attachment=(target_id, slot))
+                    f"WorldObject {obj.object_id}: ATTACHED_TO требует slot — отношение атомарно (host_id, slot)"
+                )
+            return dataclass_replace(obj, attachment=(target_id, slot))
         return dataclass_replace(obj, **{_CARRIER_FIELDS[kind]: target_id})
 
     if kind in _FREE_ONLY_FIELDS:
         if obj.carrier_mode is not CarrierMode.FREE:
             raise OntologyViolationError(
-                f"WorldObject {obj.object_id}: {kind.value} совместим только "
-                f"с FREE (carrier={obj.carrier_mode.value})")
+                f"WorldObject {obj.object_id}: {kind.value} совместим только с FREE (carrier={obj.carrier_mode.value})"
+            )
         return dataclass_replace(obj, **{_FREE_ONLY_FIELDS[kind]: target_id})
 
     # USED_BY — независимое отношение: атомарная замена = передача
@@ -402,16 +388,15 @@ def relocate_object(
         raise OntologyViolationError(
             f"WorldObject {obj.object_id}: relocate при carrier_mode="
             f"{obj.carrier_mode.value} — позиция неавторитетна, двигают "
-            f"владельца (holder/container/host)")
+            f"владельца (holder/container/host)"
+        )
     if obj.supported_by is not None:
         raise OntologyViolationError(
-            f"WorldObject {obj.object_id}: relocate при SUPPORTED_BY="
-            f"{obj.supported_by} — сначала явный release")
+            f"WorldObject {obj.object_id}: relocate при SUPPORTED_BY={obj.supported_by} — сначала явный release"
+        )
     if not location_id:
-        raise OntologyViolationError(
-            f"WorldObject {obj.object_id}: relocate с пустым location_id")
-    return dataclass_replace(
-        obj, location_id=location_id, position=position)
+        raise OntologyViolationError(f"WorldObject {obj.object_id}: relocate с пустым location_id")
+    return dataclass_replace(obj, location_id=location_id, position=position)
 
 
 def dataclass_replace(obj: WorldObject, **changes: Any) -> WorldObject:
@@ -419,4 +404,5 @@ def dataclass_replace(obj: WorldObject, **changes: Any) -> WorldObject:
     значит __post_init__-валидация онтологии неизбежна — невозможно
     построить невалидный объект через переход (safe by construction)."""
     from dataclasses import replace as _replace
+
     return _replace(obj, **changes)

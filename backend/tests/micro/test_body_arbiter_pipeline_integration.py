@@ -109,17 +109,26 @@ def test_unknown_player_deferred_publish_blocked():
     scene, uuids = _fresh_scene_with_uuids()
     # Store raw player intent with unknown action
     from app.services.events.event_identity import intent_id_str, next_intent_identity
+
     lifecycle = scene.setdefault("intent_lifecycle", {})
     owner = uuids.player_consciousness
     body = uuids.body
     _t, _o = next_intent_identity(scene, owner, "unknown_action")
     _id = intent_id_str(_t, owner, "unknown_action", _o)
     lifecycle[_id] = {
-        "intent_id": _id, "owner": owner, "body_id": body,
-        "control_source": "player_input", "action": "unknown_action",
-        "target": "x", "desire_ref": None, "urgency": None,
-        "lifecycle_state": "ACTIVE", "arbitration_result": "PENDING",
-        "execution_status": "NOT_EXECUTED", "created_tick": 1, "transitioned_tick": 1,
+        "intent_id": _id,
+        "owner": owner,
+        "body_id": body,
+        "control_source": "player_input",
+        "action": "unknown_action",
+        "target": "x",
+        "desire_ref": None,
+        "urgency": None,
+        "lifecycle_state": "ACTIVE",
+        "arbitration_result": "PENDING",
+        "execution_status": "NOT_EXECUTED",
+        "created_tick": 1,
+        "transitioned_tick": 1,
     }
     _store_avatar_intent(scene, "observe", "y", 1)
 

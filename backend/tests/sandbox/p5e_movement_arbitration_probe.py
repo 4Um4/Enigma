@@ -5,8 +5,15 @@ P5-E — Movement Arbitration Forensics.
 spatial_changes для maid_lusya при SEEK_ALLY.
 Подозреваемый: GATE B1.5 — Traversal Pre-emption Guard (movement_engine.py:202-229).
 """
+
 from __future__ import annotations
-import os, sys, json, shutil, tempfile, time, traceback
+import os
+import sys
+import json
+import shutil
+import tempfile
+import time
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from unittest.mock import MagicMock
@@ -29,9 +36,11 @@ from app.domain.movement import MacroMovementGoal
 
 SPY_LOG: List[Dict[str, Any]] = []
 
+
 def _stamp(tag: str, **kw: Any) -> None:
     SPY_LOG.append({"tag": tag, **kw})
     print(f"[SPY] {tag}: " + json.dumps(kw, ensure_ascii=False, default=str))
+
 
 def build_test_loop(data_dir, saves_dir):
     settings.saves_dir = str(saves_dir)
@@ -44,17 +53,23 @@ def build_test_loop(data_dir, saves_dir):
                 ex._router = MagicMock()
                 if hasattr(ex._router, "route"):
                     ex._router.route.return_value = "[Mock LLM]"
-    except Exception: pass
+    except Exception:
+        pass
     return loop
+
 
 def cleanup_loop(loop):
     try:
         if hasattr(loop, "_task_scheduler"):
             ts = loop._task_scheduler
             if hasattr(ts, "_executor_pool"):
-                try: ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-                except Exception: pass
-    except Exception: pass
+                try:
+                    ts._executor_pool.shutdown(wait=False, cancel_futures=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 
 def init_scene(loop):
     scene = loop.scene_manager.get_scene_state("Open_road", "tavern")
@@ -62,12 +77,14 @@ def init_scene(loop):
         scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
     return scene or {}
 
+
 # === Spies on MovementEngine internals ===
 def attach_movement_spies():
     """Spy на process_intents + _spatial_intent_gate + _process_single_intent."""
 
     # Spy 1: _spatial_intent_gate — capture какие intents проходят Stage 2
     orig_gate = MovementEngine._spatial_intent_gate
+
     def _spy_gate(self_me, intents, npc_positions):
         pre_count = len(intents)
         pre_actors = [getattr(i, "actor_id", "?") for i in intents]
@@ -85,20 +102,28 @@ def attach_movement_spies():
             if getattr(i, "actor_id", "") == "maid_lusya":
                 ml_target = getattr(i, "target_node_id", "?")
                 break
-        _stamp("STAGE2._spatial_intent_gate",
-               pre_count=pre_count, post_count=post_count,
-               pre_actors=pre_actors, post_actors=post_actors,
-               maid_lusya_pre=ml_pre, maid_lusya_post=ml_post,
-               ml_current_pos=ml_current, ml_target=ml_target,
-               ml_collapsed=ml_pre and not ml_post)
+        _stamp(
+            "STAGE2._spatial_intent_gate",
+            pre_count=pre_count,
+            post_count=post_count,
+            pre_actors=pre_actors,
+            post_actors=post_actors,
+            maid_lusya_pre=ml_pre,
+            maid_lusya_post=ml_post,
+            ml_current_pos=ml_current,
+            ml_target=ml_target,
+            ml_collapsed=ml_pre and not ml_post,
+        )
         return result
+
     MovementEngine._spatial_intent_gate = _spy_gate
 
     # Spy 2: process_intents — capture active_traversals BEFORE processing + per-intent fate
     orig_pi = MovementEngine.process_intents
+
     def _spy_pi(self_me, intents, **kwargs):
         scene_state = kwargs.get("scene_state")
-        npc_positions = kwargs.get("npc_positions")
+        kwargs.get("npc_positions")
 
         # Snapshot active_traversals for ALL actors BEFORE processing
         pre_travs = {}
@@ -116,11 +141,13 @@ def attach_movement_spies():
 
         # Specifically snapshot maid_lusya
         ml_trav = pre_travs.get("maid_lusya", {})
-        _stamp("STAGE0.pre_process_intents",
-               intents_count=len(intents),
-               actors=[getattr(i, "actor_id", "?") for i in intents],
-               maid_lusya_active_traversal=ml_trav,
-               all_active_traversals=pre_travs)
+        _stamp(
+            "STAGE0.pre_process_intents",
+            intents_count=len(intents),
+            actors=[getattr(i, "actor_id", "?") for i in intents],
+            maid_lusya_active_traversal=ml_trav,
+            all_active_traversals=pre_travs,
+        )
 
         # Check: does maid_lusya have a MOVING traversal?
         ml_is_moving = ml_trav.get("status") == "MOVING"
@@ -132,63 +159,77 @@ def attach_movement_spies():
                 break
         ml_has_interrupt = "interrupt" in ml_intent_reason
         ml_has_relocation = "+relocation" in ml_intent_reason
-        _stamp("STAGE3.B1_5_PREDICTION maid_lusya",
-               ml_is_moving=ml_is_moving,
-               ml_intent_reason=ml_intent_reason,
-               ml_has_interrupt=ml_has_interrupt,
-               ml_has_relocation=ml_has_relocation,
-               PREDICTED_REJECT=ml_is_moving and not ml_has_interrupt and not ml_has_relocation)
+        _stamp(
+            "STAGE3.B1_5_PREDICTION maid_lusya",
+            ml_is_moving=ml_is_moving,
+            ml_intent_reason=ml_intent_reason,
+            ml_has_interrupt=ml_has_interrupt,
+            ml_has_relocation=ml_has_relocation,
+            PREDICTED_REJECT=ml_is_moving and not ml_has_interrupt and not ml_has_relocation,
+        )
 
         result = orig_pi(self_me, intents, **kwargs)
 
         # Check result: did maid_lusya get spatial_changes?
         ml_changes = [sc for sc in (result or []) if getattr(sc, "target", getattr(sc, "npc_id", "?")) == "maid_lusya"]
-        _stamp("STAGE_FINAL.process_intents:EXIT",
-               spatial_changes_count=len(result or []),
-               maid_lusya_changes_count=len(ml_changes),
-               maid_lusya_changes=[{"field": getattr(sc, "field", "?"),
-                                    "value": str(getattr(sc, "value", "?"))[:200]}
-                                   for sc in ml_changes],
-               ACTUAL_REJECT=len(ml_changes) == 0)
+        _stamp(
+            "STAGE_FINAL.process_intents:EXIT",
+            spatial_changes_count=len(result or []),
+            maid_lusya_changes_count=len(ml_changes),
+            maid_lusya_changes=[
+                {"field": getattr(sc, "field", "?"), "value": str(getattr(sc, "value", "?"))[:200]} for sc in ml_changes
+            ],
+            ACTUAL_REJECT=len(ml_changes) == 0,
+        )
         return result
+
     MovementEngine.process_intents = _spy_pi
 
     # Spy 3: _process_single_intent — which actors reach this final stage?
     orig_psi = MovementEngine._process_single_intent
+
     def _spy_psi(self_me, intent, **kwargs):
         actor = getattr(intent, "actor_id", getattr(intent, "npc_id", "?"))
         reason = getattr(intent, "reason", "?")
         target = getattr(intent, "target_node_id", "?")
-        _stamp("STAGE4._process_single_intent:ENTER",
-               actor=actor, reason=reason, target=target)
+        _stamp("STAGE4._process_single_intent:ENTER", actor=actor, reason=reason, target=target)
         try:
             result = orig_psi(self_me, intent, **kwargs)
             changes_count = len(result) if isinstance(result, list) else 0
-            _stamp("STAGE4._process_single_intent:EXIT",
-                   actor=actor, changes_count=changes_count)
+            _stamp("STAGE4._process_single_intent:EXIT", actor=actor, changes_count=changes_count)
             return result
         except Exception as e:
-            _stamp("STAGE4._process_single_intent:ERROR",
-                   actor=actor, error=type(e).__name__, msg=str(e)[:200])
+            _stamp("STAGE4._process_single_intent:ERROR", actor=actor, error=type(e).__name__, msg=str(e)[:200])
             raise
+
     MovementEngine._process_single_intent = _spy_psi
+
 
 def publish_insult(target_id="maid_lusya"):
     payload = {
-        "action_type": "player_insults", "target_id": target_id,
-        "content": "оскорбление", "event_tick": 1, "visibility": "public",
-        "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+        "action_type": "player_insults",
+        "target_id": target_id,
+        "content": "оскорбление",
+        "event_tick": 1,
+        "visibility": "public",
+        "radius": 999.0,
+        "location": "tavern",
+        "campaign_id": "Open_road",
         "raw_input": "оскорбление",
     }
-    evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                          payload=payload, persistence_level="working")
+    evt = EventDTO.create(
+        event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+    )
     get_event_bus().publish(evt)
+
 
 def run_scenario(label, with_insult, real_data_dir, saves_dir):
     print(f"\n{'#' * 78}\n# SCENARIO {label}\n{'#' * 78}")
     SPY_LOG.clear()
-    try: get_event_bus().clear()
-    except Exception: pass
+    try:
+        get_event_bus().clear()
+    except Exception:
+        pass
 
     loop = build_test_loop(real_data_dir, saves_dir)
     init_scene(loop)
@@ -207,8 +248,11 @@ def run_scenario(label, with_insult, real_data_dir, saves_dir):
 
     cleanup_loop(loop)
     del loop
-    import gc; gc.collect()
+    import gc
+
+    gc.collect()
     return list(SPY_LOG)
+
 
 def main():
     print("\n" + "=" * 78)
@@ -240,8 +284,11 @@ def main():
         return 1
     finally:
         for d in [saves_a, saves_b]:
-            try: shutil.rmtree(d, ignore_errors=True)
-            except Exception: pass
+            try:
+                shutil.rmtree(d, ignore_errors=True)
+            except Exception:
+                pass
+
 
 if __name__ == "__main__":
     sys.exit(main())

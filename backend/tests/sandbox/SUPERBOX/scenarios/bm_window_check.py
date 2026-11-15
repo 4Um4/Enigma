@@ -20,6 +20,7 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/bm_window_check.py
     - Не выполняет причинную атрибуцию (это делает --compare B' framework).
     - При ошибке входных данных завершается с ненулевым кодом возврата.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -64,6 +65,7 @@ MEAN_TOLERANCE = 1e-6
 
 # ── Результат проверки ──────────────────────────────────────────────────────
 
+
 class CheckResult:
     """Каждая проверка: id, status (PASS|WARN|FAIL), details (str)."""
 
@@ -77,6 +79,7 @@ class CheckResult:
 
 
 # ── Утилиты ─────────────────────────────────────────────────────────────────
+
 
 def load_json(path: Path) -> Tuple[Optional[Any], Optional[str]]:
     """Безопасная загрузка JSON. Возвращает (data, error)."""
@@ -189,6 +192,7 @@ def parse_closure_sha256(closure_path: Path) -> Tuple[Optional[Dict[str, Tuple[i
 
 # ── Проверки ────────────────────────────────────────────────────────────────
 
+
 def check_files_present(art_dir: Path) -> CheckResult:
     """Проверка 1: наличие 7 обязательных файлов."""
     missing = []
@@ -196,10 +200,7 @@ def check_files_present(art_dir: Path) -> CheckResult:
         if not (art_dir / name).exists():
             missing.append(name)
     if missing:
-        return CheckResult(
-            "files_present", "FAIL",
-            f"missing files: {missing}"
-        )
+        return CheckResult("files_present", "FAIL", f"missing files: {missing}")
     return CheckResult("files_present", "PASS", f"all {len(EXPECTED_FILES)} files present")
 
 
@@ -225,20 +226,13 @@ def check_closure_sha256(art_dir: Path, closure_path: Path) -> CheckResult:
         actual_bytes = fp.stat().st_size
         actual_sha = sha256_file(fp)
         if actual_bytes != expected_bytes:
-            mismatches.append(
-                f"{name}: bytes mismatch (CLOSURE={expected_bytes}, actual={actual_bytes})"
-            )
+            mismatches.append(f"{name}: bytes mismatch (CLOSURE={expected_bytes}, actual={actual_bytes})")
         if actual_sha != expected_sha:
-            mismatches.append(
-                f"{name}: SHA-256 mismatch (CLOSURE={expected_sha[:16]}..., actual={actual_sha[:16]}...)"
-            )
+            mismatches.append(f"{name}: SHA-256 mismatch (CLOSURE={expected_sha[:16]}..., actual={actual_sha[:16]}...)")
 
     if mismatches:
         return CheckResult("closure_sha256", "FAIL", "; ".join(mismatches))
-    return CheckResult(
-        "closure_sha256", "PASS",
-        f"all {len(EXPECTED_FILES)} SHA-256 match CLOSURE.md"
-    )
+    return CheckResult("closure_sha256", "PASS", f"all {len(EXPECTED_FILES)} SHA-256 match CLOSURE.md")
 
 
 def check_passports_compatible(compare_report: Dict[str, Any]) -> CheckResult:
@@ -288,8 +282,9 @@ def check_passport_fields_match(passport_off: Dict[str, Any], passport_on: Dict[
     if mismatches:
         return CheckResult("passport_fields_match", "FAIL", "; ".join(mismatches))
     return CheckResult(
-        "passport_fields_match", "PASS",
-        f"head={head_off[:12]}..., diff_hash={dh_off[:12]}..., input_sha256 keys match ({len(in_off)} files)"
+        "passport_fields_match",
+        "PASS",
+        f"head={head_off[:12]}..., diff_hash={dh_off[:12]}..., input_sha256 keys match ({len(in_off)} files)",
     )
 
 
@@ -300,10 +295,7 @@ def check_preset_sha256_match(result_off: Dict[str, Any], result_on: Dict[str, A
     if ps_off is None or ps_on is None:
         return CheckResult("preset_sha256_match", "FAIL", "preset_sha256 field missing in one or both results")
     if ps_off != ps_on:
-        return CheckResult(
-            "preset_sha256_match", "FAIL",
-            f"preset_sha256: off={ps_off[:16]}... on={ps_on[:16]}..."
-        )
+        return CheckResult("preset_sha256_match", "FAIL", f"preset_sha256: off={ps_off[:16]}... on={ps_on[:16]}...")
     return CheckResult("preset_sha256_match", "PASS", f"preset_sha256={ps_off[:16]}... (identical)")
 
 
@@ -314,18 +306,13 @@ def check_window_canonical(result_off: Dict[str, Any], result_on: Dict[str, Any]
     if not isinstance(w_off, list) or not isinstance(w_on, list):
         return CheckResult("window_canonical", "FAIL", "window field missing or not a list in one or both results")
     if w_off != CANONICAL_WINDOW:
-        return CheckResult(
-            "window_canonical", "FAIL",
-            f"result_off.window={w_off} (expected {CANONICAL_WINDOW})"
-        )
+        return CheckResult("window_canonical", "FAIL", f"result_off.window={w_off} (expected {CANONICAL_WINDOW})")
     if w_on != CANONICAL_WINDOW:
-        return CheckResult(
-            "window_canonical", "FAIL",
-            f"result_on.window={w_on} (expected {CANONICAL_WINDOW})"
-        )
+        return CheckResult("window_canonical", "FAIL", f"result_on.window={w_on} (expected {CANONICAL_WINDOW})")
     return CheckResult(
-        "window_canonical", "PASS",
-        f"window=[{CANONICAL_WINDOW[0]}..{CANONICAL_WINDOW[-1]}] in both legs ({len(CANONICAL_WINDOW)} ticks)"
+        "window_canonical",
+        "PASS",
+        f"window=[{CANONICAL_WINDOW[0]}..{CANONICAL_WINDOW[-1]}] in both legs ({len(CANONICAL_WINDOW)} ticks)",
     )
 
 
@@ -340,8 +327,9 @@ def check_mask_ticks_positive(compare_report: Dict[str, Any]) -> CheckResult:
         return CheckResult("mask_ticks_positive", "FAIL", f"mask_ticks not numeric: on={mt_on!r}, off={mt_off!r}")
     if not (mt_on > 0 and mt_off > 0):
         return CheckResult(
-            "mask_ticks_positive", "FAIL",
-            f"mask_ticks non-positive: on={mt_on}, off={mt_off} (injection may have failed — B4)"
+            "mask_ticks_positive",
+            "FAIL",
+            f"mask_ticks non-positive: on={mt_on}, off={mt_off} (injection may have failed — B4)",
         )
     return CheckResult("mask_ticks_positive", "PASS", f"mask_ticks: on={mt_on}, off={mt_off} (both > 0)")
 
@@ -356,8 +344,7 @@ def check_mask_ticks_symmetric(compare_report: Dict[str, Any]) -> CheckResult:
     if mt_on == mt_off:
         return CheckResult("mask_ticks_symmetric", "PASS", f"mask_ticks symmetric: {mt_on} == {mt_off}")
     return CheckResult(
-        "mask_ticks_symmetric", "WARN",
-        f"mask_ticks asymmetric: on={mt_on}, off={mt_off} (delta={abs(mt_on - mt_off)})"
+        "mask_ticks_symmetric", "WARN", f"mask_ticks asymmetric: on={mt_on}, off={mt_off} (delta={abs(mt_on - mt_off)})"
     )
 
 
@@ -374,22 +361,15 @@ def check_coverage_vs_b1(result_off: Dict[str, Any], result_on: Dict[str, Any]) 
         actual_off = pt_off.get(intent)
         actual_on = pt_on.get(intent)
         if actual_off is None or actual_on is None:
-            return CheckResult(
-                "coverage_vs_b1", "FAIL",
-                f"present_ticks[{intent!r}] missing in one or both results"
-            )
+            return CheckResult("coverage_vs_b1", "FAIL", f"present_ticks[{intent!r}] missing in one or both results")
         if actual_off != b1_ref or actual_on != b1_ref:
             drifts.append(f"{intent}: on={actual_on} off={actual_off} (B1={b1_ref})")
 
     if drifts:
         return CheckResult(
-            "coverage_vs_b1", "WARN",
-            f"coverage drift (pre-excluded from decisive criteria): {'; '.join(drifts)}"
+            "coverage_vs_b1", "WARN", f"coverage drift (pre-excluded from decisive criteria): {'; '.join(drifts)}"
         )
-    return CheckResult(
-        "coverage_vs_b1", "PASS",
-        f"all {len(B1_PRESENT_TICKS)} intents match B1 reference"
-    )
+    return CheckResult("coverage_vs_b1", "PASS", f"all {len(B1_PRESENT_TICKS)} intents match B1 reference")
 
 
 def check_per_intent_self_consistent(
@@ -420,9 +400,13 @@ def check_per_intent_self_consistent(
     missing_off = expected_intents - pi_off_keys
     missing_on = expected_intents - pi_on_keys
     if missing_off:
-        return CheckResult("per_intent_self_consistent", "FAIL", f"per_intent_common[off] missing intents: {sorted(missing_off)}")
+        return CheckResult(
+            "per_intent_self_consistent", "FAIL", f"per_intent_common[off] missing intents: {sorted(missing_off)}"
+        )
     if missing_on:
-        return CheckResult("per_intent_self_consistent", "FAIL", f"per_intent_common[on] missing intents: {sorted(missing_on)}")
+        return CheckResult(
+            "per_intent_self_consistent", "FAIL", f"per_intent_common[on] missing intents: {sorted(missing_on)}"
+        )
 
     mismatches = []
     for intent in sorted(expected_intents):
@@ -435,31 +419,37 @@ def check_per_intent_self_consistent(
 
         if expected_off is None or expected_on is None:
             return CheckResult(
-                "per_intent_self_consistent", "FAIL",
-                f"contrasts[{intent!r}].on/off missing in compare_report.json"
+                "per_intent_self_consistent", "FAIL", f"contrasts[{intent!r}].on/off missing in compare_report.json"
             )
         if actual_off is None or actual_on is None:
             return CheckResult(
-                "per_intent_self_consistent", "FAIL",
-                f"per_intent_common[{intent!r}].mean missing in one or both results"
+                "per_intent_self_consistent",
+                "FAIL",
+                f"per_intent_common[{intent!r}].mean missing in one or both results",
             )
 
         delta_off = abs(actual_off - expected_off)
         delta_on = abs(actual_on - expected_on)
         if delta_off > MEAN_TOLERANCE:
-            mismatches.append(f"{intent}.off: per_intent={actual_off!r} vs contrast={expected_off!r} (delta={delta_off:.2e})")
+            mismatches.append(
+                f"{intent}.off: per_intent={actual_off!r} vs contrast={expected_off!r} (delta={delta_off:.2e})"
+            )
         if delta_on > MEAN_TOLERANCE:
-            mismatches.append(f"{intent}.on: per_intent={actual_on!r} vs contrast={expected_on!r} (delta={delta_on:.2e})")
+            mismatches.append(
+                f"{intent}.on: per_intent={actual_on!r} vs contrast={expected_on!r} (delta={delta_on:.2e})"
+            )
 
     if mismatches:
         return CheckResult("per_intent_self_consistent", "FAIL", "; ".join(mismatches))
     return CheckResult(
-        "per_intent_self_consistent", "PASS",
-        f"all {len(expected_intents)} intents self-consistent (tol={MEAN_TOLERANCE})"
+        "per_intent_self_consistent",
+        "PASS",
+        f"all {len(expected_intents)} intents self-consistent (tol={MEAN_TOLERANCE})",
     )
 
 
 # ── Информационные поля ─────────────────────────────────────────────────────
+
 
 def collect_info_fields(
     passport_off: Dict[str, Any],
@@ -484,6 +474,7 @@ def collect_info_fields(
     seq_off = metrics_off.get("intent_seq") or []
     if seq_on and seq_off:
         from collections import Counter
+
         c_on = Counter(seq_on)
         c_off = Counter(seq_off)
         dom_on = c_on.most_common(1)[0][0] if c_on else None
@@ -506,6 +497,7 @@ def collect_info_fields(
 
 
 # ── Главный runner ──────────────────────────────────────────────────────────
+
 
 def run_checks(art_dir: Path) -> Tuple[List[CheckResult], Dict[str, Any], int]:
     """Запускает все проверки. Возвращает (checks, info_fields, exit_code)."""
@@ -533,8 +525,7 @@ def run_checks(art_dir: Path) -> Tuple[List[CheckResult], Dict[str, Any], int]:
 
     # Загрузка JSON артефактов (для последующих проверок)
     load_errors = []
-    for name in ["compare_report.json", "passport_off.json", "passport_on.json",
-                 "result_off.json", "result_on.json"]:
+    for name in ["compare_report.json", "passport_off.json", "passport_on.json", "result_off.json", "result_on.json"]:
         data, err = load_json(art_dir / name)
         if err:
             load_errors.append(f"{name}: {err}")
@@ -543,10 +534,7 @@ def run_checks(art_dir: Path) -> Tuple[List[CheckResult], Dict[str, Any], int]:
 
     if load_errors:
         # Если JSON не загрузился — добавим FAIL и вернём
-        checks.append(CheckResult(
-            "artifacts_loadable", "FAIL",
-            "; ".join(load_errors)
-        ))
+        checks.append(CheckResult("artifacts_loadable", "FAIL", "; ".join(load_errors)))
         info = {
             "window_captured_in_passport": False,
             "empty_ticks_on": [],

@@ -20,6 +20,7 @@ State machine (без pygame, тестируемая):
 Не создаёт параллельный механизм управления scheduler.
 Использует существующие API: start/stop/status.
 """
+
 from __future__ import annotations
 
 import logging
@@ -32,9 +33,10 @@ logger = logging.getLogger(__name__)
 
 class AutonomousState(str, Enum):
     """Состояния контроллера автономной симуляции."""
+
     INACTIVE = "inactive"  # выключено (по умолчанию)
-    PENDING = "pending"    # предупреждение показано, ждём подтверждения
-    ACTIVE = "active"      # фоновая симуляция запущена
+    PENDING = "pending"  # предупреждение показано, ждём подтверждения
+    ACTIVE = "active"  # фоновая симуляция запущена
 
 
 class AutonomousSimulationController:
@@ -146,6 +148,7 @@ class AutonomousSimulationController:
 
     def _call_api_start(self, campaign_id: str) -> None:
         """Вызывает POST /autonomous-simulation/{campaign_id}/start в worker thread."""
+
         def _worker() -> None:
             try:
                 _gw = self._get_gateway()
@@ -161,10 +164,12 @@ class AutonomousSimulationController:
                     self._state = AutonomousState.INACTIVE
                     self._campaign_id = None
                 self._notify_state_change()
+
         threading.Thread(target=_worker, daemon=True).start()
 
     def _call_api_stop(self, campaign_id: str) -> None:
         """Вызывает POST /autonomous-simulation/{campaign_id}/stop в worker thread."""
+
         def _worker() -> None:
             try:
                 _gw = self._get_gateway()
@@ -175,6 +180,7 @@ class AutonomousSimulationController:
                 logger.info(f"[AUTOSIM] API stop OK (campaign={campaign_id})")
             except Exception as _e:
                 logger.error(f"[AUTOSIM] API stop failed: {_e}", exc_info=True)
+
         threading.Thread(target=_worker, daemon=True).start()
 
     # ── Синхронизация с backend (при смене кампании / рестарте) ────────

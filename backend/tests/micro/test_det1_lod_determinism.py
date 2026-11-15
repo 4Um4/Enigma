@@ -28,8 +28,8 @@ def test_det1_same_world_same_lod_regardless_of_machine_speed():
     """Ядро DET-1: один и тот же мир (npc_count=15) — быстрый и медленный
     тик дают ОДИНАКОВОЕ LOD-решение (до фикса M-24 это было ложно:
     медленная машина активировала LOD, быстрая — нет)."""
-    slow_machine = _seeded(15, duration_ms=5000.0)   # «тяжёлая» машина
-    fast_machine = _seeded(15, duration_ms=12.3)     # «лёгкая» машина
+    slow_machine = _seeded(15, duration_ms=5000.0)  # «тяжёлая» машина
+    fast_machine = _seeded(15, duration_ms=12.3)  # «лёгкая» машина
     assert slow_machine.is_lod_active() == fast_machine.is_lod_active() is True
 
 

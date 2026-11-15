@@ -7,6 +7,7 @@ path: /project/backend/tests/micro/test_intent_tick_guard.py
 Зависимости: app.models.state_delta, app.services.npc.state_applicator
 Основные сущности: тесты battery 1-8
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -40,18 +41,20 @@ def _npc_with_intent(
     progress: int = 3,
 ) -> list:
     """NPC dict с pre-set intent-блоком (для тестов preservation)."""
-    return [{
-        "npc_id": "npc_test",
-        "id": "npc_test",
-        "psyche": {},
-        "social_stats": {},
-        "intent": intent,
-        "intent_target": target,
-        "intent_formed_at": formed_at,
-        "intent_duration": duration,
-        "intent_progress_ticks": progress,
-        "last_intent_change": formed_at,
-    }]
+    return [
+        {
+            "npc_id": "npc_test",
+            "id": "npc_test",
+            "psyche": {},
+            "social_stats": {},
+            "intent": intent,
+            "intent_target": target,
+            "intent_formed_at": formed_at,
+            "intent_duration": duration,
+            "intent_progress_ticks": progress,
+            "last_intent_change": formed_at,
+        }
+    ]
 
 
 def _apply(deltas: StateDeltas, dicts: list) -> None:

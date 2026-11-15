@@ -68,8 +68,11 @@ def test_victim_no_report_but_self_channel():
 def test_below_threshold_no_report():
     """Запись ниже REPORT_CONFIDENCE_THRESHOLD не даёт report."""
     store = EpistemicStore()
-    store.upsert(_record("maid_lusya", "player", Predicate.INSULTED, "tavern_keeper_tornin",
-                         conf=REPORT_CONFIDENCE_THRESHOLD - 0.01))
+    store.upsert(
+        _record(
+            "maid_lusya", "player", Predicate.INSULTED, "tavern_keeper_tornin", conf=REPORT_CONFIDENCE_THRESHOLD - 0.01
+        )
+    )
     resolver = EpistemicContextResolver(store)
 
     ctx = resolver.resolve("maid_lusya")

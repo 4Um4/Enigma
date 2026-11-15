@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_spatial_data_loader_compat.py
+"""path: /frontend/map_editor/tests/test_spatial_data_loader_compat.py
 
 Назначение: ME-1.8(a) / S-ME1 compatibility gate — SpatialDataLoader
     корректно загружает локации с новыми optional-полями (levels[],
@@ -21,9 +21,7 @@ from pathlib import Path
 import pytest
 import world_context
 
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
 
 
 def _load_location(name: str) -> dict:
@@ -32,9 +30,7 @@ def _load_location(name: str) -> dict:
 
 def _build_spatial(data: dict, name: str = "test"):
     """Call real SpatialDataLoader._build_spatial_data."""
-    return world_context.SpatialDataLoader._build_spatial_data(
-        data.get("location_id", name), data
-    )
+    return world_context.SpatialDataLoader._build_spatial_data(data.get("location_id", name), data)
 
 
 @pytest.fixture
@@ -62,6 +58,7 @@ def extended_location(legacy_location) -> dict:
 
 # === 1. Both load without exceptions ===
 
+
 def test_legacy_loads_without_exception(legacy_location):
     """SpatialDataLoader loads legacy location without exceptions."""
     result = _build_spatial(legacy_location)
@@ -75,6 +72,7 @@ def test_extended_loads_without_exception(extended_location):
 
 
 # === 2. Object/wall count preserved ===
+
 
 def test_obstacle_count_unchanged(legacy_location, extended_location):
     """Obstacle count is the same for legacy and extended."""
@@ -92,6 +90,7 @@ def test_wall_count_unchanged(legacy_location, extended_location):
 
 # === 3. origin/size semantics preserved ===
 
+
 def test_floor_rect_unchanged(legacy_location, extended_location):
     """Floor rect (origin/size) is the same for legacy and extended."""
     legacy_result = _build_spatial(legacy_location)
@@ -100,6 +99,7 @@ def test_floor_rect_unchanged(legacy_location, extended_location):
 
 
 # === 4. New fields don't break old field reading ===
+
 
 def test_obstacle_ids_match(legacy_location, extended_location):
     """Obstacle IDs are preserved (new fields don't break object reading)."""
@@ -122,6 +122,7 @@ def test_obstacle_sizes_match(legacy_location, extended_location):
 
 # === 5. Loading doesn't modify source JSON ===
 
+
 def test_legacy_source_not_modified(legacy_location):
     """Loading via SpatialDataLoader doesn't modify the source dict."""
     original = copy.deepcopy(legacy_location)
@@ -137,6 +138,7 @@ def test_extended_source_not_modified(extended_location):
 
 
 # === 6. Legacy behavior unchanged vs control ===
+
 
 def test_legacy_floor_rect_matches_file(legacy_location):
     """Legacy floor_rect matches origin+size from file (control)."""
@@ -156,6 +158,7 @@ def test_legacy_obstacle_count_matches_file(legacy_location):
 
 
 # === 7. Documented limitation — levels[] not filtered ===
+
 
 def test_levels_not_filtered_in_game(extended_location):
     """ME-1.8(a) limitation: levels[] doesn't participate in entity filtering.

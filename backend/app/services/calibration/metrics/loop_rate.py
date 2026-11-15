@@ -7,6 +7,7 @@ path: backend/app/services/calibration/metrics/loop_rate.py
 Зависимости: .base, ..observability_tap.DECISION_EVENT_VALUES.
 Основные сущности: LoopRate.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -48,11 +49,7 @@ class LoopRate(CalibrationMetric):
             self._prev[source] = label
 
     def compute(self) -> Optional[float]:
-        ratios = [
-            self._unchanged.get(npc, 0) / pairs
-            for npc, pairs in self._pairs.items()
-            if pairs > 0
-        ]
+        ratios = [self._unchanged.get(npc, 0) / pairs for npc, pairs in self._pairs.items() if pairs > 0]
         if not ratios:
             return None
         return sum(ratios) / len(ratios)

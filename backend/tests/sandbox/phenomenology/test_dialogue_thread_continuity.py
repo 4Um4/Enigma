@@ -21,26 +21,50 @@ from app.services.memory.memory_manager import MemoryManager
 
 def test_meteor_scenario_thread_continuity():
     """Canary 1: Player спрашивает о метели → 5 ходов о погоде → back to метель → NPC помнит."""
-    mm = MemoryManager(MagicMock(), data_dir='test_data')
+    mm = MemoryManager(MagicMock(), data_dir="test_data")
     mock_extractor = MagicMock(spec=DialogueUpdateExtractor)
     mock_extractor.extract.return_value = DialogueUpdate(topic="weather", topic_confidence=0.9)
     subscriber = NpcDialogueSubscriber(
-        memory_manager=mm, relationship_store=MagicMock(),
-        campaign_id_provider=lambda: "test_meteor", tick_provider=lambda: 1,
-        dialogue_update_extractor=mock_extractor
+        memory_manager=mm,
+        relationship_store=MagicMock(),
+        campaign_id_provider=lambda: "test_meteor",
+        tick_provider=lambda: 1,
+        dialogue_update_extractor=mock_extractor,
     )
-    mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "расскажи о метели", target_id="tavern_keeper_tornin", tick=1)
+    mm.add_dialogue_turn(
+        "test_meteor", "tavern_keeper_tornin", "player", "расскажи о метели", target_id="tavern_keeper_tornin", tick=1
+    )
     event_npc_reply = EventDTO.create(
-        event_type="npc_spoke", source="tavern_keeper_tornin",
-        payload={"target_id": "player", "text": "Метель? Да, в прошлом году была страшная.", "topic": "weather", "tone": "NEUTRAL"},
-        visibility="public"
+        event_type="npc_spoke",
+        source="tavern_keeper_tornin",
+        payload={
+            "target_id": "player",
+            "text": "Метель? Да, в прошлом году была страшная.",
+            "topic": "weather",
+            "tone": "NEUTRAL",
+        },
+        visibility="public",
     )
     subscriber.on_npc_spoke(event_npc_reply)
     stm_block = mm.get_stm_prompt_block("test_meteor", "tavern_keeper_tornin")
     assert "метел" in stm_block.lower()
     for i in range(5):
-        mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
-    mm.add_dialogue_turn("test_meteor", "tavern_keeper_tornin", "player", "так что насчёт той метели?", target_id="tavern_keeper_tornin", tick=7)
+        mm.add_dialogue_turn(
+            "test_meteor",
+            "tavern_keeper_tornin",
+            "player",
+            "какая погода?",
+            target_id="tavern_keeper_tornin",
+            tick=i + 2,
+        )
+    mm.add_dialogue_turn(
+        "test_meteor",
+        "tavern_keeper_tornin",
+        "player",
+        "так что насчёт той метели?",
+        target_id="tavern_keeper_tornin",
+        tick=7,
+    )
     stm_block_final = mm.get_stm_prompt_block("test_meteor", "tavern_keeper_tornin")
     assert "метел" in stm_block_final.lower()
     mm.clear_dialogue_session("test_meteor", "tavern_keeper_tornin")
@@ -51,33 +75,52 @@ def test_meteor_scenario_thread_continuity():
 
 def test_claims_open_questions_continuity():
     """Canary 5: Player задаёт вопрос → 10 ходов о другом → NPC помнит open question."""
-    mm = MemoryManager(MagicMock(), data_dir='test_data_claims')
+    mm = MemoryManager(MagicMock(), data_dir="test_data_claims")
     mock_extractor = MagicMock(spec=DialogueUpdateExtractor)
     subscriber = NpcDialogueSubscriber(
-        memory_manager=mm, relationship_store=MagicMock(),
-        campaign_id_provider=lambda: "test_claims", tick_provider=lambda: 1,
-        dialogue_update_extractor=mock_extractor
+        memory_manager=mm,
+        relationship_store=MagicMock(),
+        campaign_id_provider=lambda: "test_claims",
+        tick_provider=lambda: 1,
+        dialogue_update_extractor=mock_extractor,
     )
     mock_extractor.extract.return_value = DialogueUpdate(
-        topic="basement", topic_confidence=0.8,
-        raised_questions=[{"text": "где ключ от подвала?", "addressed_to": "tavern_keeper_tornin"}]
+        topic="basement",
+        topic_confidence=0.8,
+        raised_questions=[{"text": "где ключ от подвала?", "addressed_to": "tavern_keeper_tornin"}],
     )
-    mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "где ключ от подвала?", target_id="tavern_keeper_tornin", tick=1)
+    mm.add_dialogue_turn(
+        "test_claims",
+        "tavern_keeper_tornin",
+        "player",
+        "где ключ от подвала?",
+        target_id="tavern_keeper_tornin",
+        tick=1,
+    )
     event_q = EventDTO.create(
-        event_type="npc_spoke", source="tavern_keeper_tornin",
+        event_type="npc_spoke",
+        source="tavern_keeper_tornin",
         payload={"target_id": "player", "text": "Какой ещё ключ?", "topic": "basement", "tone": "SUSPICIOUS"},
-        visibility="public"
+        visibility="public",
     )
     subscriber.on_npc_spoke(event_q)
     session = mm.get_dialogue_session("test_claims", "tavern_keeper_tornin")
     assert len(session.open_questions) == 1
     mock_extractor.extract.return_value = DialogueUpdate(topic="weather", topic_confidence=0.9)
     for i in range(10):
-        mm.add_dialogue_turn("test_claims", "tavern_keeper_tornin", "player", "какая погода?", target_id="tavern_keeper_tornin", tick=i+2)
+        mm.add_dialogue_turn(
+            "test_claims",
+            "tavern_keeper_tornin",
+            "player",
+            "какая погода?",
+            target_id="tavern_keeper_tornin",
+            tick=i + 2,
+        )
         event_w = EventDTO.create(
-            event_type="npc_spoke", source="tavern_keeper_tornin",
+            event_type="npc_spoke",
+            source="tavern_keeper_tornin",
             payload={"target_id": "player", "text": "Снег идёт.", "topic": "weather", "tone": "NEUTRAL"},
-            visibility="public"
+            visibility="public",
         )
         subscriber.on_npc_spoke(event_w)
     stm_block = mm.get_stm_prompt_block("test_claims", "tavern_keeper_tornin")
@@ -86,7 +129,7 @@ def test_claims_open_questions_continuity():
 
 def test_per_pair_session_isolation():
     """Canary 6: NPC A говорит с B о X, с C о Y — нити изолированы."""
-    mm = MemoryManager(MagicMock(), data_dir='test_data_iso')
+    mm = MemoryManager(MagicMock(), data_dir="test_data_iso")
     mm.add_dialogue_turn("test_iso", "npc_A", "npc_A", "что в подвале?", partner_id="npc_B")
     mm.add_dialogue_turn("test_iso", "npc_A", "npc_A", "как дела с торговлей?", partner_id="npc_C")
     stm_AB = mm.get_stm_prompt_block_pair("test_iso", "npc_A", "npc_B")
@@ -100,26 +143,41 @@ def test_per_pair_session_isolation():
 def test_hard_contract_no_stm_no_speak():
     """T4: Если STM пуст и intent != greeting, DialogueExecutor понижает intent до approach (auto-recover)."""
     mock_mm = MagicMock()
-    mock_mm.get_stm_prompt_block_pair.return_value = "" # Симулируем пустой STM
+    mock_mm.get_stm_prompt_block_pair.return_value = ""  # Симулируем пустой STM
     mock_router = MagicMock()
     mock_response = MagicMock()
     mock_response.text = "Привет!"
     mock_response.is_fallback = False
     mock_router.request_for_agent.return_value = mock_response
     executor = DialogueExecutor(router=mock_router, memory_manager=mock_mm)
-    
+
     # Мокируем результат валидации
     mock_validation = MagicMock()
     mock_validation.is_fallback = False
     mock_validation.text = "Привет!"
     executor._validator = MagicMock()
     executor._validator.validate.return_value = mock_validation
-    
+
     from app.domain.communication import DialogueRequest, ExposureLevel
     from app.domain.execution import QueuedTask
-    req = DialogueRequest(topic="trade", target_id="npc_B", exposure=ExposureLevel.from_semantic("normal"), intent_type="talk")
-    task = QueuedTask(task_id="t1", tick=1, counter=1, kind="dialogue", priority=1, state="pending", creator_system="test", owner_id="npc_A", target_ids=["npc_B"], payload=req, created_tick=1)
-    
+
+    req = DialogueRequest(
+        topic="trade", target_id="npc_B", exposure=ExposureLevel.from_semantic("normal"), intent_type="talk"
+    )
+    task = QueuedTask(
+        task_id="t1",
+        tick=1,
+        counter=1,
+        kind="dialogue",
+        priority=1,
+        state="pending",
+        creator_system="test",
+        owner_id="npc_A",
+        target_ids=["npc_B"],
+        payload=req,
+        created_tick=1,
+    )
+
     # Проверяем, что генерация НЕ падает, а понижает intent (auto-recover)
     result = executor._generate_with_router(task, req)
     assert result is not None
@@ -135,19 +193,34 @@ def test_hard_contract_greeting_allowed():
     mock_response.is_fallback = False
     mock_router.request_for_agent.return_value = mock_response
     executor = DialogueExecutor(router=mock_router, memory_manager=mock_mm)
-    
+
     # Мокируем результат валидации (объект с is_fallback и text)
     mock_validation = MagicMock()
     mock_validation.is_fallback = False
     mock_validation.text = "Привет!"
     executor._validator = MagicMock()
     executor._validator.validate.return_value = mock_validation
-    
+
     from app.domain.communication import DialogueRequest, ExposureLevel
     from app.domain.execution import QueuedTask
-    req = DialogueRequest(topic="greeting", target_id="npc_B", exposure=ExposureLevel.from_semantic("normal"), intent_type="greeting")
-    task = QueuedTask(task_id="t2", tick=1, counter=1, kind="dialogue", priority=1, state="pending", creator_system="test", owner_id="npc_A", target_ids=["npc_B"], payload=req, created_tick=1)
-    
+
+    req = DialogueRequest(
+        topic="greeting", target_id="npc_B", exposure=ExposureLevel.from_semantic("normal"), intent_type="greeting"
+    )
+    task = QueuedTask(
+        task_id="t2",
+        tick=1,
+        counter=1,
+        kind="dialogue",
+        priority=1,
+        state="pending",
+        creator_system="test",
+        owner_id="npc_A",
+        target_ids=["npc_B"],
+        payload=req,
+        created_tick=1,
+    )
+
     # Не должно вызывать исключение
     text = executor._generate_with_router(task, req)
     assert text == "Привет!"
@@ -158,14 +231,18 @@ def test_ttl_game_time_expiry():
     game_time — timestamp = game_time, фильтр game-vs-game (TTL=120).
     Прежний контракт «7 сек wall-clock» снят; wall-clock — только real_ts (§15.2)."""
     scheduler = TaskScheduler()
-    
+
     # Реплика 100 секунд назад (wall-clock)
     # Просрочена: 160 - 30 = 130 > TTL(120)
-    scheduler._recent_dialogues.append({"speaker_id": "A", "text": "Старая реплика", "timestamp": 30.0, "game_time": 30.0})
+    scheduler._recent_dialogues.append(
+        {"speaker_id": "A", "text": "Старая реплика", "timestamp": 30.0, "game_time": 30.0}
+    )
     # Реплика 2 секунды назад (wall-clock)
     # Жива: 160 - 150 = 10 < TTL(120)
-    scheduler._recent_dialogues.append({"speaker_id": "B", "text": "Новая реплика", "timestamp": 150.0, "game_time": 150.0})
-    
+    scheduler._recent_dialogues.append(
+        {"speaker_id": "B", "text": "Новая реплика", "timestamp": 150.0, "game_time": 150.0}
+    )
+
     # TTL = 120 game-сек. Должна остаться только вторая.
     active = scheduler.get_recent_dialogues(160.0)
     assert len(active) == 1
@@ -178,7 +255,7 @@ def test_consolidation_empty_session():
     session = DialogueSession(npc_id="test", partner_id="player")
     session.add_turn(speaker="player", text="Одиноко")
     assert consolidator.consolidate(session) is None
-    
+
     session.add_turn(speaker="test", text="Да, одиноко")
     summary = consolidator.consolidate(session)
     assert summary is not None
@@ -199,10 +276,10 @@ def test_claims_auto_withdrawal():
     session = DialogueSession(npc_id="test", partner_id="player")
     for i in range(12):
         session.add_claim(text=f"Claim {i}", speaker="player", confidence=0.9, tick=1)
-    
+
     open_claims = [c for c in session.claims if c.status == "open"]
     withdrawn_claims = [c for c in session.claims if c.status == "withdrawn"]
-    
+
     assert len(open_claims) == 10
     assert len(withdrawn_claims) == 2
     assert withdrawn_claims[0].text == "Claim 0"
@@ -214,7 +291,7 @@ def test_open_question_answering():
     session.add_open_question(text="Где ключ?", asked_by="player", addressed_to="test", tick=1)
     assert len(session.open_questions) == 1
     assert not session.open_questions[0].answered
-    
+
     session.answer_question(0, "В сундуке", "test", 2)
     assert session.open_questions[0].answered
     assert session.open_questions[0].answer_text == "В сундуке"

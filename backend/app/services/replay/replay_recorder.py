@@ -4,10 +4,12 @@ path: backend/app/services/replay/replay_recorder.py
 Назначение: Запись каузального следа сессии в ReplayStore (Этап 2.2).
 Зависимости: app.services.replay.replay_store
 """
+
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
 
 class ReplayRecorder:
     """Подписывается на хуки TickOrchestrator и пишет данные в SQLite."""
@@ -21,14 +23,12 @@ class ReplayRecorder:
         try:
             # Синхронизируем текущий tick_id в ModelRouter для привязки LLM-кэша к тику
             from app.services.llm import ModelRouter
+
             ModelRouter()._current_tick_id = tick_id
 
             # tick_state может быть сложным объектом, сериализуем через default=str
             self.store.record_tick(
-                session_id=self.session_id,
-                tick_id=tick_id,
-                game_time_seconds=game_time,
-                tick_state=tick_state
+                session_id=self.session_id, tick_id=tick_id, game_time_seconds=game_time, tick_state=tick_state
             )
         except Exception as e:
             logger.error(f"[REPLAY_RECORDER] Failed to record tick_state: {e}")
@@ -40,8 +40,8 @@ class ReplayRecorder:
                 session_id=self.session_id,
                 tick_id=tick_id,
                 game_time_seconds=0.0,  # Обновляем существующую запись
-                tick_state=None, # Не перезаписываем
-                tick_mutation=mutation
+                tick_state=None,  # Не перезаписываем
+                tick_mutation=mutation,
             )
         except Exception as e:
             logger.error(f"[REPLAY_RECORDER] Failed to record tick_mutation: {e}")
@@ -50,20 +50,17 @@ class ReplayRecorder:
         """Вызывается после Фазы 9 (Integration)."""
         try:
             from dataclasses import asdict, is_dataclass
+
             # Порядок условий по контракту typeshed: is_dataclass сужает тип к
             # DataclassInstance | type[...], затем isinstance исключает класс —
             # asdict получает чистый DataclassInstance.
-            _snapshot_dict = (
-                asdict(snapshot)
-                if is_dataclass(snapshot) and not isinstance(snapshot, type)
-                else snapshot
-            )
+            _snapshot_dict = asdict(snapshot) if is_dataclass(snapshot) and not isinstance(snapshot, type) else snapshot
             self.store.record_tick(
                 session_id=self.session_id,
                 tick_id=tick_id,
                 game_time_seconds=0.0,
                 tick_state=None,
-                world_snapshot=_snapshot_dict
+                world_snapshot=_snapshot_dict,
             )
         except Exception as e:
             logger.error(f"[REPLAY_RECORDER] Failed to record world_snapshot: {e}")
@@ -75,10 +72,7 @@ class ReplayRecorder:
                 source = getattr(interv, "source", "unknown")
                 payload = getattr(interv, "payload", {})  # noqa: ENIGMA002
                 self.store.record_intervention(
-                    session_id=self.session_id,
-                    tick_id=tick_id,
-                    source=source,
-                    payload=payload
+                    session_id=self.session_id, tick_id=tick_id, source=source, payload=payload
                 )
         except Exception as e:
             logger.error(f"[REPLAY_RECORDER] Failed to record interventions: {e}")

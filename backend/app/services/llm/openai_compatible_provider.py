@@ -4,6 +4,7 @@
 Зависимости: urllib, json, logging
 Основные сущности: OpenAICompatibleProvider
 """
+
 import json
 import logging
 import urllib.request
@@ -17,6 +18,7 @@ from app.services.llm.provider import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 class OpenAICompatibleProvider(LlmProvider):
     """Провайдер для OpenAI-совместимого API (Cloud Fallback)."""
@@ -80,15 +82,20 @@ class OpenAICompatibleProvider(LlmProvider):
         # H-14 FIX: Передаём остальные параметры генерации, если они заданы
         if params:
             _top_p = getattr(params, "top_p", None)  # noqa: ENIGMA002
-            if _top_p is not None: payload["top_p"] = _top_p
+            if _top_p is not None:
+                payload["top_p"] = _top_p
             _presence = getattr(params, "presence_penalty", None)  # noqa: ENIGMA002
-            if _presence is not None: payload["presence_penalty"] = _presence
+            if _presence is not None:
+                payload["presence_penalty"] = _presence
             _frequency = getattr(params, "frequency_penalty", None)  # noqa: ENIGMA002
-            if _frequency is not None: payload["frequency_penalty"] = _frequency
+            if _frequency is not None:
+                payload["frequency_penalty"] = _frequency
             _stop = getattr(params, "stop", None)  # noqa: ENIGMA002
-            if _stop: payload["stop"] = _stop
+            if _stop:
+                payload["stop"] = _stop
             _resp_fmt = getattr(params, "response_format", None)  # noqa: ENIGMA002
-            if _resp_fmt: payload["response_format"] = _resp_fmt
+            if _resp_fmt:
+                payload["response_format"] = _resp_fmt
 
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -103,6 +110,7 @@ class OpenAICompatibleProvider(LlmProvider):
 
         # H-13 FIX: Retry с exponential backoff для 429/503
         import time
+
         for attempt in range(1, 4):
             try:
                 with _opener.open(req, timeout=60) as response:
@@ -111,7 +119,7 @@ class OpenAICompatibleProvider(LlmProvider):
                     return _content.strip()
             except urllib.error.HTTPError as e:
                 if e.code in (429, 503) and attempt < 3:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     logger.warning(f"[OPENAI_PROVIDER] HTTP {e.code}, retrying in {wait_time}s...")
                     time.sleep(wait_time)
                     continue

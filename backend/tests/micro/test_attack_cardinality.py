@@ -28,9 +28,7 @@ class _Bus:
 def test_attack_not_published_by_phase_1(monkeypatch):
     """G3-C: phase_1 НЕ публикует PLAYER_ATTACKED (deferred к INPUT_MERGE)."""
     bus = _Bus()
-    monkeypatch.setattr(
-        "app.services.game_loop.phase_1_input.get_event_bus", lambda: bus
-    )
+    monkeypatch.setattr("app.services.game_loop.phase_1_input.get_event_bus", lambda: bus)
     ctx = SimpleNamespace(
         action_type="attack",
         player_target_id="maid_lusya",
@@ -59,16 +57,16 @@ def test_attack_not_published_by_phase_1(monkeypatch):
 def test_other_types_still_published(monkeypatch):
     """Не-attack события публикуются как раньше (регресс маршрутизации)."""
     bus = _Bus()
-    monkeypatch.setattr(
-        "app.services.game_loop.phase_1_input.get_event_bus", lambda: bus
-    )
+    monkeypatch.setattr("app.services.game_loop.phase_1_input.get_event_bus", lambda: bus)
     ctx = SimpleNamespace(
         action_type="player_interacts",
         player_target_id="maid_lusya",
         intent_resolution=None,
     )
     publish_classified_player_event(
-        shared_context=ctx, location="tavern", campaign_id="c1",
+        shared_context=ctx,
+        location="tavern",
+        campaign_id="c1",
         raw_input="Смотрю на Люсю",
     )
     assert any(e.type == "PLAYER_SPOKE" for e in bus.published)

@@ -32,8 +32,16 @@ R2-ADJACENCY-AB-EXPERIMENT probe — A/B comparison with controlled GraphCompile
   - НЕ менять node_16
   - НЕ удалять assertion
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, tempfile, shutil, logging
+import os
+import sys
+import json
+import traceback
+import copy
+import tempfile
+import shutil
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -122,6 +130,7 @@ def _try_import_graph_compiler():
     """Try importing graph_compiler from frontend/map_editor."""
     try:
         from app.services.spatial.graph_compiler import compile_graph  # type: ignore
+
         return compile_graph, "app.services.spatial.graph_compiler"
     except Exception:
         pass
@@ -129,9 +138,11 @@ def _try_import_graph_compiler():
     try:
         # Force reload of sys.path
         import importlib
+
         # Try direct import from frontend/map_editor
         sys.path.insert(0, str(_FRONTEND_ME))
         from graph_compiler import compile_graph  # type: ignore
+
         return compile_graph, "graph_compiler (frontend/map_editor)"
     except Exception as e:
         print(f"[import error] {e}")
@@ -167,8 +178,7 @@ def _compile_map(compile_fn, map_data: dict, location_id: str = "tavern") -> dic
         # Unpack the result tuple
         # Expected: (graph, connections, alias_map, boundary_map, rooms_geometry, walls, obstacles, affordance_objects)
         if isinstance(compile_result, tuple) and len(compile_result) >= 7:
-            (graph, connections, alias_map, boundary_map,
-             rooms_geometry, walls, obstacles, *rest) = compile_result
+            (graph, connections, alias_map, boundary_map, rooms_geometry, walls, obstacles, *rest) = compile_result
             affordance_objects = rest[0] if rest else []
             result["graph"] = graph if isinstance(graph, dict) else {}
             result["connections"] = connections if isinstance(connections, dict) else {}
@@ -183,11 +193,13 @@ def _compile_map(compile_fn, map_data: dict, location_id: str = "tavern") -> dic
             # Extract boundary nodes (role == BOUNDARY)
             try:
                 from app.models.spatial_contracts import NodeRole  # type: ignore
+
                 boundary_role = NodeRole.BOUNDARY
             except Exception:
                 # Try frontend path
                 try:
                     from models.spatial_contracts import NodeRole  # type: ignore
+
                     boundary_role = NodeRole.BOUNDARY
                 except Exception:
                     boundary_role = None
@@ -195,13 +207,15 @@ def _compile_map(compile_fn, map_data: dict, location_id: str = "tavern") -> dic
             for nid, nref in result["graph"].items():
                 role = getattr(nref, "role", None)
                 if role is not None and boundary_role is not None and role == boundary_role:
-                    result["boundary_nodes"].append({
-                        "node_id": nid,
-                        "x": getattr(nref, "x", None),
-                        "y": getattr(nref, "y", None),
-                        "role": str(role),
-                        "tags": getattr(nref, "tags", []),
-                    })
+                    result["boundary_nodes"].append(
+                        {
+                            "node_id": nid,
+                            "x": getattr(nref, "x", None),
+                            "y": getattr(nref, "y", None),
+                            "role": str(role),
+                            "tags": getattr(nref, "tags", []),
+                        }
+                    )
             result["all_node_ids"] = sorted(result["graph"].keys())
         else:
             result["error"] = f"unexpected compile_result type: {type(compile_result).__name__}"
@@ -225,7 +239,7 @@ def _summarize_compilation(label: str, result: dict) -> None:
     print(f"  walls: {len(result['walls'])}")
     print(f"  connections: {sum(len(v) for v in result['connections'].values()) // 2} edges")
 
-    print(f"\n  All node IDs:")
+    print("\n  All node IDs:")
     for nid in result["all_node_ids"]:
         nref = result["graph"].get(nid)
         x = getattr(nref, "x", "?") if nref else "?"
@@ -234,10 +248,10 @@ def _summarize_compilation(label: str, result: dict) -> None:
         is_boundary = "← BOUNDARY" if role and "BOUNDARY" in str(role) else ""
         print(f"    {nid:<40} ({x}, {y})  role={role} {is_boundary}")
 
-    print(f"\n  boundary_map (full):")
+    print("\n  boundary_map (full):")
     print(_dump_json(result["boundary_map"]))
 
-    print(f"\n  connections (first 20):")
+    print("\n  connections (first 20):")
     shown = 0
     for src, targets in sorted(result["connections"].items()):
         for tgt in sorted(targets):
@@ -248,9 +262,9 @@ def _summarize_compilation(label: str, result: dict) -> None:
         if shown >= 20:
             break
     if shown >= 20:
-        print(f"    ... (more edges)")
+        print("    ... (more edges)")
 
-    print(f"\n  logs (last 3000 chars):")
+    print("\n  logs (last 3000 chars):")
     logs = result.get("logs", "")
     if logs:
         print("    " + logs[-3000:].replace("\n", "\n    "))
@@ -287,6 +301,7 @@ def _compare_results(a: dict, b: dict) -> dict:
             for tgt in targets:
                 out.add(frozenset([src, tgt]))
         return out
+
     a_edges = _edges_set(a)
     b_edges = _edges_set(b)
     diff["edges_only_in_A"] = sorted([tuple(sorted(e)) for e in (a_edges - b_edges)])
@@ -391,7 +406,7 @@ def main() -> int:
         print(f"\n--- {label}: tavern:exit_east ---")
         nref = result["graph"].get("tavern:exit_east")
         if nref:
-            print(f"  EXISTS in graph")
+            print("  EXISTS in graph")
             print(f"  x={getattr(nref, 'x', '?')}, y={getattr(nref, 'y', '?')}")
             print(f"  role={getattr(nref, 'role', '?')}")
             print(f"  tags={getattr(nref, 'tags', '?')}")
@@ -406,13 +421,13 @@ def main() -> int:
             if bm:
                 print(f"  boundary_map entry: {bm}")
             else:
-                print(f"  boundary_map entry: NONE")
+                print("  boundary_map entry: NONE")
         else:
-            print(f"  NOT in graph")
+            print("  NOT in graph")
 
     # === STEP 8: Check FLEE target selection (get_furthest) ===
     _print_section("STEP 8: FLEE target selection — which node would get_furthest return?")
-    print(f"\nThreat position: fireplace at (10.5, 3.0)")
+    print("\nThreat position: fireplace at (10.5, 3.0)")
     threat_xy = (10.5, 3.0)
     for label, result in [("A", result_a), ("B", result_b)]:
         print(f"\n--- {label}: candidates for get_furthest ---")
@@ -438,7 +453,7 @@ def main() -> int:
     # === STEP 9: Trace route Tavern → Market Square → City Gate ===
     _print_section("STEP 9: Trace route Tavern → Market Square → City Gate")
     print(f"\nOriginal adjacency: {original_data.get('adjacency')}")
-    print(f"\n--- Tavern's boundary_map (VARIANT A) ---")
+    print("\n--- Tavern's boundary_map (VARIANT A) ---")
     for bid, binfo in result_a["boundary_map"].items():
         print(f"  {bid}:")
         print(f"    neighbor_chunk: {binfo.get('neighbor_chunk')}")
@@ -447,7 +462,7 @@ def main() -> int:
         print(f"    direction: {binfo.get('direction')}")
         print(f"    coords: ({binfo.get('x')}, {binfo.get('y')})")
 
-    print(f"\n--- Tavern's boundary_map (VARIANT B) ---")
+    print("\n--- Tavern's boundary_map (VARIANT B) ---")
     for bid, binfo in result_b["boundary_map"].items():
         print(f"  {bid}:")
         print(f"    neighbor_chunk: {binfo.get('neighbor_chunk')}")
@@ -458,11 +473,11 @@ def main() -> int:
 
     # Try to load market_square.json to check its adjacency
     market_square_file = PROJECT_ROOT / "saves/Open_road/locations/market_square.json"
-    print(f"\n--- Checking market_square.json for adjacency ---")
+    print("\n--- Checking market_square.json for adjacency ---")
     if market_square_file.exists():
         ms_data = json.loads(market_square_file.read_text(encoding="utf-8", errors="replace"))
         print(f"market_square adjacency: {ms_data.get('adjacency')}")
-        print(f"market_square nodes (with exit_*): ")
+        print("market_square nodes (with exit_*): ")
         for name in ms_data.get("nodes", {}):
             if "exit" in name.lower():
                 print(f"  {name}")
@@ -470,11 +485,11 @@ def main() -> int:
         print(f"[market_square.json not found: {market_square_file}]")
 
     city_gate_file = PROJECT_ROOT / "saves/Open_road/locations/city_gate.json"
-    print(f"\n--- Checking city_gate.json for adjacency ---")
+    print("\n--- Checking city_gate.json for adjacency ---")
     if city_gate_file.exists():
         cg_data = json.loads(city_gate_file.read_text(encoding="utf-8", errors="replace"))
         print(f"city_gate adjacency: {cg_data.get('adjacency')}")
-        print(f"city_gate nodes (with exit_*): ")
+        print("city_gate nodes (with exit_*): ")
         for name in cg_data.get("nodes", {}):
             if "exit" in name.lower():
                 print(f"  {name}")
@@ -488,24 +503,24 @@ HYPOTHESIS: adjacency.east = "city_gate" creates phantom eastern boundary nodes
             that interfere with FLEE target selection.
 
 EVIDENCE:
-  - VARIANT A (with east): {len(result_a['boundary_nodes'])} boundary nodes
-    IDs: {[bn['node_id'] for bn in result_a['boundary_nodes']]}
+  - VARIANT A (with east): {len(result_a["boundary_nodes"])} boundary nodes
+    IDs: {[bn["node_id"] for bn in result_a["boundary_nodes"]]}
 
-  - VARIANT B (no east): {len(result_b['boundary_nodes'])} boundary nodes
-    IDs: {[bn['node_id'] for bn in result_b['boundary_nodes']]}
+  - VARIANT B (no east): {len(result_b["boundary_nodes"])} boundary nodes
+    IDs: {[bn["node_id"] for bn in result_b["boundary_nodes"]]}
 
   - Boundary nodes only in A (created by east adjacency):
-    {diff['boundary_only_in_A']}
+    {diff["boundary_only_in_A"]}
 
   - Boundary nodes only in B:
-    {diff['boundary_only_in_B']}
+    {diff["boundary_only_in_B"]}
 
   - FLEE target (furthest from fireplace (10.5, 3.0)):
-    A: {('see Step 8 for details')}
-    B: {('see Step 8 for details')}
+    A: {("see Step 8 for details")}
+    B: {("see Step 8 for details")}
 
 CONCLUSION (based on evidence above):
-  {'CONFIRMED: adjacency.east creates phantom boundary node tavern:exit_east' if diff['boundary_only_in_A'] else 'NOT CONFIRMED: no extra boundary nodes from east adjacency'}
+  {"CONFIRMED: adjacency.east creates phantom boundary node tavern:exit_east" if diff["boundary_only_in_A"] else "NOT CONFIRMED: no extra boundary nodes from east adjacency"}
 
   ROUTE ANALYSIS:
   Tavern → Market Square: through south boundary (entry_node_hint in boundary_map)

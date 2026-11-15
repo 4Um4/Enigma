@@ -56,23 +56,29 @@ ART_DIR = REPO_ROOT / "reports" / "bprime_artifacts"
 SIGNIFICANT_ROOTS = ["backend", "config", "frontend/map_editor/campaigns"]
 DIRT_IGNORE_PREFIXES = ("reports/bprime_artifacts/", "reports/window_passports/")
 
-CELL = "CELL-B_f70_tm60"          # клетка B1 с маской; run_id = ровно ключ (etap-членство)
-WINDOW = list(range(2, 16))       # канон B1: common_window 2..15 (14 тиков; тик 1 = до _apply_initial_social)
-B1_PRESENT_TICKS = {"attack": 14, "intimidate": 14, "warn": 8,   # покрытие клетки B в B1/A'
-                    "observe": 14, "talk": 8, "idle": 14}
+CELL = "CELL-B_f70_tm60"  # клетка B1 с маской; run_id = ровно ключ (etap-членство)
+WINDOW = list(range(2, 16))  # канон B1: common_window 2..15 (14 тиков; тик 1 = до _apply_initial_social)
+B1_PRESENT_TICKS = {
+    "attack": 14,
+    "intimidate": 14,
+    "warn": 8,  # покрытие клетки B в B1/A'
+    "observe": 14,
+    "talk": 8,
+    "idle": 14,
+}
 
 INPUT_FILES = [
-    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_test.py",       # раннер факториала: клетки, окно, метрики
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_test.py",  # раннер факториала: клетки, окно, метрики
     "backend/tests/sandbox/SUPERBOX/scenarios/bm_factorial_isolation.py",  # изоляционный паттерн (основа ноги)
-    "backend/tests/sandbox/SUPERBOX/scenarios/bm_aprime_offline.py",       # реюз _per_intent (семантика A')
-    "config/calibration/test_presets/golden_fear_f70.yaml",                # пресет клетки B (N7d; содержит willpower=60 — живой Д-4)
-    "backend/app/services/npc/decision_hub.py",                            # якорь инъекции
+    "backend/tests/sandbox/SUPERBOX/scenarios/bm_aprime_offline.py",  # реюз _per_intent (семантика A')
+    "config/calibration/test_presets/golden_fear_f70.yaml",  # пресет клетки B (N7d; содержит willpower=60 — живой Д-4)
+    "backend/app/services/npc/decision_hub.py",  # якорь инъекции
 ]
 
 LEG_RUNNER = {
     "cell_key": "CELL-B_f70_tm60",
     "preset_rel": "config/calibration/test_presets/golden_fear_f70.yaml",
-    "donor_module": "bm_factorial_test",   # импорт патчит _SCORE_LEGS донора (execute-tap)
+    "donor_module": "bm_factorial_test",  # импорт патчит _SCORE_LEGS донора (execute-tap)
 }
 
 # H1b-mini (E-BM1 B'): in-memory patch для захвата base до/после mask.
@@ -87,53 +93,53 @@ H1B_MINI_PATCH = {
         "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
         "            if mask_mod != 1.0:\n"
         "                base *= mask_mod\n"
-        "                components[\"mask\"] = round(mask_mod, 3)\n"
+        '                components["mask"] = round(mask_mod, 3)\n'
     ),
     "on_block": (
         "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
         "            _h1b_base_before = base\n"
         "            if mask_mod != 1.0:\n"
         "                base *= mask_mod\n"
-        "                components[\"mask\"] = round(mask_mod, 3)\n"
-        "            components[\"_h1b_base_before_mask\"] = round(_h1b_base_before, 4)\n"
-        "            components[\"_h1b_mask_mod\"] = round(mask_mod, 4)\n"
-        "            components[\"_h1b_base_after_mask\"] = round(base, 4)\n"
-        "            components[\"_h1b_mask_application_enabled\"] = True\n"
+        '                components["mask"] = round(mask_mod, 3)\n'
+        '            components["_h1b_base_before_mask"] = round(_h1b_base_before, 4)\n'
+        '            components["_h1b_mask_mod"] = round(mask_mod, 4)\n'
+        '            components["_h1b_base_after_mask"] = round(base, 4)\n'
+        '            components["_h1b_mask_application_enabled"] = True\n'
     ),
     "off_block": (
         "            mask_mod = self._behavior_mask_modifier(intent_str, state)\n"
         "            _h1b_base_before = base\n"
         "            if mask_mod != 1.0:\n"
         "                base *= 1.0  # E-BM1 B-prime mask-off (in-memory)\n"
-        "                components[\"mask\"] = round(mask_mod, 3)\n"
-        "            components[\"_h1b_base_before_mask\"] = round(_h1b_base_before, 4)\n"
-        "            components[\"_h1b_mask_mod\"] = round(mask_mod, 4)\n"
-        "            components[\"_h1b_base_after_mask\"] = round(base, 4)\n"
-        "            components[\"_h1b_mask_application_enabled\"] = False\n"
+        '                components["mask"] = round(mask_mod, 3)\n'
+        '            components["_h1b_base_before_mask"] = round(_h1b_base_before, 4)\n'
+        '            components["_h1b_mask_mod"] = round(mask_mod, 4)\n'
+        '            components["_h1b_base_after_mask"] = round(base, 4)\n'
+        '            components["_h1b_mask_application_enabled"] = False\n'
     ),
     # H1b-mini2: захват входов risk_penalty (без повторного вычисления)
     "old_block_2": (
         "        return {\n"
-        "            \"drive\": round(drive_score, 4),\n"
-        "            \"emotion\": round(emotion_mod, 4),\n"
-        "            \"relationship\": round(rel_mod, 4),\n"
-        "            \"risk_penalty\": risk_penalty,\n"
+        '            "drive": round(drive_score, 4),\n'
+        '            "emotion": round(emotion_mod, 4),\n'
+        '            "relationship": round(rel_mod, 4),\n'
+        '            "risk_penalty": risk_penalty,\n'
     ),
     "new_block_2": (
         "        return {\n"
-        "            \"drive\": round(drive_score, 4),\n"
-        "            \"emotion\": round(emotion_mod, 4),\n"
-        "            \"relationship\": round(rel_mod, 4),\n"
-        "            \"risk_penalty\": risk_penalty,\n"
+        '            "drive": round(drive_score, 4),\n'
+        '            "emotion": round(emotion_mod, 4),\n'
+        '            "relationship": round(rel_mod, 4),\n'
+        '            "risk_penalty": risk_penalty,\n'
         "            # H1b-mini2: входы risk_penalty (строки — не входят в sum)\n"
-        "            \"_h1b2_fear_rel\": f\"{round(fear, 4)}\",\n"
-        "            \"_h1b2_drives_fear\": f\"{round(drives.get('fear', 0.0), 4)}\" if drives else None,\n"
-        "            \"_h1b2_drives_control\": f\"{round(drives.get('control', 0.0), 4)}\" if drives else None,\n"
-        "            \"_h1b2_perceived_risk\": f\"{round(risk, 4)}\",\n"
-        "            \"_h1b2_event_distance\": f\"{getattr(event, 'distance', None)}\",\n"
-        "            \"_h1b2_event_witness_count\": f\"{getattr(event, 'witness_count', None)}\",\n"
-        "            \"_h1b2_event_success\": f\"{getattr(event, 'success', None)}\",\n"
-        "            \"_h1b2_event_visible_threat_markers\": f\"{list(getattr(event, 'visible_threat_markers', []))}\",\n"
+        '            "_h1b2_fear_rel": f"{round(fear, 4)}",\n'
+        '            "_h1b2_drives_fear": f"{round(drives.get(\'fear\', 0.0), 4)}" if drives else None,\n'
+        '            "_h1b2_drives_control": f"{round(drives.get(\'control\', 0.0), 4)}" if drives else None,\n'
+        '            "_h1b2_perceived_risk": f"{round(risk, 4)}",\n'
+        '            "_h1b2_event_distance": f"{getattr(event, \'distance\', None)}",\n'
+        '            "_h1b2_event_witness_count": f"{getattr(event, \'witness_count\', None)}",\n'
+        '            "_h1b2_event_success": f"{getattr(event, \'success\', None)}",\n'
+        '            "_h1b2_event_visible_threat_markers": f"{list(getattr(event, \'visible_threat_markers\', []))}",\n'
         "            \"_h1b2_event_scene_flags\": f\"{list(getattr(event, 'scene_flags', set())) if hasattr(event, 'scene_flags') else None}\",\n"
         "            \"_h1b2_recent_pressure\": f\"{(state.relationship_cache.get('player', {}) if isinstance(getattr(state, 'relationship_cache', None), dict) else {}).get('recent_pressure', None)}\",\n"
         "            \"_h1b3_pressure_events\": (state.relationship_cache.get('player', {}) if isinstance(getattr(state, 'relationship_cache', None), dict) else {}).get('_h1b3_pressure_events', []),\n"
@@ -141,26 +147,26 @@ H1B_MINI_PATCH = {
     "file_3": "backend/app/services/memory/memory_manager.py",
     "old_block_3": (
         "            graph_weights[tid] = {\n"
-        "                \"trust\": rel.get(\"trust\", 0.0),\n"
-        "                \"fear\": rel.get(\"fear\", 0.0),\n"
-        "                \"debt\": rel.get(\"debt\", 0.0),\n"
-        "                \"recent_pressure\": min(recent_pressure, 100.0),\n"
+        '                "trust": rel.get("trust", 0.0),\n'
+        '                "fear": rel.get("fear", 0.0),\n'
+        '                "debt": rel.get("debt", 0.0),\n'
+        '                "recent_pressure": min(recent_pressure, 100.0),\n'
         "            }\n"
     ),
     "new_block_3": (
         "            _h1b3_pe = []\n"
         "            for e in recent:\n"
         "                if isinstance(e, dict):\n"
-        "                    if e.get(\"actor\") == tid or e.get(\"target\") == tid:\n"
-        "                        _h1b3_pe.append({\"type\": e.get(\"type\") or e.get(\"event_type\"), \"actor\": e.get(\"actor\"), \"target\": e.get(\"target\"), \"importance\": e.get(\"importance\", 0.0)})\n"
-        "                elif (hasattr(e, \"target_id\") and e.target_id == tid) or (hasattr(e, \"actor_id\") and e.actor_id == tid):\n"
-        "                        _h1b3_pe.append({\"type\": getattr(e, \"event_type\", None), \"actor\": getattr(e, \"actor_id\", None), \"target\": getattr(e, \"target_id\", None), \"importance\": getattr(e, \"importance\", 0.0)})\n"
+        '                    if e.get("actor") == tid or e.get("target") == tid:\n'
+        '                        _h1b3_pe.append({"type": e.get("type") or e.get("event_type"), "actor": e.get("actor"), "target": e.get("target"), "importance": e.get("importance", 0.0)})\n'
+        '                elif (hasattr(e, "target_id") and e.target_id == tid) or (hasattr(e, "actor_id") and e.actor_id == tid):\n'
+        '                        _h1b3_pe.append({"type": getattr(e, "event_type", None), "actor": getattr(e, "actor_id", None), "target": getattr(e, "target_id", None), "importance": getattr(e, "importance", 0.0)})\n'
         "            graph_weights[tid] = {\n"
-        "                \"trust\": rel.get(\"trust\", 0.0),\n"
-        "                \"fear\": rel.get(\"fear\", 0.0),\n"
-        "                \"debt\": rel.get(\"debt\", 0.0),\n"
-        "                \"recent_pressure\": min(recent_pressure, 100.0),\n"
-        "                \"_h1b3_pressure_events\": _h1b3_pe,\n"
+        '                "trust": rel.get("trust", 0.0),\n'
+        '                "fear": rel.get("fear", 0.0),\n'
+        '                "debt": rel.get("debt", 0.0),\n'
+        '                "recent_pressure": min(recent_pressure, 100.0),\n'
+        '                "_h1b3_pressure_events": _h1b3_pe,\n'
         "            }\n"
     ),
 }
@@ -210,7 +216,8 @@ def install_h1b_mini_capture(mode: str) -> str:
     if occurrences != 1:
         raise SystemExit(
             f"[FAIL] old_block дал {occurrences} совпадений (ожидалось ровно 1). "
-            "Якорь сдвинулся (decision_hub рефакторили?) — обновить old_block ДО прогона.")
+            "Якорь сдвинулся (decision_hub рефакторили?) — обновить old_block ДО прогона."
+        )
 
     patched_src = src.replace(old_block, new_block, 1)
 
@@ -261,8 +268,9 @@ def install_h1b_mini_capture(mode: str) -> str:
 
 
 def _git(args: list) -> str:
-    r = subprocess.run(["git"] + args, cwd=REPO_ROOT, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace")
+    r = subprocess.run(
+        ["git"] + args, cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
+    )
     if r.returncode != 0:
         raise SystemExit(f"[FAIL] git {' '.join(args)}: {r.stderr.strip()}")
     return r.stdout.strip()
@@ -296,7 +304,8 @@ def capture_passport(tag: str) -> dict:
     porcelain = _significant_porcelain(_git(["status", "--porcelain"]))
     diff_hash = hashlib.sha256(_git(["diff"]).encode("utf-8")).hexdigest() if porcelain else "clean"
     untracked_significant = [
-        l for l in _git(["ls-files", "--others", "--exclude-standard"] + SIGNIFICANT_ROOTS).splitlines()
+        l
+        for l in _git(["ls-files", "--others", "--exclude-standard"] + SIGNIFICANT_ROOTS).splitlines()
         if l and not any(l.startswith(pfx) for pfx in DIRT_IGNORE_PREFIXES)
     ]
     inputs = {}
@@ -328,8 +337,10 @@ def passports_compatible(p_on: dict, p_off: dict) -> tuple:
         d.append("версия python различается между ногами")
     for rel in p_on["input_sha256"]:
         if p_on["input_sha256"][rel] != p_off["input_sha256"][rel]:
-            d.append(f"вход изменился между ногами: {rel} "
-                     f"(on={p_on['input_sha256'][rel][:12]} off={p_off['input_sha256'][rel][:12]})")
+            d.append(
+                f"вход изменился между ногами: {rel} "
+                f"(on={p_on['input_sha256'][rel][:12]} off={p_off['input_sha256'][rel][:12]})"
+            )
     for name, p in (("on", p_on), ("off", p_off)):
         for u in p["untracked_significant_roots"]:
             d.append(f"[{name}] необъяснённый untracked под значимым корнем: {u}")
@@ -339,34 +350,41 @@ def passports_compatible(p_on: dict, p_off: dict) -> tuple:
 PRE_REGISTERED = {
     "cell": CELL,
     "source": "N4-таблица per_intent_common (reports/bm_aprime_offline.json), верификация: scripts/n4_verify.py",
-    "mask_off_mean_prediction": {   # B'_off = A + F (эра-чувствительная проверка, НЕ причинная)
-        "attack": -1.702422, "intimidate": -1.598872, "warn": -0.485929,
-        "observe": 0.681829, "talk": -0.402914, "idle": -0.592443,
+    "mask_off_mean_prediction": {  # B'_off = A + F (эра-чувствительная проверка, НЕ причинная)
+        "attack": -1.702422,
+        "intimidate": -1.598872,
+        "warn": -0.485929,
+        "observe": 0.681829,
+        "talk": -0.402914,
+        "idle": -0.592443,
     },
     "on_off_contrast_prediction": {  # ГЛАВНАЯ причинная пререгистрация: ON - OFF по интентам
-        "attack": 1.361308, "intimidate": 1.361329, "warn": 0.427116,
-        "observe": 0.105778, "talk": -0.062936, "idle": -0.122964,
+        "attack": 1.361308,
+        "intimidate": 1.361329,
+        "warn": 0.427116,
+        "observe": 0.105778,
+        "talk": -0.062936,
+        "idle": -0.122964,
     },
-    "tolerance": 0.10,   # max|остаток реконструкции| = 0.077 + запас; warn/talk — полувыборка
+    "tolerance": 0.10,  # max|остаток реконструкции| = 0.077 + запас; warn/talk — полувыборка
     "y1_direction": "y1(ON) - y1(OFF) ожидается сильно положительным (порядка +1.0..+1.3, из Δ_int=+1.209)",
     "formulation": "результат формулируется как причинный эффект ПОТРЕБЛЕНИЯ МНОЖИТЕЛЯ маски "
-                   "(decision_hub:1116), не «полного эффекта маски»: контур deformation (600-628) "
-                   "идентичен в обеих ногах (N7e).",
+    "(decision_hub:1116), не «полного эффекта маски»: контур deformation (600-628) "
+    "идентичен в обеих ногах (N7e).",
     "assumptions": [
         "эра не взаимодействует с трактом потребления маски (оба плеча в одной эре)",
         "сид/пресет клетки битово совпадают с B1 (иначе ON не обязан воспроизвести B)",
     ],
     "outcome_branches": {
         "B1": "ON == B1(B) численно, |OFF-(A+F)|<=tol, |(ON-OFF)-PRED|<=tol: причинный эффект "
-              "потребления множителя подтверждён; реконструкция N4 закрыта каузально (клетка/эра).",
+        "потребления множителя подтверждён; реконструкция N4 закрыта каузально (клетка/эра).",
         "B2": "ON != B1(B) (сдвиг эры/базовой линии), НО |(ON-OFF)-PRED|<=tol: причинный контраст "
-              "внутри эры подтверждён; абсолютные сравнения с B1 — условные (эра).",
+        "внутри эры подтверждён; абсолютные сравнения с B1 — условные (эра).",
         "B3": "|(ON-OFF)-PRED|>tol по attack/intimidate при остальных в допуске: остаточная "
-              "асимметрия больше предсказанной -> components_trace (H1; туда же willpower — живой Д-4).",
+        "асимметрия больше предсказанной -> components_trace (H1; туда же willpower — живой Д-4).",
         "B4": "ON ~ OFF (контраст ~ 0 по всем интентам): инъекция НЕ сработала (мёртвый путь класса "
-              "Д-8) -> НЕТ выводов о маске; дефект фреймворка.",
-        "B5": "паспорты INCOMPATIBLE: ноги некомпаративны -> блокировка результата, повтор при "
-              "стабильном дереве.",
+        "Д-8) -> НЕТ выводов о маске; дефект фреймворка.",
+        "B5": "паспорты INCOMPATIBLE: ноги некомпаративны -> блокировка результата, повтор при стабильном дереве.",
     },
 }
 
@@ -388,16 +406,19 @@ def _restore_h1b_patches() -> None:
     _H1B_PATCH_REGISTRY.clear()
 
 
-
+def _per_intent_common(rec: dict[str, object]) -> dict[str, object] | None:
     """Пер-интентные средние общего окна — РЕЮЗ bm_aprime_offline._per_intent (N7c).
 
     Та же функция, что произвела числа A'/пререгистрации -> ноль риска трансляции.
     Возвращает {intent: {mean, present_ticks}} или None, если сырьё отсутствует.
     """
-    raw = rec.get("scores_raw") or rec.get("scores_per_tick")  # P2/D-2: ключ сырья — scores_per_tick (донор :66); 'scores_raw' — алиас ВЫХОДА _cell_metrics (:108)
+    raw = rec.get("scores_raw") or rec.get(
+        "scores_per_tick"
+    )  # P2/D-2: ключ сырья — scores_per_tick (донор :66); 'scores_raw' — алиас ВЫХОДА _cell_metrics (:108)
     if not raw:
         return None
     import bm_aprime_offline as _aprime  # noqa: E402 (scenarios/ уже в sys.path к этому моменту)
+
     return _aprime._per_intent(raw, WINDOW)
 
 
@@ -406,7 +427,9 @@ def mode_check() -> int:
     here = Path(__file__).resolve().parent
     hub = discover_hub_file()
     print(f"[OK] decision_hub: {hub.relative_to(REPO_ROOT)}")
-    print(f"[OK] имя модуля для инъекции (= имя цепочки): {'.'.join(hub.relative_to(REPO_ROOT / 'backend').with_suffix('').parts)}")
+    print(
+        f"[OK] имя модуля для инъекции (= имя цепочки): {'.'.join(hub.relative_to(REPO_ROOT / 'backend').with_suffix('').parts)}"
+    )
     anchors = discover_anchor_lines(hub)
     print(f"[INFO] строк формулы suppression: {len(anchors['suppression'])}")
     for n, l in anchors["suppression"]:
@@ -428,17 +451,26 @@ def mode_check() -> int:
         s3 = "OK" if n3 == 1 else "FAIL"
         print(f"[{s3}] H1B_MINI_PATCH: old_block_3 (memory_manager) даёт {n3} совпадений (нужно ровно 1)")
         if n1 != 1 or n2 != 1 or n3 != 1:
-            print("        -> якорь сдвинулся; обновить old_block / old_block_2 / old_block_3 ДО прогона; --leg не запускать.")
+            print(
+                "        -> якорь сдвинулся; обновить old_block / old_block_2 / old_block_3 ДО прогона; --leg не запускать."
+            )
     else:
         print("[BLOCK] H1B_MINI_PATCH не финализирован.")
-    print(f"[OK] LEG_RUNNER: клетка {LEG_RUNNER['cell_key']}, пресет {LEG_RUNNER['preset_rel']}; "
-          "нога = ядро донора in-process, патч до импорта цепочки (паттерн bm_factorial_isolation.py).")
+    print(
+        f"[OK] LEG_RUNNER: клетка {LEG_RUNNER['cell_key']}, пресет {LEG_RUNNER['preset_rel']}; "
+        "нога = ядро донора in-process, патч до импорта цепочки (паттерн bm_factorial_isolation.py)."
+    )
     aprime = here / "bm_aprime_offline.py"
-    print("[OK] bm_aprime_offline.py доступен для реюза _per_intent" if aprime.exists()
-          else "[BLOCK] bm_aprime_offline.py не найден рядом — реюз per-intent невозможен.")
+    print(
+        "[OK] bm_aprime_offline.py доступен для реюза _per_intent"
+        if aprime.exists()
+        else "[BLOCK] bm_aprime_offline.py не найден рядом — реюз per-intent невозможен."
+    )
     print(f"[OK] INPUT_FILES: {len(INPUT_FILES)} (в т.ч. пресет клетки B и якорный decision_hub).")
-    print(f"[OK] WINDOW: {WINDOW[0]}..{WINDOW[-1]} (канон B1, {len(WINDOW)} тиков); "
-          f"B1 present_ticks референс: {B1_PRESENT_TICKS}")
+    print(
+        f"[OK] WINDOW: {WINDOW[0]}..{WINDOW[-1]} (канон B1, {len(WINDOW)} тиков); "
+        f"B1 present_ticks референс: {B1_PRESENT_TICKS}"
+    )
     print("\n== Паспорт текущего состояния ==")
     print(json.dumps(capture_passport("check"), ensure_ascii=False, indent=2))
     print("\n== Пререгистрация (числа менять ПОСЛЕ просмотра данных запрещено) ==")
@@ -454,8 +486,7 @@ def mode_leg(mode: str, window_confirmed: str) -> int:
     passport = capture_passport(f"leg-{mode}")
     print(f"[PASSPORT-{mode}]\n" + json.dumps(passport, ensure_ascii=False, indent=2))
     ART_DIR.mkdir(parents=True, exist_ok=True)
-    (ART_DIR / f"passport_{mode}.json").write_text(
-        json.dumps(passport, ensure_ascii=False, indent=2), encoding="utf-8")
+    (ART_DIR / f"passport_{mode}.json").write_text(json.dumps(passport, ensure_ascii=False, indent=2), encoding="utf-8")
     # sys.path зеркально bm_factorial_isolation.py — ДО инъекции (ей нужен импорт app.*):
     here = Path(__file__).resolve().parent
     backend_root = here.parents[3]
@@ -468,22 +499,28 @@ def mode_leg(mode: str, window_confirmed: str) -> int:
         print(install_h1b_mini_capture("on"))
     # Импорт цепочки раннера — ПОСЛЕ патча (патч действует в памяти ЭТОГО процесса).
     import bm_factorial_test as _f  # noqa: E402
+
     key = LEG_RUNNER["cell_key"]
     if key not in _f._CELLS:
-        raise SystemExit(f"[FAIL] ключ клетки '{key}' отсутствует в bm_factorial_test._CELLS — "
-                         "fail-loud вместо тихого no-op (урок Д-8).")
+        raise SystemExit(
+            f"[FAIL] ключ клетки '{key}' отсутствует в bm_factorial_test._CELLS — "
+            "fail-loud вместо тихого no-op (урок Д-8)."
+        )
     # Ядро изоляционного раннера B1: run_id = ровно ключ клетки (etap-членство).
     rec, _fin = _f._donor._run_leg(key, _f._CELLS[key], True)
     metrics = {k: v for k, v in _f._cell_metrics(rec).items() if k != "scores_raw"}
     # Сырьё — ВСЕГДА (данные ноги не теряются даже при пустой per-intent агрегации):
     (ART_DIR / f"result_raw_{mode}.json").write_text(
-        json.dumps(rec, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        json.dumps(rec, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+    )
     per_intent = _per_intent_common(rec)
     coverage = {i: v.get("present_ticks") for i, v in per_intent.items()} if per_intent else None
     mt = metrics.get("mask_ticks")
     if not (isinstance(mt, (int, float)) and mt > 0):
-        print(f"[WARN-{mode}] mask_ticks={mt} (ожидалось >0: маска обязана ЗАПИСЫВАТЬСЯ в обеих ногах; "
-              "патч трогает только потребление). --compare заблокируется.")
+        print(
+            f"[WARN-{mode}] mask_ticks={mt} (ожидалось >0: маска обязана ЗАПИСЫВАТЬСЯ в обеих ногах; "
+            "патч трогает только потребление). --compare заблокируется."
+        )
     result = {
         "leg": mode,
         "cell": key,
@@ -496,18 +533,23 @@ def mode_leg(mode: str, window_confirmed: str) -> int:
         "present_ticks_b1_reference": B1_PRESENT_TICKS,
         "present_ticks_match_b1": (coverage == B1_PRESENT_TICKS) if coverage else None,
     }
-    (ART_DIR / f"result_{mode}.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    (ART_DIR / f"result_{mode}.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[DONE-{mode}] metrics={json.dumps(metrics, ensure_ascii=False)}")
     if per_intent:
-        print(f"[DONE-{mode}] per_intent_common="
-              + json.dumps({i: round(v['mean'], 6) for i, v in per_intent.items()}, ensure_ascii=False))
+        print(
+            f"[DONE-{mode}] per_intent_common="
+            + json.dumps({i: round(v["mean"], 6) for i, v in per_intent.items()}, ensure_ascii=False)
+        )
         if coverage != B1_PRESENT_TICKS:
-            print(f"[WARN-{mode}] present_ticks отличается от B1 ({coverage} vs {B1_PRESENT_TICKS}) — "
-                  "индикатор эра/сид-дрифа (кормит ветку B2).")
+            print(
+                f"[WARN-{mode}] present_ticks отличается от B1 ({coverage} vs {B1_PRESENT_TICKS}) — "
+                "индикатор эра/сид-дрифа (кормит ветку B2)."
+            )
     else:
-        print(f"[WARN-{mode}] per-intent агрегация пуста (scores_raw отсутствует?); сырьё в "
-              f"result_raw_{mode}.json; --compare заблокируется.")
+        print(
+            f"[WARN-{mode}] per-intent агрегация пуста (scores_raw отсутствует?); сырьё в "
+            f"result_raw_{mode}.json; --compare заблокируется."
+        )
     print(f"[ART-{mode}] {ART_DIR}")
     return 0
 
@@ -527,8 +569,7 @@ def mode_compare() -> int:
     # Гейт 1: маска ЗАПИСАНА в обеих ногах (патч трогает только потребление):
     mt_on = (on.get("metrics") or {}).get("mask_ticks")
     mt_off = (off.get("metrics") or {}).get("mask_ticks")
-    if not (isinstance(mt_on, (int, float)) and mt_on > 0
-            and isinstance(mt_off, (int, float)) and mt_off > 0):
+    if not (isinstance(mt_on, (int, float)) and mt_on > 0 and isinstance(mt_off, (int, float)) and mt_off > 0):
         print(f"[BLOCK] mask_ticks ног ненадёжен (on={mt_on}, off={mt_off}) — каузальные выводы запрещены.")
         return 2
     # Гейт 2: per-intent агрегация присутствует:
@@ -542,17 +583,27 @@ def mode_compare() -> int:
         pt_off = off["per_intent_common"][i].get("present_ticks")
         if pt_on != B1_PRESENT_TICKS.get(i) or pt_off != B1_PRESENT_TICKS.get(i):
             coverage_drift.append(f"{i}: on={pt_on} off={pt_off} (B1={B1_PRESENT_TICKS.get(i)})")
-    report = {"verdict_passports": verdict, "preregistration": PRE_REGISTERED,
-              "mask_ticks": {"on": mt_on, "off": mt_off},
-              "coverage_drift": coverage_drift, "contrasts": {}, "branch_assignment": None}
+    report = {
+        "verdict_passports": verdict,
+        "preregistration": PRE_REGISTERED,
+        "mask_ticks": {"on": mt_on, "off": mt_off},
+        "coverage_drift": coverage_drift,
+        "contrasts": {},
+        "branch_assignment": None,
+    }
     for intent, pred in PRE_REGISTERED["on_off_contrast_prediction"].items():
         m_on = on["per_intent_common"][intent]["mean"]
         m_off = off["per_intent_common"][intent]["mean"]
         obs = m_on - m_off
         dev = obs - pred
-        report["contrasts"][intent] = {"on": m_on, "off": m_off, "observed_contrast": obs,
-                                       "predicted": pred, "deviation": dev,
-                                       "within_tol": abs(dev) <= tol}
+        report["contrasts"][intent] = {
+            "on": m_on,
+            "off": m_off,
+            "observed_contrast": obs,
+            "predicted": pred,
+            "deviation": dev,
+            "within_tol": abs(dev) <= tol,
+        }
     all_attackish = all(report["contrasts"][i]["within_tol"] for i in ("attack", "intimidate"))
     all_zero = all(abs(c["observed_contrast"]) < 0.01 for c in report["contrasts"].values())
     if all_zero:
@@ -565,11 +616,12 @@ def mode_compare() -> int:
         report["branch_assignment"] = "B3 (промах по attack/intimidate -> components_trace)"
     if coverage_drift:
         report["branch_assignment"] += " + coverage-drift (эра-чувствительность: см. ветку B2)"
-    (ART_DIR / "compare_report.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    (ART_DIR / "compare_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    print("\n[INTERPRETATION-блок — отдельно от сырых данных; см. compare_report.json; "
-          "формулировка: эффект ПОТРЕБЛЕНИЯ МНОЖИТЕЛЯ маски (decision_hub:1116).]")
+    print(
+        "\n[INTERPRETATION-блок — отдельно от сырых данных; см. compare_report.json; "
+        "формулировка: эффект ПОТРЕБЛЕНИЯ МНОЖИТЕЛЯ маски (decision_hub:1116).]"
+    )
     return 0
 
 

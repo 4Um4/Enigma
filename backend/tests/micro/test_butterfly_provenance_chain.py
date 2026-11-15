@@ -5,6 +5,7 @@ NPC-A (Lusya) hears from player -> tells NPC-B (Tornin) -> tells NPC-C (Borko).
 original_source_id must remain "player" through all hops.
 source_id changes to the immediate speaker.
 """
+
 from app.domain.epistemology import ClaimEvent, Predicate, Proposition
 from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 from app.services.npc.epistemic_store import EpistemicStore
@@ -34,8 +35,9 @@ def test_provenance_chain_three_hops():
 
     # Hop 1: Player tells Lusya
     claim1 = _claim("player", "maid_lusya", prop, tick=1)
-    r1 = engine.revise("maid_lusya", claim1, store.get("maid_lusya", prop),
-                        reliability_context={"source_type": "testimony"})
+    r1 = engine.revise(
+        "maid_lusya", claim1, store.get("maid_lusya", prop), reliability_context={"source_type": "testimony"}
+    )
     store.upsert(r1)
 
     assert r1.source_id == "player"
@@ -44,8 +46,12 @@ def test_provenance_chain_three_hops():
 
     # Hop 2: Lusya tells Tornin
     claim2 = _claim("maid_lusya", "tavern_keeper_tornin", prop, tick=10)
-    r2 = engine.revise("tavern_keeper_tornin", claim2, store.get("tavern_keeper_tornin", prop),
-                        reliability_context={"source_type": "testimony", "original_source_id": "player"})
+    r2 = engine.revise(
+        "tavern_keeper_tornin",
+        claim2,
+        store.get("tavern_keeper_tornin", prop),
+        reliability_context={"source_type": "testimony", "original_source_id": "player"},
+    )
     store.upsert(r2)
 
     assert r2.source_id == "maid_lusya", f"Hop 2: source_id should be Lusya, got {r2.source_id}"
@@ -53,8 +59,12 @@ def test_provenance_chain_three_hops():
 
     # Hop 3: Tornin tells Borko
     claim3 = _claim("tavern_keeper_tornin", "guard_borko", prop, tick=20)
-    r3 = engine.revise("guard_borko", claim3, store.get("guard_borko", prop),
-                        reliability_context={"source_type": "testimony", "original_source_id": "player"})
+    r3 = engine.revise(
+        "guard_borko",
+        claim3,
+        store.get("guard_borko", prop),
+        reliability_context={"source_type": "testimony", "original_source_id": "player"},
+    )
     store.upsert(r3)
 
     assert r3.source_id == "tavern_keeper_tornin", f"Hop 3: source_id should be Tornin, got {r3.source_id}"
@@ -68,10 +78,18 @@ def test_provenance_round_trip_after_chain():
     prop = Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tavern_keeper_tornin")
 
     # Build chain: player -> Lusya -> Tornin -> Borko
-    for speaker, listener, tick in [("player", "maid_lusya", 1), ("maid_lusya", "tavern_keeper_tornin", 10), ("tavern_keeper_tornin", "guard_borko", 20)]:
+    for speaker, listener, tick in [
+        ("player", "maid_lusya", 1),
+        ("maid_lusya", "tavern_keeper_tornin", 10),
+        ("tavern_keeper_tornin", "guard_borko", 20),
+    ]:
         claim = _claim(speaker, listener, prop, tick=tick)
-        r = engine.revise(listener, claim, store.get(listener, prop),
-                          reliability_context={"source_type": "testimony", "original_source_id": "player"})
+        r = engine.revise(
+            listener,
+            claim,
+            store.get(listener, prop),
+            reliability_context={"source_type": "testimony", "original_source_id": "player"},
+        )
         store.upsert(r)
 
     # Round-trip

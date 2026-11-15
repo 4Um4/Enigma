@@ -30,15 +30,9 @@ class InferenceEngine:
         """Загружает signal_causes.yaml из authoring/"""
         # Определяем путь к корню проекта (на 3 уровня вверх от этого файла)
         _root = os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
-            )
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         )
-        _yaml_path = os.path.join(
-            _root, "architecture", "authoring", "signal_causes.yaml"
-        )
+        _yaml_path = os.path.join(_root, "architecture", "authoring", "signal_causes.yaml")
 
         if not os.path.exists(_yaml_path):
             logger.error(f"[INFER_ENGINE] signal_causes.yaml not found at {_yaml_path}")
@@ -74,8 +68,7 @@ class InferenceEngine:
                         target_id=fact.target_id,
                         source_fact_ids=(fact.fact_id,),
                         hypothesis=fact.fact_name,  # Пока гипотеза = имя факта
-                        confidence=fact.confidence
-                        * 0.9,  # Гипотеза всегда чуть слабее факта
+                        confidence=fact.confidence * 0.9,  # Гипотеза всегда чуть слабее факта
                         possible_causes=tuple(possible_causes),
                         observed_at=fact.observed_at,
                     )

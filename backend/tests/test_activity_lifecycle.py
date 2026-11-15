@@ -5,6 +5,7 @@ G3-ревалидация TAKE, терминал потребления (damage+
 
 Запуск: cd backend; python -m pytest tests/test_activity_lifecycle.py -v; cd ..
 """
+
 import os
 import unittest
 from types import SimpleNamespace
@@ -45,11 +46,15 @@ def _npc(**over):
         "needs": {"hunger": 0.9},
         "desires": [
             {
-                "desire_id": "d:food", "subject_class": "food",
-                "urgency": 0.9, "target_class": "food_portion",
+                "desire_id": "d:food",
+                "subject_class": "food",
+                "urgency": 0.9,
+                "target_class": "food_portion",
                 "provenance": [{"source": "need", "weight": 1.0, "origin_ref": "hunger"}],
-                "born_tick": 1, "last_fulfilled_tick": -1,
-                "weight": 1.0, "learned_from": [],
+                "born_tick": 1,
+                "last_fulfilled_tick": -1,
+                "weight": 1.0,
+                "learned_from": [],
             }
         ],
         "local_position": {"x": 4.5, "y": 6.5},
@@ -58,9 +63,14 @@ def _npc(**over):
         # consciousness — FLOAT 0..1 (vital_state.py:164: float(...));
         # строка ломает ось и валит build_body_state_view
         "body_state": {
-            "life_status": "ALIVE", "current_hp": 100, "pain": 0,
-            "fatigue": 0, "blood_loss": 0.0, "consciousness": 1.0,
-            "shock_impulse": 0.0, "injuries": {},
+            "life_status": "ALIVE",
+            "current_hp": 100,
+            "pain": 0,
+            "fatigue": 0,
+            "blood_loss": 0.0,
+            "consciousness": 1.0,
+            "shock_impulse": 0.0,
+            "injuries": {},
         },
     }
     npc.update(over)
@@ -69,8 +79,11 @@ def _npc(**over):
 
 def _ctx(scene, npcs, tick=100):
     return SimpleNamespace(
-        scene_state=scene, all_npcs_raw=npcs, tick_number=tick,
-        campaign_id="test", tick_snapshot=None,
+        scene_state=scene,
+        all_npcs_raw=npcs,
+        tick_number=tick,
+        campaign_id="test",
+        tick_snapshot=None,
     )
 
 
@@ -82,8 +95,12 @@ def _activity_dict(npc_id, step_index, started, step_started, target=_FOOD_ID):
     )
     return ActivityState(
         activity_id=ActivityState.build_id(npc_id, ActivityType.EAT, started),
-        activity_type=ActivityType.EAT, desire_id="d:food", target_ref=target,
-        steps=steps, step_index=step_index, step_started_tick=step_started,
+        activity_type=ActivityType.EAT,
+        desire_id="d:food",
+        target_ref=target,
+        steps=steps,
+        step_index=step_index,
+        step_started_tick=step_started,
         started_tick=started,
     ).to_dict()
 
@@ -140,17 +157,15 @@ class TestActivityLifecycle(unittest.TestCase):
 
     def test_consume_terminal_resets_need_depletes_releases(self):
         scene = _scene_with_food()
-        WorldObjectStore.establish_relation(
-            scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry"
-        )
+        WorldObjectStore.establish_relation(scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry")
         npc = _npc(
             activity_state=_activity_dict("npc_hungry", 2, 97, 97),
         )
         als.run_activity_lifecycle(_ctx(scene, [npc], tick=100), _OrchStub())
         obj = WorldObjectStore.get(scene, _FOOD_ID)
-        self.assertEqual(obj.state, "DESTROYED")          # damage-закон О6
-        self.assertIsNone(obj.holder)                     # явный release
-        self.assertEqual(npc["needs"]["hunger"], 0.0)     # только outcome-фактом
+        self.assertEqual(obj.state, "DESTROYED")  # damage-закон О6
+        self.assertIsNone(obj.holder)  # явный release
+        self.assertEqual(npc["needs"]["hunger"], 0.0)  # только outcome-фактом
         self.assertNotIn("activity_state", npc)
         self.assertEqual(npc["desires"][0]["last_fulfilled_tick"], 100)
 
@@ -159,18 +174,18 @@ class TestActivityLifecycle(unittest.TestCase):
         npc = _npc(activity_state=_activity_dict("npc_hungry", 0, 10, 10))
         als.run_activity_lifecycle(_ctx(scene, [npc], tick=100), _OrchStub())
         self.assertNotIn("activity_state", npc)
-        self.assertEqual(npc["needs"]["hunger"], 0.9)     # сброса нет — только outcome
+        self.assertEqual(npc["needs"]["hunger"], 0.9)  # сброса нет — только outcome
 
     def test_reconcile_born_executing_commitment(self):
         scene = _scene_with_food()
         # Шаг тела ещё В ПРОЦЕССЕ (100-99 < 3): иначе конвертер легально
         # завершит деятельность ДО reconcile — фикстур не должен врать
         npc = _npc(activity_state=_activity_dict("npc_hungry", 2, 90, 99))
-        WorldObjectStore.establish_relation(
-            scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry"
-        )
-        with mock.patch.object(cr_mod, "COMMITMENT_REGISTRY_ENABLED", True), \
-             mock.patch.object(cr_mod, "S203_4_OWNERSHIP_MIRRORS", True):
+        WorldObjectStore.establish_relation(scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry")
+        with (
+            mock.patch.object(cr_mod, "COMMITMENT_REGISTRY_ENABLED", True),
+            mock.patch.object(cr_mod, "S203_4_OWNERSHIP_MIRRORS", True),
+        ):
             als.run_activity_lifecycle(_ctx(scene, [npc], tick=100), _OrchStub())
             cm = cr_mod.CommitmentRegistry.get_active(scene, "npc_hungry")
         self.assertIsNotNone(cm)
@@ -181,11 +196,11 @@ class TestActivityLifecycle(unittest.TestCase):
         scene = _scene_with_food()
         # Рождение (tick 100, еда в процессе) → факт удалён → COMPLETED
         npc = _npc(activity_state=_activity_dict("npc_hungry", 2, 90, 99))
-        WorldObjectStore.establish_relation(
-            scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry"
-        )
-        with mock.patch.object(cr_mod, "COMMITMENT_REGISTRY_ENABLED", True), \
-             mock.patch.object(cr_mod, "S203_4_OWNERSHIP_MIRRORS", True):
+        WorldObjectStore.establish_relation(scene, _FOOD_ID, ObjectRelationKind.HELD_BY, "npc_hungry")
+        with (
+            mock.patch.object(cr_mod, "COMMITMENT_REGISTRY_ENABLED", True),
+            mock.patch.object(cr_mod, "S203_4_OWNERSHIP_MIRRORS", True),
+        ):
             als.run_activity_lifecycle(_ctx(scene, [npc], tick=100), _OrchStub())
             self.assertIsNotNone(
                 cr_mod.CommitmentRegistry.get_active(scene, "npc_hungry")

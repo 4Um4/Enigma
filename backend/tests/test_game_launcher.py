@@ -66,9 +66,7 @@ class _Pygame:
             set_caption=lambda *_args: None,
             flip=lambda: None,
         )
-        self.font = SimpleNamespace(
-            SysFont=lambda *_args: SimpleNamespace(render=lambda *_args: None)
-        )
+        self.font = SimpleNamespace(SysFont=lambda *_args: SimpleNamespace(render=lambda *_args: None))
         self.draw = SimpleNamespace(rect=lambda *_args: None)
         self.event = SimpleNamespace(get=lambda: [])
 
@@ -85,9 +83,7 @@ def launcher_setup(monkeypatch, tmp_path):
     monkeypatch.setattr(app.core.config.settings, "api_host", "127.0.0.1")
     monkeypatch.setattr(app.core.config.settings, "api_port", 8000)
     game_launcher._LLM_DIAG.update(reason="", detail="", log_offset=0)
-    game_launcher._BACKEND_DIAG.update(
-        ready=False, reason="", detail="", exit_code=None, log_path=""
-    )
+    game_launcher._BACKEND_DIAG.update(ready=False, reason="", detail="", exit_code=None, log_path="")
     return tmp_path
 
 
@@ -102,9 +98,7 @@ def _backend_not_running(*_args, **_kwargs):
     raise urllib.error.URLError("down")
 
 
-def test_backend_exit_code_one_is_not_ready_and_is_preserved(
-    launcher_setup, monkeypatch
-):
+def test_backend_exit_code_one_is_not_ready_and_is_preserved(launcher_setup, monkeypatch):
     _mock_launcher(
         monkeypatch,
         _backend_not_running,
@@ -117,14 +111,10 @@ def test_backend_exit_code_one_is_not_ready_and_is_preserved(
     assert game_launcher._BACKEND_DIAG["ready"] is False
     assert game_launcher._BACKEND_DIAG["reason"] == "process_exited"
     assert game_launcher._BACKEND_DIAG["exit_code"] == 1
-    assert "exit_code=1" in Path(
-        game_launcher._BACKEND_DIAG["log_path"]
-    ).read_text(encoding="utf-8")
+    assert "exit_code=1" in Path(game_launcher._BACKEND_DIAG["log_path"]).read_text(encoding="utf-8")
 
 
-def test_backend_port_conflict_is_reported_from_launch_log(
-    launcher_setup, monkeypatch
-):
+def test_backend_port_conflict_is_reported_from_launch_log(launcher_setup, monkeypatch):
     def popen(*_args, **kwargs):
         kwargs["stdout"].write("ERROR: [Errno 10048] address already in use\n")
         return _Process(1)
@@ -141,9 +131,7 @@ def test_backend_port_conflict_is_reported_from_launch_log(
     assert game_launcher._BACKEND_DIAG["ready"] is False
     assert game_launcher._BACKEND_DIAG["reason"] == "port_conflict"
     assert game_launcher._BACKEND_DIAG["exit_code"] == 1
-    assert "address already in use" in Path(
-        game_launcher._BACKEND_DIAG["log_path"]
-    ).read_text(encoding="utf-8")
+    assert "address already in use" in Path(game_launcher._BACKEND_DIAG["log_path"]).read_text(encoding="utf-8")
 
 
 def test_backend_health_timeout_is_not_ready(launcher_setup, monkeypatch):
@@ -166,9 +154,7 @@ def test_backend_health_timeout_is_not_ready(launcher_setup, monkeypatch):
     assert game_launcher._BACKEND_DIAG["ready"] is False
     assert game_launcher._BACKEND_DIAG["reason"] == "health_timeout"
     assert game_launcher._BACKEND_DIAG["exit_code"] is None
-    assert "reason=health_timeout" in Path(
-        game_launcher._BACKEND_DIAG["log_path"]
-    ).read_text(encoding="utf-8")
+    assert "reason=health_timeout" in Path(game_launcher._BACKEND_DIAG["log_path"]).read_text(encoding="utf-8")
 
 
 def test_backend_becomes_ready_only_after_health_200(launcher_setup, monkeypatch):
@@ -224,9 +210,7 @@ def test_each_backend_launch_gets_a_unique_preserved_log(launcher_setup, monkeyp
     assert legacy_log.read_text(encoding="utf-8") == "existing diagnostics\n"
 
 
-def test_shutdown_does_not_target_a_foreign_process_on_backend_port(
-    launcher_setup, monkeypatch
-):
+def test_shutdown_does_not_target_a_foreign_process_on_backend_port(launcher_setup, monkeypatch):
     def popen(*_args, **_kwargs):
         raise AssertionError("an already healthy backend must not be spawned")
 

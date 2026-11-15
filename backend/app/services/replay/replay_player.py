@@ -5,6 +5,7 @@ path: /project/backend/app/services/replay/replay_player.py
 Зависимости: app.services.replay.replay_store, app.services.replay.time_freezer
 Основные сущности: ReplayPlayer, ReplayDriftError
 """
+
 import logging
 import math
 from typing import Any, Dict, List, Optional
@@ -14,9 +15,12 @@ from app.services.replay.time_freezer import frozen_time
 
 logger = logging.getLogger(__name__)
 
+
 class ReplayDriftError(Exception):
     """Выбрасывается при рассинхроне воспроизводимого тика и записанного."""
+
     pass
+
 
 class ReplayPlayer:
     """Воспроизводит записанную сессию, сравнивая результаты тиков."""
@@ -62,7 +66,7 @@ class ReplayPlayer:
                 if not recorded_tick:
                     if tick_id == 1:
                         raise ReplayDriftError("База данных пуста или не содержит записанных тиков.")
-                    break # Сессия закончена
+                    break  # Сессия закончена
 
                 game_time = recorded_tick["game_time_seconds"]
                 recorded_snapshot = recorded_tick.get("world_snapshot")
@@ -78,7 +82,9 @@ class ReplayPlayer:
                     total_drifts += len(drifts)
                     logger.warning(f"[REPLAY_PLAYER] Drift detected on tick {tick_id}: {drifts}")
                     if total_drifts > max_drift:
-                        raise ReplayDriftError(f"Превышен лимит дрейфа ({max_drift}) на тике {tick_id}. Drifts: {drifts}")
+                        raise ReplayDriftError(
+                            f"Превышен лимит дрейфа ({max_drift}) на тике {tick_id}. Drifts: {drifts}"
+                        )
 
                 replayed_ticks += 1
                 tick_id += 1
@@ -92,7 +98,7 @@ class ReplayPlayer:
         return {
             "replayed_ticks": replayed_ticks,
             "total_drifts": total_drifts,
-            "status": "SUCCESS" if total_drifts == 0 else "DRIFT_DETECTED"
+            "status": "SUCCESS" if total_drifts == 0 else "DRIFT_DETECTED",
         }
 
     def _load_tick(self, tick_id: int) -> Optional[Dict[str, Any]]:
@@ -100,13 +106,13 @@ class ReplayPlayer:
         # что вызывало лишнюю десериализацию JSON и затраты CPU при реплее.
         row = self.store.conn.execute(
             "SELECT game_time_seconds, world_snapshot_json FROM tick_snapshots WHERE session_id = ? AND tick_id = ?",
-            (self.session_id, tick_id)
+            (self.session_id, tick_id),
         ).fetchone()
         if not row:
             return None
         return {
             "game_time_seconds": row["game_time_seconds"],
-            "world_snapshot": self.store._from_json_bytes(row["world_snapshot_json"])
+            "world_snapshot": self.store._from_json_bytes(row["world_snapshot_json"]),
         }
 
     def _compare_results(self, actual_result: Any, recorded_snapshot: Any) -> List[str]:
@@ -116,8 +122,12 @@ class ReplayPlayer:
         actual_snapshot_dict = actual_result.get("world_snapshot", {}) if isinstance(actual_result, dict) else {}
 
         if actual_snapshot_dict and recorded_snapshot:
-            actual_pos = {k: v.get("local_position", {}) for k, v in actual_snapshot_dict.get("npc_positions", {}).items()}
-            recorded_pos = {k: v.get("local_position", {}) for k, v in recorded_snapshot.get("npc_positions", {}).items()}
+            actual_pos = {
+                k: v.get("local_position", {}) for k, v in actual_snapshot_dict.get("npc_positions", {}).items()
+            }
+            recorded_pos = {
+                k: v.get("local_position", {}) for k, v in recorded_snapshot.get("npc_positions", {}).items()
+            }
 
             # Сравниваем только пересекающиеся NPC (фильтрация по location_id в реплее может вызывать разницу ключей)
             common_keys = actual_pos.keys() & recorded_pos.keys()
@@ -126,8 +136,8 @@ class ReplayPlayer:
                 r_pos = recorded_pos[npc_id]
                 # Сравнение с допуском 1e-4 для float координат (устойчивость к погрешностям округления)
                 if not (
-                    math.isclose(a_pos.get("x", 0.0), r_pos.get("x", 0.0), abs_tol=0.05) and
-                    math.isclose(a_pos.get("y", 0.0), r_pos.get("y", 0.0), abs_tol=0.05)
+                    math.isclose(a_pos.get("x", 0.0), r_pos.get("x", 0.0), abs_tol=0.05)
+                    and math.isclose(a_pos.get("y", 0.0), r_pos.get("y", 0.0), abs_tol=0.05)
                 ):
                     # BUG-DRIFT-003 FIX: Возвращаем детальный лог с координатами для REPLAY_DIAG
                     drifts.append(f"NPC={npc_id} ACTUAL={a_pos} RECORDED={r_pos}")

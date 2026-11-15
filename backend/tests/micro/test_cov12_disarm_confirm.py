@@ -11,6 +11,7 @@
 
 Чистый micro: decomposer и store подменяются, LLM/uvicorn не нужны.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -55,9 +56,7 @@ def _make_store(tmp_path: Path) -> ChronicleStore:
 
 
 def _save_draft(store: ChronicleStore, entries) -> None:
-    doc = ChronicleDocument(
-        chronicle_id=_NPC, npc_ref=_NPC, entries=tuple(entries), canonical=False
-    )
+    doc = ChronicleDocument(chronicle_id=_NPC, npc_ref=_NPC, entries=tuple(entries), canonical=False)
     store.save_draft(doc, _CAMPAIGN)
 
 
@@ -143,6 +142,7 @@ def test_confirm_accepts_high_confidence_no_questions(tmp_path):
 
 def _install_decomposer(monkeypatch: pytest.MonkeyPatch, question=None) -> None:
     """question=None → exact match (no question); question=ClarificationQuestion → non-match."""
+
     class _FakeDecomposer:
         async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
             payload = {
@@ -158,9 +158,7 @@ def _install_decomposer(monkeypatch: pytest.MonkeyPatch, question=None) -> None:
                 question=question,
                 needs_confirmation=question is not None,
             )
-            return SimpleNamespace(
-                ok=True, items=[item], age_anchors=[], error=None, raw_response=""
-            )
+            return SimpleNamespace(ok=True, items=[item], age_anchors=[], error=None, raw_response="")
 
     monkeypatch.setattr(routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer())
 
@@ -225,17 +223,19 @@ def test_resolve_question_relinks_placeholder_to_white_spot(tmp_path, monkeypatc
     asyncio.run(_decompose(0))
 
     # Resolve с LEAVE_WHITE_SPOT
-    resp = asyncio.run(resolve_question(
-        _CAMPAIGN,
-        _NPC,
-        SimpleNamespace(
-            campaign_id=_CAMPAIGN,
-            npc_id=_NPC,
-            question_id="roster_mismatch_1",
-            selected_option="LEAVE_WHITE_SPOT",
-            selected_value=None,
-        ),
-    ))
+    resp = asyncio.run(
+        resolve_question(
+            _CAMPAIGN,
+            _NPC,
+            SimpleNamespace(
+                campaign_id=_CAMPAIGN,
+                npc_id=_NPC,
+                question_id="roster_mismatch_1",
+                selected_option="LEAVE_WHITE_SPOT",
+                selected_value=None,
+            ),
+        )
+    )
     assert resp["status"] == "OK"
 
     store = routes_chronicle._get_store()

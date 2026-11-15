@@ -31,6 +31,7 @@ GC-27: Player-visible consequence.
 LLM-free: NPC движение — autonomous LifeEngine.tick() (schedule/need/random),
 не требует player_action или DM-классификатора.
 """
+
 import logging
 
 import pytest
@@ -236,10 +237,7 @@ class TestGC27PlayerVisibleConsequence:
             else:
                 _static_x = getattr(_static_lp, "x", None)
                 _static_y = getattr(_static_lp, "y", None)
-            print(
-                f"[GC27-DTO] control {_STATIC_NPC}: x={_static_x}, y={_static_y} "
-                f"(static — control)"
-            )
+            print(f"[GC27-DTO] control {_STATIC_NPC}: x={_static_x}, y={_static_y} (static — control)")
 
 
 if __name__ == "__main__":

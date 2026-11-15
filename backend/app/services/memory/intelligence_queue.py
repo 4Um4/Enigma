@@ -187,8 +187,7 @@ class IntelligenceQueue:
                 pool = self._pool_provider()
             except Exception as pool_err:
                 logger.warning(
-                    "[D8P_Q] pool provider failed: %r — задача %s остаётся "
-                    "ENQUEUED (поднимется pump)",
+                    "[D8P_Q] pool provider failed: %r — задача %s остаётся ENQUEUED (поднимется pump)",
                     pool_err,
                     task.task_id[:8],
                 )
@@ -232,9 +231,7 @@ class IntelligenceQueue:
     def _execute(self, task: IntelligenceTask) -> None:
         """Экстракция → STALE-гейт → применение (всё наблюдаемо)."""
         try:
-            update = self._extractor.extract(
-                task.stm_before, task.text, task.speaker
-            )
+            update = self._extractor.extract(task.stm_before, task.text, task.speaker)
         except Exception as ext_err:
             # Внутренние ошибки extractor'а глотаются им самим (S198);
             # сюда попадаем только при поломке контракта — честный FAILED.
@@ -268,9 +265,7 @@ class IntelligenceQueue:
         if age > _max_age_ticks():
             return f"age={age} > N={_max_age_ticks()}"
 
-        session = self._memory.get_dialogue_session(
-            task.campaign_id, task.listener, partner_id=task.speaker
-        )
+        session = self._memory.get_dialogue_session(task.campaign_id, task.listener, partner_id=task.speaker)
         placeholder_alive = any(
             getattr(t, "speaker", None) == task.speaker  # noqa: ENIGMA002
             and getattr(t, "text", None) == task.text  # noqa: ENIGMA002
@@ -285,11 +280,7 @@ class IntelligenceQueue:
         if self._npc_states is not None:
             try:
                 states = self._npc_states() or []
-                ids = {
-                    (n.get("npc_id") or n.get("id"))
-                    for n in states
-                    if isinstance(n, dict)
-                }
+                ids = {(n.get("npc_id") or n.get("id")) for n in states if isinstance(n, dict)}
                 if ids and task.listener not in ids:
                     return "listener out-of-world"
             except Exception as npc_err:
@@ -302,9 +293,7 @@ class IntelligenceQueue:
         Дословная реплика enrichment-блока NpcDialogueSubscriber
         (:147–165): topic/claims/questions; provenance = parent_tick
         (интерпретация принадлежит тику события, не тику применения)."""
-        session = self._memory.get_dialogue_session(
-            task.campaign_id, task.listener, partner_id=task.speaker
-        )
+        session = self._memory.get_dialogue_session(task.campaign_id, task.listener, partner_id=task.speaker)
         has_content = bool(
             getattr(update, "topic", None)  # noqa: ENIGMA002
             or getattr(update, "new_claims", None)  # noqa: ENIGMA002
@@ -363,8 +352,7 @@ class IntelligenceQueue:
             )
         elif status == STALE_DISCARDED:
             logger.info(
-                "[D8P_Q] STALE_DISCARDED task=%s event=%s listener=%s "
-                "parent_tick=%s reason=%s",
+                "[D8P_Q] STALE_DISCARDED task=%s event=%s listener=%s parent_tick=%s reason=%s",
                 task.task_id[:8],
                 task.event_id,
                 task.listener,
@@ -387,10 +375,7 @@ class IntelligenceQueue:
         submitted = 0
         with self._lock:
             for t in list(self._deque):
-                if (
-                    self._lifecycle.get(t.task_id) == ENQUEUED
-                    and t.task_id not in self._inflight
-                ):
+                if self._lifecycle.get(t.task_id) == ENQUEUED and t.task_id not in self._inflight:
                     if self._submit_locked(t):
                         submitted += 1
         return submitted
@@ -400,10 +385,7 @@ class IntelligenceQueue:
         with self._lock:
             task = None
             for t in self._deque:
-                if (
-                    self._lifecycle.get(t.task_id) == ENQUEUED
-                    and t.task_id not in self._inflight
-                ):
+                if self._lifecycle.get(t.task_id) == ENQUEUED and t.task_id not in self._inflight:
                     task = t
                     break
         if task is None:
@@ -441,12 +423,12 @@ def wire_intelligence_queue(
     держит Q5-идемпотентность события."""
     global _QUEUE
     _QUEUE = IntelligenceQueue(
-            memory_manager=memory_manager,
-            extractor=extractor,
-            tick_provider=tick_provider,
-            npc_states_provider=npc_states_provider,
-            pool_provider=pool_provider,
-        )
+        memory_manager=memory_manager,
+        extractor=extractor,
+        tick_provider=tick_provider,
+        npc_states_provider=npc_states_provider,
+        pool_provider=pool_provider,
+    )
     return _QUEUE
 
 

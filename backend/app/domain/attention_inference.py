@@ -20,6 +20,7 @@ path: backend/app/domain/attention_inference.py
 Зависимости: app.domain.attention (AttentionObservation) — только domain.
 Основные сущности: ApproachInference, infer_approach, ESTIMATE_WINDOW_TICKS.
 """
+
 import math
 import os
 from dataclasses import dataclass
@@ -125,9 +126,7 @@ def infer_approach(
         t_raw = -(rel_dx * vx + rel_dy * vy) / v2
         if t_raw > 0.0:
             t_star = t_raw
-            d_star = math.hypot(
-                rel_dx + vx * t_star, rel_dy + vy * t_star
-            )
+            d_star = math.hypot(rel_dx + vx * t_star, rel_dy + vy * t_star)
         # t_raw ≤ 0: точка сближения позади → оба None (отрицательное
         # свидетельство для P3b-накопителя).
 
@@ -140,9 +139,7 @@ def infer_approach(
     )
 
 
-def subject_turned_toward(
-    window: Sequence[AttentionObservation], *, min_rad: float
-) -> bool:
+def subject_turned_toward(window: Sequence[AttentionObservation], *, min_rad: float) -> bool:
     """Субъект развернулся К наблюдателю между двумя последними наблюдениями
     (наблюдаемое событие взаимного цикла — уточнение №8 Мастера). Направление
     «субъект→наблюдатель» берётся из rel КАЖДОГО наблюдения (мировая рамка,
@@ -195,14 +192,8 @@ def evidence_delta(
         # Движется, но ближайшая точка траектории ПОЗАДИ → не ко мне.
         base = -align_w
     else:
-        d_factor = (
-            max(0.0, 1.0 - d_star / approach_scale_m) if approach_scale_m > 0 else 0.0
-        )
-        closing = (
-            min(1.0, max(0.0, -inference.radial_speed / radial_ref))
-            if radial_ref > 0
-            else 0.0
-        )
+        d_factor = max(0.0, 1.0 - d_star / approach_scale_m) if approach_scale_m > 0 else 0.0
+        closing = min(1.0, max(0.0, -inference.radial_speed / radial_ref)) if radial_ref > 0 else 0.0
         align_val = inference.alignment_to_me
         align_pos = max(0.0, align_val) if align_val is not None else 0.0
         base = d_factor * (radial_w * closing + align_w * align_pos)
@@ -221,10 +212,10 @@ class AttentionMode(str, Enum):
     потребления из E (AttentionState) и S (PE наблюдателя) — ноль double
     truth (derived ≠ stored)."""
 
-    ROUTINE = "routine"            # S↓ E↓ — продолжает своё (прохожий)
-    ALERT = "alert"                # S↑ E↓ — заметил/смотрит (барсук)
+    ROUTINE = "routine"  # S↓ E↓ — продолжает своё (прохожий)
+    ALERT = "alert"  # S↑ E↓ — заметил/смотрит (барсук)
     ANTICIPATING = "anticipating"  # S↓ E↑ — понял приближение/ждёт
-    STARTLED = "startled"          # S↑ E↑ — резкая настороженность/подготовка
+    STARTLED = "startled"  # S↑ E↑ — резкая настороженность/подготовка
 
 
 @dataclass(frozen=True)

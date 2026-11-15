@@ -11,6 +11,7 @@ path: backend/app/services/calibration/preset_io.py
 Зависимости: yaml, app.core.constants (референс существования имён).
 Основные сущности: Preset, NpcOverride, CalibrationPresetError, load_preset.
 """
+
 from __future__ import annotations
 
 import math
@@ -30,13 +31,15 @@ from yaml import safe_load
 # В машинно-читаемых пресетах запрещены: молча игнорировать нельзя
 # (фейк = табу ADR-O-361), поэтому — громкий отказ с диагнозом,
 # отличимым от опечатки. UI-маркировка «слайдер отключён» — M1.
-PLAN_PARAMS: frozenset = frozenset({
-    "trust_growth_rate",
-    "trust_decay_rate",
-    "forgiveness_rate",
-    "epistemic_drive",
-    "core_orientation",
-})
+PLAN_PARAMS: frozenset = frozenset(
+    {
+        "trust_growth_rate",
+        "trust_decay_rate",
+        "forgiveness_rate",
+        "epistemic_drive",
+        "core_orientation",
+    }
+)
 
 # Табу-ограничения значений чужих ADR. Проверяются ДО существования имени —
 # дают точный диагноз нарушения ADR, а не «неизвестная константа».
@@ -139,9 +142,7 @@ def _validate_constants(
             errors.append(f"constants.{name}: ожидается число, получено {value!r}")
             continue
         if name in PLAN_PARAMS:
-            errors.append(
-                f"constants.{name}: параметр ЗАПЛАНИРОВАН и не подключён (ТЗ 5.2) — в пресетах запрещён"
-            )
+            errors.append(f"constants.{name}: параметр ЗАПЛАНИРОВАН и не подключён (ТЗ 5.2) — в пресетах запрещён")
             continue
         if name in _SPECIAL_CONSTRAINTS:
             rule, check = _SPECIAL_CONSTRAINTS[name]
@@ -167,29 +168,20 @@ def _validate_psyche(raw: Any, errors: list[str], npc_key: str) -> dict[str, flo
     result: dict[str, float] = {}
     for key, value in raw.items():
         if key not in _PSYCHE_PARAMS:
-            errors.append(
-                f"npc_overrides.{npc_key}.psyche.{key}: не поддержан "
-                f"(разрешены {sorted(_PSYCHE_PARAMS)})"
-            )
+            errors.append(f"npc_overrides.{npc_key}.psyche.{key}: не поддержан (разрешены {sorted(_PSYCHE_PARAMS)})")
             continue
         if not _is_number(value):
-            errors.append(
-                f"npc_overrides.{npc_key}.psyche.{key}: ожидается число, получено {value!r}"
-            )
+            errors.append(f"npc_overrides.{npc_key}.psyche.{key}: ожидается число, получено {value!r}")
             continue
         lo, hi = _PSYCHE_PARAMS[key]
         if not (lo <= float(value) <= hi):
-            errors.append(
-                f"npc_overrides.{npc_key}.psyche.{key}: вне диапазона [{lo}, {hi}]: {value!r}"
-            )
+            errors.append(f"npc_overrides.{npc_key}.psyche.{key}: вне диапазона [{lo}, {hi}]: {value!r}")
             continue
         result[key] = float(value)
     return result
 
 
-def _validate_social(
-    raw: Any, errors: list[str], npc_key: str
-) -> Optional[dict[str, float]]:
+def _validate_social(raw: Any, errors: list[str], npc_key: str) -> Optional[dict[str, float]]:
     """R001: социальные дельты начального состояния. Whitelist = SSOT
     SCALAR_WHITELIST гейта (дубликат запрещён); NaN/bool — громкий отказ."""
     if raw is None:
@@ -200,32 +192,23 @@ def _validate_social(
     _keys = sorted(SCALAR_WHITELIST)
     extra = [k for k in raw if k not in _keys]
     if extra:
-        errors.append(
-            f"npc_overrides.{npc_key}.social: ключи вне whitelist гейта {extra} "
-            f"(разрешены {_keys})"
-        )
+        errors.append(f"npc_overrides.{npc_key}.social: ключи вне whitelist гейта {extra} (разрешены {_keys})")
     result: dict[str, float] = {}
     for key, value in raw.items():
         if key not in _keys:
             continue
         if not _is_number(value):
-            errors.append(
-                f"npc_overrides.{npc_key}.social.{key}: ожидается число, получено {value!r}"
-            )
+            errors.append(f"npc_overrides.{npc_key}.social.{key}: ожидается число, получено {value!r}")
             continue
         _v = float(value)
         if not (-100.0 <= _v <= 100.0):
-            errors.append(
-                f"npc_overrides.{npc_key}.social.{key}: дельта вне [-100, 100]: {value!r}"
-            )
+            errors.append(f"npc_overrides.{npc_key}.social.{key}: дельта вне [-100, 100]: {value!r}")
             continue
         result[key] = _v
     return result or None
 
 
-def _validate_drives(
-    raw: Any, errors: list[str], npc_key: str
-) -> Optional[dict[str, float]]:
+def _validate_drives(raw: Any, errors: list[str], npc_key: str) -> Optional[dict[str, float]]:
     if raw is None:
         return None
     if not isinstance(raw, Mapping):
@@ -235,24 +218,19 @@ def _validate_drives(
     missing = [k for k in _DRIVES_KEYS if k not in raw]
     if extra or missing:
         errors.append(
-            f"npc_overrides.{npc_key}.drives: лишние {extra}, отсутствуют {missing} "
-            f"(обязательны все {_DRIVES_KEYS})"
+            f"npc_overrides.{npc_key}.drives: лишние {extra}, отсутствуют {missing} (обязательны все {_DRIVES_KEYS})"
         )
         return None
     values: dict[str, float] = {}
     for key, value in raw.items():
         if not _is_number(value) or float(value) < 0.0:
-            errors.append(
-                f"npc_overrides.{npc_key}.drives.{key}: ожидается число >= 0, получено {value!r}"
-            )
+            errors.append(f"npc_overrides.{npc_key}.drives.{key}: ожидается число >= 0, получено {value!r}")
             return None
         values[key] = float(value)
     total = sum(values.values())
     if not math.isclose(total, 1.0, abs_tol=1e-6):
         # NPCPersonality сам падает при sum != 1.0 — здесь ранний диагноз.
-        errors.append(
-            f"npc_overrides.{npc_key}.drives: сумма должна быть 1.0, получено {total:.6f}"
-        )
+        errors.append(f"npc_overrides.{npc_key}.drives: сумма должна быть 1.0, получено {total:.6f}")
         return None
     return values
 
@@ -273,9 +251,7 @@ def _validate_npc_overrides(raw: Any, errors: list[str]) -> dict[str, NpcOverrid
             continue
         unknown = [k for k in entry if k not in _OVERRIDE_KEYS]
         if unknown:
-            errors.append(
-                f"npc_overrides.{npc_key}: неизвестные ключи {unknown} (разрешены psyche, drives, social)"
-            )
+            errors.append(f"npc_overrides.{npc_key}: неизвестные ключи {unknown} (разрешены psyche, drives, social)")
             continue
         psyche = _validate_psyche(entry.get("psyche"), errors, npc_key)
         drives = _validate_drives(entry.get("drives"), errors, npc_key)
@@ -312,17 +288,13 @@ def load_preset(
     errors: list[str] = []
     unknown_root = [k for k in raw if k not in _ROOT_KEYS]
     if unknown_root:
-        errors.append(
-            f"неизвестные ключи корня {unknown_root} (разрешены {sorted(_ROOT_KEYS)})"
-        )
+        errors.append(f"неизвестные ключи корня {unknown_root} (разрешены {sorted(_ROOT_KEYS)})")
     preset_id, description = _validate_meta(raw.get("meta"), errors)
     constants = _validate_constants(raw.get("constants"), module, errors)
     npc_overrides = _validate_npc_overrides(raw.get("npc_overrides"), errors)
 
     if errors:
-        raise CalibrationPresetError(
-            f"Пресет невалиден ({preset_path}):\n  - " + "\n  - ".join(errors)
-        )
+        raise CalibrationPresetError(f"Пресет невалиден ({preset_path}):\n  - " + "\n  - ".join(errors))
     return Preset(
         preset_id=preset_id,
         description=description,

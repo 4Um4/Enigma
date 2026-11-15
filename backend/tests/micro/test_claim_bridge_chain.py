@@ -45,8 +45,12 @@ class _StubSession:
     def add_claim(self, text, speaker, confidence, tick, event_id=""):
         self.claims.append(
             SimpleNamespace(
-                text=text, speaker=speaker, confidence=confidence,
-                timestamp_tick=tick, status="open", event_id=event_id,
+                text=text,
+                speaker=speaker,
+                confidence=confidence,
+                timestamp_tick=tick,
+                status="open",
+                event_id=event_id,
             )
         )
 
@@ -98,8 +102,7 @@ class _NoopAvatar:
     def note_name_heard(self, *a, **k):
         pass
 
-    def get_name_display(self, campaign_id, npc_id, true_name,
-                         recognition_confirmed):
+    def get_name_display(self, campaign_id, npc_id, true_name, recognition_confirmed):
         # Эхо SSOT-имени: этот тест проверяет мост claims, не NAME-прогрессию.
         return true_name
 
@@ -121,6 +124,7 @@ def _run_spoke_with_claims(scene_tick=150):
     sub._rel_write_gate = _StubGate()
     sub._extractor = _StubExtractor()
     from app.services.events.event_types import EventType
+
     bus.subscribe(EventType.NPC_SPOKE, sub.on_npc_spoke)
     bus.publish(
         EventDTO.create(
@@ -145,10 +149,13 @@ def test_penta_identity_chain():
     bus, session = _run_spoke_with_claims()
     final_id = str(bus._event_log[-1].id)
     assert len(session.claims) == 1
-    assert session.claims[0].event_id == final_id        # STM Claim
-    journal_entry = {                                    # JournalEntry
-        "speaker": "Лусия", "text": "x", "channel": "direct",
-        "event_id": final_id, "tick": 150,
+    assert session.claims[0].event_id == final_id  # STM Claim
+    journal_entry = {  # JournalEntry
+        "speaker": "Лусия",
+        "text": "x",
+        "channel": "direct",
+        "event_id": final_id,
+        "tick": 150,
     }
     projected = project_journal([journal_entry])
     assert projected[0]["event_id"] == final_id
@@ -172,15 +179,14 @@ def test_claim_event_tick_is_event_tick():
 
 def test_project_claims_ephemeral_matrix():
     from app.domain.semantic_span import make_span_id  # noqa: F401
+
     claims = [
-        SimpleNamespace(text="c1", speaker="lusya", confidence=0.8,
-                        timestamp_tick=150, status="open", event_id="E1"),
-        SimpleNamespace(text="c2", speaker="lusya", confidence=0.5,
-                        timestamp_tick=99, status="open", event_id=""),
+        SimpleNamespace(text="c1", speaker="lusya", confidence=0.8, timestamp_tick=150, status="open", event_id="E1"),
+        SimpleNamespace(text="c2", speaker="lusya", confidence=0.5, timestamp_tick=99, status="open", event_id=""),
     ]
     p = project_claims(claims)
     assert p[0]["event_id"] == "E1" and p[0]["provenance_complete"] is True
-    assert p[0]["ephemeral"] is True                    # STOP-критерий:
+    assert p[0]["ephemeral"] is True  # STOP-критерий:
     # мост НЕ делает STM Claim persistent
     assert p[1]["event_id"] == "" and p[1]["provenance_complete"] is False
     assert p[1]["ephemeral"] is True

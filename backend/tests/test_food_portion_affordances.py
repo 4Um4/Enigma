@@ -6,6 +6,7 @@ W2-каркас + SpawnMapping. Объекты рождаются реальны
 
 Запуск: cd backend; python -m pytest tests/test_food_portion_affordances.py -v; cd ..
 """
+
 import unittest
 
 from app.domain.semantic_action import WorldActionType
@@ -25,9 +26,7 @@ from app.services.world.world_object_store import WorldObjectStore
 class TestFoodPortionEffectiveState(unittest.TestCase):
     def setUp(self):
         self._scene: dict = {}
-        WorldObjectStore.spawn(
-            self._scene, "wo_test_food", "food_portion", "tavern", (4.2, 4.3)
-        )
+        WorldObjectStore.spawn(self._scene, "wo_test_food", "food_portion", "tavern", (4.2, 4.3))
         self._obj = WorldObjectStore.get(self._scene, "wo_test_food")
 
     def test_fresh_spawn_is_available(self):
@@ -71,9 +70,7 @@ class TestFoodPortionW2Rows(unittest.TestCase):
 
 class TestFoodPortionSpawn(unittest.TestCase):
     def test_spawn_mapping_registered(self):
-        self.assertEqual(
-            _EDITOR_TYPE_TO_ARCHETYPE.get("food_portion"), "food_portion"
-        )
+        self.assertEqual(_EDITOR_TYPE_TO_ARCHETYPE.get("food_portion"), "food_portion")
 
     def test_editor_flow_spawns_food(self):
         scene: dict = {}
@@ -87,13 +84,9 @@ class TestFoodPortionSpawn(unittest.TestCase):
                 }
             ]
         }
-        report = WorldObjectSpawner.spawn_from_editor(
-            scene, "test_campaign", "tavern", editor_data
-        )
+        report = WorldObjectSpawner.spawn_from_editor(scene, "test_campaign", "tavern", editor_data)
         self.assertEqual(report.spawned, 1)
-        obj = WorldObjectStore.get(
-            scene, _deterministic_object_id("test_campaign", "tavern", "obj_42")
-        )
+        obj = WorldObjectStore.get(scene, _deterministic_object_id("test_campaign", "tavern", "obj_42"))
         self.assertEqual(obj.archetype, "food_portion")
         self.assertEqual(obj.state, "INTACT")
 

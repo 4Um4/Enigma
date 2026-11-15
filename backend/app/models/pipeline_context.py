@@ -40,12 +40,8 @@ class PipelineContext:
 
     # ── Результаты Python-движков (из context_builder) ────────────
     python_engines: Dict[str, Any] = field(default_factory=dict)
-    combat_data: Dict[str, Any] = field(
-        default_factory=dict
-    )  # Фаза 8: исход боя для DM (pain, shock, injuries)
-    all_npcs_raw_snapshot: Any = (
-        None  # Фаза 9: полный снимок NPC state (description, title)
-    )
+    combat_data: Dict[str, Any] = field(default_factory=dict)  # Фаза 8: исход боя для DM (pain, shock, injuries)
+    all_npcs_raw_snapshot: Any = None  # Фаза 9: полный снимок NPC state (description, title)
     # S313-легализация: game_loop пишет оба имени (snapshot — канон Фазы 9,
     # all_npcs_raw — читают легаси-потребители _project_perception);
     # observed_facts — Sprint P9, проброс фактов в DM-агент.
@@ -71,12 +67,8 @@ class PipelineContext:
     player_target_name: str = ""
     action_type: str = ""
     recent_player_actions: List[Any] = field(default_factory=list)
-    intent_resolution: Optional[IntentResolution] = (
-        None  # ADR-032: Результат шлюза воли
-    )
-    will_conflict_data: Optional[dict[str, Any]] = (
-        None  # ADR-034: Артефакты конфликта воли (для UI Спринт 26)
-    )
+    intent_resolution: Optional[IntentResolution] = None  # ADR-032: Результат шлюза воли
+    will_conflict_data: Optional[dict[str, Any]] = None  # ADR-034: Артефакты конфликта воли (для UI Спринт 26)
     # WV: факты невозможности действия (первый писатель — turn_pipeline WV-2/3;
     # читатель — dm_agent physics_validation-блок; транспорт — asdict в _as_dict).
     physics_validation: List[Dict[str, Any]] = field(default_factory=list)
@@ -96,9 +88,7 @@ class PipelineContext:
     character_filter: Dict[str, Any] = field(default_factory=dict)
 
     # ── Пространственные и социальные события ──────────────────────
-    spatial_query: Any = (
-        None  # ADR-121: SpatialQueryService — ADR-048 Authoritative Spatial Spine
-    )
+    spatial_query: Any = None  # ADR-121: SpatialQueryService — ADR-048 Authoritative Spatial Spine
     spatial_events: List[Any] = field(default_factory=list)
     scene_events: List[Any] = field(default_factory=list)
     social_propagation: List[Any] = field(default_factory=list)

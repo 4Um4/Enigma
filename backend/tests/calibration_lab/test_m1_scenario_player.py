@@ -8,6 +8,7 @@
 Зависимости: app.services.calibration.scenario_player, experiment_runner.
 Основные сущности: load_scenario, ScenarioPlayer, Scenario, ScenarioEvent.
 """
+
 from pathlib import Path
 
 import pytest
@@ -21,9 +22,7 @@ from app.services.calibration.scenario_player import (
 )
 
 _PRESETS_DIR = Path(BASE_DIR) / "config" / "calibration" / "test_presets"
-_SCENARIO = (
-    Path(BASE_DIR) / "config" / "calibration" / "scenarios" / "trust_probe_v1.yaml"
-)
+_SCENARIO = Path(BASE_DIR) / "config" / "calibration" / "scenarios" / "trust_probe_v1.yaml"
 _TRUST_KEY = "maid_lusya→player"
 
 
@@ -147,11 +146,7 @@ def test_poll_fires_exactly_on_scheduled_tick():
 def test_blackmail_secret_in_payload():
     scenario = Scenario(
         scenario_id="t",
-        events=(
-            ScenarioEvent(
-                tick=1, action="BLACKMAIL", target="npc_a", secret_id="sec_1"
-            ),
-        ),
+        events=(ScenarioEvent(tick=1, action="BLACKMAIL", target="npc_a", secret_id="sec_1"),),
     )
     fired = ScenarioPlayer(scenario).poll(1)
     assert fired[0].payload["secret_id"] == "sec_1"
@@ -175,9 +170,7 @@ def test_scenario_player_is_not_second_orchestrator():
         "process_action",
         "delta_buffer",
     ):
-        assert token not in source, (
-            f"ScenarioPlayer касается '{token}' — второй оркестратор (правило M1)"
-        )
+        assert token not in source, f"ScenarioPlayer касается '{token}' — второй оркестратор (правило M1)"
 
 
 # ── Сквозная интеграция (суперсессия test_m1_trust_intervention.py) ────
@@ -201,13 +194,9 @@ def test_scenario_help_raises_trust_and_clean_statuses():
     try:
         for _ in range(10):
             state = runner.step(1)
-        before = float(
-            state.get("relationships", {}).get(_TRUST_KEY, {}).get("trust", 0.0)
-        )
+        before = float(state.get("relationships", {}).get(_TRUST_KEY, {}).get("trust", 0.0))
         state = runner.step(1)  # тик 11: scripted HELP
-        after = float(
-            state.get("relationships", {}).get(_TRUST_KEY, {}).get("trust", 0.0)
-        )
+        after = float(state.get("relationships", {}).get(_TRUST_KEY, {}).get("trust", 0.0))
         assert after > before, f"сценарий не изменил SSOT: {before} -> {after}"
     finally:
         result = runner.stop()
@@ -251,6 +240,4 @@ def test_scenario_replay_identity():
     _, result_1 = _run_session(14)
     _, result_2 = _run_session(14)
     assert result_1.scenario_events == result_2.scenario_events
-    assert _kernel_view(result_1.final_npc_state) == _kernel_view(
-        result_2.final_npc_state
-    )
+    assert _kernel_view(result_1.final_npc_state) == _kernel_view(result_2.final_npc_state)

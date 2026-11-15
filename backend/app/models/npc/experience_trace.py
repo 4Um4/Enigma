@@ -13,8 +13,9 @@ from typing import Optional, Tuple
 
 class TraceSource(str, Enum):
     """Происхождение опыта — определяет доверие и наследование."""
-    PERCEPTION = "perception"      # NPC воспринял сам (услышал/увидел)
-    TESTIMONY = "testimony"        # услышал от другого NPC (source_id обязателен)
+
+    PERCEPTION = "perception"  # NPC воспринял сам (услышал/увидел)
+    TESTIMONY = "testimony"  # услышал от другого NPC (source_id обязателен)
     INTROSPECTION = "introspection"  # собственное действие/состояние
 
 
@@ -31,21 +32,21 @@ class ExperienceTrace:
     """
 
     # Участники
-    actor_id: str                    # кто совершил событие
-    owner_id: str                    # чей опыт (интерпретатор)
-    source_id: str                   # откуда owner знает (см. TraceSource)
+    actor_id: str  # кто совершил событие
+    owner_id: str  # чей опыт (интерпретатор)
+    source_id: str  # откуда owner знает (см. TraceSource)
     source_type: TraceSource
 
     # Ссылка на эпизод — идемпотентность по (content_reference, owner_id)
-    content_reference: str           # EventMemory.id (mem_id)
+    content_reference: str  # EventMemory.id (mem_id)
 
     # Сигналы переживания — ПРОЕКЦИИ, заполняются резолвером E2.
     # E1: остаются дефолтами; diagnostic resolver может заполнять
     # с пометкой diagnostic=True (не production-контракт).
     meaning: Optional[str] = None
-    valence: float = 0.0             # [-1, +1]
-    arousal: float = 0.0             # [0, 1]
-    novelty: float = 0.0             # [0, 1]
+    valence: float = 0.0  # [-1, +1]
+    arousal: float = 0.0  # [0, 1]
+    novelty: float = 0.0  # [0, 1]
 
     # Релевантности по внутренним системам — гейты дельт, не суммы
     personal_relevance: float = 0.0
@@ -54,14 +55,14 @@ class ExperienceTrace:
     belief_relevance: float = 0.0
 
     # Доверие
-    confidence: float = 0.5          # субъективная уверенность owner'а
+    confidence: float = 0.5  # субъективная уверенность owner'а
     retrieval_strength: float = 0.5  # доступность (растёт от припоминаний,
     #                                 # НЕ от повторных припоминаний того же
     #                                 # источника — см. E1.2 замок)
 
     # Метаданные
     timestamp: int = 0
-    diagnostic: bool = False         # True = заполнен диагност. резолвером
+    diagnostic: bool = False  # True = заполнен диагност. резолвером
 
     # Аппликаторы дельт (idempotency): перечень уже применённых дельт
     applied_consumers: Tuple[str, ...] = ()

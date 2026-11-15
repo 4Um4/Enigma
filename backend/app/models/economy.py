@@ -222,11 +222,7 @@ class Need:
     @property
     def effective_decay_rate(self) -> float:
         """Возвращает decay_rate: индивидуальный или дефолтный для типа."""
-        return (
-            self.decay_rate
-            if self.decay_rate > 0
-            else NEED_DECAY_RATES.get(self.need_type, 0.01)
-        )
+        return self.decay_rate if self.decay_rate > 0 else NEED_DECAY_RATES.get(self.need_type, 0.01)
 
     @property
     def effective_urgency(self) -> float:
@@ -307,12 +303,8 @@ class EconomicProfile:
 
     # ── РЕСУРСЫ ──
     gold: float = 0.0  # Деньги
-    goods: Dict[str, float] = field(
-        default_factory=dict
-    )  # Личные запасы: {"food": 5, "ale": 20}
-    stock_for_sale: Dict[str, float] = field(
-        default_factory=dict
-    )  # Товар на продажу: тавернщик продаёт из этого
+    goods: Dict[str, float] = field(default_factory=dict)  # Личные запасы: {"food": 5, "ale": 20}
+    stock_for_sale: Dict[str, float] = field(default_factory=dict)  # Товар на продажу: тавернщик продаёт из этого
 
     # ── ДОХОДЫ ──
     # Источник → сумма за тик (мирной жизни)
@@ -362,10 +354,7 @@ class EconomicProfile:
         Общая стоимость: золото + оценочная стоимость предметов.
         Используется для расчёта wealth_level и кредитоспособности.
         """
-        goods_value = sum(
-            count * GOODS_BASE_PRICES.get(good_id, 0.1)
-            for good_id, count in self.goods.items()
-        )
+        goods_value = sum(count * GOODS_BASE_PRICES.get(good_id, 0.1) for good_id, count in self.goods.items())
         return self.gold + goods_value
 
     def can_afford(self, amount: float) -> bool:
@@ -472,9 +461,7 @@ class EconomicProfile:
         if urgency_modifier > 0.6:
             urgency_factor = 1.0 - (urgency_modifier - 0.6) * 0.3
 
-        final_price = (
-            base * inflation_factor * local_factor * trust_factor * urgency_factor
-        )
+        final_price = base * inflation_factor * local_factor * trust_factor * urgency_factor
         return round(final_price, 2)
 
     def record_transaction(self, tx: Transaction) -> None:
@@ -509,9 +496,7 @@ class EconomicProfile:
                 base_urgency=need.base_urgency,
                 budget_share=need.budget_share,
                 skill_required=need.skill_required,
-                neglected_ticks=0
-                if need.need_type == need_type
-                else need.neglected_ticks,
+                neglected_ticks=0 if need.need_type == need_type else need.neglected_ticks,
                 decay_rate=need.decay_rate,
             )
             for need in self.base_needs

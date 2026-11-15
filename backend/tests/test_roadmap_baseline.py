@@ -78,9 +78,7 @@ def test_t0_b_resource_resolver_broken_links():
     assert rr_path.is_file(), f"resource_resolver.py missing: {rr_path}"
 
     # Загрузка модуля напрямую (без __init__.py пакета)
-    spec = importlib.util.spec_from_file_location(
-        "_roadmap_baseline_resource_resolver", rr_path
-    )
+    spec = importlib.util.spec_from_file_location("_roadmap_baseline_resource_resolver", rr_path)
     assert spec is not None and spec.loader is not None, "spec_from_file_location failed"
     rr_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(rr_module)
@@ -100,9 +98,7 @@ def test_t0_b_resource_resolver_broken_links():
     fixed = resolver.resolve("текстуры/Pers/Люся")
     assert fixed is not None, "Expected path for 'текстуры/Pers/Люся'"
     assert fixed.is_file(), f"Resolved path does not exist: {fixed}"
-    assert "текстуры" in str(fixed).replace("\\", "/"), (
-        f"Path should contain 'текстуры': {fixed}"
-    )
+    assert "текстуры" in str(fixed).replace("\\", "/"), f"Path should contain 'текстуры': {fixed}"
 
 
 # =============================================================================
@@ -128,9 +124,7 @@ def test_t0_c_tavern_footprint_violations(capsys):
     Связь ROADMAP: B-03 (миграция), B-07 (инвариант), B-08 (гетерогенность),
                    C-P1, P1-03 (нормализация данных).
     """
-    tavern_path = (
-        _FRONTEND / "map_editor" / "campaigns" / "Open_road" / "locations" / "tavern.json"
-    )
+    tavern_path = _FRONTEND / "map_editor" / "campaigns" / "Open_road" / "locations" / "tavern.json"
     data = json.loads(tavern_path.read_text(encoding="utf-8"))
 
     origin_x = float(data["origin"]["x"])
@@ -157,21 +151,25 @@ def test_t0_c_tavern_footprint_violations(capsys):
 
     # player_spawn
     if data.get("player_spawn"):
-        coords.append((
-            "player_spawn",
-            float(data["player_spawn"]["x"]),
-            float(data["player_spawn"]["y"]),
-        ))
+        coords.append(
+            (
+                "player_spawn",
+                float(data["player_spawn"]["x"]),
+                float(data["player_spawn"]["y"]),
+            )
+        )
 
     # npcs[i].position
     for i, npc in enumerate(data.get("npcs", [])):
         pos = npc.get("position")
         if pos:
-            coords.append((
-                f"npcs[{i}].position ({npc.get('ref_id', '?')})",
-                float(pos["x"]),
-                float(pos["y"]),
-            ))
+            coords.append(
+                (
+                    f"npcs[{i}].position ({npc.get('ref_id', '?')})",
+                    float(pos["x"]),
+                    float(pos["y"]),
+                )
+            )
 
     # nodes (dict node_id → {x, y, ...})
     nodes = data.get("nodes", {})
@@ -191,11 +189,13 @@ def test_t0_c_tavern_footprint_violations(capsys):
     for i, o in enumerate(data.get("objects", [])):
         pos = o.get("position")
         if pos:
-            coords.append((
-                f"objects[{i}].position",
-                float(pos["x"]),
-                float(pos["y"]),
-            ))
+            coords.append(
+                (
+                    f"objects[{i}].position",
+                    float(pos["x"]),
+                    float(pos["y"]),
+                )
+            )
 
     # rooms[i] — rect: 2 угловые точки
     for i, r in enumerate(data.get("rooms", [])):
@@ -225,21 +225,19 @@ def test_t0_c_tavern_footprint_violations(capsys):
 
     in_world_count = sum(1 for _, x, y in coords if in_world(x, y))
     in_local_count = sum(1 for _, x, y in coords if in_local(x, y))
-    out_of_both = sum(
-        1 for _, x, y in coords if not in_world(x, y) and not in_local(x, y)
-    )
+    out_of_both = sum(1 for _, x, y in coords if not in_world(x, y) and not in_local(x, y))
 
     # Логирование эталона (capsys перехватывает; -s показывает)
-    print(f"\n[T0-c] tavern.json footprint analysis:")
+    print("\n[T0-c] tavern.json footprint analysis:")
     print(f"  global_coords: {data.get('global_coords')}")
     print(f"  origin: ({origin_x}, {origin_y})")
     print(f"  size:   {size_w} x {size_h}")
     print(f"  world footprint: [{fx_min}, {fx_max}] x [{fy_min}, {fy_max}]")
     print(f"  local footprint: [{lx_min}, {lx_max}] x [{ly_min}, {ly_max}]")
     print(f"  total coord fields: {total}")
-    print(f"  in world footprint: {in_world_count} ({100*in_world_count/total:.1f}%)")
-    print(f"  in local footprint: {in_local_count} ({100*in_local_count/total:.1f}%)")
-    print(f"  out of both:        {out_of_both} ({100*out_of_both/total:.1f}%)")
+    print(f"  in world footprint: {in_world_count} ({100 * in_world_count / total:.1f}%)")
+    print(f"  in local footprint: {in_local_count} ({100 * in_local_count / total:.1f}%)")
+    print(f"  out of both:        {out_of_both} ({100 * out_of_both / total:.1f}%)")
 
     # КОНТРАКТ ТЕСТА: фиксация POST-P1-03 состояния (W1 baseline)
     # После P1-03 (нормализация в мировой фрейм): все координатные поля мировые.
@@ -287,14 +285,7 @@ def test_t0_d_find_chunks_boundary(capsys):
     )
 
     # Загрузка compiled-артефакта напрямую (без тяжёлой инициализации)
-    sr_path = (
-        _FRONTEND
-        / "map_editor"
-        / "campaigns"
-        / "Open_road"
-        / "compiled"
-        / "spatial_registry.json"
-    )
+    sr_path = _FRONTEND / "map_editor" / "campaigns" / "Open_road" / "compiled" / "spatial_registry.json"
     data = json.loads(sr_path.read_text(encoding="utf-8"))
 
     chunks = [
@@ -355,7 +346,7 @@ def test_t0_d_find_chunks_boundary(capsys):
     # Float gap диагностика
     float_gap = cg_chunk.origin_x - tv_right
 
-    print(f"\n[T0-d] find_chunks on city_gate/tavern boundary (y=10.0):")
+    print("\n[T0-d] find_chunks on city_gate/tavern boundary (y=10.0):")
     print(f"  cg_left   = {cg_chunk.origin_x!r}")
     print(f"  tv_right  = {tv_right!r}")
     print(f"  float gap = {float_gap!r}  (cg_left - tv_right)")
@@ -366,10 +357,10 @@ def test_t0_d_find_chunks_boundary(capsys):
     print(f"  find_chunks(cg_left, 10.0)       = {ids_at_cg_left}")
     print(f"  find_chunks(tv_right, 10.0)      = {ids_at_tv_right}")
     print()
-    print(f"  B-09 theoretical risk: if cg_left == tv_right (float-equal),")
-    print(f"  result would be [city_gate, tavern] (artifact order).")
-    print(f"  Current reality: float gap → single-chunk everywhere.")
-    print(f"  P2-01 (D.2 rule) applies only when multi-chunk occurs.")
+    print("  B-09 theoretical risk: if cg_left == tv_right (float-equal),")
+    print("  result would be [city_gate, tavern] (artifact order).")
+    print("  Current reality: float gap → single-chunk everywhere.")
+    print("  P2-01 (D.2 rule) applies only when multi-chunk occurs.")
 
     # === КОНТРАКТ ТЕСТА: фиксация РЕАЛЬНОГО поведения ===
 
@@ -388,28 +379,22 @@ def test_t0_d_find_chunks_boundary(capsys):
 
     # (3) На точном cg_left — только city_gate (т.к. cg_left > tv_right → not in tavern)
     assert ids_at_cg_left == ["city_gate"], (
-        f"Expected ['city_gate'] at (cg_left, 10.0) — cg_left > tv_right → not in tavern. "
-        f"Got {ids_at_cg_left}."
+        f"Expected ['city_gate'] at (cg_left, 10.0) — cg_left > tv_right → not in tavern. Got {ids_at_cg_left}."
     )
 
     # (4) На точном tv_right — только tavern (т.к. tv_right < cg_left → not in city_gate)
     assert ids_at_tv_right == ["tavern"], (
-        f"Expected ['tavern'] at (tv_right, 10.0) — tv_right < cg_left → not in city_gate. "
-        f"Got {ids_at_tv_right}."
+        f"Expected ['tavern'] at (tv_right, 10.0) — tv_right < cg_left → not in city_gate. Got {ids_at_tv_right}."
     )
 
     # (5) НИ ОДНА точка не даёт multi-chunk — это и есть baseline
-    multi_chunk_observed = any(
-        len(ids) > 1 for ids in [ids_rounded, ids_at_cg_left, ids_at_tv_right]
-    )
+    multi_chunk_observed = any(len(ids) > 1 for ids in [ids_rounded, ids_at_cg_left, ids_at_tv_right])
     assert not multi_chunk_observed, (
-        f"Multi-chunk observed — B-09 reproduced. "
-        f"Update T0-d baseline to reflect new behavior."
+        "Multi-chunk observed — B-09 reproduced. Update T0-d baseline to reflect new behavior."
     )
 
     # (6) Порядок артефакта: [city_gate, market_square, tavern] (как в compiled JSON)
     artifact_order = [c.location_id for c in chunks]
     assert artifact_order == ["city_gate", "market_square", "tavern"], (
-        f"Artifact order changed: {artifact_order}. "
-        f"This affects [0]-selection in 4 consumers (B-09)."
+        f"Artifact order changed: {artifact_order}. This affects [0]-selection in 4 consumers (B-09)."
     )

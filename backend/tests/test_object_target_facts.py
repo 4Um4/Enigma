@@ -24,11 +24,21 @@ class _Snap:
 
 def _wo(oid: str, arch: str, x: float, y: float) -> Dict[str, Any]:
     return {
-        "object_id": oid, "archetype": arch, "location_id": "tavern",
-        "position": [x, y], "state": "AVAILABLE", "carrier_mode": "FREE",
-        "damage": 0.0, "holder": None, "container_id": None,
-        "supported_by": None, "attachment": None, "occupancy": None,
-        "used_by": None, "ownership": None, "interaction_history_ref": None,
+        "object_id": oid,
+        "archetype": arch,
+        "location_id": "tavern",
+        "position": [x, y],
+        "state": "AVAILABLE",
+        "carrier_mode": "FREE",
+        "damage": 0.0,
+        "holder": None,
+        "container_id": None,
+        "supported_by": None,
+        "attachment": None,
+        "occupancy": None,
+        "used_by": None,
+        "ownership": None,
+        "interaction_history_ref": None,
     }
 
 
@@ -39,8 +49,7 @@ def _npc(x: float, y: float) -> Dict[str, Any]:
 class TestDeterministicSelection:
     def test_nearest_object_selected(self):
         snap = _Snap(
-            {"chair_far": _wo("chair_far", "chair", 20.0, 20.0),
-             "chair_near": _wo("chair_near", "chair", 8.3, 12.9)},
+            {"chair_far": _wo("chair_far", "chair", 20.0, 20.0), "chair_near": _wo("chair_near", "chair", 8.3, 12.9)},
             {"thief_shadow": _npc(8.1, 13.0)},
         )
         facts = compute_object_target_facts(snap, ("thief_shadow",), "tavern")
@@ -48,8 +57,7 @@ class TestDeterministicSelection:
 
     def test_lexicographic_tie_break(self):
         snap = _Snap(
-            {"chair_b": _wo("chair_b", "chair", 8.4, 13.1),
-             "chair_a": _wo("chair_a", "chair", 8.4, 13.1)},
+            {"chair_b": _wo("chair_b", "chair", 8.4, 13.1), "chair_a": _wo("chair_a", "chair", 8.4, 13.1)},
             {"thief_shadow": _npc(8.1, 13.0)},
         )
         facts = compute_object_target_facts(snap, ("thief_shadow",), "tavern")

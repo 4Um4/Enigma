@@ -17,9 +17,7 @@ logger = logging.getLogger(__name__)
 # ── Подфункции init_scene_state ───────────────────────────────────────
 
 
-def _resolve_initial_time(
-    preserved_game_time: float | None, campaign_state: Any
-) -> str:
+def _resolve_initial_time(preserved_game_time: float | None, campaign_state: Any) -> str:
     """Определяет время суток для новой сцены.
     Приоритет: preserved_game_time (аккумулирует дни) > campaign_state > 07:00.
     """
@@ -67,9 +65,7 @@ def _materialize_npc_inventory(loop: Any, scene_state: dict) -> None:
             logger.warning(f"[GAME_LOOP] Ошибка материализации инвентаря {npc_id}: {e}")
 
 
-def _update_player_position(
-    scene_state: dict, player_position: tuple[float, float] | None
-) -> None:
+def _update_player_position(scene_state: dict, player_position: tuple[float, float] | None) -> None:
     """ADR-048 Phase 3: Позиция игрока пишется ТОЛЬКО в npc_positions.player."""
     node = scene_state.setdefault("npc_positions", {}).setdefault("player", {})
     if player_position is None:
@@ -104,9 +100,7 @@ def _sync_game_time(scene_state: dict, shared_context: Any) -> None:
         shared_context.game_time_seconds = _scene_time
 
 
-def _inject_spatial_service(
-    life_engine: Any, campaign_id: str, scene_state: dict
-) -> None:
+def _inject_spatial_service(life_engine: Any, campaign_id: str, scene_state: dict) -> None:
     """Инжектирует SpatialService в LifeEngine для семантической навигации."""
 
     loc_id = scene_state.get("location_id", "")
@@ -123,9 +117,7 @@ def _inject_spatial_service(
         life_engine.set_spatial_service(svc)
 
 
-def _reconcile_elapsed_time(
-    life_engine: Any, campaign_id: str, scene_state: dict
-) -> None:
+def _reconcile_elapsed_time(life_engine: Any, campaign_id: str, scene_state: dict) -> None:
     """ADR-047: Аналитический декэй вместо TICK_CATCHUP (если >60с реального времени)."""
     last_save_ts = scene_state.get("last_save_real_time", 0)
     elapsed_real = _time.time() - last_save_ts if last_save_ts else 0  # §15.2: REAL_TIME_BRIDGE (ADR-047)
@@ -157,9 +149,7 @@ def _apply_life_changes(
         {
             c.target
             for c in life_changes
-            if c.type.value == "npc_position"
-            and c.field == "location"
-            and c.value == location
+            if c.type.value == "npc_position" and c.field == "location" and c.value == location
         }
     )
     if arrivals:
@@ -182,6 +172,7 @@ def _run_life_engine_tick(
     _reconcile_elapsed_time(engine, campaign_id, scene_state)
 
     from app.services.tick_utils import get_npc_runtime_path
+
     _runtime_path = get_npc_runtime_path(campaign_id)
 
     life_changes, life_intents = engine.tick(
@@ -219,9 +210,7 @@ def _check_economy_tracker(loop: Any, campaign_id: str) -> None:
     )
     loop._svc.economy_tracker.reset_daily()
     if inc_sat or soc_sat:
-        logger.warning(
-            f"[ECO_TRACKER] day_end: income={inc_sat} social={soc_sat} satisfied"
-        )
+        logger.warning(f"[ECO_TRACKER] day_end: income={inc_sat} social={soc_sat} satisfied")
 
 
 def _load_or_create_scene(
@@ -239,9 +228,7 @@ def _load_or_create_scene(
 
     # Новая сцена — не сбрасываем время (БАГ H FIX)
     time_of_day = _resolve_initial_time(preserved_game_time, campaign_state)
-    scene_state = loop.scene_manager.initialize_scene(
-        campaign_id, location, time_of_day
-    )
+    scene_state = loop.scene_manager.initialize_scene(campaign_id, location, time_of_day)
 
     # S139 FIX: Если preserved_game_time == 0 (новая игра), не перетираем время,
     # которое могло быть установлено из shared_context (43200) в initialize_scene.
@@ -286,9 +273,7 @@ def _migrate_and_bind_v2_relationships(loop: Any, campaign_id: str, scene_state:
     _saves_dir = str(getattr(loop, "_saves_dir", ""))  # noqa: ENIGMA002
     if _saves_dir:
         try:
-            _report = RelationshipStateStore.migrate_legacy_relationships(
-                scene_state, campaign_id, _saves_dir
-            )
+            _report = RelationshipStateStore.migrate_legacy_relationships(scene_state, campaign_id, _saves_dir)
             if not _report.get("skipped") and _report.get("migrated_pairs"):
                 logger.info(f"[M1b.4.2] legacy→v2 transform: {_report}")
                 # RAM-GO: transform лёг в сцену — поднимаем в RAM-носитель
@@ -395,19 +380,14 @@ def _resolve_location_from_save(loop: Any, campaign_id: str) -> str:
 
 def _enrich_walls_from_editor(scene_state: dict, editor_data: dict) -> list:
     """Извлекает стены и объекты из editor JSON, возвращает список стен."""
-    walls = [
-        {"x1": w["x1"], "y1": w["y1"], "x2": w["x2"], "y2": w["y2"]}
-        for w in editor_data.get("walls", [])
-    ]
+    walls = [{"x1": w["x1"], "y1": w["y1"], "x2": w["x2"], "y2": w["y2"]} for w in editor_data.get("walls", [])]
     for i, obj in enumerate(editor_data.get("objects", [])):
         obj_id = obj.get("id", f"obj_{i}")
         if obj_id not in scene_state.get("objects", {}):
             scene_state.setdefault("objects", {})[obj_id] = {
                 "name": obj.get("name", obj.get("type", "объект")),
                 "type": obj.get("type", ""),
-                "state": obj.get("properties", {}).get("open", True)
-                and "intact"
-                or "closed",
+                "state": obj.get("properties", {}).get("open", True) and "intact" or "closed",
                 "position": obj.get("position", {}),
                 "size": obj.get("size", {}),
                 "interactable": True,
@@ -449,11 +429,7 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
 
     # Сцена не существует — полная инициализация
     if scene_state is None:
-        time_of_day = (
-            campaign_state.metadata.get("time_of_day", "12:00")
-            if campaign_state
-            else "12:00"
-        )
+        time_of_day = campaign_state.metadata.get("time_of_day", "12:00") if campaign_state else "12:00"
         _fresh = cast(dict, loop.scene_manager.initialize_scene(campaign_id, location, time_of_day))
         # F3 (S292): фабрика рождает None — heal до первого idle-тика
         return _ensure_player_topology(loop, campaign_id, _fresh)
@@ -477,4 +453,3 @@ def ensure_scene_initialized(loop: Any, campaign_id: str) -> dict:
             loop.scene_manager.save_scene_state(campaign_id, scene_state)
 
     return scene_state
-

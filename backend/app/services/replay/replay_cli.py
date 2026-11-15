@@ -5,6 +5,7 @@ path: /project/backend/app/services/replay/replay_cli.py
 Зависимости: app.services.replay.replay_store, app.services.replay.replay_player
 Основные сущности: CLI entry point
 """
+
 import argparse
 import logging
 import os
@@ -69,6 +70,7 @@ def main() -> None:
             sys.exit(0)
         else:
             sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

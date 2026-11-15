@@ -12,6 +12,7 @@
 
 Запуск: cd backend; python -m pytest tests/micro/test_a2_self_reference.py -v
 """
+
 from __future__ import annotations
 
 import json
@@ -48,9 +49,7 @@ def _rel(target_hint, summary="связь", confidence=0.8):
         "nature": "trust",
         "valence": "positive",
     }
-    return json.dumps(
-        {"items": [{"kind": "RELATIONSHIP", "draft_payload": payload, "confidence": confidence}]}
-    )
+    return json.dumps({"items": [{"kind": "RELATIONSHIP", "draft_payload": payload, "confidence": confidence}]})
 
 
 def _normalize(raw, roster, subject_id=None):
@@ -76,9 +75,7 @@ def _entry(npc, **kw):
 
 
 def _doc(npc, entries):
-    return ChronicleDocument(
-        chronicle_id=f"c_{npc}", npc_ref=npc, entries=tuple(entries), game_start_age=100
-    )
+    return ChronicleDocument(chronicle_id=f"c_{npc}", npc_ref=npc, entries=tuple(entries), game_start_age=100)
 
 
 REG = CanonicalRegistry(
@@ -120,6 +117,7 @@ def test_erroneous_self_resolution_caught(monkeypatch):
     «Кузнец Орм») — roster exact-match не находит «Орм». monkeypatch alias registry
     чтобы тест не зависел от config/npc/individuals/orm.json."""
     from app.services.chronicle import decomposition_normalizer as mod
+
     monkeypatch.setattr(mod, "_REGISTRY_CACHE", {"орм": "blacksmith_orm"})
     items = _normalize(_rel("Орм", summary="Гильдия терпит Орма."), ROSTER, subject_id="blacksmith_orm")
     assert len(items) == 1
@@ -174,7 +172,12 @@ def test_seeder_self_relation_skip_detail():
         "blacksmith_orm",
         eid="e1",
         object_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="blacksmith_orm"),
-        payload={"summary": "Гильдия терпит Орма.", "target_hint": "Орм", "nature": "dependence", "valence": "positive"},
+        payload={
+            "summary": "Гильдия терпит Орма.",
+            "target_hint": "Орм",
+            "nature": "dependence",
+            "valence": "positive",
+        },
     )
     doc = _doc("blacksmith_orm", [e])
     seed_result, skip_reason, day, day_anomaly, skip_detail = _classify_seed_entry(e, doc, "RELATIONSHIP")
@@ -231,7 +234,12 @@ def test_no_automatic_canon_migration():
         eid="guild",
         object_id=None,
         open_questions=(),
-        payload={"summary": "Гильдия терпит Орма.", "target_hint": "Орм", "nature": "dependence", "valence": "positive"},
+        payload={
+            "summary": "Гильдия терпит Орма.",
+            "target_hint": "Орм",
+            "nature": "dependence",
+            "valence": "positive",
+        },
         ordinal=1501,
     )
     e2 = _entry(
@@ -239,7 +247,12 @@ def test_no_automatic_canon_migration():
         eid="govt",
         object_id=None,
         open_questions=(),
-        payload={"summary": "Правительство терпит Орма.", "target_hint": "Орм", "nature": "dependence", "valence": "positive"},
+        payload={
+            "summary": "Правительство терпит Орма.",
+            "target_hint": "Орм",
+            "nature": "dependence",
+            "valence": "positive",
+        },
         ordinal=1502,
     )
     e3 = _entry(
@@ -247,7 +260,12 @@ def test_no_automatic_canon_migration():
         eid="borko",
         object_id=None,
         open_questions=(),
-        payload={"summary": "Борко не имеет власти над Ормом.", "target_hint": "Орм", "nature": "dependence", "valence": "negative"},
+        payload={
+            "summary": "Борко не имеет власти над Ормом.",
+            "target_hint": "Орм",
+            "nature": "dependence",
+            "valence": "negative",
+        },
         ordinal=1700,
     )
     doc = _doc("blacksmith_orm", [e1, e2, e3])

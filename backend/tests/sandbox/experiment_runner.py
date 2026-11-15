@@ -29,6 +29,7 @@ Production-компоненты (переиспользуются, не дубл
   - ExperimentTrace / TickTrace (dataclasses)
   - test_experiment_runner.py (7 сценариев)
 """
+
 import json
 import math
 import sys
@@ -43,9 +44,11 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 # ── Trace dataclasses ───────────────────────────────────────────────────────
 
+
 @dataclass
 class TickTrace:
     """Diagnostic snapshot of a single tick."""
+
     tick_id: int = 0
     game_time: float = 0.0
     recent_dialogues: List[Dict] = field(default_factory=list)
@@ -58,6 +61,7 @@ class TickTrace:
 @dataclass
 class ExperimentTrace:
     """Full diagnostic trace of an experiment run."""
+
     experiment_id: str = ""
     config: Dict[str, Any] = field(default_factory=dict)
     pre_flight_static: Dict[str, Any] = field(default_factory=dict)
@@ -92,6 +96,7 @@ class ExperimentTrace:
 
 
 # ── ExperimentRunner ────────────────────────────────────────────────────────
+
 
 class ExperimentRunner:
     """Diagnostic harness for autonomous NPC interaction experiments.
@@ -182,6 +187,7 @@ class ExperimentRunner:
         # Hook 1: NpcTickPipeline.run (staticmethod — no self)
         try:
             from app.services.npc.npc_tick_pipeline import NpcTickPipeline
+
             _orig_run = NpcTickPipeline.run
 
             def _tap_run(*args, **kwargs):
@@ -193,15 +199,14 @@ class ExperimentRunner:
                 return _mutation
 
             NpcTickPipeline.run = staticmethod(_tap_run)
-            self._restore_hooks.append(
-                lambda: setattr(NpcTickPipeline, "run", staticmethod(_orig_run))
-            )
+            self._restore_hooks.append(lambda: setattr(NpcTickPipeline, "run", staticmethod(_orig_run)))
         except Exception as e:
             self._trace.errors.append(f"install_tap_run: {e}")
 
         # Hook 2: MovementEngine.process_intents (instance method — self)
         try:
             from app.services.spatial.movement_engine import MovementEngine
+
             _orig_pi = MovementEngine.process_intents
 
             def _tap_pi(self_engine, *args, **kwargs):
@@ -213,9 +218,7 @@ class ExperimentRunner:
                 return _changes
 
             MovementEngine.process_intents = _tap_pi
-            self._restore_hooks.append(
-                lambda: setattr(MovementEngine, "process_intents", _orig_pi)
-            )
+            self._restore_hooks.append(lambda: setattr(MovementEngine, "process_intents", _orig_pi))
         except Exception as e:
             self._trace.errors.append(f"install_tap_pi: {e}")
 
@@ -238,26 +241,30 @@ class ExperimentRunner:
 
         _ints = getattr(mutation, "movement_intents", []) or []
         for _mi in _ints:
-            _tick.movement_intents.append({
-                "tick": self._tick_counter,
-                "npc_id": getattr(_mi, "npc_id", "?"),
-                "intent": str(getattr(_mi, "intent", "?")),
-                "target": str(getattr(_mi, "target_id", "") or getattr(_mi, "target_node_id", "")),
-            })
+            _tick.movement_intents.append(
+                {
+                    "tick": self._tick_counter,
+                    "npc_id": getattr(_mi, "npc_id", "?"),
+                    "intent": str(getattr(_mi, "intent", "?")),
+                    "target": str(getattr(_mi, "target_id", "") or getattr(_mi, "target_node_id", "")),
+                }
+            )
 
     def _capture_scene_changes(self, changes: Any) -> None:
         """Capture SceneChange from MovementEngine.process_intents."""
         if not self._trace.ticks:
             return
         _tick = self._trace.ticks[-1]
-        for _ch in (changes or []):
-            _tick.scene_changes.append({
-                "tick": self._tick_counter,
-                "target": str(getattr(_ch, "target", "")),
-                "field": str(getattr(_ch, "field", "")),
-                "new_value": str(getattr(_ch, "new_value", ""))[:100],
-                "cause": str(getattr(_ch, "cause", "")),
-            })
+        for _ch in changes or []:
+            _tick.scene_changes.append(
+                {
+                    "tick": self._tick_counter,
+                    "target": str(getattr(_ch, "target", "")),
+                    "field": str(getattr(_ch, "field", "")),
+                    "new_value": str(getattr(_ch, "new_value", ""))[:100],
+                    "cause": str(getattr(_ch, "cause", "")),
+                }
+            )
 
     # ── Tick execution ──────────────────────────────────────────────────────
 
@@ -310,34 +317,28 @@ class ExperimentRunner:
             "present": True,
             "narrative_cache_count": len(_cache),
             "narrative_cache_target_ids": [
-                (m.get("target_id", "") if isinstance(m, dict) else getattr(m, "target_id", ""))
-                for m in _cache
+                (m.get("target_id", "") if isinstance(m, dict) else getattr(m, "target_id", "")) for m in _cache
             ],
             "psyche_beliefs_keys": list((_psyche.get("beliefs", {}) or {}).keys())
-                if isinstance(_psyche.get("beliefs"), dict) else [],
+            if isinstance(_psyche.get("beliefs"), dict)
+            else [],
             "affective_imprints_count": len(npc.get("affective_imprints", []) or []),
             "relationship_cache": {
-                k: {"trust": v.get("trust"), "fear": v.get("fear")}
-                for k, v in _rc.items() if isinstance(v, dict)
+                k: {"trust": v.get("trust"), "fear": v.get("fear")} for k, v in _rc.items() if isinstance(v, dict)
             },
         }
 
     def _snapshot_static(self) -> Dict[str, Any]:
         """Static path snapshot via load_npcs_merged — НЕ runtime."""
         from app.services.npc.npc_loader import load_npcs_merged
+
         npcs = load_npcs_merged()
         _by_id = {(n.get("id") or n.get("npc_id")): n for n in npcs}
-        return {
-            _id: self._snapshot_npc_dict(_by_id.get(_id))
-            for _id in self.target_npcs
-        }
+        return {_id: self._snapshot_npc_dict(_by_id.get(_id)) for _id in self.target_npcs}
 
     def _snapshot_runtime(self) -> Dict[str, Any]:
         """Runtime snapshot via harness.inspect_npc."""
-        return {
-            _id: self._snapshot_npc_dict(self._harness.inspect_npc(_id))
-            for _id in self.target_npcs
-        }
+        return {_id: self._snapshot_npc_dict(self._harness.inspect_npc(_id)) for _id in self.target_npcs}
 
     # ── Report ──────────────────────────────────────────────────────────────
 

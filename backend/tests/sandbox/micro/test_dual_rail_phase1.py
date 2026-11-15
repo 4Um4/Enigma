@@ -47,6 +47,7 @@ def _make_proposal(
         topology_version=0,
     )
 
+
 # ── Фикстуры ──────────────────────────────────────────────────────
 
 
@@ -118,9 +119,7 @@ class TestDualRailPipeline:
         # → "test/tavern" editor JSON отсутствует → svc=None → компиляция None.
         # Локальный import внутри compile() резолвит атрибут модуля-источника
         # в момент вызова — патчить источник, не потребителя.
-        self._factory_patch = patch(
-            "app.services.spatial.spatial_factory.SpatialFactory"
-        )
+        self._factory_patch = patch("app.services.spatial.spatial_factory.SpatialFactory")
         self._mock_factory = self._factory_patch.start()
         self._mock_factory.build_for_campaign = MagicMock(return_value=self.svc)
 

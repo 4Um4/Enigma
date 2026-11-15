@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_levels_contract.py
+"""path: /frontend/map_editor/tests/test_levels_contract.py
 
 Назначение: ME-1.9 autotests — levels[] multi-level contract.
     levels[] — опциональный top-level field: массив {id, label, elevation?}.
@@ -30,9 +30,7 @@ import pytest
 from data_manager import DataManager  # type: ignore[import-not-found]
 from schema_validator import validate_location  # type: ignore[import-not-found]
 
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
 
 
 @pytest.fixture

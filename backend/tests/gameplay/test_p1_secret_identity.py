@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p1_secret_identity.py
+# path: /project/backend/tests/gameplay/test_p1_secret_identity.py
 # Назначение: M1/P1 (ТЗ «Таверна тайн») — формальный гейт «впервые замкнут
 #   Truth -> NPC Knowledge»: секрет канона = EventMemory у каждого
 #   initial_holder. Критерии ТЗ-P1 + гейт Мастера после M1 (RELOAD:
@@ -13,8 +13,12 @@ from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
 from tests.gameplay.harness import TavernGameplayHarness
 
 NPCS = (
-    "maid_lusya", "guard_borko", "blacksmith_orm",
-    "merchant_goran", "tavern_keeper_tornin", "thief_shadow",
+    "maid_lusya",
+    "guard_borko",
+    "blacksmith_orm",
+    "merchant_goran",
+    "tavern_keeper_tornin",
+    "thief_shadow",
 )
 
 
@@ -41,9 +45,7 @@ def test_p1_every_holder_knows(harness):
     for sec in truth.secrets.values():
         got = sorted(nl.who_knows(sec.secret_id, states))
         exp = sorted(sec.initial_holders)
-        assert got == exp, (
-            f"P1: {sec.secret_id}: who_knows {got} != canon {exp}"
-        )
+        assert got == exp, f"P1: {sec.secret_id}: who_knows {got} != canon {exp}"
 
 
 def test_p1_holdout_and_cardinality(harness):
@@ -56,12 +58,8 @@ def test_p1_holdout_and_cardinality(harness):
                 continue
             truth = nl._canon_truth_state()
             sec = truth.secrets[sid]
-            assert st.npc_id in sec.initial_holders, (
-                f"P1: {st.npc_id} держит {sid}, не будучи holder'ом"
-            )
-    total = sum(
-        1 for st in states for m in st.narrative_cache if m.secret_id
-    )
+            assert st.npc_id in sec.initial_holders, f"P1: {st.npc_id} держит {sid}, не будучи holder'ом"
+    total = sum(1 for st in states for m in st.narrative_cache if m.secret_id)
     assert total == 25, f"P1: holder-памятей {total} != 25"
 
 
@@ -72,9 +70,9 @@ def test_p1_aa_control(harness):
     s2 = [load_l2_state_from_runtime_dict(copy.deepcopy(r)) for r in raw]
     for a, b in zip(s1, s2):
         assert a.npc_id == b.npc_id
-        assert {m.secret_id for m in a.narrative_cache} == {
-            m.secret_id for m in b.narrative_cache
-        }, f"P1 A/A: дрейф карты у {a.npc_id}"
+        assert {m.secret_id for m in a.narrative_cache} == {m.secret_id for m in b.narrative_cache}, (
+            f"P1 A/A: дрейф карты у {a.npc_id}"
+        )
 
 
 def test_p1_reload_sqlite_same_knowledge(harness):
@@ -83,12 +81,7 @@ def test_p1_reload_sqlite_same_knowledge(harness):
     memories_batch -> load_event_memories) без потери secret_id."""
     from app.services.memory.sqlite_store import SqliteMemoryStore
 
-    before = {
-        st.npc_id: sorted(
-            m.secret_id for m in st.narrative_cache if m.secret_id
-        )
-        for st in _states(harness)
-    }
+    before = {st.npc_id: sorted(m.secret_id for m in st.narrative_cache if m.secret_id) for st in _states(harness)}
     assert sum(len(v) for v in before.values()) == 25
 
     import dataclasses
@@ -100,20 +93,14 @@ def test_p1_reload_sqlite_same_knowledge(harness):
     try:
         for st in _states(harness):
             # Гейт Мастера — про канон-знание: round-trip канон-памятей
-            mems = [dataclasses.asdict(m) for m in st.narrative_cache
-                    if m.secret_id]
+            mems = [dataclasses.asdict(m) for m in st.narrative_cache if m.secret_id]
             store.save_event_memories_batch("Open_road", st.npc_id, mems)
         after = {}
         for st in _states(harness):
             rows = store.load_event_memories("Open_road", st.npc_id)
-            ids = sorted(
-                r["secret_id"] for r in rows if r.get("secret_id")
-            )
+            ids = sorted(r["secret_id"] for r in rows if r.get("secret_id"))
             after[st.npc_id] = ids
-        assert after == before, (
-            f"P1 RELOAD: SQLITE round-trip изменил карту знаний:\n"
-            f"до={before}\nпосле={after}"
-        )
+        assert after == before, f"P1 RELOAD: SQLITE round-trip изменил карту знаний:\nдо={before}\nпосле={after}"
     finally:
         store.close()
 

@@ -57,18 +57,14 @@ def compute_distance_and_los(
     """
     distance = math.hypot(player_x - entity_x, player_y - entity_y)
 
-    los_clear = is_line_of_sight_clear(
-        player_x, player_y, entity_x, entity_y, scene_state
-    )
+    los_clear = is_line_of_sight_clear(player_x, player_y, entity_x, entity_y, scene_state)
 
     blocked_by = None
     if not los_clear:
         # Определяем ЧТО именно блокирует — для UI ("за стеной" vs "за объектом")
         if is_blocked_by_wall(player_x, player_y, entity_x, entity_y, scene_state):
             blocked_by = "wall"
-        elif is_blocked_by_obstacle(
-            player_x, player_y, entity_x, entity_y, scene_state
-        ):
+        elif is_blocked_by_obstacle(player_x, player_y, entity_x, entity_y, scene_state):
             blocked_by = "obstacle"
 
     return distance, los_clear, blocked_by
@@ -87,16 +83,10 @@ def extract_spatial_data(
     entities: List[PerceivedEntity] = []
 
     # NPC из npc_positions — могут быть внутри scene_state или на верхнем уровне campaign_state
-    npc_positions = (
-        scene_state.get("npc_positions")
-        or scene_state.get("_top_level_npc_positions")
-        or {}
-    )
+    npc_positions = scene_state.get("npc_positions") or scene_state.get("_top_level_npc_positions") or {}
     for npc_id, npc_data in npc_positions.items():
         ex, ey = _entity_xy(npc_data)
-        distance, los, blocked_by = compute_distance_and_los(
-            player_x, player_y, ex, ey, scene_state
-        )
+        distance, los, blocked_by = compute_distance_and_los(player_x, player_y, ex, ey, scene_state)
         entities.append(
             PerceivedEntity(
                 entity_id=npc_id,
@@ -113,9 +103,7 @@ def extract_spatial_data(
     # Объекты из objects
     for obj_id, obj_data in scene_state.get("objects", {}).items():
         ex, ey = _entity_xy(obj_data)
-        distance, los, blocked_by = compute_distance_and_los(
-            player_x, player_y, ex, ey, scene_state
-        )
+        distance, los, blocked_by = compute_distance_and_los(player_x, player_y, ex, ey, scene_state)
         entities.append(
             PerceivedEntity(
                 entity_id=obj_id,

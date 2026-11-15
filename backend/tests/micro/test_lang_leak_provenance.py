@@ -15,7 +15,6 @@
     test_llm_text_still_gated_by_lang_leak.
 """
 
-
 from app.domain.communication import DialogueRequest, ExposureLevel
 from app.domain.execution import QueuedTask, TaskKind
 from app.services.execution.dialogue_executor import DialogueExecutor
@@ -30,9 +29,7 @@ class _ReDF2Router:
 
     def request_for_agent(self, **kwargs):
         self.calls += 1
-        raise RuntimeError(
-            "RE-D2 probe: LLM вызван из deterministic-пути (A1 нарушен)"
-        )
+        raise RuntimeError("RE-D2 probe: LLM вызван из deterministic-пути (A1 нарушен)")
 
     def _abort_generation(self) -> None:  # контракт threading.Timer
         pass
@@ -119,9 +116,6 @@ def test_llm_text_still_gated_by_lang_leak():
     artifacts = list(executor.execute(task))
 
     # Замок S292 жив: initial + reinforced retry = ровно 2 вызова.
-    assert router.calls == 2, (
-        f"LANG_LEAK-гейт ослаблен: ожидалось 2 вызова (initial+retry), "
-        f"получено {router.calls}"
-    )
+    assert router.calls == 2, f"LANG_LEAK-гейт ослаблен: ожидалось 2 вызова (initial+retry), получено {router.calls}"
     assert len(artifacts) == 1
     assert artifacts[0].success is True

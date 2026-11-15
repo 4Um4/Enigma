@@ -119,13 +119,14 @@ class WorldTickEngine:
             Intent.SPREAD_RUMOR,
             Intent.CALL_FOR_HELP,
             Intent.CHANGE_ROLE,
-            Intent.TALK, # V8-SOC-6 FIX: Разрешаем NPC инициировать разговоры
+            Intent.TALK,  # V8-SOC-6 FIX: Разрешаем NPC инициировать разговоры
         }
 
         for npc_id, state_l2, profile_l0 in npc_data:
             # FIX: Гарантируем, что у нас NPCState для DecisionHub, даже если передали dict
             from app.models.npc_state import NPCState
             from app.services.npc.npc_loader import load_l2_state_from_runtime_dict
+
             _npc_state = None
             if isinstance(state_l2, dict):
                 try:
@@ -158,9 +159,7 @@ class WorldTickEngine:
             if isinstance(_npc_dict, dict):
                 _cur_activity = _npc_dict.get("routine", {}).get("current", "")
             if "sleeping" in _cur_activity or "resting" in _cur_activity:
-                logger.debug(
-                    f"[WORLD_TICK] {npc_id}: skipping proactive (routine={_cur_activity!r})"
-                )
+                logger.debug(f"[WORLD_TICK] {npc_id}: skipping proactive (routine={_cur_activity!r})")
                 continue
 
             # ADR-O-208: effective_drives — обязательный аргумент DecisionHub.compute()

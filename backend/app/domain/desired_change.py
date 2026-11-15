@@ -44,11 +44,11 @@ class DesiredChange:
     за DecisionHub через Modifier Contract (CS2).
     """
 
-    who: str                          # агент-инициатор
-    reason: str                       # REASON_* — почему возникло
-    state_type: str                   # STATE_TYPE_* — тип изменения
-    target_of_change: str             # чьё состояние должно измениться
-    addressee: Optional[str]          # на кого оказывается воздействие
+    who: str  # агент-инициатор
+    reason: str  # REASON_* — почему возникло
+    state_type: str  # STATE_TYPE_* — тип изменения
+    target_of_change: str  # чьё состояние должно измениться
+    addressee: Optional[str]  # на кого оказывается воздействие
     method_weights: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

@@ -4,6 +4,7 @@ path: /project/backend/app/services/npc/dream_generation_service.py
 Зависимости: app.domain.body
 Основные сущности: DreamGenerationService
 """
+
 from __future__ import annotations
 
 import logging
@@ -73,5 +74,5 @@ class DreamGenerationService:
             tick=tick,
             raw_stimulus=_raw_stimulus,
             distorted_perception=_distorted_perception,
-            salience=min(1.0, _dream_pressure)
+            salience=min(1.0, _dream_pressure),
         )

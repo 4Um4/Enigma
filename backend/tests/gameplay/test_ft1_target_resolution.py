@@ -54,8 +54,7 @@ def test_ft1_cyrillic_control():
         _after = _target_of(_h)
         print(f"\n[FT1] cyrillic control: selected={_after}")
         assert _after == "maid_lusya", (
-            f"FT1-CTRL: кириллический матч не сработал ({_after}) — "
-            f"проверь name_forms-контексты в production-цепочке"
+            f"FT1-CTRL: кириллический матч не сработал ({_after}) — проверь name_forms-контексты в production-цепочке"
         )
     finally:
         _h.dispose()
@@ -69,8 +68,6 @@ def test_ft1_id_symmetry():
         _h.player_action("[обращаясь к tavern_keeper_tornin] привет")
         _after = _target_of(_h)
         print(f"\n[FT1] id symmetry: requested=tavern_keeper_tornin selected={_after}")
-        assert _after == "tavern_keeper_tornin", (
-            f"FT1-SYM: симметричная подмена: requested=tornin, selected={_after}"
-        )
+        assert _after == "tavern_keeper_tornin", f"FT1-SYM: симметричная подмена: requested=tornin, selected={_after}"
     finally:
         _h.dispose()

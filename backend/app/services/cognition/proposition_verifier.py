@@ -19,6 +19,7 @@ P5-B Master directive:
 Зависимости: app.infrastructure.llm (LLMClient)
 Основные сущности: PropositionVerifier, PassthroughVerifier (test-only)
 """
+
 from __future__ import annotations
 
 import logging
@@ -106,13 +107,16 @@ class PropositionVerifier:
         except TimeoutError as exc:
             logger.warning(
                 "verify: LLM timeout (%.1fs) — fail-closed=False. prop=%s err=%s",
-                self._timeout, proposition, exc,
+                self._timeout,
+                proposition,
+                exc,
             )
             return False
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "verify: LLM call failed — fail-closed=False. prop=%s err=%s",
-                proposition, exc,
+                proposition,
+                exc,
             )
             return False
 
@@ -120,20 +124,24 @@ class PropositionVerifier:
         if any(verdict.startswith(tok) for tok in self.NO_TOKENS):
             logger.info(
                 "verify → NO (rejected). prop=%s text_head=%r raw=%r",
-                proposition, text[:160], raw,
+                proposition,
+                text[:160],
+                raw,
             )
             return False
         confirmed = any(verdict.startswith(tok) for tok in self.YES_TOKENS)
         if confirmed:
             logger.info(
                 "verify → YES (confirmed). prop=%s text_head=%r",
-                proposition, text[:160],
+                proposition,
+                text[:160],
             )
         else:
             logger.warning(
-                "verify → AMBIGUOUS verdict (fail-closed=False). "
-                "prop=%s raw=%r text_head=%r",
-                proposition, raw, text[:160],
+                "verify → AMBIGUOUS verdict (fail-closed=False). prop=%s raw=%r text_head=%r",
+                proposition,
+                raw,
+                text[:160],
             )
         return confirmed
 

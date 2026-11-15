@@ -28,7 +28,9 @@ def suppressed_npc() -> dict:
     """NPC с захваченным вниманием (recent_directive.interrupts_routine=True). Имеет активное расписание."""
     return {
         "id": "worker_01",
-        "psyche": {"life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
+        "psyche": {
+            "life_project": "wealth_creator"
+        },  # P7-FIX: Без этого life_project=survival, и working заменяется на resting
         "perceptual_kernel": {
             "threat_gradient": 0.8,
             "recent_directive": {
@@ -52,7 +54,9 @@ def free_npc() -> dict:
     """NPC со свободным вниманием (без recent_directive). Имеет активное расписание."""
     return {
         "id": "worker_02",
-        "psyche": {"life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
+        "psyche": {
+            "life_project": "wealth_creator"
+        },  # P7-FIX: Без этого life_project=survival, и working заменяется на resting
         "perceptual_kernel": {
             "threat_gradient": 0.1,
             "recent_directive": None,  # Нет захвата внимания
@@ -87,9 +91,7 @@ def test_cognitive_override_guard_blocks_schedule(engine, suppressed_npc, free_n
     # Аудит: Свободный NPC должен создать SceneChange для перехода на работу
     # Актуализация: «начать работу» = SceneChange (same-loc) ИЛИ
     # relocation-intent (cross-loc, forge ≠ home → changes=[]).
-    assert (len(changes_free) > 0) or (intent_free is not None), (
-        "Свободный NPC должен начать работу по расписанию"
-    )
+    assert (len(changes_free) > 0) or (intent_free is not None), "Свободный NPC должен начать работу по расписанию"
 
     print("\n--- SCHEDULE OVERRIDE TRACE ---")
     print(f"Worker 01 (suppressed=0.85): changes={changes_suppressed} (EXPECTED: [])")

@@ -1,4 +1,3 @@
-﻿
 # -*- coding: utf-8 -*-
 """
 Тесты Impact Propagation Engine (Violence Simulation).
@@ -221,4 +220,3 @@ class TestDeterminism:
         assert d1.pain_delta == d2.pain_delta
         assert d1.blood_loss_delta == d2.blood_loss_delta
         assert d1.shock_impulse == d2.shock_impulse
-

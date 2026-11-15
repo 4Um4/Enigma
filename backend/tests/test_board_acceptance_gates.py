@@ -17,6 +17,7 @@ path: /project/backend/tests/test_board_acceptance_gates.py
 
 Запуск: cd backend; python -m pytest tests/test_board_acceptance_gates.py -v; cd ..
 """
+
 import json
 import sys
 from pathlib import Path
@@ -42,9 +43,11 @@ CAMPAIGN = "board_gates_test"
 
 # ══ G1: ROUND-TRIP через REST ═══════════════════════════════════
 
+
 def test_g1_roundtrip_full_cycle_via_rest(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        routes_board, "player_board_service",
+        routes_board,
+        "player_board_service",
         routes_board.PlayerBoardService(root=str(tmp_path)),
     )
     _app = FastAPI()
@@ -58,18 +61,15 @@ def test_g1_roundtrip_full_cycle_via_rest(tmp_path, monkeypatch):
     ).json()["hypothesis_id"]
     _c1 = client.post(
         f"/api/board/{CAMPAIGN}/cards",
-        json={"op": "add", "ref_type": "journal", "ref_id": "evt-001",
-              "pos": [10.0, 20.0]},
+        json={"op": "add", "ref_type": "journal", "ref_id": "evt-001", "pos": [10.0, 20.0]},
     ).json()["card_id"]
     _c2 = client.post(
         f"/api/board/{CAMPAIGN}/cards",
-        json={"op": "add", "ref_type": "hypothesis", "ref_id": _hyp,
-              "pos": [100.0, 200.0]},
+        json={"op": "add", "ref_type": "hypothesis", "ref_id": _hyp, "pos": [100.0, 200.0]},
     ).json()["card_id"]
     client.post(
         f"/api/board/{CAMPAIGN}/links",
-        json={"op": "link", "from": _c1, "to": _c2,
-              "kind": "PLAYER_SUPPORTS"},
+        json={"op": "link", "from": _c1, "to": _c2, "kind": "PLAYER_SUPPORTS"},
     )
     client.post(
         f"/api/board/{CAMPAIGN}/cards",
@@ -83,16 +83,17 @@ def test_g1_roundtrip_full_cycle_via_rest(tmp_path, monkeypatch):
     assert _before == _after
 
     # Файл на диске валиден и завершён
-    _raw = json.loads((tmp_path / CAMPAIGN / "board_state.json").read_text(
-        encoding="utf-8"))
+    _raw = json.loads((tmp_path / CAMPAIGN / "board_state.json").read_text(encoding="utf-8"))
     assert _raw["version"] == 1
 
 
 # ══ G2: «ПУСТАЯ КАРТОЧКА» (ref вытеснен из journal cap-100) ═════
 
+
 def test_g2_dead_ref_card_no_crash(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        routes_board, "player_board_service",
+        routes_board,
+        "player_board_service",
         routes_board.PlayerBoardService(root=str(tmp_path)),
     )
     _app = FastAPI()
@@ -103,8 +104,7 @@ def test_g2_dead_ref_card_no_crash(tmp_path, monkeypatch):
     # cap-100 — сервер доски журнальный SSOT не читает, ссылка opaque)
     client.post(
         f"/api/board/{CAMPAIGN}/cards",
-        json={"op": "add", "ref_type": "journal",
-              "ref_id": "evt-evicted-fifo-000"},
+        json={"op": "add", "ref_type": "journal", "ref_id": "evt-evicted-fifo-000"},
     )
     # GET не крашится, организация цела — «пустая карточка» валидное
     # состояние (ТЗ §2); рендер серым — клиентский джойн
@@ -127,7 +127,8 @@ def test_g2b_claim_belief_refs_persist_grey(tmp_path, monkeypatch):
     # Вердикт Мастера (б): claim/belief — допустимые persisted opaque-типы,
     # клиент рендерит серыми; сервер хранит и отдаёт без интерпретации
     monkeypatch.setattr(
-        routes_board, "player_board_service",
+        routes_board,
+        "player_board_service",
         routes_board.PlayerBoardService(root=str(tmp_path)),
     )
     _app = FastAPI()
@@ -144,6 +145,7 @@ def test_g2b_claim_belief_refs_persist_grey(tmp_path, monkeypatch):
 
 # ══ G3: ИЗОЛЯЦИЯ (живой EpistemicStore → player_beliefs) ════════
 
+
 def test_g3_epistemic_isolation_live_snapshot(tmp_path):
     """Полный цикл операций доски → player_beliefs снапшота байт-в-байт
     не изменились. Проверка против НАСТОЯЩЕЙ проекции: EpistemicStore с
@@ -159,23 +161,26 @@ def test_g3_epistemic_isolation_live_snapshot(tmp_path):
         # Путь проекции идентичен world_snapshot_builder.py:97-99
         # (to_dict → фильтр agent_id == "player").
         _store = EpistemicStore()
-        _store.upsert(EpistemicRecord(
-            agent_id="player",
-            proposition=Proposition(
-                subject_id="goran",
-                predicate=Predicate.STOLE,
-                object_id="gold",
-                polarity=True,
-            ),
-            confidence=0.9,
-            source_id="goran",
-            source_claim_id="claim-1",
-            first_observed_tick=1,
-            last_updated_tick=1,
-        ))
+        _store.upsert(
+            EpistemicRecord(
+                agent_id="player",
+                proposition=Proposition(
+                    subject_id="goran",
+                    predicate=Predicate.STOLE,
+                    object_id="gold",
+                    polarity=True,
+                ),
+                confidence=0.9,
+                source_id="goran",
+                source_claim_id="claim-1",
+                first_observed_tick=1,
+                last_updated_tick=1,
+            )
+        )
         return json.dumps(
             [r for r in _store.to_dict() if r.get("agent_id") == "player"],
-            sort_keys=True, ensure_ascii=False,
+            sort_keys=True,
+            ensure_ascii=False,
         )
 
     _before = _build_beliefs()
@@ -200,6 +205,7 @@ def test_g3_epistemic_isolation_live_snapshot(tmp_path):
 
 
 # ══ G4: M7-совместимость ════════════════════════════════════════
+
 
 def test_g4_legacy_file_without_board_fields(tmp_path):
     # Старая кампания: board_state.json отсутствует вообще

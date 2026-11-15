@@ -117,9 +117,7 @@ def _is_secret_event(entry: Any) -> bool:
     return entry.payload.get(PL_IS_SECRET) is True
 
 
-def _secret_event_entries(
-    docs_by_npc: Dict[str, Any]
-) -> List[Tuple[str, Any]]:
+def _secret_event_entries(docs_by_npc: Dict[str, Any]) -> List[Tuple[str, Any]]:
     """Все секретные EVENT из всех канонов (для truth_state)."""
     out: List[Tuple[str, Any]] = []
     for npc_id, doc in docs_by_npc.items():
@@ -129,9 +127,7 @@ def _secret_event_entries(
     return out
 
 
-def _collect_initial_holders(
-    secret_entry_id: str, docs_by_npc: Dict[str, Any]
-) -> Tuple[List[str], List[str]]:
+def _collect_initial_holders(secret_entry_id: str, docs_by_npc: Dict[str, Any]) -> Tuple[List[str], List[str]]:
     """Resolved knowers из KNOWLEDGE_LINK этого event.
     Возвращает (initial_holders, unresolved_knower_kinds).
     Пустой initial_holders допустим (K1) — НЕ доказательство, что никто не знает.
@@ -155,9 +151,7 @@ def _collect_initial_holders(
             try:
                 rk = EntityRefKind(ref_kind_str)
             except ValueError:
-                logger.warning(
-                    f"[CCH5_PROJ] unknown ref_kind={ref_kind_str!r} in knower — skipped"
-                )
+                logger.warning(f"[CCH5_PROJ] unknown ref_kind={ref_kind_str!r} in knower — skipped")
                 continue
             if rk is EntityRefKind.RESOLVED:
                 knower_id = knower_payload.get("npc_id")
@@ -171,9 +165,7 @@ def _collect_initial_holders(
 # ── 1. origin_events-проекция ─────────────────────────────────────────────────
 
 
-def build_origin_events_projection(
-    npc_id: str, doc: Any
-) -> Dict[str, Any]:
+def build_origin_events_projection(npc_id: str, doc: Any) -> Dict[str, Any]:
     """Один NPC → legacy-совместимый origin_events-список.
     Переиспользует chronicle_to_origin_events (read-only round-trip CCH-1).
     Все EVENT (не только секретные) — origin_events НЕ фильтрует по секретности;
@@ -191,9 +183,7 @@ def build_origin_events_projection(
 # ── 2. village_relations-проекция ────────────────────────────────────────────
 
 
-def build_village_relations_projection(
-    docs_by_npc: Dict[str, Any]
-) -> Dict[str, Any]:
+def build_village_relations_projection(docs_by_npc: Dict[str, Any]) -> Dict[str, Any]:
     """Все RELATIONSHIP из всех канонов → village_relations.json-формат.
     Шкала ФАЙЛОВАЯ 0..1 (загрузчик npc_loader:251 умножает на 100):
       positive → SEED_TRUST_POSITIVE / 100 = 0.3
@@ -216,9 +206,7 @@ def build_village_relations_projection(
                 base_trust = SEED_TRUST_NEGATIVE / 100.0
             else:
                 # valence без числа — seeder не сеет, проекция тоже пропускает
-                logger.debug(
-                    f"[CCH5_PROJ] {npc_id}:{e.entry_id}: valence={valence!r} — пропущено"
-                )
+                logger.debug(f"[CCH5_PROJ] {npc_id}:{e.entry_id}: valence={valence!r} — пропущено")
                 continue
             src_block = relations.setdefault(npc_id, {})
             src_block[tgt] = {
@@ -293,8 +281,7 @@ def build_truth_state_projection(
         if subject_id is None:
             # subject неразрешён → не можем создать npc_id → блокировка
             diag["blocked_references"].append(
-                {"entry_id": e.entry_id, "reason": "subject_unresolved",
-                 "ref_kind": e.subject_id.ref_kind.value}
+                {"entry_id": e.entry_id, "reason": "subject_unresolved", "ref_kind": e.subject_id.ref_kind.value}
             )
             continue
 
@@ -304,17 +291,14 @@ def build_truth_state_projection(
             participants.append(object_id)
         elif e.object_id is not None and _resolved_npc_id(e.object_id) is None:
             # object_id есть, но неразрешён — в диагностику
-            diag["unresolved_objects"].append(
-                {"entry_id": e.entry_id, "ref_kind": e.object_id.ref_kind.value}
-            )
+            diag["unresolved_objects"].append({"entry_id": e.entry_id, "ref_kind": e.object_id.ref_kind.value})
 
         # Проверка participants по known_npcs (если передан)
         if known_npcs:
             for p in participants:
                 if p not in known_npcs:
                     diag["blocked_references"].append(
-                        {"entry_id": e.entry_id, "reason": "unknown_participant",
-                         "participant": p}
+                        {"entry_id": e.entry_id, "reason": "unknown_participant", "participant": p}
                     )
                     continue
 
@@ -328,9 +312,7 @@ def build_truth_state_projection(
         except (TypeError, ValueError):
             importance_f = DEFAULT_SECRET_IMPORTANCE
         if not (0.0 <= importance_f <= 1.0):
-            raise ProjectionError(
-                f"secret {e.entry_id}: importance {importance_f} вне [0,1]"
-            )
+            raise ProjectionError(f"secret {e.entry_id}: importance {importance_f} вне [0,1]")
 
         discovery_surface = e.payload.get(PL_DISCOVERY_SURFACE)
         if not isinstance(discovery_surface, (list, tuple)) or not discovery_surface:
@@ -341,18 +323,20 @@ def build_truth_state_projection(
         tags = e.payload.get(PL_TAGS, [])
         topics = [str(t) for t in tags] if isinstance(tags, (list, tuple)) else []
 
-        secrets_out.append({
-            "secret_id": e.entry_id,
-            "npc_id": subject_id,
-            "participants": participants,
-            "category": str(e.payload.get(PL_CATEGORY, "chronicle")),
-            "canonical_truth": str(e.payload.get(PL_SUMMARY, "")),
-            "importance": importance_f,
-            "initial_holders": holders,  # может быть [] — НЕ доказательство
-            "discovery_surface": discovery_surface,
-            "topics": topics,
-            "chronicle_origin": e.entry_id,
-        })
+        secrets_out.append(
+            {
+                "secret_id": e.entry_id,
+                "npc_id": subject_id,
+                "participants": participants,
+                "category": str(e.payload.get(PL_CATEGORY, "chronicle")),
+                "canonical_truth": str(e.payload.get(PL_SUMMARY, "")),
+                "importance": importance_f,
+                "initial_holders": holders,  # может быть [] — НЕ доказательство
+                "discovery_surface": discovery_surface,
+                "topics": topics,
+                "chronicle_origin": e.entry_id,
+            }
+        )
 
     if diag["blocked_references"]:
         # Структурно повреждённые ссылки → блокировка (C2)
@@ -372,8 +356,7 @@ def build_truth_state_projection(
             if target_id not in all_event_ids:
                 # Повреждённая ссылка → блокировка
                 diag["blocked_references"].append(
-                    {"entry_id": e.entry_id, "reason": "dangling_cause_origin_ref",
-                     "origin_ref": target_id}
+                    {"entry_id": e.entry_id, "reason": "dangling_cause_origin_ref", "origin_ref": target_id}
                 )
                 continue
             if target_id not in secret_ids:
@@ -382,13 +365,15 @@ def build_truth_state_projection(
                 continue
             if target_id == e.entry_id:
                 continue  # self-loop запрещён валидатором
-            relations_out.append({
-                "source_secret_id": e.entry_id,      # зависящий (E)
-                "target_secret_id": target_id,       # основание (C)
-                "relation_type": "DEPENDS_ON",
-                "strength": TRUTH_RELATION_STRENGTH,
-                "_chronicle_cause_kind": cause.cause_kind.value,
-            })
+            relations_out.append(
+                {
+                    "source_secret_id": e.entry_id,  # зависящий (E)
+                    "target_secret_id": target_id,  # основание (C)
+                    "relation_type": "DEPENDS_ON",
+                    "strength": TRUTH_RELATION_STRENGTH,
+                    "_chronicle_cause_kind": cause.cause_kind.value,
+                }
+            )
 
     if diag["blocked_references"]:
         return None, diag
@@ -451,6 +436,7 @@ def _validate_truth_state_file(truth_state_dict: Dict[str, Any]) -> None:
     state = TruthState(secrets=MappingProxyType(secrets), relations=tuple(relations))
     # validate без known_npcs — участники уже проверены выше
     from app.services.truth_state_loader import TruthStateLoader
+
     TruthStateLoader.validate(state, known_npcs=None)
 
 
@@ -515,9 +501,7 @@ def publish_generation(
         files_published["village_relations"] = "village_relations.json"
 
         # 3. truth_state — только если есть секреты
-        truth_state, diag = build_truth_state_projection(
-            docs_by_npc, campaign_id, known_npcs=known_npcs
-        )
+        truth_state, diag = build_truth_state_projection(docs_by_npc, campaign_id, known_npcs=known_npcs)
         truth_state_diag = diag
 
         if truth_state is not None:
@@ -600,9 +584,7 @@ def publish_generation(
 # ── 5. Точка входа: собрать все каноны и опубликовать ─────────────────────────
 
 
-def export_all_projections(
-    campaign_id: str, known_npcs: Optional[Set[str]] = None
-) -> Dict[str, Any]:
+def export_all_projections(campaign_id: str, known_npcs: Optional[Set[str]] = None) -> Dict[str, Any]:
     """Собрать все канон-хроники → опубликовать поколение.
     Если канонов нет → EMPTY (поколение не создаётся).
     known_npcs — множество известных npc_id для проверки participants
@@ -627,6 +609,7 @@ def export_all_projections(
         # По умолчанию — все individual IDs (для проверки participants)
         try:
             from app.services.npc.npc_loader import list_individual_ids
+
             known_npcs = set(list_individual_ids())
         except Exception:
             known_npcs = None  # без проверки — валидатор всё равно запустится
@@ -660,7 +643,4 @@ def list_generations() -> List[str]:
     gdir = _generations_dir()
     if not gdir.exists():
         return []
-    return sorted(
-        d.name for d in gdir.iterdir()
-        if d.is_dir() and not d.name.endswith(".tmp")
-    )
+    return sorted(d.name for d in gdir.iterdir() if d.is_dir() and not d.name.endswith(".tmp"))

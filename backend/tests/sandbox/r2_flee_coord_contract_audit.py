@@ -14,8 +14,14 @@ R2-FLEE-COORD-CONTRACT-AUDIT — комплексный probe для 5 этап�
 
 READ-ONLY. Никаких production-изменений.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -89,7 +95,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -120,27 +126,39 @@ def stage1_coord_contract() -> None:
     print(f"  origin: {tavern.get('origin')}")
     print(f"  size: {tavern.get('size')}")
 
-    print(f"\n  Примеры координат узлов (ЛОКАЛЬНЫЕ, в JSON):")
+    print("\n  Примеры координат узлов (ЛОКАЛЬНЫЕ, в JSON):")
     for name in ("fireplace", "kitchen_bed_2", "entrance", "node_16", "behind_bar"):
         nd = tavern.get("nodes", {}).get(name, {})
         if nd:
             print(f"    {name}: x={nd.get('x')}, y={nd.get('y')}")
 
-    print(f"\n  Примеры координат стен (ЛОКАЛЬНЫЕ, в JSON):")
+    print("\n  Примеры координат стен (ЛОКАЛЬНЫЕ, в JSON):")
     for w in tavern.get("walls", [])[:3]:
         print(f"    {w.get('id')}: x1={w.get('x1')}, y1={w.get('y1')}, x2={w.get('x2')}, y2={w.get('y2')}")
 
-    print(f"\n>>> 1.2: Что SpatialRegistry говорит о координатах")
+    print("\n>>> 1.2: Что SpatialRegistry говорит о координатах")
     sr_path = _BACKEND / "app/services/spatial/spatial_registry.py"
     if sr_path.exists():
         src = sr_path.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src.split("\n"), 1):
-            if any(kw in line for kw in ["origin_x", "origin_y", "world_x", "world_y",
-                                          "min_x", "min_y", "max_x", "max_y", "world_bounds"]):
+            if any(
+                kw in line
+                for kw in [
+                    "origin_x",
+                    "origin_y",
+                    "world_x",
+                    "world_y",
+                    "min_x",
+                    "min_y",
+                    "max_x",
+                    "max_y",
+                    "world_bounds",
+                ]
+            ):
                 if "def " in line or ":" in line or "=" in line:
                     print(f"  L{i}: {line.rstrip()}")
 
-    print(f"\n>>> 1.3: GraphCompiler — какой смысл у coords в NodeRef")
+    print("\n>>> 1.3: GraphCompiler — какой смысл у coords в NodeRef")
     gc_path = _BACKEND / "app/services/spatial/graph_compiler.py"
     if gc_path.exists():
         src = gc_path.read_text(encoding="utf-8", errors="replace")
@@ -148,7 +166,7 @@ def stage1_coord_contract() -> None:
             if "NodeRef(" in line or "node_id=canonical_id" in line:
                 print(f"  L{i}: {line.rstrip()}")
 
-    print(f"\n>>> 1.4: SpatialValidator — какие coords использует")
+    print("\n>>> 1.4: SpatialValidator — какие coords использует")
     if gc_path.exists():
         src = gc_path.read_text(encoding="utf-8", errors="replace")
         lines = src.split("\n")
@@ -158,7 +176,7 @@ def stage1_coord_contract() -> None:
             elif "wall[" in line and ("x1" in line or "y1" in line or "x2" in line or "y2" in line):
                 print(f"  L{i}: {line.rstrip()}")
 
-    print(f"""
+    print("""
 >>> 1.5: Вывод о координатном контракте
 
   JSON nodes coords: ЛОКАЛЬНЫЕ (внутри location, 0..size)
@@ -186,17 +204,17 @@ def stage1_coord_contract() -> None:
 def stage2_boundary_nodes() -> None:
     _print_section("ЭТАП 2: _create_boundary_nodes — почему мировые coords")
 
-    print(f"""
+    print("""
 >>> 2.1: Код _create_boundary_nodes (graph_compiler.py L876-990)
 
   L892-893: _ox = float(origin.get("x", 0.0))  ← МИРОВЫЕ
              _oy = float(origin.get("y", 0.0))  ← МИРОВЫЕ
-  L899-902: _DIR_TO_XY = {{
+  L899-902: _DIR_TO_XY = {
                "north": (_ox + _w / 2.0, _oy + _h - 1.0),  ← МИРОВЫЕ
                "south": (_ox + _w / 2.0, _oy + 1.0),         ← МИРОВЫЕ
                "east":  (_ox + _w - 1.0, _oy + _h / 2.0),  ← МИРОВЫЕ
                "west":  (_ox + 1.0,      _oy + _h / 2.0),  ← МИРОВЫЕ
-             }}
+             }
   L917:      _bx, _by = _DIR_OFFSETS.get(direction, ...)
              → _bx, _by — МИРОВЫЕ координаты
 
@@ -263,7 +281,7 @@ def stage2_boundary_nodes() -> None:
         return
 
     graph = result[0] if len(result) > 0 else {}
-    print(f"\n  Все nodes в graph (после compile) — какие ЛОКАЛЬНЫЕ, какие МИРОВЫЕ:")
+    print("\n  Все nodes в graph (после compile) — какие ЛОКАЛЬНЫЕ, какие МИРОВЫЕ:")
     print(f"  {'key':<30} {'x':>10} {'y':>10} {'coords_type':<15}")
     print(f"  {'-' * 30} {'-' * 10} {'-' * 10} {'-' * 15}")
 
@@ -284,7 +302,7 @@ def stage2_boundary_nodes() -> None:
         except (TypeError, ValueError):
             print(f"  {key:<30} {x!r:>10} {y!r:>10} ?")
 
-    print(f"""
+    print("""
 >>> 2.4: SpatialValidator — какие ребра он удаляет
 """)
     logs = _log_capture.getvalue()
@@ -292,7 +310,7 @@ def stage2_boundary_nodes() -> None:
         if "SPATIAL_VALIDATION" in line or "boundary" in line.lower():
             print(f"  {line}")
 
-    print(f"""
+    print("""
 >>> 2.5: Проверка Market Square и City Gate — те же проблемы?
 """)
     for name, path in [("market_square", MARKET_SQUARE_FILE), ("city_gate", CITY_GATE_FILE)]:
@@ -324,7 +342,7 @@ def stage2_boundary_nodes() -> None:
             for nname, nx, ny in out_of_bounds:
                 print(f"      {nname}: ({nx}, {ny}) — вне [{W}x{H}]")
         else:
-            print(f"    Все узлы в пределах declared size")
+            print("    Все узлы в пределах declared size")
 
 
 # ============================================================================
@@ -333,7 +351,7 @@ def stage2_boundary_nodes() -> None:
 def stage3_flee_reachability() -> None:
     _print_section("ЭТАП 3: FLEE и достижимость — get_furthest, A*, cross-location")
 
-    print(f"""
+    print("""
 >>> 3.1: get_furthest (spatial_service.py L716-738)
 
   def get_furthest(self, zone_id, origin_xy, exclude_node_ids=None):
@@ -401,42 +419,42 @@ def stage4_author_geometry() -> None:
     if not tavern:
         return
 
-    print(f"\n>>> 4.1: door_0 — единственный внешний выход таверны")
+    print("\n>>> 4.1: door_0 — единственный внешний выход таверны")
     for o in tavern.get("objects", []):
         if isinstance(o, dict) and o.get("id") == "door_0":
-            print(f"  door_0:")
+            print("  door_0:")
             print(f"    name: {o.get('name')}")
             print(f"    position: {o.get('position')}")
             print(f"    wall_id: {o.get('wall_id')}")
             print(f"    target_file: {o.get('properties', {}).get('target_file')}")
             break
 
-    print(f"\n>>> 4.2: door_1 — внутренняя дверь (зал↔кухня)")
+    print("\n>>> 4.2: door_1 — внутренняя дверь (зал↔кухня)")
     for o in tavern.get("objects", []):
         if isinstance(o, dict) and o.get("id") == "door_1":
-            print(f"  door_1:")
+            print("  door_1:")
             print(f"    name: {o.get('name')}")
             print(f"    position: {o.get('position')}")
             print(f"    wall_id: {o.get('wall_id')}")
             break
 
-    print(f"\n>>> 4.3: node_16 — внутренний узел")
+    print("\n>>> 4.3: node_16 — внутренний узел")
     node_16 = tavern.get("nodes", {}).get("node_16", {})
     if node_16:
-        print(f"  node_16:")
+        print("  node_16:")
         print(f"    x={node_16.get('x')}, y={node_16.get('y')}")
         print(f"    label: {node_16.get('label')}")
         print(f"    role: {node_16.get('role')}")
         print(f"    connections: {node_16.get('connections')}")
 
-    print(f"\n>>> 4.4: Стены — где находится door_0")
+    print("\n>>> 4.4: Стены — где находится door_0")
     for w in tavern.get("walls", []):
         if isinstance(w, dict):
             wid = w.get("id")
             x1, y1, x2, y2 = w.get("x1"), w.get("y1"), w.get("x2"), w.get("y2")
             print(f"  {wid}: ({x1}, {y1}) → ({x2}, {y2})")
 
-    print(f"""
+    print("""
 >>> 4.5: Авторская семантика
 
   door_0 на wall_2 (y=13.0, max Y) — единственный внешний выход
@@ -464,7 +482,7 @@ def stage4_author_geometry() -> None:
 def stage5_fix_proposal() -> None:
     _print_section("ЭТАП 5: Подготовка минимального исправления")
 
-    print(f"""
+    print("""
 =============================================================================
 Доказанная первопричина (ROOT CAUSE)
 =============================================================================
@@ -500,12 +518,12 @@ synthetic boundary nodes с МИРОВЫМИ координатами (origin.x 
   L894: _w = float(size.get("w", 10.0))
   L895: _h = float(size.get("h", 10.0))
 
-  L898-903: _DIR_TO_XY = {{
+  L898-903: _DIR_TO_XY = {
                "north": (_ox + _w / 2.0, _oy + _h - 1.0),  ← МИРОВЫЕ
                "south": (_ox + _w / 2.0, _oy + 1.0),         ← МИРОВЫЕ
                "east":  (_ox + _w - 1.0, _oy + _h / 2.0),  ← МИРОВЫЕ
                "west":  (_ox + 1.0,      _oy + _h / 2.0),  ← МИРОВЫЕ
-             }}
+             }
 
   L911-916: _DIR_OFFSETS (дублирует _DIR_TO_XY, тоже МИРОВЫЕ)
 
@@ -527,19 +545,19 @@ synthetic boundary nodes с МИРОВЫМИ координатами (origin.x 
 Изменение в graph_compiler.py L898-917:
 
 БЫЛО:
-  L898-903: _DIR_TO_XY = {{
+  L898-903: _DIR_TO_XY = {
                "north": (_ox + _w / 2.0, _oy + _h - 1.0),
                "south": (_ox + _w / 2.0, _oy + 1.0),
                "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
                "west":  (_ox + 1.0,      _oy + _h / 2.0),
-             }}
+             }
 
-  L911-916: _DIR_OFFSETS = {{
+  L911-916: _DIR_OFFSETS = {
                "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
                "west":  (_ox + 1.0,      _oy + _h / 2.0),
                "north": (_ox + _w / 2.0, _oy + _h - 1.0),
                "south": (_ox + _w / 2.0, _oy + 1.0),
-             }}
+             }
 
   L917:      _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
 
@@ -548,12 +566,12 @@ synthetic boundary nodes с МИРОВЫМИ координатами (origin.x 
   # чтобы согласоваться с авторскими узлами и стенами в SpatialValidator.
   # Раньше использовались МИРОВЫЕ coords (origin + offset), что приводило
   # к смешению систем координат и удалению валидных рёбер.
-  _DIR_OFFSETS_LOCAL = {{
+  _DIR_OFFSETS_LOCAL = {
       "east":  (_w - 1.0,  _h / 2.0),
       "west":  (1.0,       _h / 2.0),
       "north": (_w / 2.0, _h - 1.0),
       "south": (_w / 2.0, 1.0),
-  }}
+  }
   _bx, _by = _DIR_OFFSETS_LOCAL.get(direction, (_w / 2.0, _h / 2.0))
 
   (Удалить _DIR_TO_XY — не используется после fix)
@@ -629,7 +647,7 @@ synthetic boundary nodes с МИРОВЫМИ координатами (origin.x 
 1. compile_graph(tavern) → graph size = 18 (16 авторских + 2 boundary)
 2. graph["tavern:exit_east"] coords = (19, 7.5) — ЛОКАЛЬНЫЕ
 3. SpatialValidator logs: 0 warnings (no edges removed)
-4. connections["tavern:exit_east"] = {{tavern:kitchen_bed_2, tavern:kitchen}} (non-empty)
+4. connections["tavern:exit_east"] = {tavern:kitchen_bed_2, tavern:kitchen} (non-empty)
 5. get_furthest(threat=fireplace) → tavern:exit_east (distance=9.6) ✓
 6. A* path to exit_east → fireplace → main_hall → ... → exit_east
 7. FLEE EXECUTED
@@ -647,7 +665,7 @@ synthetic boundary nodes с МИРОВЫМИ координатами (origin.x 
    - Риск: НИЗКИЙ (coords в тестах не проверяются)
 
 2. Cross-location transfer (movement_engine):
-   - boundary_map[boundary_id] = {{x, y, neighbor_chunk, ...}}
+   - boundary_map[boundary_id] = {x, y, neighbor_chunk, ...}
    - L985-986: "x": _final_x, "y": _final_y
    - movement_engine может использовать x, y для cross-loc materialization
    - Риск: если materialize использует МИРОВЫЕ coords, fix сломает

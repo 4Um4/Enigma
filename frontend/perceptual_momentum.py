@@ -29,9 +29,7 @@ class ManifestationProfile:
     attention_tunneling: float = 0.0  # Виньетка, сужение фокуса
     motion_bias: Tuple[float, float] = (0.0, 0.0)  # Вектор визуального сноса
     temporal_distortion: float = 0.0  # Лаг рендера, "размазывание" кадров
-    temporal_assembly_delay: float = (
-        0.0  # Задержка подтверждения реальности (PerceptualLatency)
-    )
+    temporal_assembly_delay: float = 0.0  # Задержка подтверждения реальности (PerceptualLatency)
     blood_visibility: float = 0.0  # Инерция кровавой виньетки
 
 
@@ -43,31 +41,21 @@ class PerceptualMomentum:
     def __init__(self):
         self.current = ManifestationProfile()
 
-    def _apply_controlled_stochasticity(
-        self, base_value: float, noise_level: float
-    ) -> float:
+    def _apply_controlled_stochasticity(self, base_value: float, noise_level: float) -> float:
         """Ограниченная перцептивная вариация. Не случайность, а дрейф."""
         if noise_level <= 0:
             return base_value
         variance = (random.random() - 0.5) * noise_level * 0.2
         return _clamp(base_value + variance)
 
-    def _map_vectors_to_target(
-        self, vectors: SanitizedPerceptualVectors
-    ) -> ManifestationProfile:
+    def _map_vectors_to_target(self, vectors: SanitizedPerceptualVectors) -> ManifestationProfile:
         """Маппинг санитизированных векторов в профиль деформации (Shader Law)."""
         noise = vectors.sensory_noise
 
         return ManifestationProfile(
-            visual_instability=self._apply_controlled_stochasticity(
-                vectors.visual_instability, noise
-            ),
-            motor_disruption=self._apply_controlled_stochasticity(
-                vectors.motor_disruption, noise * 0.5
-            ),
-            contrast_instability=self._apply_controlled_stochasticity(
-                vectors.sensory_noise, noise
-            ),
+            visual_instability=self._apply_controlled_stochasticity(vectors.visual_instability, noise),
+            motor_disruption=self._apply_controlled_stochasticity(vectors.motor_disruption, noise * 0.5),
+            contrast_instability=self._apply_controlled_stochasticity(vectors.sensory_noise, noise),
             attention_tunneling=vectors.attention_tunneling,
             motion_bias=vectors.directional_pressure,
             temporal_distortion=vectors.temporal_distortion,

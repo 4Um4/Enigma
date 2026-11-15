@@ -3,6 +3,7 @@
 Invariant I: Causal Provenance. Любое изменение должно иметь причину.
 Проверяем, что каждая дельта в tick_mutation имеет соответствующее событие в l1_drift_events.
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -27,7 +28,7 @@ class CausalProvenanceProbe(Probe):
                     name=self.name,
                     severity=self.severity,
                     passed=False,
-                    details=f"Tick {ctx.tick_id}: NPC {delta_npc_id} has state delta but no L1 drift event (Causal Provenance violation)"
+                    details=f"Tick {ctx.tick_id}: NPC {delta_npc_id} has state delta but no L1 drift event (Causal Provenance violation)",
                 )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

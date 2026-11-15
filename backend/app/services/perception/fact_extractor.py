@@ -21,9 +21,7 @@ class FactExtractor:
     ЗАПРЕТ: Не делает составных выводов (hand_on_weapon). Только атомарные (weapon_visible, hand_position).
     """
 
-    def extract(
-        self, signals: List[PerceivedSignal], current_tick: float
-    ) -> List[ObservedFact]:
+    def extract(self, signals: List[PerceivedSignal], current_tick: float) -> List[ObservedFact]:
         facts = []
 
         for signal in signals:
@@ -43,34 +41,18 @@ class FactExtractor:
 
         return facts
 
-    def _extract_gaze_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_gaze_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field in ("gaze_direction", "head_orientation"):
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "gaze_target", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "gaze_target", signal.perceived_value))
         return facts
 
-    def _extract_micro_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_micro_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field == "jaw_clench":
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "jaw_clench", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "jaw_clench", signal.perceived_value))
         elif signal.field == "pupil_dilation":
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "pupil_dilation", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "pupil_dilation", signal.perceived_value))
         return facts
 
     def _make_fact(
@@ -93,9 +75,7 @@ class FactExtractor:
             possible_inaccuracy=tuple(inaccuracy) if inaccuracy else (),
         )
 
-    def _extract_hands_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_hands_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field in ("held_object_left", "held_object_right"):
             if signal.perceived_value is not None:
@@ -103,75 +83,37 @@ class FactExtractor:
                     self._make_fact(
                         signal,
                         "body_state",
-                        "weapon_visible"
-                        if "weapon" in str(signal.perceived_value)
-                        else "holding_object",
+                        "weapon_visible" if "weapon" in str(signal.perceived_value) else "holding_object",
                         signal.perceived_value,
                         ["hidden_weapon", "small_object_concealed"],
                     )
                 )
         elif signal.field == "grip_strength":
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "grip_strength", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "grip_strength", signal.perceived_value))
         return facts
 
-    def _extract_body_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_body_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field == "muscle_tension":
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "muscle_tension_level", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "muscle_tension_level", signal.perceived_value))
         elif signal.field == "tremor":
-            facts.append(
-                self._make_fact(
-                    signal, "behavior", "tremor_amplitude", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "behavior", "tremor_amplitude", signal.perceived_value))
         elif signal.field == "collapse":
-            facts.append(
-                self._make_fact(
-                    signal, "body_state", "posture_collapse", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "body_state", "posture_collapse", signal.perceived_value))
         return facts
 
-    def _extract_movement_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_movement_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field == "speed":
-            facts.append(
-                self._make_fact(
-                    signal, "movement", "movement_speed", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "movement", "movement_speed", signal.perceived_value))
         elif signal.field == "coordination":
-            facts.append(
-                self._make_fact(
-                    signal, "movement", "movement_coordination", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "movement", "movement_coordination", signal.perceived_value))
         return facts
 
-    def _extract_voice_facts(
-        self, signal: PerceivedSignal, tick: float
-    ) -> List[ObservedFact]:
+    def _extract_voice_facts(self, signal: PerceivedSignal, tick: float) -> List[ObservedFact]:
         facts = []
         if signal.field == "tempo":
-            facts.append(
-                self._make_fact(signal, "voice", "voice_tempo", signal.perceived_value)
-            )
+            facts.append(self._make_fact(signal, "voice", "voice_tempo", signal.perceived_value))
         elif signal.field == "tremor":
-            facts.append(
-                self._make_fact(
-                    signal, "voice", "voice_tremor_amplitude", signal.perceived_value
-                )
-            )
+            facts.append(self._make_fact(signal, "voice", "voice_tremor_amplitude", signal.perceived_value))
         return facts

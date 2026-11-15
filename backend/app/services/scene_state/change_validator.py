@@ -4,7 +4,6 @@
 Основные сущности: ChangeValidator
 """
 
-
 from app.services.scene_change import ChangeType, SceneChange
 
 

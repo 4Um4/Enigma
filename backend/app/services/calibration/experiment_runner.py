@@ -15,6 +15,7 @@ path: backend/app/services/calibration/experiment_runner.py
 Основные сущности: ExperimentError, ExperimentConfig, ExperimentResult,
     ReplayResult, ExperimentRunner.
 """
+
 from __future__ import annotations
 
 import copy
@@ -167,9 +168,7 @@ class ExperimentRunner:
 
     def run(self, config: ExperimentConfig) -> ExperimentResult:
         if overlay_active():
-            raise ExperimentError(
-                "overlay активен — вложенные эксперименты запрещены (ADR-O-361)"
-            )
+            raise ExperimentError("overlay активен — вложенные эксперименты запрещены (ADR-O-361)")
         preset: Preset = load_preset(config.preset_path)
         # S213: изоляция от контаминации процесса. EventBus — глобальный
         # singleton; dispose не отписывает подписчиков прошлого GameLoop
@@ -214,9 +213,7 @@ class ExperimentRunner:
                 events_per_tick: List[int] = []
                 metrics: Dict[str, Optional[float]] = {}
                 try:
-                    with overlay_constants(
-                        preset.constants, require_loaded=_REQUIRE_LOADED
-                    ):
+                    with overlay_constants(preset.constants, require_loaded=_REQUIRE_LOADED):
                         statuses: List[str] = []
                         npc_captures: List[List[Dict[str, Any]]] = []
                         rel_captures: List[Dict[str, Any]] = []
@@ -232,26 +229,15 @@ class ExperimentRunner:
                             # wall-clock-зависимые моменты относительно capture →
                             # flip-flop l1_event_count/rel_captures между прогонами.
                             self._settle_async_dialogue_layer(game_loop, config)
-                            npc_captures.append(
-                                copy.deepcopy(
-                                    engine.get_npc_states(config.campaign_id)
-                                )
-                            )
-                            rel_captures.append(
-                                game_loop.memory_manager.get_relationships(
-                                    config.campaign_id
-                                )
-                            )
+                            npc_captures.append(copy.deepcopy(engine.get_npc_states(config.campaign_id)))
+                            rel_captures.append(game_loop.memory_manager.get_relationships(config.campaign_id))
                             # M0-6: пассивное наблюдение + стриминг метрик
                             # (snapshot поверх свежего capture тика).
                             tick_records = tap.take_tick_records()
                             events_per_tick.append(len(tick_records))
                             metrics_bundle.update(
                                 tick=len(npc_captures) - 1,
-                                state_snapshot={
-                                    n.get("id", n.get("npc_id", "?")): n
-                                    for n in npc_captures[-1]
-                                },
+                                state_snapshot={n.get("id", n.get("npc_id", "?")): n for n in npc_captures[-1]},
                                 event={
                                     "count": len(tick_records),
                                     "records": tick_records,
@@ -264,10 +250,7 @@ class ExperimentRunner:
                         self._final_quiesce(game_loop, tap)
                         metrics = metrics_bundle.compute_all()
                         final_raw = npc_captures[-1] if npc_captures else []
-                        final_by_id = {
-                            n.get("id", n.get("npc_id", "unknown")): n
-                            for n in final_raw
-                        }
+                        final_by_id = {n.get("id", n.get("npc_id", "unknown")): n for n in final_raw}
                         nan_count = sum(_count_nan(n) for n in final_raw)
                         l1_event_count = 0
                         chron = getattr(game_loop._tick_orch, "l1_chronicle", None)  # noqa: ENIGMA002
@@ -338,10 +321,7 @@ class ExperimentRunner:
         if run_1.npc_captures != run_2.npc_captures:
             diff.append("npc_captures")
         # rel_ok — детерминизм async-слоя: rel + l1 (связка одного подписчика).
-        rel_ok = (
-            run_1.rel_captures == run_2.rel_captures
-            and run_1.l1_event_count == run_2.l1_event_count
-        )
+        rel_ok = run_1.rel_captures == run_2.rel_captures and run_1.l1_event_count == run_2.l1_event_count
         if not rel_ok:
             logger.warning(
                 "[CALIB_RUNNER] rel_captures недетерминированы: асинхронный "
@@ -377,6 +357,7 @@ class ExperimentRunner:
         )
 
         from app.services.events.event_bus import get_event_bus
+
         get_event_bus().clear()
 
         self._orig_saves = settings.saves_dir
@@ -412,9 +393,7 @@ class ExperimentRunner:
         self._active_metrics = build_metrics_bundle()
         self._active_tap.attach()
 
-        self._overlay_ctx = overlay_constants(
-            self._active_preset.constants, require_loaded=_REQUIRE_LOADED
-        )
+        self._overlay_ctx = overlay_constants(self._active_preset.constants, require_loaded=_REQUIRE_LOADED)
         self._overlay_ctx.__enter__()
 
         self._statuses: list[Any] = []
@@ -425,18 +404,14 @@ class ExperimentRunner:
 
         return self._experiment_id
 
-    def _apply_initial_social(
-        self, preset: Any, game_loop: Any, campaign_id: str
-    ) -> Dict[str, Dict[str, Any]]:
+    def _apply_initial_social(self, preset: Any, game_loop: Any, campaign_id: str) -> Dict[str, Dict[str, Any]]:
         """R001: npc_overrides.*.social — начальное отношение к player.
         Канонический writer (ADR-SSOT-ECONOMIC): update_relationships →
         RelationshipWriteGate → Store. Вызов после тика 1 (мир заспавнен,
         Store забинден) и до любого player-события. Возвращает
         {npc_id: {preset, store_read}} для протокола Initial≠Read."""
         social_map = {
-            npc_id: ov.social
-            for npc_id, ov in preset.npc_overrides.items()
-            if npc_id != "*" and ov.social is not None
+            npc_id: ov.social for npc_id, ov in preset.npc_overrides.items() if npc_id != "*" and ov.social is not None
         }
         if not social_map:
             return {}
@@ -445,9 +420,7 @@ class ExperimentRunner:
             relationship_store=getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
         )
         if app is None:
-            raise ExperimentError(
-                "initial social: StateApplicator недоступен (rel_store не забинден)"
-            )
+            raise ExperimentError("initial social: StateApplicator недоступен (rel_store не забинден)")
         rel_store = getattr(game_loop, "_rel_store", None)  # noqa: ENIGMA002
         applied: Dict[str, Dict[str, Any]] = {}
         for npc_dict in engine.get_npc_states(campaign_id):
@@ -473,9 +446,7 @@ class ExperimentRunner:
             applied[nid] = {"preset": dict(d), "store_read": store_read}
         missing = set(social_map) - set(applied)
         if missing:
-            raise ExperimentError(
-                f"initial social: NPC не найдены в get_npc_states: {sorted(missing)}"
-            )
+            raise ExperimentError(f"initial social: NPC не найдены в get_npc_states: {sorted(missing)}")
         return applied
 
     def step(self, ticks: int = 1) -> Dict[str, Any]:
@@ -493,9 +464,7 @@ class ExperimentRunner:
             # структурирована (ADR-O-367), всю каузальную работу выполняет
             # production pipeline.
             interventions = (
-                self._scenario_player.poll(self._ticks_executed + 1)
-                if self._scenario_player is not None
-                else []
+                self._scenario_player.poll(self._ticks_executed + 1) if self._scenario_player is not None else []
             )
             tick_result = game_loop.idle_tick(config.campaign_id, interventions=interventions)
             if self._ticks_executed == 0 and not getattr(  # noqa: ENIGMA002
@@ -514,9 +483,7 @@ class ExperimentRunner:
             self._events_per_tick.append(len(tick_records))
             self._active_metrics.update(
                 tick=len(self._npc_captures) - 1,
-                state_snapshot={
-                    n.get("id", n.get("npc_id", "?")): n for n in self._npc_captures[-1]
-                },
+                state_snapshot={n.get("id", n.get("npc_id", "?")): n for n in self._npc_captures[-1]},
                 event={"count": len(tick_records), "records": tick_records},
             )
             self._ticks_executed += 1
@@ -541,9 +508,7 @@ class ExperimentRunner:
         metrics = self._active_metrics.compute_all()
 
         final_raw = self._npc_captures[-1] if self._npc_captures else []
-        final_by_id = {
-            n.get("id", n.get("npc_id", "unknown")): n for n in final_raw
-        }
+        final_by_id = {n.get("id", n.get("npc_id", "unknown")): n for n in final_raw}
         nan_count = sum(_count_nan(n) for n in final_raw)
 
         l1_event_count = 0
@@ -593,11 +558,7 @@ class ExperimentRunner:
                 if self._scenario_player is not None
                 else None
             ),
-            scenario_events=(
-                list(self._scenario_player.journal)
-                if self._scenario_player is not None
-                else []
-            ),
+            scenario_events=(list(self._scenario_player.journal) if self._scenario_player is not None else []),
             ticks_executed=self._ticks_executed,
             statuses=self._statuses,
             npc_captures=self._npc_captures,
@@ -629,17 +590,13 @@ class ExperimentRunner:
         try:
             from app.core.constants import DEFAULT_LOCATION_ID
 
-            scene = game_loop.scene_manager.get_scene_state(
-                config.campaign_id, DEFAULT_LOCATION_ID
-            )
+            scene = game_loop.scene_manager.get_scene_state(config.campaign_id, DEFAULT_LOCATION_ID)
             if scene is not None:
                 game_loop._get_task_scheduler().execute_pending(  # noqa: ENIGMA002
                     scene, config.campaign_id
                 )
         except Exception as exc:
-            logger.warning(
-                "[CALIB_RUNNER] settle: execute_pending failed: %s", exc
-            )
+            logger.warning("[CALIB_RUNNER] settle: execute_pending failed: %s", exc)
         # Осаживание фоновых задач GameLoop: cancel + bounded yield
         # (диаг-улика: R4A/MOCK-потоки переживали тесты). Полный join
         # требует event-loop; если барьер недостаточен — следующий шаг
@@ -650,9 +607,7 @@ class ExperimentRunner:
                 try:
                     t.cancel()
                 except Exception as exc:
-                    logger.debug(
-                        "[CALIB_RUNNER] settle: task cancel failed: %s", exc
-                    )
+                    logger.debug("[CALIB_RUNNER] settle: task cancel failed: %s", exc)
             import time as _time  # §15.2: инфраструктура барьера, не симуляция
 
             _time.sleep(0.01)

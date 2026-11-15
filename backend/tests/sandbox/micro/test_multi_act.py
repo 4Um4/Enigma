@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/sandbox/micro/test_multi_act.py
 Назначение: Multi-Act Understanding — акт-валидация (белый список типов, мусор по-элементно, params строковые)
 Зависимости: app.services.input.intent_compressor._VALID_ACT_TYPES недоступен (локальная) — проверяем через resolve
@@ -6,18 +6,24 @@ path: backend/tests/sandbox/micro/test_multi_act.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_multi_act.py -v --tb=short; cd ..
 """
+
 from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.services.game_loop.phase_1_input import resolve_player_intent
 
 
 def _resolve_with_acts(acts):
     sf = IntentSemanticField(
-        action=ActionType.DIALOGUE, raw_text="фраза", target="Люся",
+        action=ActionType.DIALOGUE,
+        raw_text="фраза",
+        target="Люся",
         semantic_acts=acts,
     )
     return resolve_player_intent(
-        raw_action="фраза", action_type="player_interacts",
-        target="maid_lusya", player_dict=None, scene_context=None,
+        raw_action="фраза",
+        action_type="player_interacts",
+        target="maid_lusya",
+        player_dict=None,
+        scene_context=None,
         semantic_field=sf,
     )
 

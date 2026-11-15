@@ -47,7 +47,7 @@ class FateTracker:
             threat_level=threat,
             fate_trajectory=trajectory,
             resolved_fate=current.resolved_fate if current else None,  # noqa: ENIGMA001
-            fate_tick=current.fate_tick if current else None  # noqa: ENIGMA001
+            fate_tick=current.fate_tick if current else None,  # noqa: ENIGMA001
         )
         self._states[npc_id] = new_state
         return new_state
@@ -65,13 +65,7 @@ class FateTracker:
         if current.fate_trajectory != FateTrajectory.CRITICAL and outcome == FateOutcome.DEATH:
             raise ValueError(f"Cannot trigger DEATH for {npc_id} in non-CRITICAL state")
 
-        event = FateEvent(
-            npc_id=npc_id,
-            event_type=outcome,
-            tick=tick,
-            cause=cause,
-            description=description
-        )
+        event = FateEvent(npc_id=npc_id, event_type=outcome, tick=tick, cause=cause, description=description)
         self._events.append(event)
 
         # Помечаем судьбу как свершившуюся (resolved)
@@ -81,7 +75,7 @@ class FateTracker:
             threat_level=current.threat_level,
             fate_trajectory=FateTrajectory.CRITICAL,
             resolved_fate=outcome,
-            fate_tick=tick
+            fate_tick=tick,
         )
         return event
 

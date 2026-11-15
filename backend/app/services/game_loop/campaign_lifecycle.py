@@ -35,10 +35,7 @@ class CampaignResetError(RuntimeError):
         self.campaign_id = campaign_id
         self.step = step
         self.detail = detail
-        super().__init__(
-            f"campaign_reset_failed: campaign_id={campaign_id!r} "
-            f"step={step!r} detail={detail!r}"
-        )
+        super().__init__(f"campaign_reset_failed: campaign_id={campaign_id!r} step={step!r} detail={detail!r}")
 
 
 class CampaignLifecycle:
@@ -120,7 +117,6 @@ class CampaignLifecycle:
             source_diff = self.load_diff_from_disk(campaign_id)
         return source_diff
 
-
     def load_campaign(self, campaign_id: str, world_id: str) -> CampaignLoadResponse:
         # ADR-O-146: AdventureLoader удалён. Файлов world_lore/npc.json/locations.json не существует.
         loaded: dict = {"status": "not_found", "files": {}}
@@ -136,15 +132,11 @@ class CampaignLifecycle:
             migrate_save_file_if_needed,
         )
 
-        _migration = migrate_save_file_if_needed(
-            self._saves_dir / campaign_id / "campaign_state.json"
-        )
+        _migration = migrate_save_file_if_needed(self._saves_dir / campaign_id / "campaign_state.json")
         if _migration.status == STATUS_REFUSED:
             # В7: машинно различимый отказ; событие campaign_loaded не пишем —
             # загрузки не было (история кампании не лжёт).
-            logger.error(
-                f"[SAVE_MIGRATION] Отказ загрузки '{campaign_id}': {_migration.reason}"
-            )
+            logger.error(f"[SAVE_MIGRATION] Отказ загрузки '{campaign_id}': {_migration.reason}")
             self.memory_manager.persist_campaign_event(
                 campaign_id,
                 event="campaign_load_refused",
@@ -186,13 +178,9 @@ class CampaignLifecycle:
         if self.mvp_controller:
             try:
                 self.mvp_controller.init_campaign(campaign_id)
-                logger.info(
-                    f"[LOAD_CAMPAIGN] MVP controller initialized for '{campaign_id}'"
-                )
+                logger.info(f"[LOAD_CAMPAIGN] MVP controller initialized for '{campaign_id}'")
             except Exception as e:
-                logger.error(
-                    f"[LOAD_CAMPAIGN] MVP controller init failed: {e}"
-                )
+                logger.error(f"[LOAD_CAMPAIGN] MVP controller init failed: {e}")
         return CampaignLoadResponse(
             campaign_id=campaign_id,
             world_id=world_id,
@@ -210,12 +198,11 @@ class CampaignLifecycle:
                 return str(item["world_id"])
         return "manual"
 
-
     def reset_campaign(
         self,
         campaign_id: str,
         continuity_mode: Optional["WorldContinuityMode"] = None,
-        source_campaign_id: Optional[str] = None
+        source_campaign_id: Optional[str] = None,
     ) -> dict:
         """Сбрасывает runtime состояние кампании к чистому static.
         Опционально применяет WorldStateDiff из source_campaign_id (если continuity_mode == CONTINUOUS).
@@ -234,9 +221,9 @@ class CampaignLifecycle:
             mvp_controller_init).
         """
         from app.models.world_continuity import WorldContinuityMode
+
         if continuity_mode is None:
             continuity_mode = WorldContinuityMode.ISOLATED
-
 
         removed = []
         saves_campaign = self._saves_dir / campaign_id
@@ -326,6 +313,7 @@ class CampaignLifecycle:
                 source_diff = self.load_diff_from_disk(source_campaign_id)
             if source_diff:
                 from app.services.state.world_diff_applicator import WorldStateApplicator
+
                 _applicator = WorldStateApplicator(mode=continuity_mode)
                 # Превращаем list[dict] в dict[npc_id, dict] для мутации
                 _npc_cache = {n.get("npc_id"): n for n in _npcs_for_commit if n.get("npc_id")}
@@ -350,14 +338,10 @@ class CampaignLifecycle:
                     _cs = get_campaign_state_service().get_campaign_state(campaign_id)
                     if _cs:
                         _cs.metadata["current_location"] = _scene_for_commit["location_id"]
-                        logger.info(
-                            f"[NEW_GAME] current_location seeded: {_scene_for_commit['location_id']}"
-                        )
+                        logger.info(f"[NEW_GAME] current_location seeded: {_scene_for_commit['location_id']}")
             except Exception as _seed_err:
                 logger.warning(f"[NEW_GAME] current_location seed failed: {_seed_err}")
-                raise CampaignResetError(
-                    campaign_id, "current_location_seed", str(_seed_err)
-                ) from _seed_err
+                raise CampaignResetError(campaign_id, "current_location_seed", str(_seed_err)) from _seed_err
         except CampaignResetError:
             # COV-D60 (П1-18): уже классифицированный отказ (current_location_seed)
             # проходит наверх как есть: переупаковка в scene_reinit заставляла бы
@@ -461,7 +445,5 @@ class CampaignLifecycle:
                 logger.error(f"[NEW_GAME] MVP controller init failed: {e}")
                 raise CampaignResetError(campaign_id, "mvp_controller_init", str(e)) from e
 
-        logger.info(
-            f"[NEW_GAME] Campaign '{campaign_id}' fully reset. Removed: {removed}"
-        )
+        logger.info(f"[NEW_GAME] Campaign '{campaign_id}' fully reset. Removed: {removed}")
         return {"reset": True, "campaign_id": campaign_id, "files_removed": removed}

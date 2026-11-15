@@ -6,6 +6,7 @@
 
 Bridge site: intent_compressor._resolve_npc_by_name (ADR-O-437, USL-1.5).
 """
+
 from __future__ import annotations
 
 from app.services.input.intent_compressor import (

@@ -23,8 +23,12 @@ class PhenomenologyProjectionService:
     """
 
     def project(
-        self, traces: list[EmbodiedTraceDTO], scene_state: dict, tick: int, observed_facts: Optional[list[str]] = None,
-        avatar_state: Optional[AvatarStateDTO] = None
+        self,
+        traces: list[EmbodiedTraceDTO],
+        scene_state: dict,
+        tick: int,
+        observed_facts: Optional[list[str]] = None,
+        avatar_state: Optional[AvatarStateDTO] = None,
     ) -> PlayerPerceptionDTO:
         cues = []
 
@@ -101,9 +105,7 @@ class PhenomenologyProjectionService:
         npc_positions = scene_state.get("npc_positions", {})
         total_npcs = len([k for k in npc_positions.keys() if k != "player"])
         tense_count = sum(1 for t in traces if t.posture_rigidity > 0.4 or t.is_frozen)
-        shake_count = sum(
-            1 for t in traces if t.locomotion_instability > 0.3 or t.is_shaking
-        )
+        shake_count = sum(1 for t in traces if t.locomotion_instability > 0.3 or t.is_shaking)
 
         atm_key = None
         atm_intensity = 0.0

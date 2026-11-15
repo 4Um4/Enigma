@@ -1,19 +1,21 @@
-﻿"""
+"""
 R4/GATE-9A D2 — patch game_loop.py
 3 edits:
   Edit 1: skip_time — add except before finally (1 replacement)
   Edit 2: idle_tick — wrap body [1228..1478] in try/except/finally (line-range indent +4)
   Edit 3: run_turn  — wrap body [1518..1825] in try/except/finally (line-range indent +4)
 """
-import sys
+
 import shutil
+import sys
 from pathlib import Path
 
 GL_PATH = Path("app/services/game_loop/game_loop.py")
 BACKUP_PATH = Path("app/services/game_loop/game_loop.py.r4_backup")
 
 if not GL_PATH.exists():
-    print(f"ERROR: {GL_PATH} not found"); sys.exit(1)
+    print(f"ERROR: {GL_PATH} not found")
+    sys.exit(1)
 
 if not BACKUP_PATH.exists():
     shutil.copy2(GL_PATH, BACKUP_PATH)
@@ -34,8 +36,7 @@ def apply_text_replace(src: str, name: str, before: str, after: str) -> str:
     return src.replace(before, after, 1)
 
 
-def apply_line_range_wrap(lines_list, name, start_1based, end_1based,
-                          wrap_indent_str, except_body, finally_body):
+def apply_line_range_wrap(lines_list, name, start_1based, end_1based, wrap_indent_str, except_body, finally_body):
     """Wrap lines [start..end] (1-based, inclusive) in try:/except/finally.
     Adds wrap_indent_str + 'try:' before start;
     indents each line in [start..end] by +4 spaces;
@@ -53,8 +54,8 @@ def apply_line_range_wrap(lines_list, name, start_1based, end_1based,
         sys.exit(3)
 
     before_block = lines_list[:start]
-    wrapped = lines_list[start:end+1]
-    after_block = lines_list[end+1:]
+    wrapped = lines_list[start : end + 1]
+    after_block = lines_list[end + 1 :]
 
     # Indent wrapped lines by +4 spaces (preserve empty lines as empty)
     new_wrapped = []
@@ -152,7 +153,8 @@ for i, ln in enumerate(lines):
         lock_all_line_idx = i  # 0-based
         break
 if lock_all_line_idx is None:
-    print("[FAIL] Edit 2: lock_all_for_tick not found"); sys.exit(4)
+    print("[FAIL] Edit 2: lock_all_for_tick not found")
+    sys.exit(4)
 
 # Find unlock_tick line in idle_tick (the one after lock_all, before "return {" with "status")
 unlock_line_idx = None
@@ -163,20 +165,21 @@ for i in range(lock_all_line_idx + 1, len(lines)):
         unlock_line_idx = i  # 0-based
         break
 if unlock_line_idx is None:
-    print("[FAIL] Edit 2: unlock_tick not found"); sys.exit(5)
+    print("[FAIL] Edit 2: unlock_tick not found")
+    sys.exit(5)
 
 # Wrap range: from lock_all_line_idx+1 to unlock_line_idx-1 (0-based inclusive)
 # That's body between lock and unlock.
 wrap_start_1based = lock_all_line_idx + 2  # line after lock_all (1-based)
-wrap_end_1based = unlock_line_idx         # unlock line itself (1-based), will be replaced by finally_body
+wrap_end_1based = unlock_line_idx  # unlock line itself (1-based), will be replaced by finally_body
 
 # We'll wrap body [lock_all+1 .. unlock-1] and put unlock in finally_body.
 wrap_start_0 = lock_all_line_idx + 1  # first body line
-wrap_end_0 = unlock_line_idx - 1      # last body line before unlock
+wrap_end_0 = unlock_line_idx - 1  # last body line before unlock
 
-before_block = lines[:lock_all_line_idx + 1]  # up to and including lock_all line
-wrapped = lines[wrap_start_0:wrap_end_0 + 1]
-after_block = lines[unlock_line_idx + 1:]  # after unlock line
+before_block = lines[: lock_all_line_idx + 1]  # up to and including lock_all line
+wrapped = lines[wrap_start_0 : wrap_end_0 + 1]
+after_block = lines[unlock_line_idx + 1 :]  # after unlock line
 
 # Indent wrapped by +4
 new_wrapped = []
@@ -203,7 +206,9 @@ new_lines.append("            # unlock_tick сохраняет его на ди�
 new_lines.append("            self.scene_manager.unlock_tick(campaign_id)\n")
 new_lines.extend(after_block)
 
-print(f"[OK] Edit 2: idle_tick wrapped body lines {wrap_start_1based}..{wrap_end_1based} ({wrap_end_0 - wrap_start_0 + 1} lines), unlock moved to finally")
+print(
+    f"[OK] Edit 2: idle_tick wrapped body lines {wrap_start_1based}..{wrap_end_1based} ({wrap_end_0 - wrap_start_0 + 1} lines), unlock moved to finally"
+)
 
 lines = new_lines
 
@@ -226,7 +231,8 @@ for i, ln in enumerate(lines):
         execute_line_idx = i  # 0-based
         break
 if execute_line_idx is None:
-    print("[FAIL] Edit 3: execute line not found"); sys.exit(6)
+    print("[FAIL] Edit 3: execute line not found")
+    sys.exit(6)
 
 # Find unlock_tick(req.campaign_id) in run_turn (after execute)
 unlock_rt_idx = None
@@ -236,12 +242,13 @@ for i in range(execute_line_idx + 1, len(lines)):
         unlock_rt_idx = i
         break
 if unlock_rt_idx is None:
-    print("[FAIL] Edit 3: run_turn unlock_tick not found"); sys.exit(7)
+    print("[FAIL] Edit 3: run_turn unlock_tick not found")
+    sys.exit(7)
 
 # Wrap body [execute_line_idx+1 .. unlock_rt_idx-1] (0-based inclusive)
-before_rt = lines[:execute_line_idx + 1]
-wrapped_rt = lines[execute_line_idx + 1:unlock_rt_idx]
-after_rt = lines[unlock_rt_idx + 1:]
+before_rt = lines[: execute_line_idx + 1]
+wrapped_rt = lines[execute_line_idx + 1 : unlock_rt_idx]
+after_rt = lines[unlock_rt_idx + 1 :]
 
 new_wrapped_rt = []
 for ln in wrapped_rt:
@@ -265,7 +272,9 @@ new_lines_rt.append("            # (если тик НЕ помечен aborted)
 new_lines_rt.append("            self.scene_manager.unlock_tick(req.campaign_id)\n")
 new_lines_rt.extend(after_rt)
 
-print(f"[OK] Edit 3: run_turn wrapped body lines {execute_line_idx + 2}..{unlock_rt_idx} ({unlock_rt_idx - execute_line_idx - 1} lines), unlock moved to finally")
+print(
+    f"[OK] Edit 3: run_turn wrapped body lines {execute_line_idx + 2}..{unlock_rt_idx} ({unlock_rt_idx - execute_line_idx - 1} lines), unlock moved to finally"
+)
 
 lines = new_lines_rt
 

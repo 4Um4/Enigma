@@ -14,6 +14,7 @@
   не подключён — рекордер привязан к тик-сессии, редактор вне тика.
   Подключение — отдельная задача контура replay (маркер для владельца).
 """
+
 from __future__ import annotations
 
 import logging
@@ -47,10 +48,13 @@ def _load_chronicle_grammar() -> Optional[str]:
     if _grammar_cache is not None:
         return _grammar_cache
     if not _GBNF_PATH.exists():
-        logger.warning(f"[CHRONICLE_DECOMPOSER] GBNF grammar not found: {_GBNF_PATH} — fallback to /v1/chat/completions")
+        logger.warning(
+            f"[CHRONICLE_DECOMPOSER] GBNF grammar not found: {_GBNF_PATH} — fallback to /v1/chat/completions"
+        )
         return None
     _grammar_cache = _GBNF_PATH.read_text(encoding="utf-8")
     return _grammar_cache
+
 
 logger = logging.getLogger(__name__)
 
@@ -98,15 +102,9 @@ def validate_age_anchor_coverage(
     anomalies: List[Dict[str, Any]] = []
 
     # Снимок значений по типам якорей
-    years_ago_values = {
-        a.value for a in age_anchors if a.kind is AgeAnchorKind.YEARS_AGO
-    }
-    duration_values = {
-        a.value for a in age_anchors if a.kind is AgeAnchorKind.DURATION
-    }
-    ambiguous_anchors = [
-        a for a in age_anchors if a.kind is AgeAnchorKind.AMBIGUOUS
-    ]
+    years_ago_values = {a.value for a in age_anchors if a.kind is AgeAnchorKind.YEARS_AGO}
+    duration_values = {a.value for a in age_anchors if a.kind is AgeAnchorKind.DURATION}
+    ambiguous_anchors = [a for a in age_anchors if a.kind is AgeAnchorKind.AMBIGUOUS]
 
     # Проверка 1: dangling типизированных якорей
     for anchor in age_anchors:
@@ -130,35 +128,35 @@ def validate_age_anchor_coverage(
                     break
 
         if not covered:
-            anomalies.append({
-                "anomaly_type": "dangling_age_anchor",
-                "fragment_ord": fragment_ord,
-                "anchor_kind": anchor.kind.value,
-                "anchor_value": anchor.value,
-                "source_span": anchor.source_span,
-                "severity": "warning",
-                "hint": f"age_anchor {anchor.kind.value}={anchor.value} "
-                        f"not reflected in any item",
-            })
+            anomalies.append(
+                {
+                    "anomaly_type": "dangling_age_anchor",
+                    "fragment_ord": fragment_ord,
+                    "anchor_kind": anchor.kind.value,
+                    "anchor_value": anchor.value,
+                    "source_span": anchor.source_span,
+                    "severity": "warning",
+                    "hint": f"age_anchor {anchor.kind.value}={anchor.value} not reflected in any item",
+                }
+            )
 
     # Проверка 2: years_ago == game_start_age (если задан)
     if game_start_age is not None and game_start_age > 50:
         for anchor in age_anchors:
-            if (
-                anchor.kind is AgeAnchorKind.YEARS_AGO
-                and anchor.value == game_start_age
-            ):
-                anomalies.append({
-                    "anomaly_type": "years_ago_equals_current_age",
-                    "fragment_ord": fragment_ord,
-                    "anchor_value": anchor.value,
-                    "game_start_age": game_start_age,
-                    "source_span": anchor.source_span,
-                    "severity": "warning",
-                    "hint": f"years_ago={anchor.value} == game_start_age="
-                            f"{game_start_age} — LLM возможно перепутала "
-                            f"текущий возраст с years_ago",
-                })
+            if anchor.kind is AgeAnchorKind.YEARS_AGO and anchor.value == game_start_age:
+                anomalies.append(
+                    {
+                        "anomaly_type": "years_ago_equals_current_age",
+                        "fragment_ord": fragment_ord,
+                        "anchor_value": anchor.value,
+                        "game_start_age": game_start_age,
+                        "source_span": anchor.source_span,
+                        "severity": "warning",
+                        "hint": f"years_ago={anchor.value} == game_start_age="
+                        f"{game_start_age} — LLM возможно перепутала "
+                        f"текущий возраст с years_ago",
+                    }
+                )
 
     # Проверка 3 (Fix 2): AMBIGUOUS anchor → EVENT.years_ago
     # Если EVENT.years_ago совпадает с AMBIGUOUS anchor value,
@@ -172,23 +170,22 @@ def validate_age_anchor_coverage(
 
         for item in items:
             payload = item.draft_payload
-            if (
-                item.kind.value == "EVENT"
-                and payload.get("years_ago") == amb.value
-            ):
-                anomalies.append({
-                    "anomaly_type": "ambiguous_anchor_misused_as_years_ago",
-                    "fragment_ord": fragment_ord,
-                    "anchor_value": amb.value,
-                    "source_span": amb.source_span,
-                    "item_summary": payload.get("summary", ""),
-                    "severity": "warning",
-                    "hint": f"EVENT.years_ago={amb.value} совпадает с "
-                            f"AMBIGUOUS anchor («{amb.source_span}»), "
-                            f"но YEARS_AGO с тем же значением не извлечён. "
-                            f"LLM возможно перепутала текущий возраст с "
-                            f"years_ago. Требуется ручная проверка.",
-                })
+            if item.kind.value == "EVENT" and payload.get("years_ago") == amb.value:
+                anomalies.append(
+                    {
+                        "anomaly_type": "ambiguous_anchor_misused_as_years_ago",
+                        "fragment_ord": fragment_ord,
+                        "anchor_value": amb.value,
+                        "source_span": amb.source_span,
+                        "item_summary": payload.get("summary", ""),
+                        "severity": "warning",
+                        "hint": f"EVENT.years_ago={amb.value} совпадает с "
+                        f"AMBIGUOUS anchor («{amb.source_span}»), "
+                        f"но YEARS_AGO с тем же значением не извлечён. "
+                        f"LLM возможно перепутала текущий возраст с "
+                        f"years_ago. Требуется ручная проверка.",
+                    }
+                )
 
     # Проверка 4 (Fix 2): AMBIGUOUS anchor → EVENT.duration_years
     for amb in ambiguous_anchors:
@@ -197,22 +194,21 @@ def validate_age_anchor_coverage(
 
         for item in items:
             payload = item.draft_payload
-            if (
-                item.kind.value == "EVENT"
-                and payload.get("duration_years") == amb.value
-            ):
-                anomalies.append({
-                    "anomaly_type": "ambiguous_anchor_misused_as_duration",
-                    "fragment_ord": fragment_ord,
-                    "anchor_value": amb.value,
-                    "source_span": amb.source_span,
-                    "item_summary": payload.get("summary", ""),
-                    "severity": "warning",
-                    "hint": f"EVENT.duration_years={amb.value} совпадает с "
-                            f"AMBIGUOUS anchor («{amb.source_span}»), "
-                            f"но DURATION с тем же значением не извлечён. "
-                            f"Требуется ручная проверка.",
-                })
+            if item.kind.value == "EVENT" and payload.get("duration_years") == amb.value:
+                anomalies.append(
+                    {
+                        "anomaly_type": "ambiguous_anchor_misused_as_duration",
+                        "fragment_ord": fragment_ord,
+                        "anchor_value": amb.value,
+                        "source_span": amb.source_span,
+                        "item_summary": payload.get("summary", ""),
+                        "severity": "warning",
+                        "hint": f"EVENT.duration_years={amb.value} совпадает с "
+                        f"AMBIGUOUS anchor («{amb.source_span}»), "
+                        f"но DURATION с тем же значением не извлечён. "
+                        f"Требуется ручная проверка.",
+                    }
+                )
 
     return anomalies
 
@@ -222,18 +218,19 @@ def _default_roster_provider() -> Dict[str, str]:
     Единственный источник истины; per-call fetch (config правится вне тик-сессии).
     Ленивый импорт (цикл-безопасно)."""
     from app.services.npc.npc_loader import get_display_names
+
     return get_display_names()
 
 
 # Детерминированный препарсинг возрастных якорей (FR-1.2/FR-2.x, Fast Path)
 _AGE_ANCHOR: Final[re.Pattern] = re.compile(
-    r"\[\s*(\d{1,3})\s*лет\s*\]|"            # [8 лет]
-    r"в\s+(\d{1,3})\s*лет|"                  # в 14 лет
-    r"с\s+(\d{1,3})\s*лет|"                  # с 12 лет
-    r"к\s+(\d{1,3})\s*годам|"                # к 23 годам (S365)
-    r"в\s+(\d{1,3})\s*год(а|у)?\b|"          # в 24 года / в 24 год / в 24 (S365)
+    r"\[\s*(\d{1,3})\s*лет\s*\]|"  # [8 лет]
+    r"в\s+(\d{1,3})\s*лет|"  # в 14 лет
+    r"с\s+(\d{1,3})\s*лет|"  # с 12 лет
+    r"к\s+(\d{1,3})\s*годам|"  # к 23 годам (S365)
+    r"в\s+(\d{1,3})\s*год(а|у)?\b|"  # в 24 года / в 24 год / в 24 (S365)
     r"\bв\s+(\d{1,3})\b(?=\s+(?:он|она|они|застал|пошёл|пошла|начал|начала))",  # «В 24 застал» (S365)
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 
@@ -279,6 +276,7 @@ class BiographyDecomposer:
     def _ensure_prompt(self) -> str:
         if self._system_prompt is None:
             from app.services.verbalization.prompt_loader import load_system_prompt
+
             self._system_prompt = load_system_prompt(self.PROMPT_FILE)
         return self._system_prompt
 
@@ -290,6 +288,7 @@ class BiographyDecomposer:
         значения без различения CURRENT_AGE/DURATION/AT_AGE.
         """
         from app.services.chronicle.age_anchor import extract_age_anchors_typed
+
         return [a.value for a in extract_age_anchors_typed(text)]
 
     def build_user_prompt(
@@ -318,12 +317,10 @@ class BiographyDecomposer:
             AgeAnchorKind,
             age_anchors_to_hint,
         )
+
         if age_anchors and not isinstance(age_anchors[0], AgeAnchor):
             # Legacy: плоский список int → AMBIGUOUS anchors
-            typed_anchors = [
-                AgeAnchor(value=v, kind=AgeAnchorKind.AMBIGUOUS, source_span=str(v))
-                for v in age_anchors
-            ]
+            typed_anchors = [AgeAnchor(value=v, kind=AgeAnchorKind.AMBIGUOUS, source_span=str(v)) for v in age_anchors]
         else:
             # уже List[AgeAnchor] (или пусто) — narrowing через isinstance не срабатывает
             typed_anchors = cast("List[AgeAnchor]", age_anchors)
@@ -382,6 +379,7 @@ class BiographyDecomposer:
         # возвращает List[AgeAnchor]; конвертируем для DecomposeResult, который
         # пока хранит плоский List[int] (backward-compat response API).
         from app.services.chronicle.age_anchor import extract_age_anchors_typed
+
         typed = extract_age_anchors_typed(fragment)
         # CCH-12 Point 1: передаём List[AgeAnchor] напрямую в build_user_prompt,
         # не плоский List[int] — иначе build_user_prompt конвертирует все в
@@ -410,7 +408,9 @@ class BiographyDecomposer:
                 params = GenerationParams(
                     temperature=0.0,
                     max_tokens=6144,  # CCH-14: было 4096, увеличено для п.15 Люси (1161 chars) + prior_context
-                    response_format={"type": "json_object"},  # S371.3-pre: оставлен для совместимости (llama_cpp игнорирует)
+                    response_format={
+                        "type": "json_object"
+                    },  # S371.3-pre: оставлен для совместимости (llama_cpp игнорирует)
                     grammar=_grammar,  # S371.3-GBNF: рабочий путь — /completion + grammar
                 )
                 raw = await router.request(
@@ -429,7 +429,7 @@ class BiographyDecomposer:
                 return DecomposeResult.success(items, anchors)
             except DecompositionError as e:
                 last_error = str(e)
-                last_raw = raw if 'raw' in locals() else None  # S371.0: сохранить сырой ответ для диагностики
+                last_raw = raw if "raw" in locals() else None  # S371.0: сохранить сырой ответ для диагностики
                 continue  # ровно один retry (FR-2.2)
             except RuntimeError as e:
                 # L4: отказ пула виден на warn-уровне. «Пул занят» — возмущение
@@ -448,7 +448,7 @@ class BiographyDecomposer:
                 return DecomposeResult.failure(f"LLM-пул недоступен: {e}")
         return DecomposeResult.failure(
             f"Декомпозиция не удалась после retry: {last_error}",
-            raw_response=last_raw if 'last_raw' in locals() else None,
+            raw_response=last_raw if "last_raw" in locals() else None,
         )
 
     def to_transient(self, chronicle_id: str, fragment_ord: int, result: DecomposeResult) -> BiographyDecomposition:

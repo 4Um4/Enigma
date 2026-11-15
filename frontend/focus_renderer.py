@@ -79,9 +79,7 @@ class FocusRenderer:
                 _surf = self.font_small.render(_text, True, self._COLOR_ADDRESSING)
                 # Above NPC, offset for multiple events on same NPC
                 _y_offset = _coords["sy"] - _coords["radius"] - 20 - (_i * 18)
-                screen.blit(
-                    _surf, (_coords["sx"] - _surf.get_width() // 2, _y_offset)
-                )
+                screen.blit(_surf, (_coords["sx"] - _surf.get_width() // 2, _y_offset))
 
     def draw_action_markers(self, screen: pygame.Surface, npc_coords: dict, entities: list) -> None:
         """S163/S165: Отрисовка пиктограмм действий над NPC (Закон Локальности и Временности)."""

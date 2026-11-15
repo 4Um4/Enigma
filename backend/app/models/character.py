@@ -296,9 +296,7 @@ class CharacterProfile:
                 intensity=float(front_data.get("intensity", 0.0)),
                 tick_adopted=int(front_data.get("tick_adopted", 0)),
                 tick_age=int(front_data.get("tick_age", 0)),
-                integrity_cost_per_tick=float(
-                    front_data.get("integrity_cost_per_tick", 0.0)
-                ),
+                integrity_cost_per_tick=float(front_data.get("integrity_cost_per_tick", 0.0)),
                 breaks=front_data.get("breaks", []),
             )
         return profile

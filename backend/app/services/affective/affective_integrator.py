@@ -5,6 +5,7 @@ ADR-049: Реализация принципа "Страх — это интег
 - Внедрить в NPCState (affective_load) и обновлять при каждом тике.
 - Настроить пороги для эмоциональных коллапсов и реакций.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Константы Active Inference (вынесены из TickOrchestrator)
 _MEMORY_DECAY_RATE: float = 0.85
 _SURPRISE_GAIN: float = 1.2
+
 
 def _compute_scar_rate(abs_error: float) -> float:
     """Вычисляет скорость формирования 'шрама памяти' на основе ошибки предсказания."""
@@ -58,6 +60,7 @@ def integrate_affective_pressure(
 
     # M-25 FIX: Guard against NaN/Inf propagation
     import math
+
     if math.isnan(pk_load) or math.isinf(pk_load):
         logger.error("[AFFECTIVE] NaN/Inf detected in pk_load. Resetting to 0.0.")
         pk_load = 0.0
@@ -84,8 +87,6 @@ def integrate_affective_pressure(
     else:
         adaptation_rate = 0.05 + (willpower * 0.1)
 
-    new_load = (
-        current_load_adjusted + (target_load - current_load_adjusted) * adaptation_rate
-    )
+    new_load = current_load_adjusted + (target_load - current_load_adjusted) * adaptation_rate
 
     return max(0.0, min(1.0, new_load)), new_memory

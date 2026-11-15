@@ -20,9 +20,7 @@ class FactionAlignmentTracker:
         if faction_id in self._alignments:
             raise ValueError(f"Initial alignment for {faction_id} already set.")
         self._alignments[faction_id] = FactionAlignment(
-            faction_id=faction_id,
-            alignment=alignment,
-            known_to_faction=known
+            faction_id=faction_id, alignment=alignment, known_to_faction=known
         )
 
     def apply_delta(self, faction_id: str, delta: float, known: bool = True) -> FactionAlignment:
@@ -37,11 +35,7 @@ class FactionAlignmentTracker:
         # Если действие известно фракции, фракция теперь знает об игроке
         new_known = current.known_to_faction or known
 
-        updated = FactionAlignment(
-            faction_id=faction_id,
-            alignment=new_alignment,
-            known_to_faction=new_known
-        )
+        updated = FactionAlignment(faction_id=faction_id, alignment=new_alignment, known_to_faction=new_known)
         self._alignments[faction_id] = updated
         return updated
 

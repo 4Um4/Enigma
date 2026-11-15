@@ -25,6 +25,7 @@ from app.models.npc.beliefs import BeliefType
 
 _BELIEF_FLEE_CAP: float = 0.35  # RT-LLM-02: cap aggregate flee from beliefs
 
+
 class BeliefModifierResolver:
     """
     Конвертирует убеждения в модификаторы intent-score.

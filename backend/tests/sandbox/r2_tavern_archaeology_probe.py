@@ -17,8 +17,12 @@ Run from backend/ root:
   python -m tests.sandbox.r2_tavern_archaeology_probe
   python tests/sandbox/r2_tavern_archaeology_probe.py
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -129,6 +133,7 @@ def _load_map_file(path: Path) -> Tuple[Optional[Any], str]:
     elif suffix in (".yaml", ".yml"):
         try:
             import yaml  # type: ignore
+
             return yaml.safe_load(raw), "yaml"
         except ImportError:
             return raw, "yaml-text-no-parser"
@@ -137,10 +142,12 @@ def _load_map_file(path: Path) -> Tuple[Optional[Any], str]:
     elif suffix == ".toml":
         try:
             import tomllib  # py3.11+
+
             return tomllib.loads(raw), "toml"
         except Exception:
             try:
                 import toml  # type: ignore
+
                 return toml.loads(raw), "toml"
             except Exception:
                 return raw, "toml-text-no-parser"
@@ -188,8 +195,10 @@ def _find_all_walls(data: Any) -> List[Tuple[str, Dict[str, Any]]]:
             keys_present = all(k in val for k in ("x1", "y1", "x2", "y2"))
             if keys_present:
                 try:
-                    float(val["x1"]); float(val["y1"])
-                    float(val["x2"]); float(val["y2"])
+                    float(val["x1"])
+                    float(val["y1"])
+                    float(val["x2"])
+                    float(val["y2"])
                     walls.append((path, val))
                 except (TypeError, ValueError):
                     continue
@@ -241,11 +250,17 @@ def _find_target_edge_in_data(data: Any) -> List[Tuple[str, Any]]:
     for path, val in flat:
         if isinstance(val, dict):
             # Common edge representation: {"from": ..., "to": ...} or {"source": ..., "target": ...}
-            for from_k, to_k in (("from", "to"), ("source", "target"),
-                                  ("src", "dst"), ("a", "b"),
-                                  ("node_a", "node_b"), ("u", "v")):
+            for from_k, to_k in (
+                ("from", "to"),
+                ("source", "target"),
+                ("src", "dst"),
+                ("a", "b"),
+                ("node_a", "node_b"),
+                ("u", "v"),
+            ):
                 if from_k in val and to_k in val:
-                    f = str(val[from_k]); t = str(val[to_k])
+                    f = str(val[from_k])
+                    t = str(val[to_k])
                     if (f in targets and t in targets) or (t in targets and f in targets):
                         edges.append((path, val))
                         break
@@ -297,7 +312,7 @@ def _find_door_wall_bindings(data: Any) -> List[Dict[str, Any]]:
       - doors with from/to matching wall endpoints
     """
     bindings: List[Dict[str, Any]] = []
-    flat = _flatten_search(data)
+    _flatten_search(data)
     doors = _find_all_doors(data)
     walls = _find_all_walls(data)
 
@@ -307,20 +322,24 @@ def _find_door_wall_bindings(data: Any) -> List[Dict[str, Any]]:
         # Pattern 1: door has wall_id
         wall_id = d_val.get("wall_id") or d_val.get("wall") or d_val.get("wall_ref") or d_val.get("wallId")
         if wall_id:
-            bindings.append({
-                "binding_type": "door.wall_id",
-                "door_path": d_path,
-                "door": d_val,
-                "wall_id_referenced": wall_id,
-            })
+            bindings.append(
+                {
+                    "binding_type": "door.wall_id",
+                    "door_path": d_path,
+                    "door": d_val,
+                    "wall_id_referenced": wall_id,
+                }
+            )
             continue
         # Pattern 2: door has wall_x1..y2
         if all(k in d_val for k in ("wall_x1", "wall_y1", "wall_x2", "wall_y2")):
-            bindings.append({
-                "binding_type": "door.wall_geometry",
-                "door_path": d_path,
-                "door": d_val,
-            })
+            bindings.append(
+                {
+                    "binding_type": "door.wall_geometry",
+                    "door_path": d_path,
+                    "door": d_val,
+                }
+            )
             continue
         # Pattern 3: door has its own geometry that overlaps a wall
         door_x = d_val.get("x") or d_val.get("pos_x") or d_val.get("px")
@@ -340,13 +359,15 @@ def _find_door_wall_bindings(data: Any) -> List[Dict[str, Any]]:
                         elif _approx_equal(wy1, wy2):  # horizontal wall
                             on_wall = _approx_equal(dy, wy1) and (min(wx1, wx2) - 1e-6 <= dx <= max(wx1, wx2) + 1e-6)
                         if on_wall:
-                            bindings.append({
-                                "binding_type": "door.geometry_overlap",
-                                "door_path": d_path,
-                                "door": d_val,
-                                "wall_path": w_path,
-                                "wall": w_val,
-                            })
+                            bindings.append(
+                                {
+                                    "binding_type": "door.geometry_overlap",
+                                    "door_path": d_path,
+                                    "door": d_val,
+                                    "wall_path": w_path,
+                                    "wall": w_val,
+                                }
+                            )
                             break
                     except (TypeError, ValueError, KeyError):
                         continue
@@ -478,7 +499,7 @@ def main() -> int:
                 orient = "horizontal"
             else:
                 orient = "diagonal"
-            length = ((float(x2)-float(x1))**2 + (float(y2)-float(y1))**2)**0.5
+            length = ((float(x2) - float(x1)) ** 2 + (float(y2) - float(y1)) ** 2) ** 0.5
             print(f"  {path}: x1={x1}, y1={y1}, x2={x2}, y2={y2}, {orient}, len={length:.3f}{marker}")
             # Show extra fields (door_id, etc.)
             extra_keys = set(val.keys()) - {"x1", "y1", "x2", "y2"}
@@ -539,8 +560,7 @@ def main() -> int:
     for path, val in node_refs:
         if isinstance(val, dict):
             # Find the node_id
-            node_id = (val.get("id") or val.get("node_id") or val.get("node")
-                       or val.get("name") or val.get("node_name"))
+            node_id = val.get("id") or val.get("node_id") or val.get("node") or val.get("name") or val.get("node_name")
             if not node_id:
                 for k, v in val.items():
                     if isinstance(v, str) and v in TARGET_NODES:
@@ -549,10 +569,8 @@ def main() -> int:
             if not node_id:
                 continue
             # Find x/y
-            x = (val.get("x") or val.get("pos_x") or val.get("px")
-                 or val.get("position_x") or val.get("coord_x"))
-            y = (val.get("y") or val.get("pos_y") or val.get("py")
-                 or val.get("position_y") or val.get("coord_y"))
+            x = val.get("x") or val.get("pos_x") or val.get("px") or val.get("position_x") or val.get("coord_x")
+            y = val.get("y") or val.get("pos_y") or val.get("py") or val.get("position_y") or val.get("coord_y")
             if x is not None and y is not None:
                 try:
                     node_coords[str(node_id)] = (float(x), float(y))
@@ -570,13 +588,15 @@ def main() -> int:
                         except (TypeError, ValueError):
                             pass
 
-    print(f"\nNode coordinates found:")
+    print("\nNode coordinates found:")
     for nid, (x, y) in node_coords.items():
         print(f"  {nid}: ({x}, {y})")
 
     # Geometry of the target wall
-    print(f"\nTarget wall geometry: x1={TARGET_WALL['x1']}, y1={TARGET_WALL['y1']}, "
-          f"x2={TARGET_WALL['x2']}, y2={TARGET_WALL['y2']}")
+    print(
+        f"\nTarget wall geometry: x1={TARGET_WALL['x1']}, y1={TARGET_WALL['y1']}, "
+        f"x2={TARGET_WALL['x2']}, y2={TARGET_WALL['y2']}"
+    )
     print(f"Wall is VERTICAL at x={TARGET_WALL['x1']}, spanning y=[{TARGET_WALL['y1']}, {TARGET_WALL['y2']}]")
 
     # Compute where a straight line exit_south -> kitchen_bed_2 crosses x=19.5
@@ -603,8 +623,8 @@ def main() -> int:
                 door_at_intersection = None
                 for d_path, d_val in all_doors:
                     if isinstance(d_val, dict):
-                        dx = (d_val.get("x") or d_val.get("pos_x") or d_val.get("px"))
-                        dy = (d_val.get("y") or d_val.get("pos_y") or d_val.get("py"))
+                        dx = d_val.get("x") or d_val.get("pos_x") or d_val.get("px")
+                        dy = d_val.get("y") or d_val.get("pos_y") or d_val.get("py")
                         if dx is not None and dy is not None:
                             try:
                                 fdx, fdy = float(dx), float(dy)
@@ -614,14 +634,14 @@ def main() -> int:
                             except (TypeError, ValueError):
                                 continue
                 if door_at_intersection:
-                    print(f"\n*** DOOR FOUND at intersection point ***")
+                    print("\n*** DOOR FOUND at intersection point ***")
                     print(f"  Path: {door_at_intersection[0]}")
                     print(f"  Value:\n{_print_dict(door_at_intersection[1])}")
                 else:
                     print(f"\n>>> NO DOOR FOUND at intersection point (19.5, {y_cross:.3f})")
                     print(">>> This confirms the SpatialValidator's complaint: edge crosses solid wall without a door.")
         else:
-            print(f"\nLine exit_south -> kitchen_bed_2 does NOT cross x=19.5.")
+            print("\nLine exit_south -> kitchen_bed_2 does NOT cross x=19.5.")
             print("(This would contradict SpatialValidator — investigate further.)")
 
     # === Step 9: Survey analogous door-wall links (existing valid examples) ===
@@ -633,7 +653,7 @@ def main() -> int:
         print("\n--- Examples to use as template ---")
         # Show first 3 examples with full structure
         for i, b in enumerate(bindings[:3]):
-            print(f"\nExample {i+1}: {b.get('binding_type')}")
+            print(f"\nExample {i + 1}: {b.get('binding_type')}")
             print(f"  Door: {_print_dict(b.get('door'))}")
             if "wall" in b:
                 print(f"  Wall: {_print_dict(b.get('wall'))}")
@@ -657,7 +677,7 @@ def main() -> int:
     print(f"Walls with explicit door_id: {len(walls_with_door)}")
     print(f"Target edge matches in graph: {len(target_edges)}")
     print(f"Node coordinate lookups: {len(node_coords)}")
-    print(f"\nNode coordinates:")
+    print("\nNode coordinates:")
     for nid, (x, y) in node_coords.items():
         print(f"  {nid}: ({x}, {y})")
 

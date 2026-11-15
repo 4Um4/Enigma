@@ -1,12 +1,14 @@
 """Run before each playtest. Catches what automation can't.
 Использование: python backend/scripts/preflight.py
 """
+
 import sys
 from pathlib import Path
 
 # Добавляем корень проекта в sys.path для импорта app.*
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root / "backend"))
+
 
 def preflight():
     print("=== ENIGMA PRE-FLIGHT CHECK ===\n")
@@ -46,6 +48,7 @@ def preflight():
     print("[3/8] NPC configs (schedule × activity_map)...")
     try:
         from app.services.npc.npc_loader import load_npcs_merged
+
         npcs = load_npcs_merged()
         assert len(npcs) > 0, "No NPCs loaded"
         for npc in npcs:
@@ -62,6 +65,7 @@ def preflight():
     print("[4/8] Spatial registry (sleep positions)...")
     try:
         from app.services.spatial.spatial_factory import SpatialFactory
+
         loc_id = DEFAULT_LOCATION_ID
         scene = game_loop.scene_manager.get_scene_state("Open_road", loc_id) or {}
         svc = SpatialFactory.build_for_campaign("Open_road", loc_id, scene)
@@ -95,6 +99,7 @@ def preflight():
     try:
         from app.services.events.event_bus import get_event_bus
         from app.services.events.event_types import EventType
+
         assert EventType.TICK_COMPLETED in EventType.__members__.values(), "TICK_COMPLETED missing in EventType"
 
         _bus = get_event_bus()
@@ -131,6 +136,7 @@ def preflight():
         print("\n=== ✅ ALL PRE-FLIGHT CHECKS PASSED ===")
         print("Open http://localhost:8000/health during playtest for live monitoring")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     preflight()

@@ -5,6 +5,7 @@ path: backend/app/domain/motion_core.py
 Зависимости: dataclasses, typing
 Основные сущности: AffordanceVector, BodySchema, DriveVector, KinematicProfile
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,9 +19,7 @@ class MotionPrimitive(Enum):
     APPROACH = "approach"
     FLEE = "flee"
     RETREAT = "retreat"
-    SOCIAL_DRIFT = (
-        "social_drift"  # S91: Замена PATROL. Социально оправданное микро-перемещение.
-    )
+    SOCIAL_DRIFT = "social_drift"  # S91: Замена PATROL. Социально оправданное микро-перемещение.
 
 
 @dataclass(frozen=True)
@@ -105,9 +104,7 @@ class DeformationRecord:
     Значение перезаписывает базовое поле в AffordanceVector.
     """
 
-    deformation_type: (
-        str  # Имя поля в AffordanceVector (напр. "surface_grip", "can_pass")
-    )
+    deformation_type: str  # Имя поля в AffordanceVector (напр. "surface_grip", "can_pass")
     magnitude: float  # Absolute Override (0.0 - 1.0)
     created_tick: int  # Тик создания (для decay и history)
     ttl: int  # Time-to-live в тиках (0 = вечная)

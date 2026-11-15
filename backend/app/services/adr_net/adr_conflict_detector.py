@@ -5,12 +5,14 @@ path: /project/backend/app/services/adr_net/adr_conflict_detector.py
 Зависимости: networkx
 Основные сущности: ADRConflictDetector
 """
+
 import logging
 from typing import Any, Dict, List
 
 import networkx as nx
 
 logger = logging.getLogger(__name__)
+
 
 class ADRConflictDetector:
     """Ищет архитектурные конфликты в графе ADR."""
@@ -54,7 +56,7 @@ class ADRConflictDetector:
                 # Пропускаем, если нет явных CONFLICTS_WITH между ADR
                 _has_conflict_edge = False
                 for i, adr_a in enumerate(adrs):
-                    for adr_b in adrs[i+1:]:
+                    for adr_b in adrs[i + 1 :]:
                         if self.graph.has_edge(adr_a, adr_b):
                             edge_data = self.graph.get_edge_data(adr_a, adr_b)
                             if any(d.get("edge_type") == "CONFLICTS_WITH" for d in edge_data.values()):
@@ -64,16 +66,15 @@ class ADRConflictDetector:
                         break
 
                 if _has_conflict_edge:
-                    conflicts.append({
-                        "file": file_id,
-                        "adrs": adrs,
-                        "conflict": "File IMPLEMENTS ADRs with explicit CONFLICTS_WITH edge (Double Truth)"
-                    })
+                    conflicts.append(
+                        {
+                            "file": file_id,
+                            "adrs": adrs,
+                            "conflict": "File IMPLEMENTS ADRs with explicit CONFLICTS_WITH edge (Double Truth)",
+                        }
+                    )
         return conflicts
 
     def check_all(self) -> Dict[str, Any]:
         """Запускает все проверки."""
-        return {
-            "cycles": self.detect_cycles(),
-            "file_ownership_conflicts": self.detect_file_ownership_conflicts()
-        }
+        return {"cycles": self.detect_cycles(), "file_ownership_conflicts": self.detect_file_ownership_conflicts()}

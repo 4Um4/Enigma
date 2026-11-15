@@ -10,6 +10,7 @@ R6 (CCH-15 P4): Контроллер автономной симуляции —
 - После рестарта — всегда INACTIVE (не персистится).
 - Без F10 — никакой фоновой симуляции.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -20,6 +21,7 @@ import pytest
 # Добавляем frontend в path (frontend — не пакет, но файлы там)
 import sys
 from pathlib import Path
+
 _FRONTEND = Path(__file__).resolve().parents[3] / "frontend"
 if str(_FRONTEND) not in sys.path:
     sys.path.insert(0, str(_FRONTEND))
@@ -32,6 +34,7 @@ from autonomous_simulation_controller import (
 
 class _FakeGateway:
     """Fake GameGateway для тестов state machine."""
+
     def __init__(self) -> None:
         self.start_calls: list[str] = []
         self.stop_calls: list[str] = []
@@ -87,6 +90,7 @@ class TestR6StateMachine:
         assert ctrl.is_active
         # API start вызван (в worker thread — даём время)
         import time
+
         time.sleep(0.1)
         assert "Open_road" in gw.start_calls
 
@@ -107,6 +111,7 @@ class TestR6StateMachine:
         ctrl.handle_f10("Open_road")  # → INACTIVE + stop
         assert ctrl.state == AutonomousState.INACTIVE
         import time
+
         time.sleep(0.1)
         assert "Open_road" in gw.stop_calls
 
@@ -134,6 +139,7 @@ class TestR6StateMachine:
         ctrl.on_campaign_change("other_campaign")
         assert ctrl.state == AutonomousState.INACTIVE
         import time
+
         time.sleep(0.1)
         assert "Open_road" in gw.stop_calls
 
@@ -146,6 +152,7 @@ class TestR6StateMachine:
         ctrl.on_app_shutdown()
         assert ctrl.state == AutonomousState.INACTIVE
         import time
+
         time.sleep(0.1)
         assert "Open_road" in gw.stop_calls
 
@@ -162,14 +169,17 @@ class TestR6StateMachine:
 
     def test_12_api_error_rolls_back_to_inactive(self):
         """Ошибка API start → откат в INACTIVE."""
+
         class _ErrorGateway(_FakeGateway):
             def start_autonomous_simulation(self, campaign_id: str) -> dict:
                 raise RuntimeError("backend unavailable")
+
         gw = _ErrorGateway()
         ctrl = AutonomousSimulationController(lambda: gw)
         ctrl.handle_f10("Open_road")
         ctrl.confirm()  # → ACTIVE, но API упадёт
         import time
+
         time.sleep(0.1)
         assert ctrl.state == AutonomousState.INACTIVE  # откат
 

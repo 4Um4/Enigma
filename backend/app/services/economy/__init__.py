@@ -1,4 +1,4 @@
-﻿"""EXTENSION POINT :: World Economy. AUDIT #6 VERDICT=BURIED (2026-08).
+"""EXTENSION POINT :: World Economy. AUDIT #6 VERDICT=BURIED (2026-08).
 
 Runtime-контур MarketState / TradeResolver / TransactionEngine / Traveller
 захоронен: продашен-пути не резолвили сделки, экономического тика в

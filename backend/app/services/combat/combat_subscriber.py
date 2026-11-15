@@ -17,6 +17,7 @@ path: backend/app/services/combat/combat_subscriber.py
 - ContactResult может быть расширен для включения более детальной информации о результатах воздействия,например, какие конкретные травмы были нанесены, или какие статусы были применены к цели. Это позволит нам более точно моделировать последствия физических воздействий и их влияние на NPC state.
 - Важно, что эти контракты должны быть достаточно абстрактными, чтобы позволить гибкую реализацию механики насилия в будущем, включая возможность добавления новых типов воздействий, новых зон попадания, и более сложных взаимодействий между атакующими и защищающимися NPC. Это обеспечит нам широкие возможности для развития механики насилия в рамках нашей игры, не требуя постоянного изменения контрактов при добавлении новых фич.
 """
+
 from __future__ import annotations
 
 import logging
@@ -117,9 +118,7 @@ class CombatSubscriber:
         if not events:
             return Phase8Result()
 
-        logger.debug(
-            f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}"
-        )
+        logger.debug(f"[COMBAT_HANDLE] events={len(events)} types={[getattr(e, 'type', '?') for e in events[:3]]}")
 
         # Строим dict npc_id → npc_dict для быстрого доступа
         npc_by_id: dict[str, dict] = {}
@@ -139,6 +138,7 @@ class CombatSubscriber:
         # WV (вердикт Q1): дубль 5.0/2.0 устранён — SSOT досягаемости в dom.constants.
         # reach предмета войдёт, когда tool_reference дойдёт до combat-pipe payload.
         from app.domain.constants import BODY_REACH_M
+
         _MAX_MELEE_RANGE = BODY_REACH_M
 
         # A1-FIX: zombie reader → SpatialQueryService (ADR-048 single authority).
@@ -154,20 +154,14 @@ class CombatSubscriber:
             else:
                 logger.debug("[COMBAT_SUB] spatial_query is None — range gate DISABLED")
         else:
-            logger.debug(
-                "[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED"
-            )
+            logger.debug("[COMBAT_SUB] shared_context has no spatial_query — range gate DISABLED")
 
-        logger.debug(
-            f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}"
-        )
+        logger.debug(f"[COMBAT_SUB] npc_by_id keys={list(npc_by_id.keys())[:10]} distances={bool(_distances)}")
 
         for event in events:
             intent = self._extract_impact_intent(event, npc_by_id)
             if intent is None:
-                logger.debug(
-                    f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}"
-                )
+                logger.debug(f"[COMBAT_SUB] intent=None for event type={getattr(event, 'type', '?')}")
                 continue
 
             logger.debug(
@@ -204,22 +198,16 @@ class CombatSubscriber:
                 # ADR-O-112: Игрок может быть целью. Строим снапшот защиты.
                 # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
                 if intent.target_id == "player":
-                    defender_snapshot = self._make_player_snapshot(
-                        _player_dict_for_snapshot
-                    )
+                    defender_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
                 else:
                     # Нет цели — нет воздействия (но атакующий устаёт)
-                    logger.debug(
-                        f"[COMBAT_SUB] target {intent.target_id} not found in npc_by_id, skip"
-                    )
+                    logger.debug(f"[COMBAT_SUB] target {intent.target_id} not found in npc_by_id, skip")
                     continue
 
             # Если атакующий не найден (игрок), строим снапшот из живого body_state
             # P1 FIX: Передаём player_dict с живым body_state (Rule 60)
             if attacker_snapshot is None:
-                attacker_snapshot = self._make_player_snapshot(
-                    _player_dict_for_snapshot
-                )
+                attacker_snapshot = self._make_player_snapshot(_player_dict_for_snapshot)
 
             # Вызов физического интегратора (Pure Function)
             # IRON RIVER D-1/P0-3 (F3-2): боевой seed — KernelRNG-деривация
@@ -229,12 +217,8 @@ class CombatSubscriber:
             # пишется оркестратором) → целочисленный тик для деривации.
             from app.services.npc.kernel_rng import KernelRNG
 
-            _combat_tick = int(
-                getattr(event, "timestamp", 0.0) or 0.0
-            )
-            _combat_rng = KernelRNG(
-                tick=_combat_tick, npc_id=intent.actor_id, salt="combat"
-            )
+            _combat_tick = int(getattr(event, "timestamp", 0.0) or 0.0)
+            _combat_rng = KernelRNG(tick=_combat_tick, npc_id=intent.actor_id, salt="combat")
             impact_deltas = resolve_physical_impact(
                 attacker=attacker_snapshot,
                 defender=defender_snapshot,
@@ -257,9 +241,7 @@ class CombatSubscriber:
         result.missed_targets = missed_targets  # type: ignore[attr-defined]
         return result
 
-    def _extract_impact_intent(
-        self, event: Any, npc_by_id: dict[str, dict]
-    ) -> Optional[ImpactIntentDTO]:
+    def _extract_impact_intent(self, event: Any, npc_by_id: dict[str, dict]) -> Optional[ImpactIntentDTO]:
         """Извлекает ImpactIntentDTO из EventDTO.payload.
 
         Маппинг:
@@ -292,9 +274,7 @@ class CombatSubscriber:
                     npc_name = npc_dict.get("name", "").lower()
                     if target_ref in npc_name or npc_name.startswith(target_ref):
                         target_id = npc_id
-                        logger.debug(
-                            f"[COMBAT_SUB] Resolved target_reference '{target_ref}' to npc_id '{target_id}'"
-                        )
+                        logger.debug(f"[COMBAT_SUB] Resolved target_reference '{target_ref}' to npc_id '{target_id}'")
                         break
 
         if not target_id:
@@ -324,9 +304,7 @@ class CombatSubscriber:
         )
 
     @staticmethod
-    def _build_snapshot(
-        npc_id: str, npc_by_id: dict[str, dict]
-    ) -> Optional["NPCStateSnapshot"]:
+    def _build_snapshot(npc_id: str, npc_by_id: dict[str, dict]) -> Optional["NPCStateSnapshot"]:
         """Строит NPCStateSnapshot из npc_dict.
 
         Использует ту же логику проекции, что и _build_npc_snapshots
@@ -362,26 +340,16 @@ class CombatSubscriber:
             # S2B.5 / ADR-O-373: единая плоская проекция контракта снапшота
             velocity=(
                 (float(npc["velocity"][0]), float(npc["velocity"][1]))
-                if isinstance(npc.get("velocity"), (tuple, list))
-                and len(npc["velocity"]) >= 2
+                if isinstance(npc.get("velocity"), (tuple, list)) and len(npc["velocity"]) >= 2
                 else (0.0, 0.0)
             ),
-            activity=str(
-                npc.get("activity", "")
-                or npc.get("routine", {}).get("current", "")
-                or ""
-            ),
-            coupling_mode=str(
-                (body_state.get("coupling_profile") or {}).get("coupling_mode", "")
-                or ""
-            ),
+            activity=str(npc.get("activity", "") or npc.get("routine", {}).get("current", "") or ""),
+            coupling_mode=str((body_state.get("coupling_profile") or {}).get("coupling_mode", "") or ""),
             body_mass=float(body_state.get("body_mass", 1.0)),
             stress=float(psyche.get("stress", 0.0)),
             relationship_cache=npc.get("relationship_cache", {}),
             base_values=npc.get("base_values", {}),
-            faction_affiliations=list(
-                npc.get("status_profile", {}).get("faction_rank", {}).keys()
-            ),
+            faction_affiliations=list(npc.get("status_profile", {}).get("faction_rank", {}).keys()),
             hp=_current_hp,
             max_hp=_max_hp,
             pain=float(body_state.get("pain", 0.0)),
@@ -418,9 +386,7 @@ class CombatSubscriber:
 
         _max_hp = float(_body_profile.get("max_hp", 100.0))
         _current_hp = float(_body.get("current_hp", _max_hp))
-        _base_abilities = _body_profile.get(
-            "abilities", {"strength": 15.0, "dexterity": 12.0}
-        )
+        _base_abilities = _body_profile.get("abilities", {"strength": 15.0, "dexterity": 12.0})
         _modifiers = _body.get("modifiers", {})
         _statuses = _body.get("statuses", [])
 
@@ -449,14 +415,8 @@ class CombatSubscriber:
             life_status=_body.get("life_status", "ALIVE"),
             # ADR-O-373 (вердикт Q7): обязательные ключи TypedDict, ранее
             # отсутствовавшие в player-билдере (pre-existing).
-            affective_load=float(
-                player_dict.get("affective_load", 0.0) if player_dict else 0.0
-            ),
-            emotion=str(
-                (player_dict.get("emotion", "neutral") or "neutral")
-                if player_dict
-                else "neutral"
-            ),
+            affective_load=float(player_dict.get("affective_load", 0.0) if player_dict else 0.0),
+            emotion=str((player_dict.get("emotion", "neutral") or "neutral") if player_dict else "neutral"),
             # S2B.5 / ADR-O-373: единая плоская проекция контракта снапшота
             velocity=(
                 (float(player_dict["velocity"][0]), float(player_dict["velocity"][1]))
@@ -467,16 +427,10 @@ class CombatSubscriber:
             ),
             activity=str(
                 (player_dict.get("activity", "") if player_dict else "")
-                or (
-                    player_dict.get("routine", {}).get("current", "")
-                    if player_dict
-                    else ""
-                )
+                or (player_dict.get("routine", {}).get("current", "") if player_dict else "")
                 or ""
             ),
-            coupling_mode=str(
-                (_body.get("coupling_profile") or {}).get("coupling_mode", "") or ""
-            ),
+            coupling_mode=str((_body.get("coupling_profile") or {}).get("coupling_mode", "") or ""),
             body_mass=float(_body.get("body_mass", 1.0)),
             injuries_by_zone=injuries_by_zone,
             base_abilities=_base_abilities,

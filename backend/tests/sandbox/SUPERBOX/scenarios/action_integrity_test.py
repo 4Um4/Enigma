@@ -32,8 +32,8 @@ from app.domain.body import is_sleep_coupling
 _PROJECT_ROOT = Path(__file__).resolve().parents[5]
 _CAMPAIGN = "Open_road"
 _LOCATION = "tavern"
-_TICKS = 120          # окно сценария (Мастер: 100–150)
-_POST_WINDOW = 30     # окно post-terminal наблюдения
+_TICKS = 120  # окно сценария (Мастер: 100–150)
+_POST_WINDOW = 30  # окно post-terminal наблюдения
 _TARGET_NPC = "merchant_goran"  # игрок в еде виден в baseline (eating 5 раз)
 
 _GREEN: list[str] = []
@@ -49,10 +49,12 @@ def _quiet_loggers() -> None:
     """Глушение известного WARNING-шума канала на время прогона (наблюдение,
     не мутация конфигурации): DLG_QUEUE / S198 / SOCIAL_SUBSCRIBER / FLEE_NAV.
     Возврат — после прогона (не в harness: тест не владеет глобальным конфигом)."""
-    for name in ("app.services.execution.dialogue_queue",
-                 "app.services.npc.npc_tick_pipeline",
-                 "app.services.events.social_subscriber",
-                 "app.services.spatial.movement_engine"):
+    for name in (
+        "app.services.execution.dialogue_queue",
+        "app.services.npc.npc_tick_pipeline",
+        "app.services.events.social_subscriber",
+        "app.services.spatial.movement_engine",
+    ):
         lg = logging.getLogger(name)
         lg.addFilter(_MUTE)
 
@@ -103,9 +105,9 @@ def _build_world(tag: str, npc_patch: dict | None = None):
 
     loop = build_game_loop(Path(temp_data))
     world = types.SimpleNamespace(
-        game_loop=loop, temp_root=temp_root,
-        restore=lambda: (setattr(settings, "saves_dir", _orig_saves),
-                         setattr(settings, "data_dir", _orig_data)),
+        game_loop=loop,
+        temp_root=temp_root,
+        restore=lambda: (setattr(settings, "saves_dir", _orig_saves), setattr(settings, "data_dir", _orig_data)),
     )
     # Тик 0: материализация LifeEngine-стейтов (ленивых до первого тика)
     loop.idle_tick(_CAMPAIGN)
@@ -158,9 +160,7 @@ def _apply_npc_patch(campaign_dir: Path, patch: dict) -> None:
                         entry[key] = value
                 changed = True
         if changed:
-            npc_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            npc_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             patched = True
     if not patched:
         _log(f"[WARN] NPC {_TARGET_NPC} не найден в конфигах — патч не применён")
@@ -214,9 +214,7 @@ def _check_green(scene: dict, tick: int) -> None:
     for npc, bucket in hist.items():
         for e in bucket:
             if e.get("interrupt_reason") == "SUPERSEDED_BY_NEW_MATERIALIZATION":
-                _RED.append(
-                    f"G7 tick={tick}: npc={npc} superseded при enforcement"
-                )
+                _RED.append(f"G7 tick={tick}: npc={npc} superseded при enforcement")
 
     # R4: executor без commitment (активный traversal без активного commitment)
     for npc in traversals:
@@ -242,17 +240,13 @@ def run_scenario_a() -> dict:
         eat_events = [e for e in timeline if "hunger" in (e.get("cause") or "")]
         _log(f"  commitments total: {len(timeline)}, hunger-связанных: {len(eat_events)}")
         for e in timeline[:12]:
-            _log(
-                f"  [{e.get('status')}] cause={e.get('cause')} "
-                f"target={e.get('target_id')} t={e.get('created_tick')}"
-            )
+            _log(f"  [{e.get('status')}] cause={e.get('cause')} target={e.get('target_id')} t={e.get('created_tick')}")
 
         findings = {"eat_commitments": len(eat_events), "timeline": timeline}
         # YELLOW: recommit latency по hunger-событиям
         if len(eat_events) >= 2:
             latencies = [
-                eat_events[i + 1]["created_tick"] - eat_events[i]["created_tick"]
-                for i in range(len(eat_events) - 1)
+                eat_events[i + 1]["created_tick"] - eat_events[i]["created_tick"] for i in range(len(eat_events) - 1)
             ]
             _YELLOW.append(f"A: recommit latency (hunger): {latencies}")
         return findings
@@ -282,18 +276,13 @@ def run_scenario_b() -> dict:
         timeline = _commitment_timeline(scene)
         _log(f"  commitments total: {len(timeline)}")
         for e in timeline[:12]:
-            _log(
-                f"  [{e.get('status')}] cause={e.get('cause')} "
-                f"target={e.get('target_id')} t={e.get('created_tick')}"
-            )
+            _log(f"  [{e.get('status')}] cause={e.get('cause')} target={e.get('target_id')} t={e.get('created_tick')}")
 
         # Классификация post-terminal исходов (B1-B4)
         active = scene.get("active_commitments") or {}
         has_active = _TARGET_NPC in active
         npcs = scene.get("npc_positions") or {}
-        _coupling = (
-            (npcs.get(_TARGET_NPC, {}) or {})
-        )
+        _coupling = npcs.get(_TARGET_NPC, {}) or {}
         body = _npc_body_state(world)
         coupling_mode = (body or {}).get("coupling_profile", {}).get("coupling_mode", "?")
         _log(f"  post-terminal: active={has_active}, coupling_mode={coupling_mode}")
@@ -395,9 +384,7 @@ def run_replay_check() -> None:
     if ids_1 == ids_2 and ids_1:
         _log(f"  G3 OK: {len(ids_1)} commitments, последовательности идентичны")
     else:
-        _RED.append(
-            f"R7/G3: недетерминированный replay: {len(ids_1)} vs {len(ids_2)} ID"
-        )
+        _RED.append(f"R7/G3: недетерминированный replay: {len(ids_1)} vs {len(ids_2)} ID")
 
 
 # ── main ───────────────────────────────────────────────────────────────────

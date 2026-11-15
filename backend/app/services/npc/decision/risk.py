@@ -66,9 +66,7 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
         base_risk *= 0.5
 
     # Видимая сила — NPC реагирует на броню и оружие, не на скрытые stats
-    power_risk = sum(
-        _THREAT_MARKER_VALUES.get(m, 0.0) for m in event.visible_threat_markers
-    )
+    power_risk = sum(_THREAT_MARKER_VALUES.get(m, 0.0) for m in event.visible_threat_markers)
     base_risk += min(power_risk, 0.5)
 
     # Сцена: активный бой повышает объективную угрозу
@@ -89,11 +87,7 @@ def compute_objective_risk(event: Any, state: NPCState) -> float:
             if not hasattr(_m, "importance") or _m.importance < 0.1:
                 continue
             _type = getattr(_m, "event_type", "")  # noqa: ENIGMA002
-            _weight = (
-                0.15
-                if _type in ("player_attacks", "combat", "intimidation", "theft", "origin")
-                else 0.05
-            )
+            _weight = 0.15 if _type in ("player_attacks", "combat", "intimidation", "theft", "origin") else 0.05
             _memory_penalty += _m.importance * _weight
         if _memory_penalty > 0.01:
             base_risk += min(_memory_penalty, 0.3)

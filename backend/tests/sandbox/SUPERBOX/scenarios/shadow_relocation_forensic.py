@@ -23,14 +23,23 @@ _LOCS = ("tavern", "city_gate")
 _DAY = 1440
 
 _MARKERS = (
-    "SCHED_TRACE", "LIFE_ENGINE", "DECISION_HUB", "RELOCATE",
-    "BOUNDARY_DWELL", "S186", "MOVEMENT_TRACE", "cross-loc relocation",
-    "SPATIAL_KNOWLEDGE", "INTENT_DEGRADE", "ARBITER_REJECT",
+    "SCHED_TRACE",
+    "LIFE_ENGINE",
+    "DECISION_HUB",
+    "RELOCATE",
+    "BOUNDARY_DWELL",
+    "S186",
+    "MOVEMENT_TRACE",
+    "cross-loc relocation",
+    "SPATIAL_KNOWLEDGE",
+    "INTENT_DEGRADE",
+    "ARBITER_REJECT",
 )
 
 
 class _Collector(logging.Handler):
     """Пассивный наблюдатель (CDS §11): собирает маркерные записи."""
+
     def __init__(self) -> None:
         super().__init__(level=logging.INFO)
         self.lines: list[str] = []
@@ -49,16 +58,19 @@ def _snap(h, tick: int, out: dict) -> None:
     sm = h.game_loop.scene_manager
     for loc in _LOCS:
         scene = sm.get_scene_state(_C, loc) or {}
-        pos = (scene.get("npc_positions") or {})
+        pos = scene.get("npc_positions") or {}
         for nid in _TARGETS:
             e = pos.get(nid)
             if e:
-                out.setdefault(nid, []).append({
-                    "tick": tick, "loc": loc,
-                    "pos": copy.deepcopy(e.get("position")),
-                    "lp": copy.deepcopy(e.get("local_position")),
-                    "act": e.get("activity"),
-                })
+                out.setdefault(nid, []).append(
+                    {
+                        "tick": tick,
+                        "loc": loc,
+                        "pos": copy.deepcopy(e.get("position")),
+                        "lp": copy.deepcopy(e.get("local_position")),
+                        "act": e.get("activity"),
+                    }
+                )
 
 
 def main() -> int:
@@ -86,10 +98,8 @@ def main() -> int:
 
     out_dir = Path(__file__).resolve().parents[3] / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "srf_trace.txt").write_text(
-        "\n".join(col.lines), encoding="utf-8")
-    (out_dir / "srf_snaps.json").write_text(
-        json.dumps(snaps, ensure_ascii=False), encoding="utf-8")
+    (out_dir / "srf_trace.txt").write_text("\n".join(col.lines), encoding="utf-8")
+    (out_dir / "srf_snaps.json").write_text(json.dumps(snaps, ensure_ascii=False), encoding="utf-8")
     print(f"[SRF] маркеров={len(col.lines)} -> reports/srf_trace.txt", flush=True)
     print("[SRF] снимков -> reports/srf_snaps.json", flush=True)
     return 0

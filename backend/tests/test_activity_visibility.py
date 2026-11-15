@@ -4,6 +4,7 @@
 
 Запуск: cd backend; python -m pytest tests/test_activity_visibility.py tests/test_activity_lifecycle.py -v; cd ..
 """
+
 import os
 import unittest
 from types import SimpleNamespace
@@ -47,28 +48,40 @@ def _npc():
         "needs": {"hunger": 0.9},
         "desires": [
             {
-                "desire_id": "d:food", "subject_class": "food",
-                "urgency": 0.9, "target_class": "food_portion",
+                "desire_id": "d:food",
+                "subject_class": "food",
+                "urgency": 0.9,
+                "target_class": "food_portion",
                 "provenance": [{"source": "need", "weight": 1.0, "origin_ref": "hunger"}],
-                "born_tick": 1, "last_fulfilled_tick": -1,
-                "weight": 1.0, "learned_from": [],
+                "born_tick": 1,
+                "last_fulfilled_tick": -1,
+                "weight": 1.0,
+                "learned_from": [],
             }
         ],
         "local_position": {"x": 4.5, "y": 6.5},
         "position": "bar_area",
         "location_id": "tavern",
         "body_state": {
-            "life_status": "ALIVE", "current_hp": 100, "pain": 0,
-            "fatigue": 0, "blood_loss": 0.0, "consciousness": 1.0,
-            "shock_impulse": 0.0, "injuries": {},
+            "life_status": "ALIVE",
+            "current_hp": 100,
+            "pain": 0,
+            "fatigue": 0,
+            "blood_loss": 0.0,
+            "consciousness": 1.0,
+            "shock_impulse": 0.0,
+            "injuries": {},
         },
     }
 
 
 def _ctx(scene, npcs, tick=100):
     return SimpleNamespace(
-        scene_state=scene, all_npcs_raw=npcs, tick_number=tick,
-        campaign_id="test", tick_snapshot=None,
+        scene_state=scene,
+        all_npcs_raw=npcs,
+        tick_number=tick,
+        campaign_id="test",
+        tick_snapshot=None,
     )
 
 
@@ -82,8 +95,12 @@ def _activity_dict(step_index, started, step_started):
     )
     return ActivityState(
         activity_id=ActivityState.build_id("npc_hungry", ActivityType.EAT, started),
-        activity_type=ActivityType.EAT, desire_id="d:food", target_ref=_FOOD_ID,
-        steps=steps, step_index=step_index, step_started_tick=step_started,
+        activity_type=ActivityType.EAT,
+        desire_id="d:food",
+        target_ref=_FOOD_ID,
+        steps=steps,
+        step_index=step_index,
+        step_started_tick=step_started,
         started_tick=started,
     ).to_dict()
 
@@ -133,14 +150,19 @@ class TestActivityVisibility(unittest.TestCase):
         from app.services.scene.r3_direct_builder import build_r3_dm_frame
 
         shared = SimpleNamespace(
-            npc_contexts=[], player_target_id="",
+            npc_contexts=[],
+            player_target_id="",
             scene_state={
                 "npc_positions": {"npc_a": {"name": "Торнин", "activity": "eating"}},
                 "line_of_sight": {},
             },
-            spatial_query=None, world_tick_result=None,
-            social_propagation=[], spatial_events=[],
-            scene_continuity=None, action_type="", player_state={},
+            spatial_query=None,
+            world_tick_result=None,
+            social_propagation=[],
+            spatial_events=[],
+            scene_continuity=None,
+            action_type="",
+            player_state={},
         )
         build_r3_dm_frame(shared, [], None)
         cont = shared.scene_continuity

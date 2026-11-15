@@ -13,6 +13,7 @@ need_modifiers -> DecisionHub.apply_modifiers -> score change.
 4. Влюблённость/вложения/выгода — разные механизмы (NeedLevel = давление, не любовь).
 5. Нет универсальной ревности (ExclusivityRequirement не трогается).
 """
+
 from __future__ import annotations
 
 from typing import Dict, Optional
@@ -60,9 +61,7 @@ class TestNeedModifiersApplyModifiers:
         scores = {"seek_ally": 0.3}
         social = {"seek_ally": 0.2}
         need = {"seek_ally": 0.4}
-        result = DecisionHub.apply_modifiers(
-            scores, social_modifiers=social, need_modifiers=need
-        )
+        result = DecisionHub.apply_modifiers(scores, social_modifiers=social, need_modifiers=need)
         assert result["seek_ally"] == pytest.approx(0.3 + 0.2 + 0.4, abs=0.001)
 
 
@@ -114,7 +113,11 @@ class TestABDecisionInfluence:
     def test_10_ab_high_intimacy_flips_seek_ally(self):
         """Доказательство: NeedLevel -> score change -> intent flip."""
         base_scores = {
-            "idle": 0.5, "seek_ally": 0.3, "talk": 0.4, "approach": 0.2, "observe": 0.1,
+            "idle": 0.5,
+            "seek_ally": 0.3,
+            "talk": 0.4,
+            "approach": 0.2,
+            "observe": 0.1,
         }
         # A: без need
         scores_a = DecisionHub.apply_modifiers(base_scores)
@@ -124,9 +127,7 @@ class TestABDecisionInfluence:
         need_mods = {"seek_ally": 0.4, "talk": 0.24, "approach": 0.16}
         scores_b = DecisionHub.apply_modifiers(base_scores, need_modifiers=need_mods)
         winner_b = max(scores_b, key=scores_b.get)
-        assert winner_b == "seek_ally", (
-            f"B: high intimacy должен дать seek_ally, получен {winner_b} ({scores_b})"
-        )
+        assert winner_b == "seek_ally", f"B: high intimacy должен дать seek_ally, получен {winner_b} ({scores_b})"
         assert winner_a != winner_b
 
     def test_11_ab_zero_need_no_flip(self):

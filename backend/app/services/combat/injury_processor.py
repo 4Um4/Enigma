@@ -67,6 +67,7 @@ DecayHandler:     -blood_loss * 0.01 каждый тик (свёртывание
     средняя рана → стабильное ухудшение
     тяжёлая рана → смерть без вмешательства
 """
+
 from __future__ import annotations
 
 import logging
@@ -147,9 +148,7 @@ _DAMAGE_TYPE_PAIN: Dict[str, float] = {
 
 _DEFAULT_TYPE_PAIN: float = 1.0
 
-_BASE_CHRONIC_PAIN_RATE: float = (
-    2.0  # Базовая инъекция боли за тик (компенсирует PAIN_DECAY_LAMBDA=0.05)
-)
+_BASE_CHRONIC_PAIN_RATE: float = 2.0  # Базовая инъекция боли за тик (компенсирует PAIN_DECAY_LAMBDA=0.05)
 
 
 def _compute_pain_rate(injury: dict) -> float:

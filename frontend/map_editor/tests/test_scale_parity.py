@@ -32,10 +32,7 @@ _LOC_DIR = Path(__file__).resolve().parents[1] / "campaigns" / _CAMPAIGN / "loca
 def _locations() -> list[tuple[str, dict]]:
     files = sorted(_LOC_DIR.glob("*.json"))
     assert files, f"живые локации не найдены: {_LOC_DIR}"
-    return [
-        (path.name, json.loads(path.read_text(encoding="utf-8-sig")))
-        for path in files
-    ]
+    return [(path.name, json.loads(path.read_text(encoding="utf-8-sig"))) for path in files]
 
 
 _LOCATIONS = _locations()
@@ -43,17 +40,14 @@ _IDS = [name for name, _ in _LOCATIONS]
 
 
 def _build(name: str, data: dict):
-    return world_context.SpatialDataLoader._build_spatial_data(
-        data.get("location_id", name), data
-    )
+    return world_context.SpatialDataLoader._build_spatial_data(data.get("location_id", name), data)
 
 
 @pytest.mark.parametrize("name,data", _LOCATIONS, ids=_IDS)
 def test_global_coords_on_disk(name: str, data: dict) -> None:
     """Флаг миграции обязан стоять: игра пересчётом не занимается."""
     assert data.get("global_coords") is True, (
-        f"{name}: global_coords не True — игра прочтёт координаты как "
-        f"мировые без пересчёта (ME-D10)"
+        f"{name}: global_coords не True — игра прочтёт координаты как мировые без пересчёта (ME-D10)"
     )
 
 
@@ -79,11 +73,7 @@ def test_obstacles_exact_sizes(name: str, data: dict) -> None:
     сравнением.
     """
     spatial = _build(name, data)
-    by_id = {
-        obj["id"]: obj
-        for obj in data["objects"]
-        if isinstance(obj, dict) and "id" in obj
-    }
+    by_id = {obj["id"]: obj for obj in data["objects"] if isinstance(obj, dict) and "id" in obj}
     assert len(spatial.obstacles) == len(data["objects"])
     for ob in spatial.obstacles:
         src = by_id[ob["id"]]
@@ -137,20 +127,11 @@ def test_walls_split_not_stretched(name: str, data: dict) -> None:
     if not file_walls:
         assert not spatial.walls
         return
-    total_file = sum(
-        math.hypot(x2 - x1, y2 - y1) for x1, y1, x2, y2 in file_walls
-    )
-    total_game = sum(
-        math.hypot(s["x2"] - s["x1"], s["y2"] - s["y1"]) for s in spatial.walls
-    )
+    total_file = sum(math.hypot(x2 - x1, y2 - y1) for x1, y1, x2, y2 in file_walls)
+    total_game = sum(math.hypot(s["x2"] - s["x1"], s["y2"] - s["y1"]) for s in spatial.walls)
     assert total_game <= total_file + 1e-6, (
-        f"{name}: суммарная длина стен в игре ({total_game:.3f}) больше "
-        f"файла ({total_file:.3f}) — скрытое растяжение"
+        f"{name}: суммарная длина стен в игре ({total_game:.3f}) больше файла ({total_file:.3f}) — скрытое растяжение"
     )
     for seg in spatial.walls:
-        ok = any(
-            _on_segment(seg["x1"], seg["y1"], *w)
-            and _on_segment(seg["x2"], seg["y2"], *w)
-            for w in file_walls
-        )
+        ok = any(_on_segment(seg["x1"], seg["y1"], *w) and _on_segment(seg["x2"], seg["y2"], *w) for w in file_walls)
         assert ok, f"{name}: сегмент {seg} не лежит ни на одной стене файла"

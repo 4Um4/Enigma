@@ -16,23 +16,21 @@ BiographyAdapter — проектор ChronicleEntry → USLUnit (USL-1.2, ADR-O
 Conservative mapping: EVENT → ASSERTS (без специализации BORN/DIED — future work,
 не угадываем). RELATIONSHIP → ASSERTS + USLRelation (тип из payload.nature).
 """
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
 from app.domain.chronicle import (
+    KP_CERTAINTY,
+    KP_CHANNEL,
+    KP_LEARNED_AGE,
     ChronicleDocument,
     ChronicleEntry,
     EntityRef,
     EntityRefKind,
     EntryKind,
     EntryProvenance,
-    KP_CHANNEL,
-    KP_CERTAINTY,
-    KP_EVENT_REF,
-    KP_KNOWER,
-    KP_LEARNED_AGE,
-    KP_LEARNED_YEAR,
     KnowledgeChannel,
 )
 from app.domain.usl import (
@@ -52,19 +50,18 @@ from app.domain.usl import (
     make_unit_id,
 )
 
-
 # ── 1. Mapping: EntryKind → USLPredicate ──────────────────────────────────────
 # Прецедент: entry_kind_to_cause_kind (chronicle.py:114-123).
 # Conservative mapping — без угадывания BORN/DIED для EVENT (future work).
 _ENTRY_KIND_TO_USL_PREDICATE: Dict[EntryKind, USLPredicate] = {
-    EntryKind.EVENT: USLPredicate.ASSERTS,           # общий предикат события
-    EntryKind.RELATIONSHIP: USLPredicate.ASSERTS,    # + USLRelation(relation_type=nature)
+    EntryKind.EVENT: USLPredicate.ASSERTS,  # общий предикат события
+    EntryKind.RELATIONSHIP: USLPredicate.ASSERTS,  # + USLRelation(relation_type=nature)
     EntryKind.LOCATION: USLPredicate.LIVES_AT,
     EntryKind.EFFECT: USLPredicate.HAS_EFFECT,
     EntryKind.BELIEF_SEED: USLPredicate.BELIEVES,
     EntryKind.KNOWLEDGE_LINK: USLPredicate.KNOWS,
     EntryKind.TRAIT_SEED: USLPredicate.HAS_TRAIT,
-    EntryKind.PORTRET: USLPredicate.HAS_TRAIT,        # агрегация traits[]
+    EntryKind.PORTRET: USLPredicate.HAS_TRAIT,  # агрегация traits[]
     EntryKind.OBSERVATION: USLPredicate.ASSERTS,
     EntryKind.DESIRE_SEED: USLPredicate.DESIRES,
 }
@@ -80,6 +77,7 @@ def entry_kind_to_usl_predicate(entry_kind: EntryKind) -> Optional[USLPredicate]
 
 
 # ── 2. EntityRef → USLEntityRef (тонкая проекция, не копия) ───────────────────
+
 
 def _entityref_to_usl(ref: Optional[EntityRef]) -> Optional[USLEntityRef]:
     """Проекция chronicle.EntityRef → USLEntityRef.
@@ -121,6 +119,7 @@ def _provenance_to_usl_source(provenance: EntryProvenance) -> USLSourceKind:
 
 # ── 4. Время из готовых полей (не парсинг) ─────────────────────────────────────
 
+
 def _extract_temporal(entry: ChronicleEntry) -> Tuple[USLTimeExpression, ...]:
     """Извлекает временные конструкции из уже структурированных полей.
 
@@ -135,58 +134,67 @@ def _extract_temporal(entry: ChronicleEntry) -> Tuple[USLTimeExpression, ...]:
     temporal: List[USLTimeExpression] = []
 
     if entry.historical_age is not None:
-        temporal.append(USLTimeExpression(
-            kind=USLTimeKind.POINT,
-            anchor=USLAnchorKind.AGE_N,
-            value=entry.historical_age,
-            source_span=f"historical_age={entry.historical_age}",
-        ))
+        temporal.append(
+            USLTimeExpression(
+                kind=USLTimeKind.POINT,
+                anchor=USLAnchorKind.AGE_N,
+                value=entry.historical_age,
+                source_span=f"historical_age={entry.historical_age}",
+            )
+        )
 
     if entry.historical_year is not None:
-        temporal.append(USLTimeExpression(
-            kind=USLTimeKind.POINT,
-            anchor=USLAnchorKind.WORLD_YEAR,
-            value=entry.historical_year,
-            source_span=f"historical_year={entry.historical_year}",
-        ))
+        temporal.append(
+            USLTimeExpression(
+                kind=USLTimeKind.POINT,
+                anchor=USLAnchorKind.WORLD_YEAR,
+                value=entry.historical_year,
+                source_span=f"historical_year={entry.historical_year}",
+            )
+        )
 
     payload = entry.payload or {}
     if isinstance(payload, dict):
         day = payload.get("day")
         if day is not None and isinstance(day, (int, float)):
-            temporal.append(USLTimeExpression(
-                kind=USLTimeKind.POINT,
-                anchor=USLAnchorKind.GAME_TICK,
-                value=int(day),
-                source_span=f"day={day}",
-            ))
+            temporal.append(
+                USLTimeExpression(
+                    kind=USLTimeKind.POINT,
+                    anchor=USLAnchorKind.GAME_TICK,
+                    value=int(day),
+                    source_span=f"day={day}",
+                )
+            )
 
         duration_years = payload.get("duration_years")
         if duration_years is not None and isinstance(duration_years, (int, float)):
-            temporal.append(USLTimeExpression(
-                kind=USLTimeKind.DURATION,
-                value=int(duration_years),
-                source_span=f"duration_years={duration_years}",
-            ))
+            temporal.append(
+                USLTimeExpression(
+                    kind=USLTimeKind.DURATION,
+                    value=int(duration_years),
+                    source_span=f"duration_years={duration_years}",
+                )
+            )
 
         # KNOWLEDGE_LINK: learned_age — отдельная ось (время знания, не события)
         learned_age = payload.get(KP_LEARNED_AGE)
         if learned_age is not None and isinstance(learned_age, (int, float)):
-            temporal.append(USLTimeExpression(
-                kind=USLTimeKind.POINT,
-                anchor=USLAnchorKind.AGE_N,
-                value=int(learned_age),
-                source_span=f"learned_age={learned_age}",
-            ))
+            temporal.append(
+                USLTimeExpression(
+                    kind=USLTimeKind.POINT,
+                    anchor=USLAnchorKind.AGE_N,
+                    value=int(learned_age),
+                    source_span=f"learned_age={learned_age}",
+                )
+            )
 
     return tuple(temporal)
 
 
 # ── 5. Payload → USLRelation (для RELATIONSHIP) ─────────────────────────────
 
-def _payload_to_relation(
-    payload: Dict, subject_id: str, object_id: Optional[str]
-) -> Optional[USLRelation]:
+
+def _payload_to_relation(payload: Dict, subject_id: str, object_id: Optional[str]) -> Optional[USLRelation]:
     """Извлекает USLRelation из RELATIONSHIP.payload (если есть nature/valence)."""
     if not payload:
         return None
@@ -209,6 +217,7 @@ def _payload_to_relation(
 
 
 # ── 6. Главный проектор: ChronicleEntry → USLUnit ────────────────────────────
+
 
 def entry_to_usl_unit(entry: ChronicleEntry, doc: ChronicleDocument) -> USLUnit:
     """Проекция одной записи хроники в USLUnit.
@@ -314,6 +323,7 @@ def _extract_text_span(entry: ChronicleEntry) -> str:
 
 
 # ── 7. Документ → список USLUnit ──────────────────────────────────────────────
+
 
 def biography_to_usl(doc: ChronicleDocument) -> List[USLUnit]:
     """Проекция всего документа хроники в список USLUnit.

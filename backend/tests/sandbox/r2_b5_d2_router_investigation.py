@@ -16,6 +16,7 @@ ALSO investigate (Master's requirement):
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -111,9 +112,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -130,9 +129,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 300) -> Non
     if bounds:
         s, e = bounds
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -161,10 +160,10 @@ def _grep_in_file(path: Path, pattern: str, context: int = 5, max_matches: int =
             continue
         for r in range(ctx_start, ctx_end):
             seen_ranges.add(r)
-        print(f"\n  >>> L{i+1}: {lines[i].rstrip()}")
+        print(f"\n  >>> L{i + 1}: {lines[i].rstrip()}")
         for j in range(ctx_start, ctx_end):
             marker = ">>>" if j + 1 == i + 1 else "   "
-            print(f"  {marker} L{j+1:4d}: {lines[j]}")
+            print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -196,9 +195,12 @@ def main() -> int:
         src = _read_file_text(router_path)
         print(f"  file exists, {len(src.split(chr(10)))} lines")
     else:
-        print(f"  [file not found — searching]")
+        print("  [file not found — searching]")
         for f in _BACKEND.rglob("*.py"):
-            if any(part in {".venv", "node_modules", ".git", "__pycache__", "site-packages", "tests", "sandbox"} for part in f.parts):
+            if any(
+                part in {".venv", "node_modules", ".git", "__pycache__", "site-packages", "tests", "sandbox"}
+                for part in f.parts
+            ):
                 continue
             try:
                 content = f.read_text(encoding="utf-8", errors="replace")
@@ -226,7 +228,7 @@ def main() -> int:
         if len(lines) > max_print:
             print(f"  ... ({len(lines) - max_print} more lines)")
     else:
-        print(f"  [file not found]")
+        print("  [file not found]")
         return 1
 
     # =====================================================================
@@ -235,11 +237,12 @@ def main() -> int:
     _print_section("STEP 3: List all ModelRouter methods")
     try:
         from app.services.llm.router import ModelRouter
+
         print(f"  ModelRouter class: {ModelRouter}")
         print(f"  module: {ModelRouter.__module__}")
         print(f"  file: {inspect.getfile(ModelRouter)}")
         print()
-        print(f"  Methods (including inherited):")
+        print("  Methods (including inherited):")
         for name in sorted(dir(ModelRouter)):
             if name.startswith("__"):
                 continue
@@ -260,9 +263,18 @@ def main() -> int:
     # STEP 4: Search for availability-related methods
     # =====================================================================
     _print_section("STEP 4: Search for availability-related methods")
-    availability_keywords = ["available", "is_available", "is_llm_available",
-                             "is_ready", "is_alive", "health", "ping",
-                             "check", "test_connection", "can_connect"]
+    availability_keywords = [
+        "available",
+        "is_available",
+        "is_llm_available",
+        "is_ready",
+        "is_alive",
+        "health",
+        "ping",
+        "check",
+        "test_connection",
+        "can_connect",
+    ]
     for kw in availability_keywords:
         print(f"\n  --- search for '{kw}' ---")
         _grep_in_file(router_path, kw, context=3, max_matches=5)
@@ -272,7 +284,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 5: Read request_for_agent + _abort_generation")
     _read_function_full(router_path, "request_for_agent", max_lines=200)
-    print(f"\n  --- _abort_generation ---")
+    print("\n  --- _abort_generation ---")
     _read_function_full(router_path, "_abort_generation", max_lines=100)
 
     # =====================================================================
@@ -285,8 +297,17 @@ def main() -> int:
     # STEP 7: Search for timeout, retry, fallback mechanisms
     # =====================================================================
     _print_section("STEP 7: Search for timeout, retry, fallback mechanisms")
-    for kw in ["timeout", "retry", "fallback", "except", "ConnectionError",
-               "requests.exceptions", "httpx", "aiohttp", "openai"]:
+    for kw in [
+        "timeout",
+        "retry",
+        "fallback",
+        "except",
+        "ConnectionError",
+        "requests.exceptions",
+        "httpx",
+        "aiohttp",
+        "openai",
+    ]:
         print(f"\n  --- search for '{kw}' ---")
         _grep_in_file(router_path, kw, context=3, max_matches=5)
 
@@ -299,9 +320,9 @@ def main() -> int:
         src = _read_file_text(de_path)
         lines = src.split("\n")
         # Print L150-207 (LLM branch with exception handling)
-        print(f"  --- dialogue_executor.py L150-207 (LLM branch + exception handling) ---")
+        print("  --- dialogue_executor.py L150-207 (LLM branch + exception handling) ---")
         for j in range(149, min(207, len(lines))):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
 
     # =====================================================================
     # STEP 9: Search for LLM client/provider
@@ -354,6 +375,7 @@ def main() -> int:
 
     try:
         from app.services.game_loop_builder import build_game_loop
+
         settings.saves_dir = str(temp_dir)
         settings.environment = "development"
         loop = build_game_loop(data_dir=Path(settings.data_dir))
@@ -361,16 +383,17 @@ def main() -> int:
         scene = loop.scene_manager.get_scene_state("Open_road", "tavern")
         if scene is None:
             scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
-        loaded = loop._load_npcs_with_runtime("Open_road")
+        loop._load_npcs_with_runtime("Open_road")
 
         # Find DialogueExecutor
         ts_obj = loop._get_task_scheduler()
         executors_dict = getattr(ts_obj, "_executors", None)
         from app.domain.execution import TaskKind
+
         dialogue_executor = executors_dict.get(TaskKind.DIALOGUE) if executors_dict else None
 
         if dialogue_executor is None:
-            print(f"  [DialogueExecutor not found]")
+            print("  [DialogueExecutor not found]")
             return 1
 
         router = getattr(dialogue_executor, "_router", None)
@@ -382,7 +405,7 @@ def main() -> int:
             print(f"  router module: {type(router).__module__}")
             print(f"  router file: {inspect.getfile(type(router))}")
             print()
-            print(f"  --- router instance attributes ---")
+            print("  --- router instance attributes ---")
             try:
                 for k, v in vars(router).items():
                     if k.startswith("__"):
@@ -401,7 +424,7 @@ def main() -> int:
                         continue
 
             print()
-            print(f"  --- router methods (callable) ---")
+            print("  --- router methods (callable) ---")
             for attr in sorted(dir(router)):
                 if attr.startswith("__"):
                     continue
@@ -420,9 +443,17 @@ def main() -> int:
             # STEP 12: Try to call availability-related methods (if any)
             # =====================================================================
             _print_section("STEP 12: Try availability-related methods on router instance")
-            for method_name in ["is_available", "is_llm_available", "is_ready",
-                                "is_alive", "health_check", "ping", "check_connection",
-                                "can_connect", "is_connected"]:
+            for method_name in [
+                "is_available",
+                "is_llm_available",
+                "is_ready",
+                "is_alive",
+                "health_check",
+                "ping",
+                "check_connection",
+                "can_connect",
+                "is_connected",
+            ]:
                 method = getattr(router, method_name, None)
                 if method is not None and callable(method):
                     print(f"\n  --- {method_name}() exists! ---")
@@ -441,17 +472,28 @@ def main() -> int:
             # =====================================================================
             _print_section("STEP 13: Inspect router internals — HTTP client")
             # Check for common HTTP client attributes
-            for attr_name in ["_client", "_http_client", "_session", "client",
-                              "session", "_aiohttp_session", "_httpx_client",
-                              "_openai_client", "base_url", "endpoint", "url",
-                              "_endpoint", "_base_url", "_url"]:
+            for attr_name in [
+                "_client",
+                "_http_client",
+                "_session",
+                "client",
+                "session",
+                "_aiohttp_session",
+                "_httpx_client",
+                "_openai_client",
+                "base_url",
+                "endpoint",
+                "url",
+                "_endpoint",
+                "_base_url",
+                "_url",
+            ]:
                 val = getattr(router, attr_name, "NOT_FOUND")
                 if val != "NOT_FOUND":
                     print(f"  router.{attr_name}: {repr(val)[:200]}")
 
             # Check for timeout setting
-            for attr_name in ["_timeout", "timeout", "_request_timeout",
-                              "TIMEOUT", "_llm_timeout"]:
+            for attr_name in ["_timeout", "timeout", "_request_timeout", "TIMEOUT", "_llm_timeout"]:
                 val = getattr(router, attr_name, "NOT_FOUND")
                 if val != "NOT_FOUND":
                     print(f"  router.{attr_name}: {repr(val)[:200]}")
@@ -465,6 +507,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:
@@ -480,7 +523,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 14: Analysis — answer Master's 5 questions")
 
-    print(f"""
+    print("""
   Q1: Does ModelRouter already have a method to check model availability?
   >>>
   >>> See Steps 3, 4, 12 — search for availability methods.
@@ -534,7 +577,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 15: Recommended diff options (based on findings)")
 
-    print(f"""
+    print("""
   Based on investigation, three options:
 
   Option A (if is_available() exists and is reliable):
@@ -543,13 +586,13 @@ def main() -> int:
           req.intent_type == "spread_rumor" and _proposition is not None
           and self._router is not None and self._router.is_available()
       ):
-          text = f"[{{req.intent_type}}] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+          text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
 
     Plus: in L172-195 except block, add fallback:
       except Exception as e:
           if req.intent_type == "spread_rumor" and _proposition is not None:
               # B5-D2 FIX: LLM failure fallback to stub
-              text = f"[spread_rumor] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+              text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
               # Continue to yield success Artifact (don't return)
           else:
               # Original error handling
@@ -567,7 +610,7 @@ def main() -> int:
   Option C (Option 2 from previous investigation — always stub):
     Remove special case entirely:
       elif not requires_llm_materialization(req.intent_type):
-          text = f"[{{req.intent_type}}] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+          text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
 
     Loses LLM text for spread_rumor, but simplest diff (1 line).
 

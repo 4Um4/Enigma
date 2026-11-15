@@ -1,4 +1,4 @@
-﻿"""
+"""
 B4-R14: Knowledge / Communication Separation test.
 
 Проверяет, что Proposition из EpistemicContext переносится в CommunicationIntent
@@ -8,6 +8,7 @@ call_for_help) не получают Proposition автоматически.
 
 Запуск: cd backend; python -m pytest tests/micro/test_butterfly_knowledge_communication_separation.py -v
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,9 +22,9 @@ from app.domain.intent_profiles import produces_claim
 from app.services.npc.decision_hub import DecisionHub
 
 
-def _make_proposition(predicate: Predicate = Predicate.ATTACKED,
-                       subject_id: str = "player",
-                       object_id: str = "merchant_goran") -> Proposition:
+def _make_proposition(
+    predicate: Predicate = Predicate.ATTACKED, subject_id: str = "player", object_id: str = "merchant_goran"
+) -> Proposition:
     return Proposition(
         subject_id=subject_id,
         predicate=predicate,
@@ -53,6 +54,7 @@ def _make_epistemic_context(
 def _make_decision_hub() -> DecisionHub:
     """Создаёт DecisionHub с mock RNG."""
     from app.services.npc.kernel_rng import KernelRNG
+
     rng = KernelRNG(tick=1, npc_id="test", salt="test")
     return DecisionHub(rng=rng)
 
@@ -94,9 +96,7 @@ class TestKnowledgeCommunicationSeparation:
             epistemic_context=self.epistemic_ctx,
         )
         assert intent is not None, "CommunicationIntent должен быть создан"
-        assert intent.proposition is None, (
-            f"talk intent не должен нести Proposition, но получил: {intent.proposition}"
-        )
+        assert intent.proposition is None, f"talk intent не должен нести Proposition, но получил: {intent.proposition}"
 
     def test_trade_no_proposition(self):
         """2. trade + trigger_proposition -> proposition отсутствует."""
@@ -109,9 +109,7 @@ class TestKnowledgeCommunicationSeparation:
             epistemic_context=self.epistemic_ctx,
         )
         assert intent is not None
-        assert intent.proposition is None, (
-            f"trade intent не должен нести Proposition, но получил: {intent.proposition}"
-        )
+        assert intent.proposition is None, f"trade intent не должен нести Proposition, но получил: {intent.proposition}"
 
     def test_spread_rumor_keeps_trigger_proposition(self):
         """3. spread_rumor + trigger_proposition -> proposition сохранён."""
@@ -124,12 +122,8 @@ class TestKnowledgeCommunicationSeparation:
             epistemic_context=self.epistemic_ctx,
         )
         assert intent is not None
-        assert intent.proposition is not None, (
-            "spread_rumor должен нести Proposition (produces_claim=True)"
-        )
-        assert intent.proposition == self.trigger_prop, (
-            f"Ожидался trigger_proposition, получен: {intent.proposition}"
-        )
+        assert intent.proposition is not None, "spread_rumor должен нести Proposition (produces_claim=True)"
+        assert intent.proposition == self.trigger_prop, f"Ожидался trigger_proposition, получен: {intent.proposition}"
 
     def test_spread_rumor_stage_b_fallback_preserved(self):
         """4. spread_rumor + claims_about_self/INSULTED -> Stage B fallback сохранён."""
@@ -165,9 +159,7 @@ class TestKnowledgeCommunicationSeparation:
             epistemic_context=self.epistemic_ctx,
         )
         assert intent is not None
-        assert intent.proposition is not None, (
-            "warn должен нести Proposition (produces_claim=True)"
-        )
+        assert intent.proposition is not None, "warn должен нести Proposition (produces_claim=True)"
 
     def test_unknown_intent_no_proposition(self):
         """6. неизвестный intent -> Proposition отсутствует."""
@@ -179,9 +171,7 @@ class TestKnowledgeCommunicationSeparation:
             emotion_value="?",
             epistemic_context=self.epistemic_ctx,
         )
-        assert intent is None, (
-            "Неизвестный intent не должен создавать CommunicationIntent"
-        )
+        assert intent is None, "Неизвестный intent не должен создавать CommunicationIntent"
 
     def test_epistemic_context_not_mutated(self):
         """7. Отсутствие Proposition в CommunicationIntent не удаляет
@@ -199,15 +189,7 @@ class TestKnowledgeCommunicationSeparation:
             emotion_value="нейтрально",
             epistemic_context=ctx_before,
         )
-        assert ctx_before.trigger_proposition == self.trigger_prop, (
-            "trigger_proposition не должен быть изменён"
-        )
-        assert ctx_before.report_proposition == self.report_prop, (
-            "report_proposition не должен быть изменён"
-        )
-        assert len(ctx_before.claims_about_self) == 1, (
-            "claims_about_self не должен быть изменён"
-        )
-        assert ctx_before.claims_about_self[0] == self.self_claim_prop, (
-            "claims_about_self[0] не должен быть изменён"
-        )
+        assert ctx_before.trigger_proposition == self.trigger_prop, "trigger_proposition не должен быть изменён"
+        assert ctx_before.report_proposition == self.report_prop, "report_proposition не должен быть изменён"
+        assert len(ctx_before.claims_about_self) == 1, "claims_about_self не должен быть изменён"
+        assert ctx_before.claims_about_self[0] == self.self_claim_prop, "claims_about_self[0] не должен быть изменён"

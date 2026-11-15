@@ -41,6 +41,7 @@ class MemoryManager:
         self._layered = layered_memory
         # V8-MEM-16 FIX: threading.RLock для защиты _identity_cache от race condition
         import threading
+
         self._identity_lock = threading.RLock()
         self._working = WorkingMemory(maxlen=self.WORKING_MEMORY_SIZE)
         # A4-K.1 (S421): S234 cutover завершён — V2 backend сразу в __init__,
@@ -51,6 +52,7 @@ class MemoryManager:
         # из GameLoop.__init__ (game_loop.py:144) — V2 backend переподнимается.
         self._v2_scene_ref: Dict[str, Any] = {"scene": None}
         from app.services.social.v2_relationship_backend import V2RelationshipBackend
+
         _provider = lambda: self._v2_scene_ref["scene"] or {}  # noqa: E731
         self._relationships: Any = V2RelationshipBackend(_provider, npc_provider=None)
         self._tick_counters: Dict[str, int] = {}
@@ -61,9 +63,7 @@ class MemoryManager:
         # V8-MEM-7 FIX: Загружаем identity_cache из SQLite/JSON при старте
         # Safe call: SqliteMemoryStore может не иметь load_state (legacy gap)
         self._identity_cache: Dict[str, Dict[str, float]] = (
-            self._layered.store.load_state("identity_cache")
-            if hasattr(self._layered.store, "load_state")
-            else {}
+            self._layered.store.load_state("identity_cache") if hasattr(self._layered.store, "load_state") else {}
         )
         # STM-сессии диалогов. Ключ: campaign_id:npc_id (Закон 4.1.1 — per-NPC)
         self._dialogue_sessions: Dict[str, DialogueSession] = {}
@@ -109,16 +109,20 @@ class MemoryManager:
         return self.get_dialogue_session(campaign_id, npc_a, npc_b)
 
     def add_dialogue_turn(
-        self, campaign_id: str, npc_id: str, speaker: str, text: str,
-        target_id: str = "", intent: str = "", tone: str = "", tick: int = 0,
-        partner_id: str = "player"
+        self,
+        campaign_id: str,
+        npc_id: str,
+        speaker: str,
+        text: str,
+        target_id: str = "",
+        intent: str = "",
+        tone: str = "",
+        tick: int = 0,
+        partner_id: str = "player",
     ) -> None:
         """Добавляет реплику в STM конкретного NPC."""
         session = self.get_dialogue_session(campaign_id, npc_id, partner_id)
-        session.add_turn(
-            speaker=speaker, text=text, target_id=target_id,
-            intent=intent, tone=tone, tick=tick
-        )
+        session.add_turn(speaker=speaker, text=text, target_id=target_id, intent=intent, tone=tone, tick=tick)
 
     def clear_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> None:
         """Очищает STM при завершении диалога (NPC ушёл, смена сцены)."""
@@ -153,9 +157,7 @@ class MemoryManager:
 
     def clear_all_dialogue_sessions(self, campaign_id: str) -> None:
         """Очищает все STM-сессии кампании — игрок ушёл из локации."""
-        keys_to_remove = [
-            k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")
-        ]
+        keys_to_remove = [k for k in self._dialogue_sessions if k.startswith(f"{campaign_id}:")]
         for key in keys_to_remove:
             # BUG-DLG-008 FIX: Извлекаем npc_a и npc_b из ключа "campaign_id:npc_a:npc_b"
             parts = key.split(":")
@@ -164,7 +166,6 @@ class MemoryManager:
                 self.clear_dialogue_session(campaign_id, npc_a, npc_b)
             else:
                 self._dialogue_sessions.pop(key, None)
-
 
     def reset_campaign_state(self, campaign_id: str) -> dict:
         """Полный сброс runtime-состояния памяти кампании (DEGOD Phase3B.0-Seam3;
@@ -187,10 +188,7 @@ class MemoryManager:
                 del self._identity_cache[_k]
             if _stale and hasattr(self._layered.store, "save_state"):
                 self._layered.store.save_state("identity_cache", self._identity_cache)
-                logger.info(
-                    f"[MEM_RESET] identity_cache cleared for '{campaign_id}' "
-                    f"({len(_stale)} keys)"
-                )
+                logger.info(f"[MEM_RESET] identity_cache cleared for '{campaign_id}' ({len(_stale)} keys)")
         # 3. Хранилище (второй уровень: LayeredMemory -> store)
         if hasattr(self, "_layered") and hasattr(self._layered, "store"):
             store = self._layered.store
@@ -211,7 +209,6 @@ class MemoryManager:
             if hasattr(store, "delete_campaign"):
                 result["sqlite_rows"] += store.delete_campaign(campaign_id) or 0
         return result
-
 
     def add_pending_dialogue_memory(self, event: EventDTO) -> None:
         """Добавляет событие диалога в буфер отложенной записи в L2."""
@@ -438,9 +435,7 @@ class MemoryManager:
                 if not _mem.is_forgotten:
                     _result.append(_mem)
             except Exception as e:
-                logger.warning(
-                    f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}"
-                )
+                logger.warning(f"[MEMORY] Failed to restore EventMemory for {npc_id}: {e}")
 
         # Сортировка по importance и лимит — как в apply()
         _result.sort(key=lambda f: f.importance, reverse=True)
@@ -479,11 +474,7 @@ class MemoryManager:
         hidden_from_id: str = "player",
     ) -> List[EventMemory]:
         """Секреты которые NPC помнит но не раскрыл caller."""
-        return [
-            m
-            for m in narrative_cache
-            if m.is_secret and hidden_from_id in m.hidden_from and not m.is_forgotten
-        ]
+        return [m for m in narrative_cache if m.is_secret and hidden_from_id in m.hidden_from and not m.is_forgotten]
 
     # ──────────────────────────────────────────────────────────────────────
     # Discovery — раскрытие секретов под давлением (Этап 5.2)
@@ -519,9 +510,7 @@ class MemoryManager:
 
         resistance = memory.importance * 0.8
         trust_modifier = max(0.0, -npc_trust) * 0.15 if npc_trust < 0 else 0.0
-        stress_modifier = (
-            max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
-        )
+        stress_modifier = max(0.0, (npc_stress - 0.8)) * 0.15 if npc_stress > 0.8 else 0.0
 
         total = resistance + trust_modifier - strength - stress_modifier
 
@@ -589,11 +578,7 @@ class MemoryManager:
 
         alive = [m for m in narrative_cache if not m.is_forgotten]
         if hidden_from_id:
-            alive = [
-                m
-                for m in alive
-                if not (m.is_secret and hidden_from_id in m.hidden_from)
-            ]
+            alive = [m for m in alive if not (m.is_secret and hidden_from_id in m.hidden_from)]
         if not alive:
             return []
 
@@ -644,11 +629,7 @@ class MemoryManager:
         from app.domain.events import CONTRACT_TAGS
 
         _filter = set(tag_filter) if tag_filter else CONTRACT_TAGS
-        result = [
-            m
-            for m in narrative_cache
-            if not m.is_forgotten and not m.fulfilled and _filter.intersection(m.tags)
-        ]
+        result = [m for m in narrative_cache if not m.is_forgotten and not m.fulfilled and _filter.intersection(m.tags)]
         result.sort(key=lambda m: m.importance, reverse=True)
         return result
 
@@ -679,9 +660,7 @@ class MemoryManager:
 
         # Строим новый кэш: не сжатые + сжатые абстракции
         # Ключ = sequence_id (EventMemory не имеет UUID)
-        kept = [
-            m for m in narrative_cache if f"seq_{m.sequence_id}" not in _removed_keys
-        ]
+        kept = [m for m in narrative_cache if f"seq_{m.sequence_id}" not in _removed_keys]
         new_cache = kept + compressed_mems
         new_cache.sort(key=lambda m: m.importance, reverse=True)
         return tuple(new_cache)
@@ -837,9 +816,7 @@ class MemoryManager:
 
         # Старый формат: один буфер на кампанию
         if self._working.get(campaign_id):
-            all_weights.extend(
-                self._working.apply_decay(campaign_id, game_days=game_days)
-            )
+            all_weights.extend(self._working.apply_decay(campaign_id, game_days=game_days))
 
         # Новый формат: per-NPC буферы (campaign_id:npc_id)
         for key in self._working.get_keys_with_prefix(f"{campaign_id}:"):

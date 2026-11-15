@@ -26,7 +26,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
 # Настройка логирования
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_TEST")
 logger.setLevel(logging.INFO)
 
@@ -39,23 +39,25 @@ CAMPAIGN_ID = "Open_road"
 LOCATION_ID = "tavern"
 
 # NPC ID в кампании Open_road
-NPC_A = "thief_shadow"      # Кто лжёт
-NPC_B = "merchant_goran"    # На кого лгут (жертва клеветы)
-NPC_C = "guard_borko"       # Кто слушает (будет враждебен к B)
+NPC_A = "thief_shadow"  # Кто лжёт
+NPC_B = "merchant_goran"  # На кого лгут (жертва клеветы)
+NPC_C = "guard_borko"  # Кто слушает (будет враждебен к B)
+
 
 def run_epistemic_test():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🔬 СУПЕРБОКС-ЭПИСТЕМИЧЕСКИЙ ТЕСТ 001: Двойная Истина")
-    print("="*60)
+    print("=" * 60)
 
     # Инициализация ядра
     print("\n[1/5] Инициализация симуляции...")
     data_dir = BACKEND_ROOT.parent / "data"
     game_loop = build_game_loop(data_dir=str(data_dir))
-    
+
     from app.services.game_loop.scene_init import ensure_scene_initialized
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
-    
+
     event_bus = game_loop._tick_orch._get_event_bus()
     relationship_store = game_loop.memory_manager._relationships
 
@@ -68,7 +70,7 @@ def run_epistemic_test():
 
     # Инъекция коммуникации (Ложь)
     print(f"\n[3/5] Инъекция коммуникации: {NPC_A} говорит {NPC_C}, что {NPC_B} вор...")
-    
+
     lie_event = EventDTO.create(
         event_type=EventType.NPC_SPOKE,
         source=NPC_A,
@@ -77,23 +79,23 @@ def run_epistemic_test():
             "text": "B украл яблоко, я видел это!",
             "tone": "MANIPULATIVE",
             "topic": "theft",
-            "tick": 1
+            "tick": 1,
         },
         visibility="private",
-        radius=2.0
+        radius=2.0,
     )
-    
+
     event_bus.publish(lie_event)
     print("  -> Событие NPC_SPOKE опубликовано в EventBus.")
 
     # Обработка тика (Tick 1)
     print("\n[4/5] Симуляция тика (обработка лжи)...")
     _ = game_loop.idle_tick(CAMPAIGN_ID, LOCATION_ID)
-    
+
     _pair_data = relationship_store.get_pair(CAMPAIGN_ID, NPC_C, NPC_B)
     post_lie_trust = _pair_data.get("trust", 0.0) if _pair_data else 0.0
     print(f"  -> Trust({NPC_C} -> {NPC_B}) после лжи: {post_lie_trust:.2f}")
-    
+
     # Проверяем, изменилось ли отношение C к A (так как tone=MANIPULATIVE)
     _pair_data_ca = relationship_store.get_pair(CAMPAIGN_ID, NPC_C, NPC_A)
     trust_ca = _pair_data_ca.get("trust", 0.0) if _pair_data_ca else 0.0
@@ -108,11 +110,12 @@ def run_epistemic_test():
     else:
         print("  ❌ РАЗРЫВ ЦЕПИ: Trust не изменился вообще.")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("⚠️ ВЫВОД: Эпистемическое расхождение не доказано.")
     print("Требуется минимальный канонический слой Proposition:")
     print("  CommunicationEvent -> Proposition -> L1Chronicle -> BeliefEngine")
-    print("="*60)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     run_epistemic_test()

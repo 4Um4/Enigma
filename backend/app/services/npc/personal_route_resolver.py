@@ -26,10 +26,10 @@ class PersonalRouteResult:
     agent_id: str
     from_loc: str
     to_loc: str
-    path: Tuple[str, ...] = ()   # локации по порядку
+    path: Tuple[str, ...] = ()  # локации по порядку
     edges: Tuple[Tuple[str, str, float], ...] = ()  # (from, to, conf)
     min_confidence: float = 0.0
-    known_edges: Tuple[Tuple[str, str], ...] = ()   # диагностика UNKNOWN
+    known_edges: Tuple[Tuple[str, str], ...] = ()  # диагностика UNKNOWN
 
 
 def resolve_personal_route(
@@ -57,16 +57,12 @@ def resolve_personal_route(
             obj = getattr(prop, "object_id", "") or ""  # noqa: ENIGMA002
             frm = subject.split(":", 1)[0] if ":" in subject else subject
             if frm and obj:
-                edges.setdefault(frm, []).append(
-                    (obj, float(getattr(rec, "confidence", 0.0) or 0.0))
-                )
+                edges.setdefault(frm, []).append((obj, float(getattr(rec, "confidence", 0.0) or 0.0)))
                 known_flat.append((frm, obj))
     known = tuple(sorted(set(known_flat)))
 
     if from_loc == to_loc:
-        return PersonalRouteResult(
-            "KNOWN_ROUTE", agent_id, from_loc, to_loc, (from_loc,), (), 1.0, known
-        )
+        return PersonalRouteResult("KNOWN_ROUTE", agent_id, from_loc, to_loc, (from_loc,), (), 1.0, known)
 
     prev: Dict[str, Optional[str]] = {from_loc: None}
     edge_used: Dict[str, Tuple[str, float]] = {}
@@ -83,9 +79,7 @@ def resolve_personal_route(
                 q.append(nxt)
 
     if to_loc not in prev:
-        return PersonalRouteResult(
-            "UNKNOWN_ROUTE", agent_id, from_loc, to_loc, (), (), 0.0, known
-        )
+        return PersonalRouteResult("UNKNOWN_ROUTE", agent_id, from_loc, to_loc, (), (), 0.0, known)
 
     path = [to_loc]
     cur = to_loc
@@ -93,10 +87,7 @@ def resolve_personal_route(
         cur = prev[cur]  # type: ignore[assignment]
         path.append(cur)
     path.reverse()
-    used = tuple(
-        (path[i], path[i + 1], edge_used[path[i + 1]][1])
-        for i in range(len(path) - 1)
-    )
+    used = tuple((path[i], path[i + 1], edge_used[path[i + 1]][1]) for i in range(len(path) - 1))
     return PersonalRouteResult(
         "KNOWN_ROUTE",
         agent_id,

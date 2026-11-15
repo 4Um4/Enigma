@@ -7,6 +7,7 @@ path: backend/app/services/calibration/__init__.py
 Зависимости: app.core.constants (только config_overlay на текущем шаге).
 Основные сущности: overlay_constants, CalibrationOverlayError.
 """
+
 from app.services.calibration.config_overlay import (
     CalibrationOverlayError,
     audit_constant_bindings,

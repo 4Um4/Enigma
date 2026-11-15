@@ -3,6 +3,7 @@
 Smoke-тест: Проверяет, что жизненный проект (life_project) даёт буст к проактивным интентам.
 P5-03: Поле profile.goal удалено. DecisionHub теперь использует state.life_project.
 """
+
 import pytest
 from app.models.npc_profile import NPCProfileL0, PsycheBase
 from app.models.npc_state import EmotionTag, NPCState, WillState
@@ -13,6 +14,7 @@ from app.services.npc.decision_hub import DecisionHub, EventContext
 @pytest.fixture
 def hub() -> DecisionHub:
     return DecisionHub(seed=42)
+
 
 @pytest.fixture
 def profile() -> NPCProfileL0:
@@ -25,22 +27,17 @@ def profile() -> NPCProfileL0:
         voice_profile="Тестовый голос",
     )
 
+
 @pytest.fixture
 def world_tick_event() -> EventContext:
     return EventContext(
-        event_type=EventType.WORLD_TICK,
-        actor_id="test_actor",
-        witness_count=0,
-        distance=10.0,
-        intensity=0.0
+        event_type=EventType.WORLD_TICK, actor_id="test_actor", witness_count=0, distance=10.0, intensity=0.0
     )
+
 
 class TestDecisionHubGoalBoost:
     def test_goal_provides_boost_to_proactive_intents(
-        self,
-        hub: DecisionHub,
-        profile: NPCProfileL0,
-        world_tick_event: EventContext
+        self, hub: DecisionHub, profile: NPCProfileL0, world_tick_event: EventContext
     ):
         """Если есть life_project, скор проактивных интентов должен быть выше."""
         # Состояние с активным жизненным проектом
@@ -54,24 +51,28 @@ class TestDecisionHubGoalBoost:
         state_without_project.life_project_state = "ACTIVE"
 
         from app.domain.identity_events import EffectiveDrives
+
         effective_drives = EffectiveDrives.from_dict(profile.drives_base)
 
         result_with_project = hub.compute(
-            state=state_with_project,
-            personality=profile,
-            effective_drives=effective_drives,
-            event=world_tick_event
+            state=state_with_project, personality=profile, effective_drives=effective_drives, event=world_tick_event
         )
 
         result_without_project = hub.compute(
-            state=state_without_project,
-            personality=profile,
-            effective_drives=effective_drives,
-            event=world_tick_event
+            state=state_without_project, personality=profile, effective_drives=effective_drives, event=world_tick_event
         )
 
         # Проверяем, что хотя бы один проактивный интент получил буст
-        proactive_intents = ["block_path", "ambush", "seek_ally", "offer_job", "request_service", "spread_rumor", "call_for_help", "change_role"]
+        proactive_intents = [
+            "block_path",
+            "ambush",
+            "seek_ally",
+            "offer_job",
+            "request_service",
+            "spread_rumor",
+            "call_for_help",
+            "change_role",
+        ]
 
         boosted_count = 0
         for intent in proactive_intents:

@@ -16,14 +16,20 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 _SIGNIFICANT_ENV: Tuple[str, ...] = (
-    "PYTHONHASHSEED", "COGNITION_DIAG", "R2_DIAG", "N18_EXP",
-    "PYTHONDONTWRITEBYTECODE", "PYTHONWARNINGS",
+    "PYTHONHASHSEED",
+    "COGNITION_DIAG",
+    "R2_DIAG",
+    "N18_EXP",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONWARNINGS",
 )
 # Значимые корни для манифеста untracked-содержимого (вердикт: снимок статуса
 # сообщает о существовании, манифест — о содержимом). Gitignored-файлы
 # (saves/, replay/) исключаются автоматически. Корни = whitelist-эвристика.
 _UNTRACKED_ROOTS: Tuple[str, ...] = (
-    "backend", "config", "frontend/map_editor/campaigns",
+    "backend",
+    "config",
+    "frontend/map_editor/campaigns",
 )
 _MAX_UNTRACKED_BYTES = 8 * 1024 * 1024
 
@@ -111,8 +117,12 @@ def artifact_hashes(paths: List[str]) -> Dict[str, str]:
 
 
 _MANDATORY: Tuple[str, ...] = (
-    "head", "status_porcelain", "diff_hash", "input_hashes",
-    "untracked_manifest", "runtime_manifest",
+    "head",
+    "status_porcelain",
+    "diff_hash",
+    "input_hashes",
+    "untracked_manifest",
+    "runtime_manifest",
 )
 
 
@@ -139,8 +149,7 @@ def passports_compatible(
     """Парные прогоны (B' on/off): совпадать обязаны head, diff, porcelain,
     untracked, inputs, env; argv может отличаться флагом руки — исключён."""
     mismatches: List[str] = []
-    for key in ("head", "diff_hash", "status_porcelain",
-                "untracked_manifest", "input_hashes"):
+    for key in ("head", "diff_hash", "status_porcelain", "untracked_manifest", "input_hashes"):
         if p1.get(key) != p2.get(key):
             mismatches.append(key)
     r1 = p1.get("runtime_manifest", {})

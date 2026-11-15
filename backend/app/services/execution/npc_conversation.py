@@ -4,6 +4,7 @@
 Зависимости: app.domain.execution, app.domain.communication
 Основные сущности: NpcConversation
 """
+
 from __future__ import annotations
 
 import logging
@@ -181,7 +182,13 @@ _AMBIENT_PHRASES_GUARD = [
     "Рыбак поймал русалку. Она предложила ему три желания. Он пожелал, чтобы она замолчала. Теперь она его жена.",
 ]
 
-_AMBIENT_PHRASES = _AMBIENT_PHRASES_COMMON + _AMBIENT_PHRASES_BLACKSMITH + _AMBIENT_PHRASES_MERCHANT + _AMBIENT_PHRASES_TAVERN_KEEPER + _AMBIENT_PHRASES_GUARD
+_AMBIENT_PHRASES = (
+    _AMBIENT_PHRASES_COMMON
+    + _AMBIENT_PHRASES_BLACKSMITH
+    + _AMBIENT_PHRASES_MERCHANT
+    + _AMBIENT_PHRASES_TAVERN_KEEPER
+    + _AMBIENT_PHRASES_GUARD
+)
 
 
 class NpcConversation:
@@ -220,7 +227,7 @@ class NpcConversation:
             _phrases = _AMBIENT_PHRASES_GUARD + _AMBIENT_PHRASES_COMMON
 
         # BUG-CORE-024 FIX: Детерминированный выбор фраз через KernelRNG.
-        _rng = KernelRNG(tick=getattr(task, 'tick', 0), npc_id=_npc_id, salt=task.task_id)
+        _rng = KernelRNG(tick=getattr(task, "tick", 0), npc_id=_npc_id, salt=task.task_id)
         text = _rng.choice(_phrases)
 
         yield Artifact(
@@ -232,7 +239,7 @@ class NpcConversation:
                 "target_id": req.target_id,
                 "text": text,
                 "exposure": req.exposure.semantic,
-                "proposition": req.proposition, # S197: Проброс Proposition в Artifact
+                "proposition": req.proposition,  # S197: Проброс Proposition в Artifact
                 "topic": req.topic,
                 "emotional_state": req.emotional_state,
             },

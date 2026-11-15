@@ -242,9 +242,7 @@ def attack_roll(
         f"урон: {dmg_breakdown}"
     )
 
-    result = AttackResult(
-        d20, total_attack, hit, critical, fumble, damage, breakdown, ac
-    )
+    result = AttackResult(d20, total_attack, hit, critical, fumble, damage, breakdown, ac)
     _log_event("attack", result.to_dict())
     return result
 
@@ -254,7 +252,9 @@ def attack_roll(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def damage_roll(weapon_dice: str, ability_mod: int, critical: bool = False, rng: Optional[Union[random.Random, ModuleType]] = None) -> Dict:
+def damage_roll(
+    weapon_dice: str, ability_mod: int, critical: bool = False, rng: Optional[Union[random.Random, ModuleType]] = None
+) -> Dict:
     """
     Бросок урона.
     При критическом — удваиваются кубики (не бонус).
@@ -316,9 +316,7 @@ def apply_damage(target: Dict, damage: int) -> Dict:
     if body["current_hp"] <= 0:
         # ADR-123: life_status — единственный источник истины о смерти
         body["life_status"] = "DEAD"
-        target["status"] = (
-            "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
-        )
+        target["status"] = "dead" if target.get("tier") in ("minor", "mass") else "incapacitated"
 
     _log_event(
         "damage_applied",
@@ -342,6 +340,7 @@ def apply_healing(target: Dict, amount: int) -> Dict:
     body = target.setdefault("body_state", {})
     if body.get("life_status") == "DEAD":
         import logging
+
         logging.getLogger(__name__).warning(
             f"[COMBAT] apply_healing skipped for DEAD npc={target.get('id', target.get('name', '?'))}"
         )
@@ -397,9 +396,7 @@ def skill_check(character: Dict, skill: str, dc: int, rng: Optional[random.Rando
     _rng = rng or random  # ADR-O-301-DEBT: MATH-8
     ability = SKILL_TO_ABILITY.get(skill.lower(), "strength")
     mod = ability_modifier(character.get("abilities", {}).get(ability, 10))
-    has_proficiency = skill.lower() in [
-        s.lower() for s in character.get("proficiencies", [])
-    ]
+    has_proficiency = skill.lower() in [s.lower() for s in character.get("proficiencies", [])]
     prof = proficiency_bonus(character.get("level", 1)) if has_proficiency else 0
 
     d20 = _rng.randint(1, 20)
@@ -506,11 +503,7 @@ class CombatGrid:
 
     def get_neighbors(self, target: str, radius: int = 1) -> List[str]:
         """Все существа в радиусе клеток."""
-        return [
-            name
-            for name in self.positions
-            if name != target and self.distance(target, name) <= radius
-        ]
+        return [name for name in self.positions if name != target and self.distance(target, name) <= radius]
 
     def to_dict(self) -> Dict:
         return {name: {"x": x, "y": y} for name, (x, y) in self.positions.items()}

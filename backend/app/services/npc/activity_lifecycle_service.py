@@ -12,6 +12,7 @@ path: /project/backend/app/services/npc/activity_lifecycle_service.py
 Зависимости: app.domain.activity, app.domain.movement, app.services.world.*
 Основные сущности: run_activity_lifecycle, _try_onset, _advance, _terminate
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -67,13 +68,12 @@ def _emit_label_change(ctx: Any, orchestrator: Any, npc_id: str, label: str) -> 
             value=label,
             cause="activity_lifecycle",
         )
-        orchestrator._apply_with_shadow_observation(
-            ctx, [_change], phase_label="ACTIVITY_LIFECYCLE"
-        )
+        orchestrator._apply_with_shadow_observation(ctx, [_change], phase_label="ACTIVITY_LIFECYCLE")
     except Exception as exc:
         # Деградация канала видимости, не тика (G2 D5); L4: громко
         logger.warning(f"[ACTIVITY] label emit fault {npc_id}: {exc}")
-        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
+        if isinstance(exc, ArchitecturalViolationError):
+            raise  # S313 L4: guard-отказ не глотается
 
 
 def _activity_enabled() -> bool:
@@ -135,7 +135,8 @@ def _get_object(scene_state: Dict[str, Any], object_id: str) -> Optional[WorldOb
     except Exception as exc:
         # Отсутствие цели — легальный исход (target_vanished), не тихий None (L4)
         logger.info(f"[ACTIVITY] get_object {object_id}: {type(exc).__name__}: {exc}")
-        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
+        if isinstance(exc, ArchitecturalViolationError):
+            raise  # S313 L4: guard-отказ не глотается
         return None
 
 
@@ -157,23 +158,17 @@ def _body_view(npc: Dict[str, Any]) -> Optional[Any]:
 
 def _at_node(npc: Dict[str, Any], node_id: str) -> bool:
     _pos = str(npc.get("position", "") or "")
-    return bool(_pos) and bool(node_id) and (
-        _pos == node_id or _pos.endswith(f":{node_id}")
-    )
+    return bool(_pos) and bool(node_id) and (_pos == node_id or _pos.endswith(f":{node_id}"))
 
 
 def _step_forward(npc: Dict[str, Any], state: ActivityState, tick: int) -> None:
     """Шаг завершён: персистентный resume-токен двигается (§14: elapsed —
     производная времени, ничего не накапливаем)."""
-    _next = dataclasses.replace(
-        state, step_index=state.step_index + 1, step_started_tick=tick
-    )
+    _next = dataclasses.replace(state, step_index=state.step_index + 1, step_started_tick=tick)
     npc["activity_state"] = _next.to_dict()
 
 
-def _find_target(
-    scene_state: Dict[str, Any], npc: Dict[str, Any], target_archetype: str
-) -> Optional[WorldObject]:
+def _find_target(scene_state: Dict[str, Any], npc: Dict[str, Any], target_archetype: str) -> Optional[WorldObject]:
     """World query: ближайший доступный источник. Детерминизм: ties →
     лексикографический минимум id. Занятые (не-FREE) — не цель: контракт
     query_objects_at (позиция занятых — производная, не истина)."""
@@ -194,9 +189,7 @@ def _find_target(
     return _best
 
 
-def _build_goal(
-    npc: Dict[str, Any], state: ActivityState, step: ActivityStep
-) -> MacroMovementGoal:
+def _build_goal(npc: Dict[str, Any], state: ActivityState, step: ActivityStep) -> MacroMovementGoal:
     # S267: адрес движения — сцена-дом активности, не mid-tick npc.location_id
     # (VANISH-класс: loc перезаписан чужим проходом → goal уходит в чужой граф,
     # узел не резолвится, движение молча не исполняется).
@@ -258,8 +251,7 @@ def _terminate(
             fail_order(ctx, order_id=state.target_ref, reason=reason)
 
     logger.info(
-        f"[ACTIVITY] {_nid}: {state.activity_type.value} terminal "
-        f"success={success} reason={reason} tick={_tick}"
+        f"[ACTIVITY] {_nid}: {state.activity_type.value} terminal success={success} reason={reason} tick={_tick}"
     )
 
 
@@ -295,7 +287,8 @@ def _publish_outcome(
         )
     except Exception as exc:
         logger.warning(f"[ACTIVITY] outcome event fault (degraded): {exc}")
-        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
+        if isinstance(exc, ArchitecturalViolationError):
+            raise  # S313 L4: guard-отказ не глотается
 
 
 def _advance(
@@ -318,10 +311,7 @@ def _advance(
     # шаги вращаются вхолостую до 60-тикного timeout. Честный быстрый
     # провал: desire продолжает давить, _find_target возьмёт живую порцию.
     # SERVE не затронут: target_ref = order_id, не WorldObject-archetype.
-    if (
-        state.activity_type is not ActivityType.SERVE
-        and state.target_ref.startswith("wo_")
-    ):
+    if state.activity_type is not ActivityType.SERVE and state.target_ref.startswith("wo_"):
         _target_obj = _get_object(ctx.scene_state, state.target_ref)
         _owner = _npc_id(npc)
         if (
@@ -444,9 +434,7 @@ def _advance_body_action(
     # только work-pass'ом под WORK_ENABLED (L-W5 by construction).
     if state.activity_type is ActivityType.SERVE:
         if state.step_started_tick < 0:
-            state = dataclasses.replace(
-                state, step_started_tick=_tick
-            )
+            state = dataclasses.replace(state, step_started_tick=_tick)
             npc["activity_state"] = state.to_dict()
         if _tick - state.step_started_tick >= int(step.duration_ticks):
             _terminate(ctx, orchestrator, npc, state, success=True, reason="served")
@@ -500,19 +488,20 @@ def _advance_body_action(
         if _need_name == "hunger" and _bs_hunger_tick > 1e-9 and getattr(ctx, "delta_buffer", None) is not None:  # noqa: ENIGMA002
             from app.models.delta_payloads import PhysiologyPayload
             from app.models.state_delta import DeltaDomain, StateDeltas
-            ctx.delta_buffer.append(StateDeltas(
-                npc_id=_npc_id(npc),
-                domain=DeltaDomain.PHYSIOLOGY,
-                payload=PhysiologyPayload(nutrition_delta=+_bs_hunger_tick),
-                source=f"activity_eat:{state.target_ref}",
-            ))
+
+            ctx.delta_buffer.append(
+                StateDeltas(
+                    npc_id=_npc_id(npc),
+                    domain=DeltaDomain.PHYSIOLOGY,
+                    payload=PhysiologyPayload(nutrition_delta=+_bs_hunger_tick),
+                    source=f"activity_eat:{state.target_ref}",
+                )
+            )
     if _tick - state.step_started_tick >= int(step.duration_ticks):
         _consume_terminal(ctx, orchestrator, npc, state)
 
 
-def _consume_terminal(
-    ctx: Any, orchestrator: Any, npc: Dict[str, Any], state: ActivityState
-) -> None:
+def _consume_terminal(ctx: Any, orchestrator: Any, npc: Dict[str, Any], state: ActivityState) -> None:
     """Истощение порции: damage-закон О6 (DESTROYED-терминал) + ЯВНЫЙ
     release (auto-release запрещён — constraint W-store). Идемпотентно:
     повторный вход не дублирует мутации."""
@@ -522,9 +511,7 @@ def _consume_terminal(
         if _obj.state != "DESTROYED":
             WorldObjectStore.apply_damage(_scene, state.target_ref, 1.0)
         if _obj.holder == _npc_id(npc):
-            WorldObjectStore.release_relation(
-                _scene, state.target_ref, ObjectRelationKind.HELD_BY
-            )
+            WorldObjectStore.release_relation(_scene, state.target_ref, ObjectRelationKind.HELD_BY)
     _terminate(ctx, orchestrator, npc, state, success=True, reason="consumed")
 
 
@@ -557,9 +544,7 @@ def _onset_for_desire(
     _nid = _npc_id(npc)
     _obj = _find_target(ctx.scene_state, npc, spec.target_archetype)
     if _obj is None:
-        logger.debug(
-            f"[ACTIVITY] {_nid}: no source for {desire.subject_class} — desire keeps pressing"
-        )
+        logger.debug(f"[ACTIVITY] {_nid}: no source for {desire.subject_class} — desire keeps pressing")
         return None
     # Резолв пути: узел возле объекта. v1: источники еды живут у стойки
     # (BAR); генерализация выбора роли узла — при расширении каталога.
@@ -569,7 +554,8 @@ def _onset_for_desire(
     except Exception as exc:
         # Мир не ответил путём — деятельность не рождается; громко (L4)
         logger.warning(f"[ACTIVITY] spatial resolve fault: {exc}")
-        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
+        if isinstance(exc, ArchitecturalViolationError):
+            raise  # S313 L4: guard-отказ не глотается
         _spatial = None
     if _spatial is not None:
         _ref = _spatial.resolve_node(role=NodeRole.BAR, origin_xy=_obj.position)
@@ -583,9 +569,7 @@ def _onset_for_desire(
         ActivityStep(
             step_kind=_s.step_kind,
             action_type=_s.action_type,
-            target_ref=(
-                _node_id if _s.step_kind is StepKind.MOVE else str(_obj.object_id)
-            ),
+            target_ref=(_node_id if _s.step_kind is StepKind.MOVE else str(_obj.object_id)),
             duration_ticks=_s.duration_ticks,
         )
         for _s in spec.steps
@@ -600,9 +584,7 @@ def _onset_for_desire(
         step_started_tick=_tick,
         started_tick=_tick,
         interruption_policy=spec.interruption_policy,
-        home_location=str(
-            (ctx.scene_state.get("location_id") if isinstance(ctx.scene_state, dict) else "") or ""
-        ),
+        home_location=str((ctx.scene_state.get("location_id") if isinstance(ctx.scene_state, dict) else "") or ""),
     )
     npc["activity_state"] = _state.to_dict()
     _emit_label_change(
@@ -624,9 +606,7 @@ def _reconcile_activity_ownership(ctx: Any) -> None:
     INTERRUPTION_PRESERVES_GOAL: поедающего не прерывает болтовня)."""
     from app.services.action.commitment_registry import CommitmentRegistry
 
-    CommitmentRegistry.reconcile_activity_ownership(
-        ctx.scene_state, ctx.all_npcs_raw or [], ctx.tick_number
-    )
+    CommitmentRegistry.reconcile_activity_ownership(ctx.scene_state, ctx.all_npcs_raw or [], ctx.tick_number)
 
 
 def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoal]:
@@ -659,7 +639,7 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
         # S268/E7: канонические экземпляры (life-кэш, ссылки) — гашение
         # потребностей владельцем, а не копией Фазы 5 (см. _advance_body_action)
         setattr(ctx, "_canon_npcs", _by_id)
-        for _n in (ctx.all_npcs_raw or []):
+        for _n in ctx.all_npcs_raw or []:
             if not isinstance(_n, dict):
                 continue
             _nid = _n.get("npc_id") or _n.get("id") or ""
@@ -705,11 +685,7 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
             # (легаси) → старое поведение; home=сцена → гейт по нему.
             _gate_loc = _ctx_loc
             _raw_state = _npc.get("activity_state")
-            if (
-                isinstance(_raw_state, dict)
-                and str(_raw_state.get(_KEY_AS_HOME, "") or "")
-                and _ctx_loc
-            ):
+            if isinstance(_raw_state, dict) and str(_raw_state.get(_KEY_AS_HOME, "") or "") and _ctx_loc:
                 _gate_loc = str(_raw_state[_KEY_AS_HOME])
             if _ctx_loc and _gate_loc and _gate_loc != _ctx_loc:
                 continue
@@ -723,5 +699,6 @@ def run_activity_lifecycle(ctx: Any, orchestrator: Any) -> List[MacroMovementGoa
         _reconcile_activity_ownership(ctx)
     except Exception as exc:
         logger.warning(f"[ACTIVITY] converter fault (degraded, tick continues): {exc}")
-        if isinstance(exc, ArchitecturalViolationError): raise  # S313 L4: guard-отказ не глотается
+        if isinstance(exc, ArchitecturalViolationError):
+            raise  # S313 L4: guard-отказ не глотается
     return _goals

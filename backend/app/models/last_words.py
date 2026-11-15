@@ -16,9 +16,11 @@ class LastWordTone(str, Enum):
     BROKEN = "broken"
     SILENT = "silent"
 
+
 @dataclass(frozen=True)
 class LastWord:
     """Финальная цитата NPC перед выходом игрока или своей судьбой."""
+
     npc_id: str
     quote: str
     tone: LastWordTone

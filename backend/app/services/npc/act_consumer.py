@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 class ActAttitude:
     """Закрытый набор вердиктов consumer'а v0."""
-    FRESH = "fresh_intro"              # первая name-запись
+
+    FRESH = "fresh_intro"  # первая name-запись
     CONFLICTING = "conflicting_intro"  # конкурирующая name-запись (без overwrite)
     PROVENANCE_QUERY = "provenance_query"
     DOUBT_REGISTERED = "doubt_registered"  # challenge: БЕЗ мутации belief
@@ -30,18 +31,20 @@ class ActAttitude:
 @dataclass(frozen=True)
 class ResponsePlan:
     """Детерминированный план реакции на акты игрока (для cognition-канала)."""
+
     attitude: str
-    provenance_hint: str = ""      # source_id существующей name-записи
+    provenance_hint: str = ""  # source_id существующей name-записи
     belief_confidence: float = 0.0
     challenged_claim_object: str = ""  # имя/содержимое оспариваемого claim'а
-    claimed_name: str = ""             # имя из текущего SELF_INTRODUCTION
+    claimed_name: str = ""  # имя из текущего SELF_INTRODUCTION
 
 
 def _name_records(store: Any, listener_id: str) -> List[Any]:
     """name-записи listener'а (read-only; Store может отсутствовать — sandbox)."""
     try:
         return [
-            r for r in (store.get_all_for_agent(listener_id) or [])
+            r
+            for r in (store.get_all_for_agent(listener_id) or [])
             if getattr(getattr(r, "proposition", None), "predicate", None) is not None  # noqa: ENIGMA002
             and getattr(r.proposition, "predicate").value == "name"
         ]
@@ -80,30 +83,24 @@ def consume_npc_acts(
             # name-записей), а не новизна имени: переповтор одного из
             # конкурирующих имён — тоже конфликтное состояние (выбор стороны).
             _distinct = {
-                getattr(r.proposition, "object_id", "") for r in _records  # noqa: ENIGMA002
+                getattr(r.proposition, "object_id", "")
+                for r in _records  # noqa: ENIGMA002
             }
-            _is_conflicting = len(_distinct) > 1 or (
-                _records and name not in _distinct
-            )
+            _is_conflicting = len(_distinct) > 1 or (_records and name not in _distinct)
             if _is_conflicting:
                 return ResponsePlan(
                     attitude=ActAttitude.CONFLICTING,
-                    belief_confidence=max(
-                        (getattr(r, "confidence", 0.0) for r in _records), default=0.0
-                    ),
+                    belief_confidence=max((getattr(r, "confidence", 0.0) for r in _records), default=0.0),
                     claimed_name=name,
                 )
             _existing = next(
-                (r for r in _records
-                 if getattr(r.proposition, "object_id", "") == name),  # noqa: ENIGMA002
+                (r for r in _records if getattr(r.proposition, "object_id", "") == name),  # noqa: ENIGMA002
                 None,
             )
             return ResponsePlan(
                 attitude=ActAttitude.FRESH,
                 claimed_name=name,
-                belief_confidence=(
-                    _existing.confidence if _existing else 0.0
-                ),
+                belief_confidence=(_existing.confidence if _existing else 0.0),
             )
 
         # Шаг 4/RC8 (вердикт Мастера): provenance — КАНОНИЧЕСКИЙ тип акта
@@ -127,9 +124,19 @@ def consume_npc_acts(
         if act_type == "QUESTION" and _records:
             topic = str(params.get("topic") or "").lower()
             if any(
-                kw in topic for kw in (
-                    "соврал", "совру", "обманул", "врал", "врёшь", "врешь",
-                    "не правда", "неправда", "ложь", "шутка", "пошутил",
+                kw in topic
+                for kw in (
+                    "соврал",
+                    "совру",
+                    "обманул",
+                    "врал",
+                    "врёшь",
+                    "врешь",
+                    "не правда",
+                    "неправда",
+                    "ложь",
+                    "шутка",
+                    "пошутил",
                 )
             ):
                 _latest = max(_records, key=lambda r: getattr(r, "last_updated_tick", 0))

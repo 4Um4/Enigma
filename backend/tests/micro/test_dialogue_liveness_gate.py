@@ -49,10 +49,12 @@ def _scene(task: dict) -> dict:
 
 
 def _states(life_status: str) -> list:
-    return [{
-        "npc_id": "thief_shadow",
-        "body_state": {"life_status": life_status, "current_hp": 1},
-    }]
+    return [
+        {
+            "npc_id": "thief_shadow",
+            "body_state": {"life_status": life_status, "current_hp": 1},
+        }
+    ]
 
 
 def _expired_entries(scheduler) -> list:
@@ -87,6 +89,7 @@ def test_liveness_gate_process_tasks_dispatch():
     sched.process_tasks(_scene(_task_dict("thief_shadow")))
     assert _expired_entries(sched), "B: process_tasks-путь гейтится (точка №3)"
     import time as _t
+
     _t.sleep(0.3)
     assert sched.total_processed_tasks == 0, "B: мёртвый не исполняется (process_tasks)"
 
@@ -98,8 +101,11 @@ def test_liveness_gate_worker_in_flight():
     # Фикксура №156: tasks — аргумент воркера (не pending сцены); пустой список
     # означал «гейт не запускался вовсе».
     sched._process_tasks_async(
-        _scene(_task_dict("thief_shadow")), [_task_dict("thief_shadow")],
-        "test_campaign", "canonical", 0.0,
+        _scene(_task_dict("thief_shadow")),
+        [_task_dict("thief_shadow")],
+        "test_campaign",
+        "canonical",
+        0.0,
     )
     assert _expired_entries(sched), "B8: worker-гейт даёт EXPIRED in-flight задаче"
     assert sched.total_processed_tasks == 0, "B8: in-flight мёртвый не исполняется"

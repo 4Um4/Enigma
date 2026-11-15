@@ -41,9 +41,7 @@ def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
                 continue
             try:
                 npc_state = load_l2_state_from_runtime_dict(npc_dict)
-                _compressed = memory_manager.compress_narrative_cache(
-                    npc_state.narrative_cache
-                )
+                _compressed = memory_manager.compress_narrative_cache(npc_state.narrative_cache)
                 if _compressed != npc_state.narrative_cache:
                     npc_state.narrative_cache = _compressed
                     # ADR-117: to_persistence_dict — staticmethod, вызов через класс
@@ -67,13 +65,9 @@ def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
             if not npc_id:
                 continue
             try:
-                _new_traits = memory_manager.check_identity_promotion(
-                    campaign_id=ctx.campaign_id, npc_id=npc_id
-                )
+                _new_traits = memory_manager.check_identity_promotion(campaign_id=ctx.campaign_id, npc_id=npc_id)
                 if _new_traits:
-                    logger.info(
-                        f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}"
-                    )
+                    logger.info(f"[PHASE_3_MEMORY] new identity traits for {npc_id}: {_new_traits}")
             except Exception as e:
                 logger.error(
                     f"[PHASE_3_MEMORY] check_identity_promotion failed for {npc_id}: {e}. Пробрасываем исключение.",
@@ -101,9 +95,7 @@ def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
                 if ctx.npc_services
                 else None
             )
-            memory_manager.apply(
-                new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq
-            )
+            memory_manager.apply(new_event, npc_state, campaign_id=ctx.campaign_id, spatial_query=_sq)
             # Мост обратно: apply() обновил narrative_cache на NPCState,
             # но Фаза 5 пересоздаёт NPCState из npc_state_dict (Устав §3.1)
             NPCState.to_persistence_dict(npc_state, npc_state_dict)
@@ -115,9 +107,7 @@ def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
     _active_npc_ids = [n.get("id") for n in ctx.npc_states if n.get("id")]
     if _active_npc_ids:
         try:
-            _identity_weights = memory_manager.run_decay_if_needed(
-                ctx.campaign_id, ctx.tick_number
-            )
+            _identity_weights = memory_manager.run_decay_if_needed(ctx.campaign_id, ctx.tick_number)
             if _identity_weights:
                 # V8-MEM-13: резонанс per-NPC из буфера campaign:npc —
                 # один общий резонанс = контаминация всех NPC чужими паттернами
@@ -127,7 +117,9 @@ def execute_memory_phase(ctx: _TickContext, memory_manager: Any) -> int:
                         continue
                     memory_manager.apply_identity_weights(ctx.campaign_id, npc_id, _resonance)
         except Exception as e:
-            logger.error(f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True)
+            logger.error(
+                f"[PHASE_3_MEMORY] run_decay_and_resonance failed: {e}. Пробрасываем исключение.", exc_info=True
+            )
             raise
 
     logger.debug(f"[TICK_ORCH] Фаза 3: {processed} memory updates")

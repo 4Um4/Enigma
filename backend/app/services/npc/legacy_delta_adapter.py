@@ -52,9 +52,7 @@ class LegacyStateDeltaAdapter:
         dropped_domains: Set[str] = set()
 
         for d in deltas:
-            if d.domain == DeltaDomain.EMOTION and isinstance(
-                d.payload, EmotionPayload
-            ):
+            if d.domain == DeltaDomain.EMOTION and isinstance(d.payload, EmotionPayload):
                 collapsed.stress_delta += d.payload.stress_delta
                 collapsed.emotion_delta += d.payload.emotion_delta
                 # В v1 эмоция перезаписывается (last-write-wins)
@@ -65,14 +63,10 @@ class LegacyStateDeltaAdapter:
                     collapsed.emotion_tag = cast(EmotionTag, d.payload.emotion_tag)
                 if d.payload.new_trauma:
                     collapsed.new_trauma = d.payload.new_trauma
-            elif d.domain == DeltaDomain.SOCIAL and isinstance(
-                d.payload, SocialPayload
-            ):
+            elif d.domain == DeltaDomain.SOCIAL and isinstance(d.payload, SocialPayload):
                 collapsed.trust_delta += d.payload.trust_delta
                 collapsed.fear_delta += d.payload.fear_delta
-            elif d.domain == DeltaDomain.PERCEPTION and isinstance(
-                d.payload, PerceptionPayload
-            ):
+            elif d.domain == DeltaDomain.PERCEPTION and isinstance(d.payload, PerceptionPayload):
                 # S72 / §ENIGMA-004: УБИТ глобальный коллапс Vacuum → stress.
                 # Неопределённость теперь обрабатывается персонально через Affective Pipeline:
                 #   PerceptionPayload.uncertainty_delta → PK.uncertainty → affective_load (× drives weight)

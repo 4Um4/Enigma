@@ -97,12 +97,13 @@ class L1Chronicle:
                 if _rows:
                     _campaign_to_load = _rows[0]["campaign_id"]
                     _logger.info(
-                        f"[L1_CHRONICLE] auto-bound to campaign='{_campaign_to_load}' "
-                        f"(no explicit bind_campaign call)"
+                        f"[L1_CHRONICLE] auto-bound to campaign='{_campaign_to_load}' (no explicit bind_campaign call)"
                     )
                     self._campaign_id = _campaign_to_load
             except Exception as e:
-                _logger.debug(f"SQLite load empty/failed: {e}")  # SQLite может быть пустой — это норма для нового game_loop
+                _logger.debug(
+                    f"SQLite load empty/failed: {e}"
+                )  # SQLite может быть пустой — это норма для нового game_loop
 
         if not _campaign_to_load:
             self._loaded = True
@@ -190,9 +191,7 @@ class L1Chronicle:
         # INSERT падал, тик умирал в Фазе 9. Разные source на одном тике —
         # легальны (федерация писателей), дубль пятёрки — нет.
         _exists = any(
-            e.tick_id == event.tick_id
-            and e.event_type == event.event_type
-            and e.source_id == event.source_id
+            e.tick_id == event.tick_id and e.event_type == event.event_type and e.source_id == event.source_id
             for e in self._events[event.target_id]
         )
         if _exists:
@@ -230,26 +229,20 @@ class L1Chronicle:
                 )
                 raise
 
-    def commit_tick_buffer(
-        self, buffer: List[TraitDriftEvent], current_tick: int
-    ) -> None:
+    def commit_tick_buffer(self, buffer: List[TraitDriftEvent], current_tick: int) -> None:
         """Атомарная фиксация буфера от Оркестратора. Валидация времени — задача Оркестратора."""
         self._ensure_loaded()
         for event in buffer:
             # Idempotency Guard: предотвращаем дублирование событий в рамках одного тика
             # для одного и того же target_id и event_type.
             _exists = any(
-                e.tick_id == event.tick_id
-                and e.target_id == event.target_id
-                and e.event_type == event.event_type
+                e.tick_id == event.tick_id and e.target_id == event.target_id and e.event_type == event.event_type
                 for e in self._events.get(event.target_id, [])
             )
             if not _exists:
                 self.append(event)
 
-    def archive_old_events(
-        self, current_tick: int, max_ticks_in_memory: int = 2000
-    ) -> None:
+    def archive_old_events(self, current_tick: int, max_ticks_in_memory: int = 2000) -> None:
         """S94-T2.3: Перенос старых событий в архив. Очищает RAM кэш и активную таблицу."""
         self._ensure_loaded()
         if self._store is None:
@@ -279,9 +272,7 @@ class L1Chronicle:
             # RAM-кэш (self._events) выступает буфером, SQLite-таблица растёт бесконечно.
             # 3. Очистка RAM кэша
             for npc_id in list(self._events.keys()):
-                self._events[npc_id] = [
-                    e for e in self._events[npc_id] if e.tick_id >= _threshold
-                ]
+                self._events[npc_id] = [e for e in self._events[npc_id] if e.tick_id >= _threshold]
                 if not self._events[npc_id]:
                     del self._events[npc_id]
 
@@ -289,9 +280,7 @@ class L1Chronicle:
                 f"[L1_CHRONICLE] Archived events older than tick {_threshold} for campaign={self._campaign_id}"
             )
         except Exception as e:
-            _logger.error(
-                f"[L1_CHRONICLE] Failed to archive old events: {e}", exc_info=True
-            )
+            _logger.error(f"[L1_CHRONICLE] Failed to archive old events: {e}", exc_info=True)
 
     def query_raw(self, npc_id: str, t_from: int = 0) -> List[TraitDriftEvent]:
         """Чтение сырой правды. Читает из RAM (актуальные) + SQLite (архив) для PatternDetector."""
@@ -326,15 +315,11 @@ class L1Chronicle:
                 ]
                 return archive_events + active_events
             except Exception as e:
-                _logger.warning(
-                    f"[L1_CHRONICLE] Failed to query archive for {npc_id}: {e}"
-                )
+                _logger.warning(f"[L1_CHRONICLE] Failed to query archive for {npc_id}: {e}")
 
         return active_events
 
-    def query_weighted(
-        self, npc_id: str, current_tick: int, t_from: int = 0
-    ) -> List[Tuple[TraitDriftEvent, float]]:
+    def query_weighted(self, npc_id: str, current_tick: int, t_from: int = 0) -> List[Tuple[TraitDriftEvent, float]]:
         """
         Чтение правды с весами для проекции.
         Возвращает ВСЕ события (порог убран), Резолвер решит, что важно.

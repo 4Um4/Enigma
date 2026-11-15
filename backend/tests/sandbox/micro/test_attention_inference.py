@@ -9,6 +9,7 @@ path: backend/tests/sandbox/micro/test_attention_inference.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_attention_inference.py -v; cd ..
 """
+
 import math
 
 import pytest

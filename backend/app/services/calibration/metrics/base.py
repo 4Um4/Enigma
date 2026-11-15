@@ -6,6 +6,7 @@ path: backend/app/services/calibration/metrics/base.py
 Зависимости: стандартная библиотека.
 Основные сущности: CalibrationMetric.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -21,13 +22,10 @@ class CalibrationMetric(ABC):
         tick: int,
         state_snapshot: Dict[str, Dict[str, Any]],
         event: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @abstractmethod
-    def compute(self) -> Optional[float]:
-        ...
+    def compute(self) -> Optional[float]: ...
 
     @abstractmethod
-    def reset(self) -> None:
-        ...
+    def reset(self) -> None: ...

@@ -1,4 +1,4 @@
-﻿"""
+"""
 R4/GATE-9A D2 — patch game_loop.py v3 (corrected run_turn wrap to include execute).
 
 v3 vs v2: Edit 3 wrap range = [execute .. unlock-1] (includes execute call).
@@ -9,15 +9,17 @@ is caught by except block, mark_tick_aborted is called, unlock_tick in finally.
 Вложенный async def _dm_unavailable_response @1588 остаётся внутри try (OK —
 Python allows def inside try).
 """
-import sys
+
 import shutil
+import sys
 from pathlib import Path
 
 GL_PATH = Path("app/services/game_loop/game_loop.py")
 BACKUP_PATH = Path("app/services/game_loop/game_loop.py.r4_backup")
 
 if not GL_PATH.exists():
-    print(f"ERROR: {GL_PATH} not found"); sys.exit(1)
+    print(f"ERROR: {GL_PATH} not found")
+    sys.exit(1)
 
 if not BACKUP_PATH.exists():
     shutil.copy2(GL_PATH, BACKUP_PATH)
@@ -40,8 +42,8 @@ def apply_text_replace(src, name, before, after):
 
 def wrap_range(lines_list, name, start_0, end_0, except_body_lines, finally_body_lines):
     before = lines_list[:start_0]
-    wrapped = lines_list[start_0:end_0 + 1]
-    after = lines_list[end_0 + 1:]
+    wrapped = lines_list[start_0 : end_0 + 1]
+    after = lines_list[end_0 + 1 :]
     new_wrapped = []
     for ln in wrapped:
         if ln.strip() == "":
@@ -58,7 +60,7 @@ def wrap_range(lines_list, name, start_0, end_0, except_body_lines, finally_body
     for fl in finally_body_lines:
         out.append("            " + fl + "\n")
     out.extend(after)
-    print(f"[OK] {name}: wrapped lines {start_0+1}..{end_0+1} ({end_0 - start_0 + 1} lines)")
+    print(f"[OK] {name}: wrapped lines {start_0 + 1}..{end_0 + 1} ({end_0 - start_0 + 1} lines)")
     return out
 
 
@@ -91,7 +93,8 @@ for i, ln in enumerate(lines):
         lock_all_idx = i
         break
 if lock_all_idx is None:
-    print("[FAIL] Edit 2: lock_all_for_tick not found"); sys.exit(4)
+    print("[FAIL] Edit 2: lock_all_for_tick not found")
+    sys.exit(4)
 
 unlock_idle_idx = None
 for i in range(lock_all_idx + 1, len(lines)):
@@ -99,7 +102,8 @@ for i in range(lock_all_idx + 1, len(lines)):
         unlock_idle_idx = i
         break
 if unlock_idle_idx is None:
-    print("[FAIL] Edit 2: idle_tick unlock not found"); sys.exit(5)
+    print("[FAIL] Edit 2: idle_tick unlock not found")
+    sys.exit(5)
 
 except_idle = [
     "# R4/GATE-9A D2: mark tick as aborted; unlock_tick in finally",
@@ -113,9 +117,14 @@ finally_idle = [
     "# unlock_tick сохраняет его на диск (если тик НЕ помечен aborted).",
     "self.scene_manager.unlock_tick(campaign_id)",
 ]
-lines = wrap_range(lines, "Edit 2: idle_tick",
-                  start_0=lock_all_idx + 1, end_0=unlock_idle_idx - 1,
-                  except_body_lines=except_idle, finally_body_lines=finally_idle)
+lines = wrap_range(
+    lines,
+    "Edit 2: idle_tick",
+    start_0=lock_all_idx + 1,
+    end_0=unlock_idle_idx - 1,
+    except_body_lines=except_idle,
+    finally_body_lines=finally_idle,
+)
 
 
 # Edit 3 v3: run_turn — wrap [execute .. unlock-1] (INCLUDES execute call)
@@ -129,7 +138,8 @@ for i, ln in enumerate(lines):
         execute_idx = i
         break
 if execute_idx is None:
-    print("[FAIL] Edit 3: execute line not found"); sys.exit(6)
+    print("[FAIL] Edit 3: execute line not found")
+    sys.exit(6)
 
 unlock_rt_idx = None
 for i in range(execute_idx + 1, len(lines)):
@@ -137,7 +147,8 @@ for i in range(execute_idx + 1, len(lines)):
         unlock_rt_idx = i
         break
 if unlock_rt_idx is None:
-    print("[FAIL] Edit 3: run_turn unlock not found"); sys.exit(7)
+    print("[FAIL] Edit 3: run_turn unlock not found")
+    sys.exit(7)
 
 except_rt = [
     "# R4/GATE-9A D2: mark tick as aborted; unlock_tick in finally",
@@ -150,9 +161,14 @@ finally_rt = [
     "# (если тик НЕ помечен aborted).",
     "self.scene_manager.unlock_tick(req.campaign_id)",
 ]
-lines = wrap_range(lines, "Edit 3 v3: run_turn (includes execute)",
-                  start_0=execute_idx, end_0=unlock_rt_idx - 1,
-                  except_body_lines=except_rt, finally_body_lines=finally_rt)
+lines = wrap_range(
+    lines,
+    "Edit 3 v3: run_turn (includes execute)",
+    start_0=execute_idx,
+    end_0=unlock_rt_idx - 1,
+    except_body_lines=except_rt,
+    finally_body_lines=finally_rt,
+)
 
 
 GL_PATH.write_text("".join(lines), encoding="utf-8")

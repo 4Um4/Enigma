@@ -11,6 +11,7 @@ path: backend/tests/sandbox/micro/test_re_event_semantics_m2d.py
 Основные сущности: 8 тестов.
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_re_event_semantics_m2d.py -v; cd ..
 """
+
 import sys
 from pathlib import Path
 
@@ -41,9 +42,7 @@ def _evt(etype: str, source: str, payload: dict) -> EventDTO:
 
 def _handler(bus=None) -> RelationshipEventSemantics:
     # bus=None → флаг ON не требует шины (подписка только при ON+bus)
-    return RelationshipEventSemantics(bus) if bus is not None else object.__new__(
-        RelationshipEventSemantics
-    )
+    return RelationshipEventSemantics(bus) if bus is not None else object.__new__(RelationshipEventSemantics)
 
 
 class TestPureReduction:

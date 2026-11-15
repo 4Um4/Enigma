@@ -27,10 +27,16 @@ def probe_main() -> None:
 
     # 100 событий в тиках 1..100 (все будут ниже порога архивации)
     for t in range(1, 101):
-        chron.append(TraitDriftEvent(
-            tick_id=t, target_id="npc_x", source_id=f"src_{t % 7}",
-            effect_value=0.1, observation_weight=1.0, event_type="drift",
-        ))
+        chron.append(
+            TraitDriftEvent(
+                tick_id=t,
+                target_id="npc_x",
+                source_id=f"src_{t % 7}",
+                effect_value=0.1,
+                observation_weight=1.0,
+                event_type="drift",
+            )
+        )
     print("[PROBE] events_in_ram_after_append:", len(chron._events.get("npc_x", [])))
 
     # Четыре вызова архивации с ОДНИМ порогом = симуляция %500-вызовов
@@ -39,7 +45,9 @@ def probe_main() -> None:
         chron.archive_old_events(current_tick=2100)  # threshold=100
         n_arch = store.query("SELECT COUNT(*) AS n FROM l1_chronicle_archive")[0]["n"]
         n_src = store.query("SELECT COUNT(*) AS n FROM l1_chronicle_events")[0]["n"]
-        print(f"[PROBE] archive_call={k}: archive_rows={n_arch}, source_rows={n_src}, ram={len(chron._events.get('npc_x', []))}")
+        print(
+            f"[PROBE] archive_call={k}: archive_rows={n_arch}, source_rows={n_src}, ram={len(chron._events.get('npc_x', []))}"
+        )
 
     # Смертельный тест: сколько событий видит PatternDetector
     seen = chron.query_raw("npc_x")

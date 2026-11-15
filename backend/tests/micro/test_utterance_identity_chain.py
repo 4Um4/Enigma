@@ -61,14 +61,12 @@ class _CapturingAvatar:
     def __init__(self):
         self.calls = []
 
-    def append_journal(self, campaign_id, speaker, text, channel="narrative",
-                       event_id="", tick=0, **kwargs):
+    def append_journal(self, campaign_id, speaker, text, channel="narrative", event_id="", tick=0, **kwargs):
         # ADR-O-409: провенанс npc_id пришёл в production-подпись — заглушка
         # принимает расширения kwargs (контракт живой, тест не должен падать
         # на каждом новом поле журнала).
         self.calls.append(
-            {"speaker": speaker, "text": text, "channel": channel,
-             "event_id": event_id, "tick": tick, **kwargs}
+            {"speaker": speaker, "text": text, "channel": channel, "event_id": event_id, "tick": tick, **kwargs}
         )
 
     # ADR-O-409 NAME-ось (ROLLOUT-ON): контракт аватара полон — без этих
@@ -79,8 +77,7 @@ class _CapturingAvatar:
     def note_name_heard(self, *a, **k):
         pass
 
-    def get_name_display(self, campaign_id, npc_id, true_name,
-                         recognition_confirmed):
+    def get_name_display(self, campaign_id, npc_id, true_name, recognition_confirmed):
         return true_name
 
 
@@ -111,6 +108,7 @@ def test_chain_npc_spoke_event_id_reaches_journal():
     avatar = _CapturingAvatar()
     sub = _make_subscriber(avatar)
     from app.services.events.event_types import EventType
+
     bus.subscribe(EventType.NPC_SPOKE, sub.on_npc_spoke)
 
     bus.publish(
@@ -133,18 +131,17 @@ def test_chain_npc_spoke_event_id_reaches_journal():
     call = avatar.calls[0]
     # ГЛАВНАЯ проверка: journal наследует ФИНАЛЬНЫЙ id шины
     assert call["event_id"] == str(bus._event_log[-1].id)
-    assert call["event_id"] != ""          # provisional-ноль исключён
-    assert call["tick"] == 100             # event_tick (ADR-O-399)
-    assert call["channel"] == "direct"     # игрок-адресат
-    assert call["speaker"] == "Лусия"      # INV-NPC-NAME: имя, не npc_id
+    assert call["event_id"] != ""  # provisional-ноль исключён
+    assert call["tick"] == 100  # event_tick (ADR-O-399)
+    assert call["channel"] == "direct"  # игрок-адресат
+    assert call["speaker"] == "Лусия"  # INV-NPC-NAME: имя, не npc_id
 
 
 def test_projection_marks_provenance():
     """PresentationProjection: provenance_complete честен по записям."""
     projected = project_journal(
         [
-            {"speaker": "Лусия", "text": "Привет", "channel": "direct",
-             "event_id": "abc", "tick": 42},
+            {"speaker": "Лусия", "text": "Привет", "channel": "direct", "event_id": "abc", "tick": 42},
             {"speaker": "Рассказчик", "text": "Метель.", "channel": "narrative"},
         ]
     )
@@ -160,13 +157,13 @@ def test_projection_end_to_end_event_id_preserved():
     bus.set_identity_provider(lambda t, s: next_event_identity(scene, t, s))
     bus.publish(
         EventDTO.create(
-            event_type="npc_spoke", source="lusya",
+            event_type="npc_spoke",
+            source="lusya",
             payload={"text": "x", "event_tick": 100},
         )
     )
     final_id = str(bus._event_log[-1].id)
-    journal = [{"speaker": "l", "text": "x", "channel": "direct",
-                "event_id": final_id, "tick": 100}]
+    journal = [{"speaker": "l", "text": "x", "channel": "direct", "event_id": final_id, "tick": 100}]
     projected = project_journal(journal)
     assert projected[0]["event_id"] == final_id
     assert projected[0]["provenance_complete"] is True

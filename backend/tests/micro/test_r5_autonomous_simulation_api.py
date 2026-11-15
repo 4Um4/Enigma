@@ -9,6 +9,7 @@ R5 (CCH-15 P4): Автономная симуляция — opt-in управл�
 - При завершении приложения scheduler гарантированно останавливается.
 - Не создан новый реестр кампаний — CampaignStateService.
 """
+
 from __future__ import annotations
 
 import asyncio

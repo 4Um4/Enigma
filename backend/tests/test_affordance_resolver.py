@@ -10,6 +10,7 @@ path: backend/tests/test_affordance_resolver.py
 Зависимости: pytest, app.domain, app.services.world, app.models
 Основные сущности: (тесты)
 """
+
 import dataclasses
 
 import pytest
@@ -31,7 +32,7 @@ _NPC = "npc_test"
 _NPC_OTHER = "npc_other"
 _HERE = (5.0, 3.0)
 _NEAR = (5.5, 3.0)  # дистанция 0.5 ≤ 1.5
-_FAR = (9.0, 3.0)   # дистанция 4.0 > 1.5
+_FAR = (9.0, 3.0)  # дистанция 4.0 > 1.5
 
 
 def _healthy(npc_id: str = _NPC):
@@ -79,9 +80,7 @@ def test_base_trio_and_state_is_on_every_action():
 
 def test_world_object_has_no_stored_affordances():
     """ADR-O-371: производная не хранится на объекте."""
-    assert not any(
-        f.name == "affordances" for f in dataclasses.fields(_chair())
-    )
+    assert not any(f.name == "affordances" for f in dataclasses.fields(_chair()))
 
 
 def test_semantic_action_field_set_closed():
@@ -138,12 +137,15 @@ def test_container_open_pair_rule_and_reserved():
 
 
 def test_door_locked_and_broken():
-    assert _types(
-        AffordanceResolver.resolve(_door("LOCKED"), _healthy(), _HERE)
-    ) == {WorldActionType.UNLOCK, WorldActionType.BREAK, WorldActionType.KNOCK}
-    assert _types(
-        AffordanceResolver.resolve(_door("BROKEN"), _healthy(), _HERE)
-    ) == {WorldActionType.REPAIR, WorldActionType.PASS_THROUGH}
+    assert _types(AffordanceResolver.resolve(_door("LOCKED"), _healthy(), _HERE)) == {
+        WorldActionType.UNLOCK,
+        WorldActionType.BREAK,
+        WorldActionType.KNOCK,
+    }
+    assert _types(AffordanceResolver.resolve(_door("BROKEN"), _healthy(), _HERE)) == {
+        WorldActionType.REPAIR,
+        WorldActionType.PASS_THROUGH,
+    }
 
 
 def test_chair_available():
@@ -182,17 +184,13 @@ def test_chair_held_scoped_to_holder():
 
 
 def test_unconscious_npc_gets_nothing():
-    body = build_body_state_view(
-        {**BODY_STATE_HEALTHY, "consciousness": 0.05}, _NPC
-    )
+    body = build_body_state_view({**BODY_STATE_HEALTHY, "consciousness": 0.05}, _NPC)
     assert AffordanceResolver.resolve(_door(), body, _HERE) == ()
     assert AffordanceResolver.resolve(_chair(), body, _HERE) == ()
 
 
 def test_dead_npc_gets_nothing():
-    body = build_body_state_view(
-        {**BODY_STATE_HEALTHY, "life_status": "DEAD"}, _NPC
-    )
+    body = build_body_state_view({**BODY_STATE_HEALTHY, "life_status": "DEAD"}, _NPC)
     assert AffordanceResolver.resolve(_door(), body, _HERE) == ()
 
 
@@ -215,12 +213,8 @@ def test_disabled_sentinel_gets_nothing():
 def test_adjacency_threshold_boundary():
     door = build_world_object("door_2", "door", "tavern", (6.5, 3.0), "CLOSED")
     # дистанция ровно 1.5 → включительно
-    assert WorldActionType.OPEN in _types(
-        AffordanceResolver.resolve(door, _healthy(), _HERE)
-    )
-    door_far = build_world_object(
-        "door_3", "door", "tavern", (6.51, 3.0), "CLOSED"
-    )
+    assert WorldActionType.OPEN in _types(AffordanceResolver.resolve(door, _healthy(), _HERE))
+    door_far = build_world_object("door_3", "door", "tavern", (6.51, 3.0), "CLOSED")
     assert AffordanceResolver.resolve(door_far, _healthy(), _HERE) == ()
 
 
@@ -246,18 +240,14 @@ def test_preconditions_enable_w3_revalidation():
     """STATE_IS в кортеже ловит устаревшее действие (механизм W3)."""
     door = _door("CLOSED")
     (open_action,) = [
-        a
-        for a in AffordanceResolver.resolve(door, _healthy(), _HERE)
-        if a.action_type is WorldActionType.OPEN
+        a for a in AffordanceResolver.resolve(door, _healthy(), _HERE) if a.action_type is WorldActionType.OPEN
     ]
     assert open_action.target_object_id == "door_1"
     # Мир изменился (W3-writer открыл дверь): устаревший OPEN обязан провалиться
     opened = dataclass_replace(door, state="OPEN")
     for p in open_action.preconditions:
         if p.predicate == "STATE_IS":
-            verdict = PRECONDITION_REGISTRY[p.predicate](
-                opened, _healthy(), _HERE, p.args
-            )
+            verdict = PRECONDITION_REGISTRY[p.predicate](opened, _healthy(), _HERE, p.args)
             assert verdict is False
 
 
@@ -274,12 +264,8 @@ def test_open_close_pair_rule_formal():
     архетипы, чей FSM (ТЗ §22.1) допускает оба перехода (door, container)."""
     assert WorldActionType.OPEN in _types(_AFFORDANCE_TABLE[("door", "OPEN")])
     assert WorldActionType.CLOSE in _types(_AFFORDANCE_TABLE[("door", "OPEN")])
-    assert WorldActionType.OPEN in _types(
-        _AFFORDANCE_TABLE[("container", "OPEN")]
-    )
-    assert WorldActionType.CLOSE in _types(
-        _AFFORDANCE_TABLE[("container", "OPEN")]
-    )
+    assert WorldActionType.OPEN in _types(_AFFORDANCE_TABLE[("container", "OPEN")])
+    assert WorldActionType.CLOSE in _types(_AFFORDANCE_TABLE[("container", "OPEN")])
     # chair-FSM не допускает OPEN/CLOSE переходов → правило не применимо
     for (arch, _st), row in _AFFORDANCE_TABLE.items():
         if arch == "chair":

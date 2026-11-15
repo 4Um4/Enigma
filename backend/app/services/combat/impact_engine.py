@@ -106,9 +106,7 @@ def _resolve_target_zone(intent: ImpactIntentDTO, rng: random.Random) -> str:
     return rng.choices(zones, weights=weights, k=1)[0]
 
 
-def _calculate_tissue_damage(
-    force: float, contact: ContactLevel, damage_type: str
-) -> float:
+def _calculate_tissue_damage(force: float, contact: ContactLevel, damage_type: str) -> float:
     """Вычисляет структурный урон в зависимости от контакта и типа."""
     contact_multiplier = {
         ContactLevel.MISS: 0.0,
@@ -157,9 +155,7 @@ def resolve_physical_impact(
     zone = _resolve_target_zone(intent, rng)
 
     # 3. Energy Transfer & Tissue Interaction
-    structural_damage = _calculate_tissue_damage(
-        intent.force, contact, intent.damage_type
-    )
+    structural_damage = _calculate_tissue_damage(intent.force, contact, intent.damage_type)
 
     # 4. Functional Consequences (Боль, Кровопотеря, Шок)
     # Зональные модификаторы (Мастер Тай: пах и голова = болевой шок)

@@ -93,7 +93,9 @@ def _make_ctx(
 class TestCombatPipelineE2E:
     """Сквозной тест: CombatSubscriber → Materialization → ReactionSubscriber."""
 
-    @pytest.mark.skip(reason="Flaky test: RNG-based attack_roll can miss, causing no target delta. Needs deterministic mock.")
+    @pytest.mark.skip(
+        reason="Flaky test: RNG-based attack_roll can miss, causing no target delta. Needs deterministic mock."
+    )
     def test_physical_to_cognitive_cascade(self):
         """Каскад Force → Pain → Shock → Emotion.
 

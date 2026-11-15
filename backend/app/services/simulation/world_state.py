@@ -172,10 +172,7 @@ class WorldTokenBudget:
         # other_locations не добавляем — Phase 3B.3+
 
         used = budget - remaining
-        logger.debug(
-            f"[WTB] Срез: {used}/{budget} токенов использовано "
-            f"({round(used / budget * 100)}%)"
-        )
+        logger.debug(f"[WTB] Срез: {used}/{budget} токенов использовано ({round(used / budget * 100)}%)")
 
         return result
 
@@ -186,11 +183,7 @@ class WorldTokenBudget:
             # Пропускаем уничтоженные объекты с count=0
             if obj.get("count") == 0:
                 continue
-            objects[obj_id] = {
-                k: v
-                for k, v in obj.items()
-                if k in ("name", "state", "count", "light", "hp")
-            }
+            objects[obj_id] = {k: v for k, v in obj.items() if k in ("name", "state", "count", "light", "hp")}
 
         return {
             "location_id": scene_state.get("location_id", ""),
@@ -224,9 +217,7 @@ class WorldState:
 
     def __init__(self) -> None:
         self._wtb = WorldTokenBudget()
-        self._recent_events: List[
-            EventDTO
-        ] = []  # последние MAX_RECENT_EVENTS событий (Устав §2.1)
+        self._recent_events: List[EventDTO] = []  # последние MAX_RECENT_EVENTS событий (Устав §2.1)
 
     def record_event(self, event: EventDTO) -> None:
         """

@@ -22,8 +22,8 @@ from app.domain.execution import QueuedTask, TaskKind, TaskPriority
 from app.domain.player_epistemics import IDENTIFIED, UNKNOWN
 from tests.gameplay.harness import TavernGameplayHarness
 
-_TOPIC_SECRET = "караван"          # канон-тема borko_negligence (E1-тесты)
-_TOPIC_NEUTRAL = "погода"          # тема вне знания borko
+_TOPIC_SECRET = "караван"  # канон-тема borko_negligence (E1-тесты)
+_TOPIC_NEUTRAL = "погода"  # тема вне знания borko
 
 
 class _ProbeRouter:
@@ -160,9 +160,7 @@ def test_t_w1_wiring_alive(harness):
     )
 
     with _probe_router_on(harness) as _probe:
-        list(_production_executor(harness).execute(
-            _dialogue_task("guard_borko", _TOPIC_SECRET, tick=50)
-        ))
+        list(_production_executor(harness).execute(_dialogue_task("guard_borko", _TOPIC_SECRET, tick=50)))
         assert _probe.prompts, "LLM-зонд не вызван: тест ничего не измерил"
 
     assert state.level("borko_negligence") == IDENTIFIED
@@ -180,9 +178,7 @@ def test_t_w2_production_reveal_path(harness):
     truth = harness.game_loop.mvp_controller.truth_state
 
     with _probe_router_on(harness):
-        artifacts = list(_production_executor(harness).execute(
-            _dialogue_task("guard_borko", _TOPIC_SECRET, tick=51)
-        ))
+        artifacts = list(_production_executor(harness).execute(_dialogue_task("guard_borko", _TOPIC_SECRET, tick=51)))
 
     assert artifacts and artifacts[-1].success is True
     assert state.level("borko_negligence") == IDENTIFIED
@@ -199,9 +195,7 @@ def test_t_w3_no_knowledge_no_false_reveal(harness):
     truth = harness.game_loop.mvp_controller.truth_state
 
     with _probe_router_on(harness):
-        artifacts = list(_production_executor(harness).execute(
-            _dialogue_task("guard_borko", _TOPIC_NEUTRAL, tick=52)
-        ))
+        artifacts = list(_production_executor(harness).execute(_dialogue_task("guard_borko", _TOPIC_NEUTRAL, tick=52)))
 
     assert artifacts and artifacts[-1].success is True
     assert state.levels.get("borko_negligence", UNKNOWN) == UNKNOWN
@@ -218,9 +212,7 @@ def test_t_w4_vacuum_fallback_honest_behavior(harness):
 
     # пара НЕ создана (в отличие от T-W1) — чистый Vacuum
     with _probe_router_on(harness):
-        list(_production_executor(harness).execute(
-            _dialogue_task("guard_borko", _TOPIC_SECRET, tick=53)
-        ))
+        list(_production_executor(harness).execute(_dialogue_task("guard_borko", _TOPIC_SECRET, tick=53)))
 
     # После фикса: уровень по-прежнему UNKNOWN (trust=0 → DENY-ветка),
     # но падения/исключения нет — адаптер обработал Vacuum безмолвно

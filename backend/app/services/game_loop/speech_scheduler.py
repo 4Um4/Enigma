@@ -4,6 +4,7 @@ path: /backend/app/services/game_loop/speech_scheduler.py
 Зависимости: app.services.memory.memory_manager
 Основные сущности: SpeechScheduler
 """
+
 from __future__ import annotations
 
 import logging
@@ -103,6 +104,7 @@ class SpeechScheduler:
     def cleanup_stale_contexts(self, game_time_seconds: float = 0.0) -> None:
         """Очистка устаревших контекстов (каузальная ось, IRON RIVER F2)."""
         self._admitted_contexts = {
-            k: v for k, v in self._admitted_contexts.items()
+            k: v
+            for k, v in self._admitted_contexts.items()
             if (game_time_seconds - v[1]) < self.DEDUP_CONTEXT_TTL_GAME_SEC
         }

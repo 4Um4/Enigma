@@ -4,6 +4,7 @@ path: /frontend/keybindings.py
 Зависимости: json, pathlib
 Основные сущности: DEFAULT_KEYBINDS, load_keybinds(), save_keybinds()
 """
+
 import json
 from pathlib import Path
 
@@ -15,8 +16,8 @@ DEFAULT_KEYBINDS = {
     "move_right": "d",
     "interact": "e",
     "open_journal": "j",
-    "open_board": "b",           # Phase 4 Investigation Board (Workbench)
-    "dialogue_open": "tab",      # Вызов диалогового окна ввода (раньше был захардкожен)
+    "open_board": "b",  # Phase 4 Investigation Board (Workbench)
+    "dialogue_open": "tab",  # Вызов диалогового окна ввода (раньше был захардкожен)
     "pause": "escape",
     "console_enter": "return",
     "console_escape": "escape",
@@ -56,6 +57,7 @@ def load_keybinds() -> dict:
     _KEYBINDS_CACHE = DEFAULT_KEYBINDS.copy()
     return DEFAULT_KEYBINDS.copy()
 
+
 def save_keybinds(keybinds: dict) -> None:
     """Сохраняет клавиши в файл. D6: инвалидация кэша — ребинд сразу
     жив для всех потребителей (save — единственный писатель)."""
@@ -66,6 +68,7 @@ def save_keybinds(keybinds: dict) -> None:
         _KEYBINDS_CACHE = keybinds.copy()
     except Exception as e:
         print(f"Failed to save keybinds: {e}")
+
 
 def get_key(keybinds: dict, action: str) -> int:
     """Возвращает pygame.K_ код клавиши для действия.
@@ -78,6 +81,7 @@ def get_key(keybinds: dict, action: str) -> int:
     оба семейства без карты-исключений.
     """
     import pygame
+
     key_name = keybinds.get(action, DEFAULT_KEYBINDS.get(action, ""))
     if not key_name:
         return pygame.K_UNKNOWN

@@ -5,7 +5,6 @@ path: backend/app/services/npc/life_project_resolver.py
 Основные сущности: LifeProjectResolver
 """
 
-
 from app.models.npc_state import NPCState
 
 
@@ -45,7 +44,12 @@ class LifeProjectResolver:
             else:
                 state.state_modifiers["high_pressure_ticks"] = 0.0
                 # P5-01: Кризис от Успеха. Порог 1.0, требование tick > 50.
-                if identity_pressure < 1.0 and tick > 50 and state.identity_integrity > 0.9 and state.life_project != "survival":
+                if (
+                    identity_pressure < 1.0
+                    and tick > 50
+                    and state.identity_integrity > 0.9
+                    and state.life_project != "survival"
+                ):
                     object.__setattr__(state, "life_project_state", "COMPLETED")
 
         elif current_state == "COMPLETED":
@@ -68,7 +72,9 @@ class LifeProjectResolver:
         elif current_state == "SEARCHING":
             # Вычисление нового вектора
             current_proj = getattr(state, "life_project", "survival")
-            object.__setattr__(state, "life_project", LifeProjectResolver._CRISIS_TRANSITIONS.get(current_proj, "isolation"))
+            object.__setattr__(
+                state, "life_project", LifeProjectResolver._CRISIS_TRANSITIONS.get(current_proj, "isolation")
+            )
             object.__setattr__(state, "life_project_state", "COMMITTED")
 
         elif current_state == "COMMITTED":

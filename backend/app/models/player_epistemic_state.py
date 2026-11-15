@@ -1,4 +1,4 @@
-﻿# path: /project/backend/app/models/player_epistemic_state.py
+# path: /project/backend/app/models/player_epistemic_state.py
 """
 Файл: backend/app/models/player_epistemic_state.py
 Назначение: P6 — PlayerEpistemicState: минимальный стейт уровней знания
@@ -37,9 +37,7 @@ class PlayerEpistemicState:
         """Текущий уровень (UNKNOWN, если секрета никогда не касались)."""
         return int(self.levels.get(secret_id, UNKNOWN))
 
-    def raise_level(
-        self, secret_id: str, to_level: int, source_event: SurfaceEvent
-    ) -> Optional[LevelChangeEvent]:
+    def raise_level(self, secret_id: str, to_level: int, source_event: SurfaceEvent) -> Optional[LevelChangeEvent]:
         """Монотонный подъём уровня.
 
         Возвращает LevelChangeEvent ТОЛЬКО при реальном переходе
@@ -49,9 +47,7 @@ class PlayerEpistemicState:
         if to_level <= current:
             return None
         if to_level not in (CLUE, IDENTIFIED):
-            raise ValueError(
-                f"[PLAYER_EPISTEMIC] недопустимый уровень: {to_level}"
-            )
+            raise ValueError(f"[PLAYER_EPISTEMIC] недопустимый уровень: {to_level}")
         self.levels[secret_id] = to_level
         return LevelChangeEvent(
             secret_id=secret_id,

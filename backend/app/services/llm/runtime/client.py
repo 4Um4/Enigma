@@ -7,6 +7,7 @@ path: backend/app/services/llm/runtime/client.py
 Зависимости: os, threading, time, urllib, psutil, app.core.config,
     scripts.llm_server_manager (legacy fallback only)
 """
+
 import atexit
 import json
 import os
@@ -55,11 +56,16 @@ def _start_host() -> bool:
     """Запуск Host как detached process (переживает родителя)."""
     try:
         cmd = [
-            sys.executable, "-m", "uvicorn",
+            sys.executable,
+            "-m",
+            "uvicorn",
             "app.services.llm.runtime.host:app",
-            "--host", "127.0.0.1",
-            "--port", str(settings.llm_host_port),
-            "--log-level", "warning",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(settings.llm_host_port),
+            "--log-level",
+            "warning",
         ]
         if sys.platform == "win32":
             # Merge CREATE_NEW_PROCESS_GROUP (so we can Ctrl-Break the Host later)
@@ -103,8 +109,7 @@ def _discover_or_start_host() -> None:
         return
     if not _start_host():
         raise RuntimeError(
-            f"Cannot start LLM Host on port {settings.llm_host_port}. "
-            f"Port may be occupied by a foreign service."
+            f"Cannot start LLM Host on port {settings.llm_host_port}. Port may be occupied by a foreign service."
         )
     if not _wait_host_ready():
         raise RuntimeError(
@@ -117,6 +122,7 @@ def _discover_or_start_host() -> None:
 def _get_create_time() -> float:
     try:
         import psutil
+
         return float(psutil.Process(os.getpid()).create_time())
     except Exception as e:
         print(f"[LLM_SDK] psutil create_time unavailable: {e}")
@@ -179,7 +185,8 @@ def ensure_llm(label: str = "", pinned: bool = False) -> str:
     # 2. ENIGMA_LLM_HOST=off → legacy fallback (conscious)
     if os.environ.get("ENIGMA_LLM_HOST", "").strip().lower() == "off":
         if not _legacy_mode:
-            from scripts.llm_server_manager import start_llama_server, kill_llama_server
+            from scripts.llm_server_manager import kill_llama_server, start_llama_server
+
             start_llama_server()
             atexit.register(kill_llama_server)
             _legacy_mode = True
@@ -190,12 +197,15 @@ def ensure_llm(label: str = "", pinned: bool = False) -> str:
     _discover_or_start_host()
 
     # 4. Get lease
-    resp = _post_json(f"{_host_url()}/ensure", {
-        "pid": os.getpid(),
-        "process_create_time": _get_create_time(),
-        "label": label,
-        "pinned": pinned,
-    })
+    resp = _post_json(
+        f"{_host_url()}/ensure",
+        {
+            "pid": os.getpid(),
+            "process_create_time": _get_create_time(),
+            "label": label,
+            "pinned": pinned,
+        },
+    )
     _lease_id = resp["lease_id"]
     _lease_url = resp["url"]
 

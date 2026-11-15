@@ -3,6 +3,7 @@ path: backend/tests/sandbox/lab_r004_spatial_coherence.py
 Назначение: R004 INV-SC-1-8 targeted probe (precedent lab_r003).
 Проверяет SpatialCoherenceProbe на blacksmith_orm в стандартном пресете.
 """
+
 from __future__ import annotations
 import sys
 import json
@@ -20,6 +21,7 @@ _PRESET = str(_ROOT / "config" / "calibration" / "test_presets" / "golden_social
 _CAMPAIGN = "Open_road"
 _TICKS = 30
 
+
 def main() -> int:
     # Reset probe_alerts singleton
     probe_alerts._history.clear()
@@ -29,7 +31,7 @@ def main() -> int:
     cfg = ExperimentConfig(preset_path=_PRESET, duration_ticks=_TICKS, campaign_id=_CAMPAIGN)
     runner.start(cfg)
     player_session_service.select_player(cfg.campaign_id, "player")
-    
+
     # lab_r003 precedent: _initial_social_applied устанавливается внутри runner.start()
     _ = getattr(runner, "_initial_social_applied", {})
 
@@ -52,17 +54,18 @@ def main() -> int:
         "ticks_run": len(history),
         "total_sc_failures": len(sc_failures),
         "failures": sc_failures,
-        "dashboard": probe_alerts.get_dashboard()
+        "dashboard": probe_alerts.get_dashboard(),
     }
-    
+
     out_path = _BACKEND.parent / "reports" / "lab_r004_spatial_coherence.json"
     out_path.parent.mkdir(exist_ok=True)
     out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-    
+
     print(f"Итог: GREEN={'YES' if not sc_failures else 'NO'} FAILURES={len(sc_failures)}")
     if sc_failures:
         print(json.dumps(sc_failures, indent=2, ensure_ascii=False))
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

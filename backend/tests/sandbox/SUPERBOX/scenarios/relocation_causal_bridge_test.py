@@ -38,12 +38,23 @@ def main() -> int:
                 m = record.getMessage()
                 if any(
                     k in m
-                    for k in ("LIFE_ENGINE", "SCHED_TRACE", "RELOCATE", "BOUNDARY_DWELL",
-                              "INTENT_DEGRADE", "DIAG_GAP9", "DIAG_S140", "NEED_TRACE",
-                              "cross-loc relocation", "ARBITER_REJECT",
-                              # S272: канал персонального гейта (был невидим —
-                              # PHASE-C-контракт не попадал в capture)
-                              "PERSONAL_ROUTE", "UNKNOWN_ROUTE", "SPATIAL_KNOWLEDGE")
+                    for k in (
+                        "LIFE_ENGINE",
+                        "SCHED_TRACE",
+                        "RELOCATE",
+                        "BOUNDARY_DWELL",
+                        "INTENT_DEGRADE",
+                        "DIAG_GAP9",
+                        "DIAG_S140",
+                        "NEED_TRACE",
+                        "cross-loc relocation",
+                        "ARBITER_REJECT",
+                        # S272: канал персонального гейта (был невидим —
+                        # PHASE-C-контракт не попадал в capture)
+                        "PERSONAL_ROUTE",
+                        "UNKNOWN_ROUTE",
+                        "SPATIAL_KNOWLEDGE",
+                    )
                 ) and ("borko" in m or "NEED_TRACE" in m):
                     self.lines.append(f"{record.levelname}|{m[:240]}")
             except Exception:  # noqa: S110
@@ -84,13 +95,15 @@ def main() -> int:
         # МЕРЖ, не замена: конфиговый AM (guarding_gate→city_gate и пр.)
         # уже в runtime — инъекция только проверочной записи (мандат:
         # механизм data-driven, не NPC-ID; конфиг и так несёт cross-loc).
-        n.setdefault("activity_map", {}).update({
-            "sleeping": {
-                "location": "city_gate",
-                "position": "tent_3",
-                "display": "sleeping",
+        n.setdefault("activity_map", {}).update(
+            {
+                "sleeping": {
+                    "location": "city_gate",
+                    "position": "tent_3",
+                    "display": "sleeping",
+                }
             }
-        })
+        )
         n.setdefault("routine", {})["current"] = "idle"
         # S272 SEED (вердикт Мастера, Вариант A): тестовый вход — личное
         # знание маршрута на пост. Инъекция через легальный production
@@ -107,23 +120,26 @@ def main() -> int:
                 Predicate,
                 Proposition,
             )
-            _ep.upsert(EpistemicRecord(
-                agent_id=_nid,
-                proposition=Proposition(
-                    # Phase C-контракт: subject = boundary-узел-ИСТОК
-                    # (резолвер парсит frm = prefix до ":"); exit_east —
-                    # документированная дверь tavern (ТЗ, FIX-6d).
-                    subject_id="tavern:exit_east",
-                    predicate=Predicate.EXITS_TO,
-                    object_id="city_gate",
-                    polarity=True,
-                ),
-                confidence=0.9,
-                source_id=_nid,
-                source_claim_id=f"seed:{_nid}:tavern:exit_east:city_gate",
-                first_observed_tick=0,
-                last_updated_tick=0,
-            ))
+
+            _ep.upsert(
+                EpistemicRecord(
+                    agent_id=_nid,
+                    proposition=Proposition(
+                        # Phase C-контракт: subject = boundary-узел-ИСТОК
+                        # (резолвер парсит frm = prefix до ":"); exit_east —
+                        # документированная дверь tavern (ТЗ, FIX-6d).
+                        subject_id="tavern:exit_east",
+                        predicate=Predicate.EXITS_TO,
+                        object_id="city_gate",
+                        polarity=True,
+                    ),
+                    confidence=0.9,
+                    source_id=_nid,
+                    source_claim_id=f"seed:{_nid}:tavern:exit_east:city_gate",
+                    first_observed_tick=0,
+                    last_updated_tick=0,
+                )
+            )
             _log(f"SEED: EXITS_TO tavern:exit_east → city_gate conf=0.9 для {_nid}")
         # L5: Needs(0.8) перезаписывают Schedule — форсируем сон:
         # ночное время (00:30) + body sleep_pressure (CouplingResolver).
@@ -134,7 +150,7 @@ def main() -> int:
             # Но Phase 0.5 перезаписывает время каждый тик — поэтому ставим
             # ОБА поля и НЕ save'им (обход чужого бага _cache_gen): сцена —
             # живой объект RAM, tick её прочтёт.
-            sc0["game_time_seconds"] = 0.5 * 3600.0   # 00:30
+            sc0["game_time_seconds"] = 0.5 * 3600.0  # 00:30
             sc0.setdefault("environment", {})["time_of_day"] = "ночь"
         body = n.get("body_state")
         if isinstance(body, dict):
@@ -149,16 +165,20 @@ def main() -> int:
 
         # THEN: физическая цепь
         sm = h.game_loop.scene_manager
+
         def _present(loc: str) -> bool:
             scene = sm.get_scene_state(_C, loc) or {}
             positions = scene.get("npc_positions") or {}
             return isinstance(positions, dict) and _nid in positions
+
         in_city = _present("city_gate")
         still_in_tavern = _present("tavern")
         _orch = h.game_loop._tick_orch
         _pt = getattr(_orch, "_pending_transfers", {})
-        _log(f"финал: in_city={in_city} still_tavern={still_in_tavern} "
-             f"pending={ {k: sorted(v.keys()) for k, v in _pt.items()} }")
+        _log(
+            f"финал: in_city={in_city} still_tavern={still_in_tavern} "
+            f"pending={ {k: sorted(v.keys()) for k, v in _pt.items()} }"
+        )
         if in_city and not still_in_tavern:
             _GREEN.append(f"CHAIN: {_nid} прошёл relocation через существующий pipeline (AM cross-loc)")
         elif in_city and still_in_tavern:
@@ -170,7 +190,6 @@ def main() -> int:
             _log(_l)
         _report()
     return 0
-
 
 
 def _report() -> None:

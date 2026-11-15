@@ -93,7 +93,7 @@ def _append_direct_reply_reactions(
     if not entries:
         return
     if not isinstance(dm_result, dict):
-        logger.error("[PLAYER_REPLY] direct line was materialized but game response " "is not a dictionary")
+        logger.error("[PLAYER_REPLY] direct line was materialized but game response is not a dictionary")
         return
 
     reactions = dm_result.get("npc_reactions")
@@ -102,7 +102,7 @@ def _append_direct_reply_reactions(
         dm_result["npc_reactions"] = reactions
     if not isinstance(reactions, list):
         logger.error(
-            "[PLAYER_REPLY] npc_reactions is not a list; direct line " "remains in dialogue journal/snapshot only"
+            "[PLAYER_REPLY] npc_reactions is not a list; direct line remains in dialogue journal/snapshot only"
         )
         return
 
@@ -558,10 +558,10 @@ class GameLoop:
                 memory_manager=memory_manager,
                 extractor=_extractor,
                 tick_provider=lambda: getattr(self, "_current_tick", 0),
-                npc_states_provider=lambda: (
-                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                npc_states_provider=lambda: self._resolve_npcs_snapshot(
+                    getattr(self, "_current_campaign_id", "Open_road")
                 ),
-                pool_provider=lambda: (self._get_task_scheduler()._executor_pool),
+                pool_provider=lambda: self._get_task_scheduler()._executor_pool,
             )
 
             # P7-B: production-резолвер темы речи → SubjectRef (канонический
@@ -577,8 +577,8 @@ class GameLoop:
                 # глотавшийся try/except подписчика: eavesdrop и память речи
                 # NPC молча умирали с самой регистрации. Провайдер зовёт
                 # публичные загрузчики (прецедент npc_orchestration.py:83).
-                npc_states_provider=lambda: (
-                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                npc_states_provider=lambda: self._resolve_npcs_snapshot(
+                    getattr(self, "_current_campaign_id", "Open_road")
                 ),  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 avatar_service=self.avatar_service,
@@ -607,8 +607,8 @@ class GameLoop:
                 memory_manager=memory_manager,
                 # Фаза A 9.12: тот же мёртвый атрибут — тот же тихий глоток.
                 # Провод речь→память NPC оживает здесь.
-                npc_states_provider=lambda: (
-                    self._resolve_npcs_snapshot(getattr(self, "_current_campaign_id", "Open_road"))
+                npc_states_provider=lambda: self._resolve_npcs_snapshot(
+                    getattr(self, "_current_campaign_id", "Open_road")
                 ),  # noqa: ENIGMA002
                 campaign_id_provider=lambda: getattr(self, "_current_campaign_id", "Open_road"),
                 spatial_query_provider=self._get_spatial_query_for_subscriber,
@@ -1271,7 +1271,7 @@ class GameLoop:
         # диалоги продолжают материализоваться через TaskScheduler в
         # run_turn (ADR-O-313) — НЕ паузится. Anti-Race: ядро не тронуто.
         if campaign_id in self._player_turn_in_flight:
-            logger.debug(f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight " f"(campaign={campaign_id})")
+            logger.debug(f"[IDLE_TICK] ADR-O-407: skip — player turn in-flight (campaign={campaign_id})")
             return {
                 "status": "player_turn_in_flight",
                 "npc_positions": {},

@@ -1,16 +1,18 @@
-﻿"""
+"""
 R4/GATE-9A D2 — patch scene_state_manager.py
 6 edits with verification. Each edit asserts exactly 1 replacement.
 """
-import sys
+
 import shutil
+import sys
 from pathlib import Path
 
 SSM_PATH = Path("app/services/scene_state_manager.py")
 BACKUP_PATH = Path("app/services/scene_state_manager.py.r4_backup")
 
 if not SSM_PATH.exists():
-    print(f"ERROR: {SSM_PATH} not found"); sys.exit(1)
+    print(f"ERROR: {SSM_PATH} not found")
+    sys.exit(1)
 
 # Backup once (don't overwrite existing backup)
 if not BACKUP_PATH.exists():

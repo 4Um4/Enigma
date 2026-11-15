@@ -119,10 +119,15 @@ def p1_refusal(router) -> None:
             out = router.request_for_agent("dm", "[PROBE] ping", None, "probe")
             rows.append({"i": i, "ok": True, "len": len(out or ""), "ms": round((time.perf_counter() - t0) * 1000, 1)})
         except Exception as e:
-            rows.append({
-                "i": i, "ok": False, "exc": type(e).__name__,
-                "msg": str(e)[:140], "ms": round((time.perf_counter() - t0) * 1000, 1),
-            })
+            rows.append(
+                {
+                    "i": i,
+                    "ok": False,
+                    "exc": type(e).__name__,
+                    "msg": str(e)[:140],
+                    "ms": round((time.perf_counter() - t0) * 1000, 1),
+                }
+            )
         rows[-1]["in_progress"] = getattr(router, "_request_in_progress", "n/a")
     REPORT["p1_refusal"] = rows
     for r in rows:
@@ -159,12 +164,16 @@ def p2_idle_world(ticks: int = 25) -> None:
         failed = getattr(sched, "failed_tasks", None)
         done = getattr(sched, "completed_tasks", None)
         REPORT["p2"] = {
-            "ticks": ticks, "ok": ok, "err": err, "errors": errors,
-            "ms_p50": sorted(ms)[len(ms) // 2], "ms_max": max(ms),
-            "sched_failed": failed, "sched_completed": done,
+            "ticks": ticks,
+            "ok": ok,
+            "err": err,
+            "errors": errors,
+            "ms_p50": sorted(ms)[len(ms) // 2],
+            "ms_max": max(ms),
+            "sched_failed": failed,
+            "sched_completed": done,
         }
-        _mark("P2", ticks=ticks, ok=ok, err=err, ms_max=max(ms),
-              sched_failed=failed, sched_done=done)
+        _mark("P2", ticks=ticks, ok=ok, err=err, ms_max=max(ms), sched_failed=failed, sched_done=done)
     except Exception as e:
         REPORT["p2"] = f"BUILD_FAIL {type(e).__name__}: {e}"
         _mark("P2", build="FAIL", exc=type(e).__name__, msg=str(e)[:90])
@@ -181,7 +190,9 @@ async def _p3p4(bh: Blackhole, router) -> None:
     def _blocking() -> None:
         req = urllib.request.Request(
             f"http://127.0.0.1:{bh.port}/v1/chat/completions",
-            data=b"{}", headers={"Content-Type": "application/json"}, method="POST",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         with opener.open(req, timeout=3.0):
@@ -198,8 +209,7 @@ async def _p3p4(bh: Blackhole, router) -> None:
     except Exception as e:
         p3 = f"exc:{type(e).__name__}"
     REPORT["p3_to_thread_cancel"] = {"outcome": p3, "ms": round((time.perf_counter() - t0) * 1000, 1)}
-    _mark("P3", outcome=p3, ms=REPORT["p3_to_thread_cancel"]["ms"],
-          hb_max_gap_s=round(hb.max_gap, 2))
+    _mark("P3", outcome=p3, ms=REPORT["p3_to_thread_cancel"]["ms"], hb_max_gap_s=round(hb.max_gap, 2))
 
     # П4a (Г4, механика): sync-вызов прямо в async (антипаттерн D66)
     hb.reset()
@@ -212,9 +222,11 @@ async def _p3p4(bh: Blackhole, router) -> None:
         p4a_outcome = "timeout_after_freeze"
     except Exception as e:
         p4a_outcome = f"exc:{type(e).__name__}"
-    REPORT["p4a_sync_freeze"] = {"outcome": p4a_outcome,
-                                 "ms": round((time.perf_counter() - t0) * 1000, 1),
-                                 "hb_max_gap_s": round(hb.max_gap, 2)}
+    REPORT["p4a_sync_freeze"] = {
+        "outcome": p4a_outcome,
+        "ms": round((time.perf_counter() - t0) * 1000, 1),
+        "hb_max_gap_s": round(hb.max_gap, 2),
+    }
     _mark("P4a", **REPORT["p4a_sync_freeze"])
 
     # П4b (Г4, реальный роутер): settings -> blackhole, ленивый провайдер
@@ -230,7 +242,8 @@ async def _p3p4(bh: Blackhole, router) -> None:
     except Exception as e:
         outcome = f"exc:{type(e).__name__}"
     REPORT["p4b_real_router"] = {
-        "outcome": outcome, "ms": round((time.perf_counter() - t0) * 1000, 1),
+        "outcome": outcome,
+        "ms": round((time.perf_counter() - t0) * 1000, 1),
         "hb_max_gap_s": round(hb.max_gap, 2),
     }
     _mark("P4b", **REPORT["p4b_real_router"])
@@ -282,6 +295,7 @@ def _main_inner() -> None:
             asyncio.run(_p3p4(bh, router))
     finally:
         bh.stop()
+
 
 if __name__ == "__main__":
     main()

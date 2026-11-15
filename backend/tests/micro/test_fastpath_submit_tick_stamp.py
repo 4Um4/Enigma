@@ -52,9 +52,9 @@ def test_fastpath_submit_tick_is_scene_tick():
     sched = TaskScheduler()
     sched.execute_pending(_scene(42), "test_campaign")
     assert len(sched._task_outbox) == 1, f"ожидался 1 артефакт в outbox: {sched._task_outbox}"
-    assert (
-        sched._task_outbox[0].submit_tick == 42
-    ), f"fast-path submit_tick == 0 (дефект S271 воспроизведён): {sched._task_outbox[0].submit_tick}"
+    assert sched._task_outbox[0].submit_tick == 42, (
+        f"fast-path submit_tick == 0 (дефект S271 воспроизведён): {sched._task_outbox[0].submit_tick}"
+    )
 
 
 def test_fastpath_event_tick_stamped_on_drain():

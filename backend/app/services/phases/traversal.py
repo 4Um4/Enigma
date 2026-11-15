@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/traversal.py
 Зависимости: app.services.scene_state_manager, app.services.projection_engine, app.services.event_compiler
 Основные сущности: process_traversals, apply_with_shadow_observation
 """
+
 from __future__ import annotations
 
 import logging
@@ -74,6 +75,7 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                             _current_loc = target_node.split(":")[0] if ":" in target_node else ""
                             try:
                                 from app.services.spatial.spatial_factory import SpatialFactory
+
                                 _target_svc = SpatialFactory.build_for_campaign(
                                     ctx.campaign_id, _neighbor, ctx.scene_state
                                 )
@@ -120,6 +122,7 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                     )
                 )
                 from app.core.constants import BOUNDARY_DWELL_TICKS
+
                 _scene_ref = getattr(ctx, "scene_state", None)  # noqa: ENIGMA002
                 if _scene_ref is not None:
                     _bd = _scene_ref.setdefault("boundary_dwell", {})
@@ -130,7 +133,9 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
                         # (источник direct-experience P4' в tick_orchestrator)
                         "via": target_node,
                     }
-                    logger.info(f"[BOUNDARY_DWELL] npc={npc_id} at {target_node}; transfer at tick {current_tick + BOUNDARY_DWELL_TICKS}")
+                    logger.info(
+                        f"[BOUNDARY_DWELL] npc={npc_id} at {target_node}; transfer at tick {current_tick + BOUNDARY_DWELL_TICKS}"
+                    )
             else:
                 completion_changes.append(
                     SceneChange(
@@ -171,17 +176,11 @@ def process_traversals(ctx: Any, orchestrator: Any) -> None:
 
     # STL: Схлопываем реальность через единый commit-point
     if completion_changes and orchestrator._scene_manager:
-        apply_with_shadow_observation(
-            ctx, orchestrator, completion_changes, phase_label="TRAVERSAL_COMPLETE"
-        )
-        logger.info(
-            f"[STL_COMMIT] Traversal completion: {len(completion_changes)} changes applied"
-        )
+        apply_with_shadow_observation(ctx, orchestrator, completion_changes, phase_label="TRAVERSAL_COMPLETE")
+        logger.info(f"[STL_COMMIT] Traversal completion: {len(completion_changes)} changes applied")
 
 
-def apply_with_shadow_observation(
-    ctx: Any, orchestrator: Any, changes: list, phase_label: str = ""
-) -> int:
+def apply_with_shadow_observation(ctx: Any, orchestrator: Any, changes: list, phase_label: str = "") -> int:
     """ФАЗА 1 (ADR-O-201): Legacy + Shadow parallel execution.
 
     Legacy = AUTHORITATIVE. Shadow = OBSERVER only.
@@ -228,15 +227,11 @@ def apply_with_shadow_observation(
                     scene_state=ctx.scene_state,
                     rng_seed=ctx.tick_number,
                 )
-            logger.debug(
-                f"[GATE_D1] phase={phase_label} snapshot_created={_snapshot is not None}"
-            )
+            logger.debug(f"[GATE_D1] phase={phase_label} snapshot_created={_snapshot is not None}")
             _compiled_count = 0
             for _ch in _spatial_changes:
                 _thick = orchestrator._event_compiler.compile(_snapshot, _ch)
-                logger.debug(
-                    f"[GATE_D2] phase={phase_label} compiled_thick={_thick is not None}"
-                )
+                logger.debug(f"[GATE_D2] phase={phase_label} compiled_thick={_thick is not None}")
                 if _thick is not None:
                     _shadow_results[_ch.target] = _thick
                     # CSSE Stage 2: collect ThickSceneChange for projection parity
@@ -266,9 +261,7 @@ def apply_with_shadow_observation(
                 logger.warning(f"[PROJECTION_APPLY] npc={_npc_id} failed: {_pe_exc}")
 
     # ── Legacy apply (AUTHORITATIVE) ────────────────────────────
-    _applied = orchestrator._scene_manager.apply_changes(
-        ctx.campaign_id, changes, ctx.scene_state
-    )
+    _applied = orchestrator._scene_manager.apply_changes(ctx.campaign_id, changes, ctx.scene_state)
 
     # ── Validation (ПОСЛЕ мутации) ──────────────────────────────
     if _shadow_results and _snapshot is not None:

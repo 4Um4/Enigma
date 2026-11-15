@@ -34,8 +34,14 @@ interrupt_traversal и (если найден) create_traversal —
   # либо
   python backend/tests/sandbox/r2_flee_traversal_lifecycle_probe.py
 """
+
 from __future__ import annotations
-import os, sys, json, shutil, tempfile, traceback
+import os
+import sys
+import json
+import shutil
+import tempfile
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock
@@ -184,7 +190,6 @@ def attach_spies():
     # === Spy 2: SpatialTargetResolver — wrap resolve ===
     # Try multiple import paths defensively.
     resolver_class = None
-    resolver_mod = None
     for mod_path, cls_name in [
         ("app.services.spatial.target_resolver", "SpatialTargetResolver"),
         ("app.services.spatial.spatial_target_resolver", "SpatialTargetResolver"),
@@ -194,7 +199,6 @@ def attach_spies():
         try:
             mod = __import__(mod_path, fromlist=[cls_name])
             if hasattr(mod, cls_name):
-                resolver_mod = mod
                 resolver_class = getattr(mod, cls_name)
                 print(f"[SPY] resolver found at {mod_path}.{cls_name}")
                 break
@@ -228,35 +232,40 @@ def attach_spies():
             actor = None
             if intent is not None:
                 actor = getattr(intent, "actor_id", getattr(intent, "npc_id", None))
-            is_ml = (actor == "maid_lusya")
+            is_ml = actor == "maid_lusya"
 
             if is_ml:
                 reason = getattr(intent, "reason", "?")
-                _stamp("RESOLVER.ENTER maid_lusya",
-                       reason=reason,
-                       intent_type=getattr(intent, "intent_type", ""),
-                       target_type=str(getattr(intent, "target_type", "?")),
-                       target_id=getattr(intent, "target_id", None),
-                       args_count=len(args),
-                       kwargs_keys=list(kwargs.keys()))
+                _stamp(
+                    "RESOLVER.ENTER maid_lusya",
+                    reason=reason,
+                    intent_type=getattr(intent, "intent_type", ""),
+                    target_type=str(getattr(intent, "target_type", "?")),
+                    target_id=getattr(intent, "target_id", None),
+                    args_count=len(args),
+                    kwargs_keys=list(kwargs.keys()),
+                )
             try:
                 result = orig_resolve(self_r, *args, **kwargs)
             except Exception as e:
                 if is_ml:
-                    _stamp("RESOLVER.EXCEPTION maid_lusya",
-                           error_type=type(e).__name__, error_msg=str(e)[:200])
+                    _stamp("RESOLVER.EXCEPTION maid_lusya", error_type=type(e).__name__, error_msg=str(e)[:200])
                 raise
             if is_ml:
                 status = getattr(result, "status", "?")
-                anchor = (getattr(result, "anchor_node", None)
-                          or getattr(result, "target_node_id", None)
-                          or getattr(result, "target_node", None))
+                anchor = (
+                    getattr(result, "anchor_node", None)
+                    or getattr(result, "target_node_id", None)
+                    or getattr(result, "target_node", None)
+                )
                 pos = getattr(result, "position", None)
-                _stamp("RESOLVER.EXIT maid_lusya",
-                       status=str(status),
-                       anchor_node=anchor,
-                       position=str(pos) if pos is not None else None,
-                       reason=str(getattr(result, "reason", ""))[:120])
+                _stamp(
+                    "RESOLVER.EXIT maid_lusya",
+                    status=str(status),
+                    anchor_node=anchor,
+                    position=str(pos) if pos is not None else None,
+                    reason=str(getattr(result, "reason", ""))[:120],
+                )
             return result
 
         resolver_class.resolve = _spy_resolve
@@ -274,20 +283,24 @@ def attach_spies():
         intent_type = getattr(intent, "intent_type", "")
         _at = scene_state.get("active_traversals", {}) or {}
         trav_before = _at.get("maid_lusya", {})
-        _stamp("CA.enforce_for_intent:ENTER maid_lusya",
-               reason=reason,
-               intent_type=intent_type,
-               traversal_before_status=trav_before.get("status") if isinstance(trav_before, dict) else None,
-               traversal_before_target=trav_before.get("target_node") if isinstance(trav_before, dict) else None,
-               traversal_before_intent_type=trav_before.get("intent_type") if isinstance(trav_before, dict) else None)
+        _stamp(
+            "CA.enforce_for_intent:ENTER maid_lusya",
+            reason=reason,
+            intent_type=intent_type,
+            traversal_before_status=trav_before.get("status") if isinstance(trav_before, dict) else None,
+            traversal_before_target=trav_before.get("target_node") if isinstance(trav_before, dict) else None,
+            traversal_before_intent_type=trav_before.get("intent_type") if isinstance(trav_before, dict) else None,
+        )
         result = orig_efi(scene_state, intent, tick)
         _at2 = scene_state.get("active_traversals", {}) or {}
         trav_after = _at2.get("maid_lusya", {})
-        _stamp("CA.enforce_for_intent:EXIT maid_lusya",
-               result=result,
-               traversal_after_status=trav_after.get("status") if isinstance(trav_after, dict) else None,
-               traversal_after_target=trav_after.get("target_node") if isinstance(trav_after, dict) else None,
-               traversal_after_intent_type=trav_after.get("intent_type") if isinstance(trav_after, dict) else None)
+        _stamp(
+            "CA.enforce_for_intent:EXIT maid_lusya",
+            result=result,
+            traversal_after_status=trav_after.get("status") if isinstance(trav_after, dict) else None,
+            traversal_after_target=trav_after.get("target_node") if isinstance(trav_after, dict) else None,
+            traversal_after_intent_type=trav_after.get("intent_type") if isinstance(trav_after, dict) else None,
+        )
         return result
 
     CommitmentArbiter.enforce_for_intent = _spy_efi
@@ -295,24 +308,29 @@ def attach_spies():
     # === Spy 4: interrupt_traversal — кто отменяет traversal? ===
     try:
         import app.domain.traversal_schema as ts_mod
+
         if hasattr(ts_mod, "interrupt_traversal"):
             orig_it = ts_mod.interrupt_traversal
 
             def _spy_it(scene_state, actor_id, *args, **kwargs):
-                is_ml = (actor_id == "maid_lusya")
+                is_ml = actor_id == "maid_lusya"
                 if is_ml:
                     _at = (scene_state or {}).get("active_traversals", {}).get("maid_lusya", {})
-                    _stamp("interrupt_traversal:ENTER maid_lusya",
-                           args=[str(a)[:60] for a in args],
-                           kwargs_keys=list(kwargs.keys()),
-                           traversal_before_status=_at.get("status") if isinstance(_at, dict) else None,
-                           traversal_before_target=_at.get("target_node") if isinstance(_at, dict) else None)
+                    _stamp(
+                        "interrupt_traversal:ENTER maid_lusya",
+                        args=[str(a)[:60] for a in args],
+                        kwargs_keys=list(kwargs.keys()),
+                        traversal_before_status=_at.get("status") if isinstance(_at, dict) else None,
+                        traversal_before_target=_at.get("target_node") if isinstance(_at, dict) else None,
+                    )
                 result = orig_it(scene_state, actor_id, *args, **kwargs)
                 if is_ml:
                     _at2 = (scene_state or {}).get("active_traversals", {}).get("maid_lusya", {})
-                    _stamp("interrupt_traversal:EXIT maid_lusya",
-                           traversal_after_status=_at2.get("status") if isinstance(_at2, dict) else None,
-                           traversal_after_target=_at2.get("target_node") if isinstance(_at2, dict) else None)
+                    _stamp(
+                        "interrupt_traversal:EXIT maid_lusya",
+                        traversal_after_status=_at2.get("status") if isinstance(_at2, dict) else None,
+                        traversal_after_target=_at2.get("target_node") if isinstance(_at2, dict) else None,
+                    )
                 return result
 
             ts_mod.interrupt_traversal = _spy_it
@@ -325,10 +343,16 @@ def attach_spies():
     # === Spy 5: traversal creation — try multiple candidate names ===
     try:
         import app.domain.traversal_schema as ts_mod
+
         candidates = [
-            "create_traversal", "build_traversal", "start_traversal",
-            "init_traversal", "register_traversal", "propose_traversal",
-            "create_traversal_dict", "build_traversal_dict",
+            "create_traversal",
+            "build_traversal",
+            "start_traversal",
+            "init_traversal",
+            "register_traversal",
+            "propose_traversal",
+            "create_traversal_dict",
+            "build_traversal_dict",
         ]
         attached = []
         for fn_name in candidates:
@@ -351,15 +375,20 @@ def attach_spies():
                         if not actor and "actor_id" in kwargs:
                             actor = kwargs["actor_id"]
                         if actor == "maid_lusya":
-                            _stamp(f"{_name}:ENTER maid_lusya",
-                                   args_preview=[str(a)[:80] for a in args],
-                                   kwargs_keys=list(kwargs.keys()))
+                            _stamp(
+                                f"{_name}:ENTER maid_lusya",
+                                args_preview=[str(a)[:80] for a in args],
+                                kwargs_keys=list(kwargs.keys()),
+                            )
                         result = _orig(*args, **kwargs)
                         if actor == "maid_lusya":
-                            _stamp(f"{_name}:EXIT maid_lusya",
-                                   result_type=type(result).__name__,
-                                   result_preview=str(result)[:200] if result is not None else None)
+                            _stamp(
+                                f"{_name}:EXIT maid_lusya",
+                                result_type=type(result).__name__,
+                                result_preview=str(result)[:200] if result is not None else None,
+                            )
                         return result
+
                     return _spy
 
                 setattr(ts_mod, fn_name, _make_spy(fn_name, orig_fn))
@@ -373,8 +402,13 @@ def attach_spies():
 
     # === Spy 6: MovementEngine._process_single_intent (deep trace) ===
     psi_name = None
-    for cand in ("_process_single_intent", "_process_intent",
-                 "process_single_intent", "_handle_intent", "_process_one"):
+    for cand in (
+        "_process_single_intent",
+        "_process_intent",
+        "process_single_intent",
+        "_handle_intent",
+        "_process_one",
+    ):
         if hasattr(MovementEngine, cand):
             psi_name = cand
             break
@@ -386,25 +420,29 @@ def attach_spies():
             actor = getattr(intent, "actor_id", "?")
             reason = getattr(intent, "reason", "?")
             intent_type = getattr(intent, "intent_type", "")
-            is_ml = (actor == "maid_lusya")
+            is_ml = actor == "maid_lusya"
             is_flee = (intent_type == "flee") or ("flee" in str(reason).lower())
             if is_ml:
-                _stamp(f"ME.{psi_name}:ENTER maid_lusya",
-                       reason=reason, intent_type=intent_type,
-                       target_node_id=getattr(intent, "target_node_id", None),
-                       is_flee_intent=is_flee)
+                _stamp(
+                    f"ME.{psi_name}:ENTER maid_lusya",
+                    reason=reason,
+                    intent_type=intent_type,
+                    target_node_id=getattr(intent, "target_node_id", None),
+                    is_flee_intent=is_flee,
+                )
             try:
                 result = orig_psi(self_me, intent, *args, **kwargs)
             except Exception as e:
                 if is_ml:
-                    _stamp(f"ME.{psi_name}:EXCEPTION maid_lusya",
-                           error_type=type(e).__name__, error_msg=str(e)[:300])
+                    _stamp(f"ME.{psi_name}:EXCEPTION maid_lusya", error_type=type(e).__name__, error_msg=str(e)[:300])
                 raise
             if is_ml:
-                _stamp(f"ME.{psi_name}:EXIT maid_lusya",
-                       result_type=type(result).__name__,
-                       result_preview=str(result)[:200] if result is not None else None,
-                       is_flee_intent=is_flee)
+                _stamp(
+                    f"ME.{psi_name}:EXIT maid_lusya",
+                    result_type=type(result).__name__,
+                    result_preview=str(result)[:200] if result is not None else None,
+                    is_flee_intent=is_flee,
+                )
             return result
 
         setattr(MovementEngine, psi_name, _spy_psi)
@@ -460,12 +498,16 @@ def attach_spies():
                                 is_ml = True
                                 break
                     if is_ml:
-                        _stamp(f"ME.{_name}:CALL maid_lusya",
-                               args_count=len(args),
-                               kwargs_keys=list(kwargs.keys()),
-                               reason=reason, intent_type=intent_type,
-                               target_node_id=target_node_id)
+                        _stamp(
+                            f"ME.{_name}:CALL maid_lusya",
+                            args_count=len(args),
+                            kwargs_keys=list(kwargs.keys()),
+                            reason=reason,
+                            intent_type=intent_type,
+                            target_node_id=target_node_id,
+                        )
                     return _orig(self_me, *args, **kwargs)
+
                 _wrapper._r2_wrapped = True
                 return _wrapper
 
@@ -474,7 +516,9 @@ def attach_spies():
         except (TypeError, AttributeError):
             continue
     if wrapped_methods:
-        print(f"[SPY] wrapped {len(wrapped_methods)} MovementEngine methods: {wrapped_methods[:10]}{'...' if len(wrapped_methods) > 10 else ''}")
+        print(
+            f"[SPY] wrapped {len(wrapped_methods)} MovementEngine methods: {wrapped_methods[:10]}{'...' if len(wrapped_methods) > 10 else ''}"
+        )
 
     # === Spy 7: MovementEngine.process_intents — S1 snapshot ===
     orig_pi = MovementEngine.process_intents
@@ -483,51 +527,57 @@ def attach_spies():
         scene_state = kwargs.get("scene_state")
         has_ml = any(getattr(i, "actor_id", "") == "maid_lusya" for i in (intents or []))
         ml_intents = []
-        for i in (intents or []):
+        for i in intents or []:
             if getattr(i, "actor_id", "") == "maid_lusya":
-                ml_intents.append({
-                    "reason": getattr(i, "reason", "?"),
-                    "intent_type": getattr(i, "intent_type", ""),
-                    "target_node_id": getattr(i, "target_node_id", None),
-                })
+                ml_intents.append(
+                    {
+                        "reason": getattr(i, "reason", "?"),
+                        "intent_type": getattr(i, "intent_type", ""),
+                        "target_node_id": getattr(i, "target_node_id", None),
+                    }
+                )
         pre_snap = snapshot_from_scene_state(scene_state, "ME.pre") if has_ml else None
         if has_ml:
-            _stamp("ME.process_intents:ENTER maid_lusya",
-                   ml_intents=ml_intents,
-                   snapshot_pre=pre_snap)
+            _stamp("ME.process_intents:ENTER maid_lusya", ml_intents=ml_intents, snapshot_pre=pre_snap)
         result = orig_pi(self_me, intents, **kwargs)
         if has_ml:
             post_snap = snapshot_from_scene_state(scene_state, "ME.post") if has_ml else None
             ml_changes = []
-            for sc in (result or []):
+            for sc in result or []:
                 target_id = getattr(sc, "target", getattr(sc, "npc_id", "?"))
                 if target_id == "maid_lusya":
-                    ml_changes.append({
-                        "field": getattr(sc, "field", "?"),
-                        "value": str(getattr(sc, "value", "?"))[:120],
-                    })
+                    ml_changes.append(
+                        {
+                            "field": getattr(sc, "field", "?"),
+                            "value": str(getattr(sc, "value", "?"))[:120],
+                        }
+                    )
             pos_delta = (
-                pre_snap is not None and post_snap is not None and
-                (pre_snap.get("x") != post_snap.get("x")
-                 or pre_snap.get("y") != post_snap.get("y"))
+                pre_snap is not None
+                and post_snap is not None
+                and (pre_snap.get("x") != post_snap.get("x") or pre_snap.get("y") != post_snap.get("y"))
             )
             trav_created = (
-                pre_snap is not None and post_snap is not None and
-                (not pre_snap.get("traversal_exists")) and
-                post_snap.get("traversal_exists")
+                pre_snap is not None
+                and post_snap is not None
+                and (not pre_snap.get("traversal_exists"))
+                and post_snap.get("traversal_exists")
             )
             trav_changed_status = (
-                pre_snap is not None and post_snap is not None and
-                pre_snap.get("traversal_status") != post_snap.get("traversal_status")
+                pre_snap is not None
+                and post_snap is not None
+                and pre_snap.get("traversal_status") != post_snap.get("traversal_status")
             )
-            _stamp("ME.process_intents:EXIT maid_lusya",
-                   ml_changes_count=len(ml_changes),
-                   ml_changes=ml_changes,
-                   snapshot_post=post_snap,
-                   position_delta=pos_delta,
-                   traversal_created=trav_created,
-                   traversal_status_changed=trav_changed_status,
-                   FLEE_EXECUTED=len(ml_changes) > 0)
+            _stamp(
+                "ME.process_intents:EXIT maid_lusya",
+                ml_changes_count=len(ml_changes),
+                ml_changes=ml_changes,
+                snapshot_post=post_snap,
+                position_delta=pos_delta,
+                traversal_created=trav_created,
+                traversal_status_changed=trav_changed_status,
+                FLEE_EXECUTED=len(ml_changes) > 0,
+            )
         return result
 
     MovementEngine.process_intents = _spy_pi
@@ -538,13 +588,19 @@ def attach_spies():
 # ----------------------------------------------------------------------------
 def publish_insult(target_id="maid_lusya"):
     payload = {
-        "action_type": "player_insults", "target_id": target_id,
-        "content": "оскорбление", "event_tick": 1, "visibility": "public",
-        "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+        "action_type": "player_insults",
+        "target_id": target_id,
+        "content": "оскорбление",
+        "event_tick": 1,
+        "visibility": "public",
+        "radius": 999.0,
+        "location": "tavern",
+        "campaign_id": "Open_road",
         "raw_input": "оскорбление",
     }
-    evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                          payload=payload, persistence_level="working")
+    evt = EventDTO.create(
+        event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+    )
     get_event_bus().publish(evt)
 
 
@@ -576,20 +632,19 @@ def main():
         publish_insult("maid_lusya")
 
         for tick_i in range(1, 9):
-            _stamp(f"TICK_{tick_i}:START",
-                   **snapshot_maid_lusya_full(loop, f"tick{tick_i}_start"))
+            _stamp(f"TICK_{tick_i}:START", **snapshot_maid_lusya_full(loop, f"tick{tick_i}_start"))
             try:
                 loop.idle_tick("Open_road")
             except Exception as e:
                 _stamp(f"TICK_{tick_i}:ERROR", error=str(e)[:300])
                 traceback.print_exc()
                 break
-            _stamp(f"TICK_{tick_i}:END",
-                   **snapshot_maid_lusya_full(loop, f"tick{tick_i}_end"))
+            _stamp(f"TICK_{tick_i}:END", **snapshot_maid_lusya_full(loop, f"tick{tick_i}_end"))
 
         cleanup_loop(loop)
         del loop
         import gc
+
         gc.collect()
 
         # ==================================================================
@@ -671,12 +726,14 @@ def main():
                     p = snap.get("snapshot_post") or {}
                 else:
                     p = snap
-                return (f"  {label}: traversal_exists={p.get('traversal_exists')} "
-                        f"status={p.get('traversal_status')} target={p.get('traversal_target')} "
-                        f"intent_type={p.get('traversal_intent_type')} reason={p.get('traversal_reason')} "
-                        f"started_tick={p.get('traversal_started_tick')} "
-                        f"keys={p.get('traversal_keys')} "
-                        f"pos=({p.get('x')}, {p.get('y')})")
+                return (
+                    f"  {label}: traversal_exists={p.get('traversal_exists')} "
+                    f"status={p.get('traversal_status')} target={p.get('traversal_target')} "
+                    f"intent_type={p.get('traversal_intent_type')} reason={p.get('traversal_reason')} "
+                    f"started_tick={p.get('traversal_started_tick')} "
+                    f"keys={p.get('traversal_keys')} "
+                    f"pos=({p.get('x')}, {p.get('y')})"
+                )
 
             print(_fmt_snap(s1_me_exit, "S1 (after ME.process_intents in FLEE tick)"))
             print(_fmt_snap(s2_tick_end, "S2 (end of FLEE tick, after idle_tick)    "))
@@ -701,9 +758,9 @@ def main():
             s1_target, s2_target, s3_target = _extract(s1_me_exit, s2_tick_end, s3_next_start, "traversal_target")
             s1_itype, s2_itype, s3_itype = _extract(s1_me_exit, s2_tick_end, s3_next_start, "traversal_intent_type")
 
-            s1_flee_traversal = (s1_target == "tavern:exit_south")
-            s2_flee_traversal = (s2_target == "tavern:exit_south")
-            s3_flee_traversal = (s3_target == "tavern:exit_south")
+            s1_flee_traversal = s1_target == "tavern:exit_south"
+            s2_flee_traversal = s2_target == "tavern:exit_south"
+            s3_flee_traversal = s3_target == "tavern:exit_south"
 
             print(f"\nS1: target={s1_target} status={s1_status} intent_type={s1_itype}")
             print(f"S2: target={s2_target} status={s2_status} intent_type={s2_itype}")
@@ -746,42 +803,52 @@ def main():
             next_start = next((e for e in SPY_LOG if e.get("tag") == f"TICK_{flee_tick_num + 1}:START"), None)
             print(f"\nFLEE tick {flee_tick_num} position delta:")
             if start_snap:
-                print(f"  TICK_{flee_tick_num}:START pos = ({start_snap.get('x')}, {start_snap.get('y')}) "
-                      f"trav_target={start_snap.get('traversal_target')}")
+                print(
+                    f"  TICK_{flee_tick_num}:START pos = ({start_snap.get('x')}, {start_snap.get('y')}) "
+                    f"trav_target={start_snap.get('traversal_target')}"
+                )
             if end_snap:
-                print(f"  TICK_{flee_tick_num}:END   pos = ({end_snap.get('x')}, {end_snap.get('y')}) "
-                      f"trav_target={end_snap.get('traversal_target')}")
+                print(
+                    f"  TICK_{flee_tick_num}:END   pos = ({end_snap.get('x')}, {end_snap.get('y')}) "
+                    f"trav_target={end_snap.get('traversal_target')}"
+                )
             if next_start:
-                print(f"  TICK_{flee_tick_num + 1}:START pos = ({next_start.get('x')}, {next_start.get('y')}) "
-                      f"trav_target={next_start.get('traversal_target')}")
+                print(
+                    f"  TICK_{flee_tick_num + 1}:START pos = ({next_start.get('x')}, {next_start.get('y')}) "
+                    f"trav_target={next_start.get('traversal_target')}"
+                )
             moved_within = (
-                start_snap and end_snap and
-                (start_snap.get("x") != end_snap.get("x")
-                 or start_snap.get("y") != end_snap.get("y"))
+                start_snap
+                and end_snap
+                and (start_snap.get("x") != end_snap.get("x") or start_snap.get("y") != end_snap.get("y"))
             )
             moved_next = (
-                start_snap and next_start and
-                (start_snap.get("x") != next_start.get("x")
-                 or start_snap.get("y") != next_start.get("y"))
+                start_snap
+                and next_start
+                and (start_snap.get("x") != next_start.get("x") or start_snap.get("y") != next_start.get("y"))
             )
             print(f"  Moved within FLEE tick?         {moved_within}")
             print(f"  Moved by start of next tick?    {moved_next}")
 
-            all_verdicts.append({
-                "tick": flee_tick_num,
-                "verdict": verdict,
-                "s1_target": s1_target,
-                "s2_target": s2_target,
-                "s3_target": s3_target,
-                "moved_within": moved_within,
-                "moved_next": moved_next,
-            })
+            all_verdicts.append(
+                {
+                    "tick": flee_tick_num,
+                    "verdict": verdict,
+                    "s1_target": s1_target,
+                    "s2_target": s2_target,
+                    "s3_target": s3_target,
+                    "moved_within": moved_within,
+                    "moved_next": moved_next,
+                }
+            )
 
         # 6) MovementEngine method calls — comprehensive trace
         print("\n" + "=" * 78)
         print("MovementEngine internal method calls for maid_lusya (across all ticks)")
         print("=" * 78)
-        me_calls = [e for e in SPY_LOG if (e.get("tag", "").startswith("ME.") and ":CALL maid_lusya" in e.get("tag", ""))]
+        me_calls = [
+            e for e in SPY_LOG if (e.get("tag", "").startswith("ME.") and ":CALL maid_lusya" in e.get("tag", ""))
+        ]
         print(f"\nTotal ME method calls for maid_lusya: {len(me_calls)}")
         # Group by method name
         by_method = {}
@@ -818,16 +885,17 @@ def main():
         amb_count = sum(1 for v in all_verdicts if "AMBIGUOUS" in v["verdict"])
         print(f"Aggregate: H1={h1_count}  H2={h2_count}  H3={h3_count}  AMBIGUOUS={amb_count}")
         if h1_count > 0:
-            print("\n>>> CONCLUSION: FLEE traversal IS created and persists."
-                  "  This closes the lifecycle question.")
+            print("\n>>> CONCLUSION: FLEE traversal IS created and persists.  This closes the lifecycle question.")
         elif h2_count == len(all_verdicts):
-            print("\n>>> CONCLUSION: FLEE traversal NEVER created in ME."
-                  "  B1.5 patch passes intent through, but ME does NOT create traversal.")
-            print(">>> Hypothesis: ME._process_single_intent (or equivalent)"
-                  " filters by intent_type and skips FLEE.")
+            print(
+                "\n>>> CONCLUSION: FLEE traversal NEVER created in ME."
+                "  B1.5 patch passes intent through, but ME does NOT create traversal."
+            )
+            print(">>> Hypothesis: ME._process_single_intent (or equivalent) filters by intent_type and skips FLEE.")
         elif h3_count > 0:
-            print("\n>>> CONCLUSION: FLEE traversal IS created but destroyed."
-                  "  H3 — investigate post-ME pipeline phases.")
+            print(
+                "\n>>> CONCLUSION: FLEE traversal IS created but destroyed.  H3 — investigate post-ME pipeline phases."
+            )
 
         # Resolver and CA trace summary
         print("\n" + "=" * 78)

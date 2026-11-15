@@ -3,6 +3,7 @@
 Invariant III: Temporal Isolation. Входные данные тика не мутируются во время вычисления.
 Проверяем, что хеш TickState до pipeline совпадает с хешем после.
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -21,6 +22,6 @@ class TemporalIsolationProbe(Probe):
                     name=self.name,
                     severity=self.severity,
                     passed=False,
-                    details=f"Tick {ctx.tick_id}: TickState mutated during pipeline execution (hash mismatch). Mutated fields: {_mutated}"
+                    details=f"Tick {ctx.tick_id}: TickState mutated during pipeline execution (hash mismatch). Mutated fields: {_mutated}",
                 )
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

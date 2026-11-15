@@ -10,6 +10,7 @@
 Табу ADR-O-422: без авто-склейки; без записи в truth_state/config (предложения);
 второго календарного модуля нет — только age_math-семантика.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -60,10 +61,10 @@ class ConsistencyReport:
 class CanonicalRegistry:
     """Снимок канона игры для сверки. Сервис НИКОГДА не пишет в эти источники."""
 
-    alias_to_npc: Dict[str, str] = field(default_factory=dict)   # name_forms → npc_id
-    archetype_of: Dict[str, str] = field(default_factory=dict)   # npc_id → archetype
+    alias_to_npc: Dict[str, str] = field(default_factory=dict)  # name_forms → npc_id
+    archetype_of: Dict[str, str] = field(default_factory=dict)  # npc_id → archetype
     secret_holders: Dict[str, FrozenSet[str]] = field(default_factory=dict)  # secret_id → holders
-    secret_known_by: Dict[str, FrozenSet[str]] = field(default_factory=dict) # secret_id → known_by
+    secret_known_by: Dict[str, FrozenSet[str]] = field(default_factory=dict)  # secret_id → known_by
 
 
 # Закрытый словарь роль-хинтов (расширение = ревизия ADR-O-422)
@@ -168,7 +169,7 @@ class ConsistencyService:
 
         # Дубли внутри: тот же kind+subject+object и близкий возраст
         for i, a in enumerate(doc.entries):
-            for b in doc.entries[i + 1:]:
+            for b in doc.entries[i + 1 :]:
                 if a.kind is not b.kind or a.subject_id != b.subject_id or a.object_id != b.object_id:
                     continue
                 if a.historical_age is None or b.historical_age is None:
@@ -256,6 +257,7 @@ class ConsistencyService:
         """Роли ВТОРИЧНЫХ участников (object_id). Субъект-владелец хроники
         исключён: иначе «Люся» в обеих хрониках склеивает любые записи
         (калибровка S336: 34 мусорных кандидата из субъект-матчинга)."""
+
         def _roles(e: ChronicleEntry) -> FrozenSet[str]:
             roles = set()
             r_subj = _role_of_ref(e.subject_id, registry)
@@ -324,7 +326,11 @@ class ConsistencyService:
                             )
                         )
             # Секретность: payload с is_secret/known_by (миграционные записи) vs truth_state
-            if e.kind is EntryKind.EVENT and isinstance(e.payload.get("is_secret"), bool) and e.payload.get("is_secret"):
+            if (
+                e.kind is EntryKind.EVENT
+                and isinstance(e.payload.get("is_secret"), bool)
+                and e.payload.get("is_secret")
+            ):
                 sid = e.payload.get("secret_id")
                 known = set(e.payload.get("known_by") or ())
                 holders = registry.secret_known_by.get(str(sid))
@@ -377,10 +383,7 @@ class ConsistencyService:
                                     },
                                 )
                             )
-                        elif (
-                            e.object_id.ref_kind.value == "RESOLVED"
-                            and e.object_id.npc_id != doc.npc_ref
-                        ):
+                        elif e.object_id.ref_kind.value == "RESOLVED" and e.object_id.npc_id != doc.npc_ref:
                             # Случай 3: target_hint→subject, но object_id=другой NPC.
                             # Автор исправил LLM-ошибку (валидно) — диагностика info.
                             out.append(

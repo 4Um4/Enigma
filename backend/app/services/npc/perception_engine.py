@@ -5,6 +5,7 @@ backend/app/services/npc/perception_engine.py
 
 Работает < 15ms. Не использует LLM.
 """
+
 from __future__ import annotations
 
 from typing import Dict, List

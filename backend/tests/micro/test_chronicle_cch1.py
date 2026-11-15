@@ -5,6 +5,7 @@
 T-CCH-01 — round-trip Люси через настоящий _convert_origin_events.
 Запуск: cd backend ; python -m pytest tests/micro/test_chronicle_cch1.py -v
 """
+
 from __future__ import annotations
 
 import json
@@ -66,9 +67,7 @@ def _canon_doc():
             "certainty": 1.0,
         },
     )
-    return ChronicleDocument(
-        chronicle_id="c1", npc_ref="a", entries=(e1, e2), canonical=True, canonical_version=1
-    )
+    return ChronicleDocument(chronicle_id="c1", npc_ref="a", entries=(e1, e2), canonical=True, canonical_version=1)
 
 
 def _doc_with_ws():
@@ -179,9 +178,7 @@ def test_save_canonical_requires_flag(tmp_path):
 
 
 def test_open_question_blocks_canon(tmp_path):
-    q = ClarificationQuestion(
-        question_id="q1", target_span="стражник", options=(ClarificationOption.LEAVE_WHITE_SPOT,)
-    )
+    q = ClarificationQuestion(question_id="q1", target_span="стражник", options=(ClarificationOption.LEAVE_WHITE_SPOT,))
     doc = ChronicleDocument(
         chronicle_id="c4",
         npc_ref="a",
@@ -198,7 +195,9 @@ def test_dangling_white_spot_rejected(tmp_path):
         chronicle_id="c3",
         npc_ref="a",
         canonical=True,
-        entries=(_entry(entry_id="e", object_id=EntityRef(ref_kind=EntityRefKind.WHITE_SPOT, white_spot_id="ws_missing")),),
+        entries=(
+            _entry(entry_id="e", object_id=EntityRef(ref_kind=EntityRefKind.WHITE_SPOT, white_spot_id="ws_missing")),
+        ),
     )
     store = ChronicleStore(canonical_dir=tmp_path / "chronicles", drafts_root=tmp_path)
     with pytest.raises(ValueError, match="dangling"):
@@ -257,8 +256,15 @@ def test_tcch01_lusya_origin_roundtrip():
 
 def test_tcch01_synthetic_roundtrip_deterministic():
     origins = [
-        {"summary": "s1", "importance": 0.9, "tags": ["a"], "is_secret": True,
-         "known_by": ["x"], "hidden_from": ["y"], "decay_rate": 0.001},
+        {
+            "summary": "s1",
+            "importance": 0.9,
+            "tags": ["a"],
+            "is_secret": True,
+            "known_by": ["x"],
+            "hidden_from": ["y"],
+            "decay_rate": 0.001,
+        },
         {"summary": "s2", "importance": 0.5, "day": -700},
     ]
     doc = origin_events_to_chronicle("t", origins)

@@ -7,6 +7,7 @@ path: backend/tests/sandbox/movement/test_topology_gate.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/movement/test_topology_gate.py -v ; cd ..
 """
+
 from app.services.spatial.graph_compiler import compile_graph
 
 
@@ -29,16 +30,11 @@ def _make_synthetic_map(wall_id_on_door: bool = False) -> dict:
     return {
         "size": {"w": 10.0, "h": 10.0},
         "origin": {"x": 0, "y": 0},
-        "walls": [
-            {"id": "wall_1", "x1": 5.0, "y1": 0.0, "x2": 5.0, "y2": 10.0}
-        ],
-        "nodes": {
-            "A": {"x": 2.0, "y": 5.0, "connections": ["B"]},
-            "B": {"x": 8.0, "y": 5.0, "connections": ["A"]}
-        },
+        "walls": [{"id": "wall_1", "x1": 5.0, "y1": 0.0, "x2": 5.0, "y2": 10.0}],
+        "nodes": {"A": {"x": 2.0, "y": 5.0, "connections": ["B"]}, "B": {"x": 8.0, "y": 5.0, "connections": ["A"]}},
         "objects": [door_obj],
         "portals": [],
-        "npcs": []
+        "npcs": [],
     }
 
 
@@ -46,10 +42,10 @@ def test_topology_gate_blocks_uncut_wall():
     """S-143: Если ребро пересекает неразрезанную стену, ребро удаляется из графа (BUG-TOPO-001 FIX)."""
     # Карта без wall_id на двери (стена не разрезана)
     bad_map = _make_synthetic_map(wall_id_on_door=False)
-    
+
     # BUG-TOPO-001 FIX: Компилятор логирует и удаляет ребро, не роняя SpatialService.
     graph, connections, _alias, _boundary, _rooms, _walls, _obstacles, _afford = compile_graph(bad_map, "test_location")
-    
+
     # Проверяем, что ребро A-B отсутствует в графе
     _node_a = "test_location:A"
     _node_b = "test_location:B"
@@ -65,7 +61,7 @@ def test_topology_gate_allows_cut_wall():
     """S-143: Если дверь разрезает стену (wall_id), компиляция успешна."""
     # Карта с wall_id на двери (стена разрезана)
     good_map = _make_synthetic_map(wall_id_on_door=True)
-    
+
     # Не должно выбросить исключение
     result = compile_graph(good_map, "test_location")
     assert result is not None

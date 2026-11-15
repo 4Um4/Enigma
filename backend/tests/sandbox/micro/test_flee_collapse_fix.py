@@ -86,11 +86,7 @@ class TestComputeRisk:
         # Память о насилии НЕ должна влиять на мирный разговор.
         # M1b.3.6: nested-канон — давление лежит там, куда читает
         # compute_objective_risk; прежний плоский ключ был мёртв
-        state = _make_state(
-            narrative_cache=[
-                types.SimpleNamespace(importance=0.9, event_type="player_attacks")
-            ]
-        )
+        state = _make_state(narrative_cache=[types.SimpleNamespace(importance=0.9, event_type="player_attacks")])
         state.relationship_cache["player"]["recent_pressure"] = 0.5
         risk = compute_objective_risk(ev, state)
         assert risk <= 0.2, f"player_interacts with memory risk={risk}, expected <= 0.2"
@@ -135,9 +131,7 @@ class TestSocialDecayIncludesFear:
         ]
         # Duck-typed снапшоты (хендлер читает .get по ключам): cast снимает
         # Pylance-шум инвариантности List[TypedDict] (прецедент S315)
-        results = handler.handle(
-            cast("list[NPCStateSnapshot]", npcs), "test_campaign", current_tick=1
-        )
+        results = handler.handle(cast("list[NPCStateSnapshot]", npcs), "test_campaign", current_tick=1)
         # Должен быть fear_delta < 0 (drift к нулю)
         fear_deltas = _collect_payload_attr(results, "fear_delta")
         assert len(fear_deltas) > 0, "SocialDecayHandler должен генерить fear_delta"
@@ -154,9 +148,7 @@ class TestSocialDecayIncludesFear:
                 "base_values": {"player": 50.0},
             }
         ]
-        results = handler.handle(
-            cast("list[NPCStateSnapshot]", npcs), "test_campaign", current_tick=1
-        )
+        results = handler.handle(cast("list[NPCStateSnapshot]", npcs), "test_campaign", current_tick=1)
         trust_deltas = _collect_payload_attr(results, "trust_delta")
         assert len(trust_deltas) > 0, "SocialDecayHandler должен генерить trust_delta"
         assert trust_deltas[0] > 0, f"trust_delta={trust_deltas[0]}, expected > 0 (drift к base)"
@@ -194,9 +186,7 @@ class TestDirectiveNoFearOnSummon:
         deltas = sub.handle(cast(EventDTO, event), npc_states)
 
         for fear_val in _collect_payload_attr(deltas, "fear_delta"):
-            assert fear_val == 0.0, (
-                f"MOVE (подзыв) не должен генерировать fear_delta, получено {fear_val}"
-            )
+            assert fear_val == 0.0, f"MOVE (подзыв) не должен генерировать fear_delta, получено {fear_val}"
 
     def test_threaten_still_generates_fear(self):
         sub = self._make_subscriber()

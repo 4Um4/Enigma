@@ -5,6 +5,7 @@ OUTSIDE kernel. Kernel does NOT know perception.
 Зависимости: app.services.perception.behavior_manifestation_service,
 app.services.perception.phenomenology_projection_service
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,12 +47,8 @@ class PerceptionProjector:
                 return None
 
             # Rule X: Моторные следы строятся строго из физиологии и PerceptualKernel
-            _traces = self._manifest_svc.produce_traces(
-                scene_state, all_npcs_raw=all_npcs_raw
-            )
-            _player_perception = self._project_svc.project(
-                _traces, scene_state, tick=tick
-            )
+            _traces = self._manifest_svc.produce_traces(scene_state, all_npcs_raw=all_npcs_raw)
+            _player_perception = self._project_svc.project(_traces, scene_state, tick=tick)
 
             return _player_perception
         except Exception as e:

@@ -1,4 +1,5 @@
 """S264-финал: E7-диагноз (needs vs body_state hunger) + R5-живость."""
+
 import os
 import shutil
 import sys
@@ -10,8 +11,7 @@ sys.path.insert(0, ".")
 from app.core.config import settings
 
 _d = Path(tempfile.mkdtemp(prefix="e7_"))
-shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 settings.data_dir = str(_d)
 settings.saves_dir = tempfile.mkdtemp()
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
@@ -19,11 +19,16 @@ os.environ["DESIRES_ENABLED"] = "1"
 
 import logging
 
-for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-           "app.services.llm.llama_cpp_provider", "app.services.memory",
-           "app.services.game_loop.task_scheduler", "app.services.game_loop",
-           "app.services.npc.npc_tick_pipeline",
-           "pymorphy3.opencorpora_dict.wrapper"):
+for _n in (
+    "app.services.llm.router",
+    "app.services.llm.provider_manager",
+    "app.services.llm.llama_cpp_provider",
+    "app.services.memory",
+    "app.services.game_loop.task_scheduler",
+    "app.services.game_loop",
+    "app.services.npc.npc_tick_pipeline",
+    "pymorphy3.opencorpora_dict.wrapper",
+):
     logging.getLogger(_n).setLevel(logging.CRITICAL)
 logging.getLogger("app.services.npc.activity_lifecycle_service").setLevel(logging.INFO)
 
@@ -57,8 +62,7 @@ for i in range(45):
     bs = (_t.get("body_state") or {}).get("hunger")
     act = (_t.get("activity_state") or {}).get("activity_type")
     if i % 5 == 0 or (h is not None and float(h) < 0.5) or act:
-        print(f"t{i+1}: needs={h} body={bs} act={act}")
+        print(f"t{i + 1}: needs={h} body={bs} act={act}")
 
 _t = _me()
-print("FINAL: needs=", (_t.get("needs") or {}).get("hunger"),
-      " body=", (_t.get("body_state") or {}).get("hunger"))
+print("FINAL: needs=", (_t.get("needs") or {}).get("hunger"), " body=", (_t.get("body_state") or {}).get("hunger"))

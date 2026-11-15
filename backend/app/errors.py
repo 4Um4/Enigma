@@ -14,10 +14,10 @@ class MissingProvenanceError(Exception):
     """
     Поднимается при попытке применить state changes без указания cause (Task 1.2).
     """
+
     def __init__(self, method_name: str):
         super().__init__(
-            f"Missing provenance in {method_name}. "
-            f"Cause is required for state mutation (Stage 1 Task 1.2)."
+            f"Missing provenance in {method_name}. Cause is required for state mutation (Stage 1 Task 1.2)."
         )
 
 
@@ -26,13 +26,11 @@ class ArchitecturalViolationError(Exception):
     Поднимается при попытке прямой мутации NPCState вне разрешённых писателей (StateApplicator).
     Нарушение контракта L2: ONLY StateApplicator.
     """
+
     def __init__(self, field: str, writer_module: str):
         self.field = field
         self.writer_module = writer_module
-        super().__init__(
-            f"Direct write to NPCState.{field} from {writer_module} is forbidden. "
-            f"Use StateApplicator."
-        )
+        super().__init__(f"Direct write to NPCState.{field} from {writer_module} is forbidden. Use StateApplicator.")
 
 
 class SimulationIntegrityError(Exception):
@@ -56,10 +54,7 @@ class SimulationIntegrityError(Exception):
         self.source_file = file
         self.source_line = line
 
-        machine = (
-            f"[SIM_INTEGRITY] id={invariant_id} severity=CRITICAL "
-            f"file={file} line={line}"
-        )
+        machine = f"[SIM_INTEGRITY] id={invariant_id} severity=CRITICAL file={file} line={line}"
         files_block = "\n".join(f"  - {f}" for f in suspect_files)
         full = f"{machine}\n{message}\nSuspect files:\n{files_block}"
         super().__init__(full)

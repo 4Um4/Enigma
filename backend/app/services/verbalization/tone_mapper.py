@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ToneMapper:
     """Маппит русские emotional_state (из CommunicationIntent) в английские tone (для NpcDialogueSubscriber)."""
 

@@ -12,6 +12,7 @@ path: /project/backend/app/domain/sanity_membrane.py
 Зависимости: domain.control_source (только stdlib + домен).
 Основные сущности: can_address
 """
+
 from app.domain.control_source import ControlSource, resolve_control_source
 
 

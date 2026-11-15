@@ -4,6 +4,7 @@
 При False (rollback) маркер .migrated ставился, а v2 на диске отсутствовал →
 migrate_legacy:318-319 навсегда скипает импорт legacy-пар.
 """
+
 import sys
 from pathlib import Path
 
@@ -70,7 +71,10 @@ def test_existing_marker_idempotent(tmp_path):
     assert marker.read_bytes() == before, "существующий маркер перезаписан"
 
 
-@pytest.mark.xfail(reason="KNOWN DEFECT вне скоупа ADR-O-441: confirm_migration не проверяет существование legacy-файла, противореча migrate_legacy:320-323. Правка в relationship_state_store.py запрещена заданием.", strict=False)
+@pytest.mark.xfail(
+    reason="KNOWN DEFECT вне скоупа ADR-O-441: confirm_migration не проверяет существование legacy-файла, противореча migrate_legacy:320-323. Правка в relationship_state_store.py запрещена заданием.",
+    strict=False,
+)
 def test_no_legacy_file_no_marker(tmp_path):
     """T-M4: legacy отсутствует => маркер не ставится (новая кампания)."""
     ad, ssm, marker = _mk(tmp_path, legacy=False)

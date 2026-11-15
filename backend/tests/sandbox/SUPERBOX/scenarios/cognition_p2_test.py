@@ -21,6 +21,7 @@ SUPERBOX-COGNITION-P2 (S295-хвост, ТЗ §15 Этап 1): живой кон
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/cognition_p2_test.py
 """
+
 import math
 import os
 import sys
@@ -98,6 +99,7 @@ def main() -> int:
     _llm_up = False
     try:
         from app.services.llm.runtime.client import ensure_llm
+
         ensure_llm(label="cog_p2")
         _llm_up = True
         print("[G0] Host SDK: lease=OK")
@@ -141,13 +143,10 @@ def main() -> int:
                 _patched = True
                 break
         print(
-            f"[G0] LLM off → stub: sched={'да' if _sched else 'НЕТ'} "
-            f"exec={'да' if _exec else 'НЕТ'} patched={_patched}"
+            f"[G0] LLM off → stub: sched={'да' if _sched else 'НЕТ'} exec={'да' if _exec else 'НЕТ'} patched={_patched}"
         )
 
-    print(
-        f"[G0] COGNITION_V0: config={COGNITION_V0} reflex={ar.COGNITION_V0}"
-    )
+    print(f"[G0] COGNITION_V0: config={COGNITION_V0} reflex={ar.COGNITION_V0}")
     g0 = bool(COGNITION_V0 and ar.COGNITION_V0)
     ok = ok and g0
     print(f"[G0] {'PASS' if g0 else 'FAIL'}: флаг активен в рантайме")
@@ -171,10 +170,7 @@ def main() -> int:
     att3 = ss3.get("attention_states") or {}
 
     def _fmt_att(m):
-        return {
-            o: {s: (st or {}).get("phase") for s, st in subs.items()}
-            for o, subs in m.items()
-        }
+        return {o: {s: (st or {}).get("phase") for s, st in subs.items()} for o, subs in m.items()}
 
     print("[DIAG-ATT] t1:", _fmt_att(att1))
     print("[DIAG-ATT] t2:", _fmt_att(att2))
@@ -185,16 +181,10 @@ def main() -> int:
         _pairs = (
             list(_states.items())[:8]
             if isinstance(_states, dict)
-            else [
-                (getattr(s, "npc_id", getattr(s, "id", "?")), s)
-                for s in list(_states)[:8]
-            ]
+            else [(getattr(s, "npc_id", getattr(s, "id", "?")), s) for s in list(_states)[:8]]
         )
         for _nid, _st in _pairs:
-            _b = (
-                (_st.get("body_state") if isinstance(_st, dict) else getattr(_st, "body_state", None))
-                or {}
-            )
+            _b = (_st.get("body_state") if isinstance(_st, dict) else getattr(_st, "body_state", None)) or {}
             _cp = _b.get("coupling_profile") or {}
             print(
                 f"[DIAG-BODY] {_nid}: consciousness={_b.get('consciousness', 'ABSENT')} "
@@ -245,10 +235,7 @@ def main() -> int:
                 _bad.append((o, s, round(d, 2), round(_vec_d, 2)))
     g2 = _checked >= 10 and not _bad
     ok = ok and g2
-    print(
-        f"[G2] {'PASS' if g2 else 'FAIL'}: записей={_checked}, "
-        f"несогласованы={_bad[:4]}"
-    )
+    print(f"[G2] {'PASS' if g2 else 'FAIL'}: записей={_checked}, несогласованы={_bad[:4]}")
 
     # ── G3: orient материализован в npc_positions (живой apply) ─────
     g3_ok_pairs = []
@@ -317,14 +304,10 @@ def main() -> int:
                 continuity += 1
     g5 = len(att2) > 0 and not vanished
     ok = ok and g5
-    print(
-        f"[G5] {'PASS' if g5 else 'FAIL'}: first_seen стабилен у {continuity} пар, "
-        f"тихо исчезли={vanished[:4]}"
-    )
+    print(f"[G5] {'PASS' if g5 else 'FAIL'}: first_seen стабилен у {continuity} пар, тихо исчезли={vanished[:4]}")
 
     print("=" * 64)
-    print(f"ИТОГО: {'GREEN' if ok else 'RED'} "
-          f"(G0..G5; G4 может быть SKIP по отсутствию игрока в idle-мире)")
+    print(f"ИТОГО: {'GREEN' if ok else 'RED'} (G0..G5; G4 может быть SKIP по отсутствию игрока в idle-мире)")
     return 0 if ok else 1
 
 

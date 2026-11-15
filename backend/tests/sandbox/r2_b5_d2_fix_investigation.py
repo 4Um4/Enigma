@@ -27,6 +27,7 @@ Master's constraints:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -120,9 +121,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -139,9 +138,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 300) -> Non
     if bounds:
         s, e = bounds
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -170,10 +169,10 @@ def _grep_in_file(path: Path, pattern: str, context: int = 5, max_matches: int =
             continue
         for r in range(ctx_start, ctx_end):
             seen_ranges.add(r)
-        print(f"\n  >>> L{i+1}: {lines[i].rstrip()}")
+        print(f"\n  >>> L{i + 1}: {lines[i].rstrip()}")
         for j in range(ctx_start, ctx_end):
             marker = ">>>" if j + 1 == i + 1 else "   "
-            print(f"  {marker} L{j+1:4d}: {lines[j]}")
+            print(f"  {marker} L{j + 1:4d}: {lines[j]}")
 
 
 def _grep_in_dir(directory: Path, patterns: List[str]) -> List[Tuple[Path, int, str]]:
@@ -181,7 +180,10 @@ def _grep_in_dir(directory: Path, patterns: List[str]) -> List[Tuple[Path, int, 
     if not directory.exists():
         return out
     for f in directory.rglob("*.py"):
-        if any(part in {".venv", "node_modules", ".git", "__pycache__", "site-packages", "tests", "sandbox"} for part in f.parts):
+        if any(
+            part in {".venv", "node_modules", ".git", "__pycache__", "site-packages", "tests", "sandbox"}
+            for part in f.parts
+        ):
             continue
         if f.name.startswith("test_") or f.name.startswith("r2_"):
             continue
@@ -223,7 +225,7 @@ def main() -> int:
         for i, line in enumerate(lines, 1):
             print(f"  L{i:4d}: {line}")
     else:
-        print(f"  [file not found]")
+        print("  [file not found]")
 
     # =====================================================================
     # STEP 2: Read dialogue_executor.execute() L141-207 (branch selection)
@@ -234,19 +236,20 @@ def main() -> int:
         src = _read_file_text(de_path)
         lines = src.split("\n")
         # Print L141-207 (the branch selection logic)
-        print(f"  --- L141-207 (branch selection) ---")
+        print("  --- L141-207 (branch selection) ---")
         for j in range(140, min(207, len(lines))):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
 
     # =====================================================================
     # STEP 3: Trace what happens for `warn` (no proposition)
     # =====================================================================
     _print_section("STEP 3: Trace `warn` (no proposition) — how does it reach NPC_SPOKE?")
 
-    print(f"\n  --- 3a: requires_llm_materialization('warn') ---")
+    print("\n  --- 3a: requires_llm_materialization('warn') ---")
     # We need to actually call this function to see the result
     try:
         from app.domain.intent_profiles import requires_llm_materialization, produces_claim
+
         warn_requires_llm = requires_llm_materialization("warn")
         spread_rumor_requires_llm = requires_llm_materialization("spread_rumor")
         talk_requires_llm = requires_llm_materialization("talk")
@@ -264,64 +267,64 @@ def main() -> int:
         print(f"  ERROR: {e}")
         traceback.print_exc()
 
-    print(f"\n  --- 3b: For `warn` (no proposition), branch selection in execute() ---")
-    print(f"  L145: elif not requires_llm_materialization('warn') and not (")
-    print(f"  L146:     'warn' == 'spread_rumor' and _proposition is not None")
-    print(f"  L147: ):")
-    print(f"  → not True and not (False and ...) = False and True = False")
-    print(f"  → NOT this branch")
-    print(f"  → Goes to ELSE (LLM branch)")
+    print("\n  --- 3b: For `warn` (no proposition), branch selection in execute() ---")
+    print("  L145: elif not requires_llm_materialization('warn') and not (")
+    print("  L146:     'warn' == 'spread_rumor' and _proposition is not None")
+    print("  L147: ):")
+    print("  → not True and not (False and ...) = False and True = False")
+    print("  → NOT this branch")
+    print("  → Goes to ELSE (LLM branch)")
     print()
-    print(f"  WAIT — 'warn' == 'spread_rumor' is False, so the second part is False,")
-    print(f"  not(False) = True, so condition = True and True = True → ENTERS stub branch!")
+    print("  WAIT — 'warn' == 'spread_rumor' is False, so the second part is False,")
+    print("  not(False) = True, so condition = True and True = True → ENTERS stub branch!")
     print()
-    print(f"  Let me recompute:")
-    print(f"  L145: not requires_llm_materialization(req.intent_type)  →  not False  →  True")
-    print(f"  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
-    print(f"        →  not (False and ...)  →  not False  →  True")
-    print(f"  L145 and L146: True and True = True  →  ENTERS stub branch (L148-149)")
+    print("  Let me recompute:")
+    print("  L145: not requires_llm_materialization(req.intent_type)  →  not False  →  True")
+    print("  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
+    print("        →  not (False and ...)  →  not False  →  True")
+    print("  L145 and L146: True and True = True  →  ENTERS stub branch (L148-149)")
     print()
-    print(f"  >>> `warn` (no proposition) → STUB branch → deterministic text → NPC_SPOKE published")
+    print("  >>> `warn` (no proposition) → STUB branch → deterministic text → NPC_SPOKE published")
 
     # =====================================================================
     # STEP 4: Trace what happens for `spread_rumor + proposition`
     # =====================================================================
     _print_section("STEP 4: Trace `spread_rumor + proposition` — why does it go to LLM branch?")
 
-    print(f"  L145: not requires_llm_materialization('spread_rumor')  →  not False  →  True")
-    print(f"  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
-    print(f"        →  not (True and True)  →  not True  →  False")
-    print(f"  L145 and L146: True and False = False  →  DOES NOT enter stub branch")
-    print(f"  → Goes to ELSE (LLM branch) L150-197")
+    print("  L145: not requires_llm_materialization('spread_rumor')  →  not False  →  True")
+    print("  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
+    print("        →  not (True and True)  →  not True  →  False")
+    print("  L145 and L146: True and False = False  →  DOES NOT enter stub branch")
+    print("  → Goes to ELSE (LLM branch) L150-197")
     print()
-    print(f"  >>> `spread_rumor + proposition` → LLM branch → blocking HTTP call → no NPC_SPOKE")
+    print("  >>> `spread_rumor + proposition` → LLM branch → blocking HTTP call → no NPC_SPOKE")
 
     # =====================================================================
     # STEP 5: Trace what happens for `spread_rumor` WITHOUT proposition
     # =====================================================================
     _print_section("STEP 5: Trace `spread_rumor` WITHOUT proposition")
 
-    print(f"  L145: not requires_llm_materialization('spread_rumor')  →  True")
-    print(f"  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
-    print(f"        →  not (True and False)  →  not False  →  True")
-    print(f"  L145 and L146: True and True = True  →  ENTERS stub branch (L148-149)")
+    print("  L145: not requires_llm_materialization('spread_rumor')  →  True")
+    print("  L146: not (req.intent_type == 'spread_rumor' and _proposition is not None)")
+    print("        →  not (True and False)  →  not False  →  True")
+    print("  L145 and L146: True and True = True  →  ENTERS stub branch (L148-149)")
     print()
-    print(f"  >>> `spread_rumor` WITHOUT proposition → STUB branch → NPC_SPOKE published")
-    print(f"  >>> But: B5-E2 confirmed that guard_borko's spread_rumor HAS proposition")
-    print(f"  >>> (from report_proposition in EpistemicContext)")
+    print("  >>> `spread_rumor` WITHOUT proposition → STUB branch → NPC_SPOKE published")
+    print("  >>> But: B5-E2 confirmed that guard_borko's spread_rumor HAS proposition")
+    print("  >>> (from report_proposition in EpistemicContext)")
 
     # =====================================================================
     # STEP 6: Identify the minimal diff
     # =====================================================================
     _print_section("STEP 6: Identify the minimal diff")
 
-    print(f"""
+    print("""
   CURRENT CODE (dialogue_executor.py L145-149):
     elif not requires_llm_materialization(req.intent_type) and not (
         req.intent_type == "spread_rumor" and _proposition is not None
     ):
         # S199.2: Детерминированная материализация для claim-producing интентов без LLM
-        text = f"[{{req.intent_type}}] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+        text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
 
   PROBLEM:
     The condition `not (req.intent_type == "spread_rumor" and _proposition is not None)`
@@ -338,7 +341,7 @@ def main() -> int:
         req.intent_type == "spread_rumor" and _proposition is not None
     ):
         # S199.2: Детерминированная материализация для claim-producing интентов без LLM
-        text = f"[{{req.intent_type}}] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+        text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
     elif req.intent_type == "spread_rumor" and _proposition is not None and (
         self._router is None or not self._router.is_llm_available()
     ):
@@ -346,7 +349,7 @@ def main() -> int:
         # when LLM is unavailable. Social event (NPC_SPOKE + COMMUNICATION_CLAIM)
         # must complete regardless of LLM availability.
         # Proposition is preserved in artifact.data["proposition"] for materializer.
-        text = f"[spread_rumor] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+        text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
     ----------------------------------------------------------
 
     OR — simpler, no is_llm_available() check (always stub for spread_rumor+prop):
@@ -357,7 +360,7 @@ def main() -> int:
         # B5-D2 FIX: spread_rumor+proposition also uses deterministic stub.
         # Social event (NPC_SPOKE + COMMUNICATION_CLAIM) is decoupled from LLM text.
         # Proposition is preserved in artifact.data["proposition"] for materializer.
-        text = f"[{{req.intent_type}}] {{task.owner_id}} -> {{req.target_id}}: {{req.topic}}"
+        text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
     ----------------------------------------------------------
 
   This means:
@@ -377,28 +380,28 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 7: Verify materializer preserves proposition")
 
-    print(f"  From v9 Step 5 (already read), DialogueMaterializer.materialize() L61-131:")
-    print(f"  - L62: if artifact.result_type != 'dialogue_line' or not artifact.success: return []")
-    print(f"  - L91-105: ALWAYS creates NPC_SPOKE event (with text, topic, intent_type)")
-    print(f"  - L110-128: if _prop_data (proposition): creates COMMUNICATION_CLAIM event")
-    print(f"  >>> materializer ALREADY handles proposition correctly")
-    print(f"  >>> It creates BOTH NPC_SPOKE and COMMUNICATION_CLAIM when proposition is present")
-    print(f"  >>> No changes needed in materializer")
+    print("  From v9 Step 5 (already read), DialogueMaterializer.materialize() L61-131:")
+    print("  - L62: if artifact.result_type != 'dialogue_line' or not artifact.success: return []")
+    print("  - L91-105: ALWAYS creates NPC_SPOKE event (with text, topic, intent_type)")
+    print("  - L110-128: if _prop_data (proposition): creates COMMUNICATION_CLAIM event")
+    print("  >>> materializer ALREADY handles proposition correctly")
+    print("  >>> It creates BOTH NPC_SPOKE and COMMUNICATION_CLAIM when proposition is present")
+    print("  >>> No changes needed in materializer")
 
     # =====================================================================
     # STEP 8: Check IntentEventAdapter — is it even used?
     # =====================================================================
     _print_section("STEP 8: IntentEventAdapter — is it used in the spread_rumor path?")
 
-    print(f"  From v9 Steps 1-6:")
-    print(f"  - DialogueExecutor.execute() yields Artifact (does NOT call IntentEventAdapter)")
-    print(f"  - task_scheduler._process_tasks_async calls materializer.materialize(artifact)")
-    print(f"  - materializer creates EventDTO directly (NOT via IntentEventAdapter)")
-    print(f"  - drain_task_worker_outbox publishes events via _bus.publish()")
+    print("  From v9 Steps 1-6:")
+    print("  - DialogueExecutor.execute() yields Artifact (does NOT call IntentEventAdapter)")
+    print("  - task_scheduler._process_tasks_async calls materializer.materialize(artifact)")
+    print("  - materializer creates EventDTO directly (NOT via IntentEventAdapter)")
+    print("  - drain_task_worker_outbox publishes events via _bus.publish()")
     print()
-    print(f"  >>> IntentEventAdapter is NOT used in the spread_rumor execution path")
-    print(f"  >>> It's used elsewhere (probably for NPC-NPC dialogue intent → event conversion)")
-    print(f"  >>> No changes needed in IntentEventAdapter")
+    print("  >>> IntentEventAdapter is NOT used in the spread_rumor execution path")
+    print("  >>> It's used elsewhere (probably for NPC-NPC dialogue intent → event conversion)")
+    print("  >>> No changes needed in IntentEventAdapter")
 
     # =====================================================================
     # STEP 9: Check ClaimEventSubscriber — does on_npc_spoke handle spread_rumor?
@@ -410,11 +413,11 @@ def main() -> int:
         src = _read_file_text(ces_path)
         lines = src.split("\n")
         # Print on_npc_spoke method
-        print(f"  --- on_npc_spoke (L41-122 area) ---")
+        print("  --- on_npc_spoke (L41-122 area) ---")
         for j in range(40, min(125, len(lines))):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
 
-        print(f"\n  --- on_claim_event — does it handle COMMUNICATION_CLAIM? ---")
+        print("\n  --- on_claim_event — does it handle COMMUNICATION_CLAIM? ---")
         # Find where COMMUNICATION_CLAIM is subscribed
         for j, line in enumerate(lines, 1):
             if "COMMUNICATION_CLAIM" in line or "communication_claim" in line.lower():
@@ -435,14 +438,14 @@ def main() -> int:
                 print(f"\n  >>> L{j}: {line.rstrip()}")
                 for k in range(ctx_start, ctx_end):
                     marker = ">>>" if k + 1 == j else "   "
-                    print(f"  {marker} L{k+1:4d}: {lines[k]}")
+                    print(f"  {marker} L{k + 1:4d}: {lines[k]}")
 
     # =====================================================================
     # STEP 11: Verify provenance chain
     # =====================================================================
     _print_section("STEP 11: Verify provenance chain will be preserved")
 
-    print(f"""
+    print("""
   After the fix, the chain will be:
     1. guard_borko DecisionHub → SPREAD_RUMOR (score 0.988)
        - report_proposition = Proposition(player, INSULTED, tavern_keeper_tornin)
@@ -469,7 +472,7 @@ def main() -> int:
          _speaker_orig = _speaker_record.original_source_id if _speaker_record else guard_borko
          updated_record = self._engine.revise(
              tavern_keeper_tornin, claim, existing,
-             reliability_context={{"source_type": "testimony", "original_source_id": _speaker_orig}}
+             reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig}
          )
 
     6. BeliefRevisionEngine.revise:
@@ -489,7 +492,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 12: Test plan (10 acceptance criteria from Master)")
 
-    print(f"""
+    print("""
   After applying the minimal diff, run the B5-D2 acceptance test:
 
   Test setup:
@@ -556,7 +559,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 13: Summary")
 
-    print(f"""
+    print("""
   ARCHITECTURE UNDERSTANDING:
     - NPC_SPOKE is published by drain_task_worker_outbox (main thread)
     - Events are created by materializer.materialize() (worker thread)

@@ -2589,7 +2589,7 @@ def inv_sqlite_registry(_ctx=None):
                 "INV-SQLITE-REGISTRY",
                 "CRITICAL",
                 False,
-                f"SQLITE-REGISTRY: {len(_parts)} нарушений (ADR-O-426 §9 / COV-1). " f"Первые: {_details}",
+                f"SQLITE-REGISTRY: {len(_parts)} нарушений (ADR-O-426 §9 / COV-1). Первые: {_details}",
                 [
                     "scripts/lint_sqlite_registry.py",
                     "backend/app/services/state/migration_runner.py",

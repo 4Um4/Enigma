@@ -8,6 +8,7 @@
 
 Usage: python scripts/chronicle_audit_live.py <npc_id>
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -28,8 +29,17 @@ _CANON_DIR = Path(__file__).resolve().parents[2] / "config" / "npc" / "chronicle
 _FRAG_PATTERN = re.compile(r"^\s*(\d+)\.\s*(.+)$", re.MULTILINE)
 
 _CRITICAL_MARKERS = (
-    "насил", "изнасил", "шантаж", "донос", "предал", "предательство",
-    "убил", "убийств", "измен", "преступл", "контрабанд",
+    "насил",
+    "изнасил",
+    "шантаж",
+    "донос",
+    "предал",
+    "предательство",
+    "убил",
+    "убийств",
+    "измен",
+    "преступл",
+    "контрабанд",
 )
 
 
@@ -156,23 +166,35 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
 
         if "_http_error" in result or "_url_error" in result:
             print(f"FAIL: {result}")
-            per_point.append({
-                "frag_ord": frag_ord, "point_n": point_n, "is_header": is_header,
-                "text_preview": text[:120],
-                "ok": False, "error": result.get("_http_error") or result.get("_url_error"),
-                "items_count": 0, "items_kinds": [],
-            })
+            per_point.append(
+                {
+                    "frag_ord": frag_ord,
+                    "point_n": point_n,
+                    "is_header": is_header,
+                    "text_preview": text[:120],
+                    "ok": False,
+                    "error": result.get("_http_error") or result.get("_url_error"),
+                    "items_count": 0,
+                    "items_kinds": [],
+                }
+            )
             continue
 
         status = result.get("status")
         if status == "NOT_DECOMPOSED":
             print(f"NOT_DECOMPOSED: {result.get('error', '')[:80]}")
-            per_point.append({
-                "frag_ord": frag_ord, "point_n": point_n, "is_header": is_header,
-                "text_preview": text[:120],
-                "ok": False, "error": result.get("error", ""),
-                "items_count": 0, "items_kinds": [],
-            })
+            per_point.append(
+                {
+                    "frag_ord": frag_ord,
+                    "point_n": point_n,
+                    "is_header": is_header,
+                    "text_preview": text[:120],
+                    "ok": False,
+                    "error": result.get("error", ""),
+                    "items_count": 0,
+                    "items_kinds": [],
+                }
+            )
             continue
 
         items = result.get("items", [])
@@ -187,22 +209,31 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
             json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
-        per_point.append({
-            "frag_ord": frag_ord, "point_n": point_n, "is_header": is_header,
-            "text_preview": text[:120],
-            "ok": True, "items_count": items_count, "items_kinds": items_kinds,
-            "critical_topic_warning": warning,
-            "coverage": coverage,
-        })
+        per_point.append(
+            {
+                "frag_ord": frag_ord,
+                "point_n": point_n,
+                "is_header": is_header,
+                "text_preview": text[:120],
+                "ok": True,
+                "items_count": items_count,
+                "items_kinds": items_kinds,
+                "critical_topic_warning": warning,
+                "coverage": coverage,
+            }
+        )
 
         if items_count == 0 and not is_header:
             if any(m in text.lower() for m in _CRITICAL_MARKERS):
-                coverage_warnings.append({
-                    "point_n": point_n, "frag_ord": frag_ord,
-                    "text_preview": text[:120],
-                    "warning": "critical_topic_zero_items",
-                    "coverage_warning_from_api": warning,
-                })
+                coverage_warnings.append(
+                    {
+                        "point_n": point_n,
+                        "frag_ord": frag_ord,
+                        "text_preview": text[:120],
+                        "warning": "critical_topic_zero_items",
+                        "coverage_warning_from_api": warning,
+                    }
+                )
 
     # 04. Get final draft
     print(f"\n[{npc_id}] Получение финального draft...")
@@ -238,9 +269,7 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
         "per_point": per_point,
     }
 
-    (out_dir / "07_summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    (out_dir / "07_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     md = [
         f"# Live audit: {npc_id}",
@@ -263,7 +292,9 @@ async def run_live_audit(npc_id: str) -> Dict[str, Any]:
         kinds = ", ".join(p.get("items_kinds", [])) or "—"
         label = "HDR" if p["is_header"] else f"#{p['point_n']}"
         warn = "⚠️" if p.get("critical_topic_warning") else ""
-        md.append(f"| {label} | {p['frag_ord']} | {len(p['text_preview'])}+ | {p.get('items_count', 0)} | {kinds} | {warn} |")
+        md.append(
+            f"| {label} | {p['frag_ord']} | {len(p['text_preview'])}+ | {p.get('items_count', 0)} | {kinds} | {warn} |"
+        )
 
     if coverage_warnings:
         md.append("\n## ⚠️ Critical topic warnings (zero items)\n")

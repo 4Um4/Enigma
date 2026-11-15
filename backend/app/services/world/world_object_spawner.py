@@ -24,6 +24,7 @@ path: backend/app/services/world/world_object_spawner.py
 Основные сущности: WorldObjectSpawner, SpawnReport,
     _EDITOR_TYPE_TO_ARCHETYPE, _deterministic_object_id
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -64,6 +65,7 @@ class SpawnReport:
     спавна без молчаливых пропусков: каждый editor-объект либо
     спавнится, либо попадает в skipped_unmapped (вне реестра), либо
     в faults (data-integrity, с причиной)."""
+
     spawned_ids: Tuple[str, ...] = ()
     skipped_unmapped: Tuple[str, ...] = ()
     faults: Tuple[str, ...] = ()
@@ -74,15 +76,11 @@ class SpawnReport:
 
     def summary(self) -> str:
         return (
-            f"spawned={len(self.spawned_ids)} "
-            f"skipped_unmapped={len(self.skipped_unmapped)} "
-            f"faults={len(self.faults)}"
+            f"spawned={len(self.spawned_ids)} skipped_unmapped={len(self.skipped_unmapped)} faults={len(self.faults)}"
         )
 
 
-def _deterministic_object_id(
-    campaign_id: str, location_id: str, editor_id: str
-) -> str:
+def _deterministic_object_id(campaign_id: str, location_id: str, editor_id: str) -> str:
     """Identity предмета: wo_<hash(campaign:spawn_location:editor_id)>.
 
     Закон identity (ADR-O-376): object_id — immutable identity на всю
@@ -96,9 +94,7 @@ def _deterministic_object_id(
     return f"{_OBJECT_ID_PREFIX}_{_digest}"
 
 
-def _project_initial_state(
-    archetype: str, properties: Dict[str, Any]
-) -> str:
+def _project_initial_state(archetype: str, properties: Dict[str, Any]) -> str:
     """В-2 (вердикт Мастера): editor-свойства → FSM-старт.
 
     door: locked → LOCKED (приоритет), open → OPEN, иначе CLOSED.
@@ -154,8 +150,7 @@ class WorldObjectSpawner:
             # индексу, прецедент initialize_scene. Уникальность
             # гарантируется в рамках локации, глобальная — хэшем.
             _editor_id = str(_editor_obj.get("id") or f"obj_{_index}")
-            _object_id = _deterministic_object_id(
-                campaign_id, location_id, _editor_id)
+            _object_id = _deterministic_object_id(campaign_id, location_id, _editor_id)
 
             _pos = _editor_obj.get("position", {}) or {}
             _position = (float(_pos.get("x", 0.0)), float(_pos.get("y", 0.0)))
@@ -177,9 +172,7 @@ class WorldObjectSpawner:
                 # Data-integrity входа (дубль id): fault с наблюдаемостью,
                 # сцена живёт (прецедент BUG-SPATIAL-006a). Runtime-баги
                 # стора сюда не попадают — их поверхность другая.
-                logger.error(
-                    f"[W3_SPAWN] fault: editor_id={_editor_id} "
-                    f"object_id={_object_id}: {_e}")
+                logger.error(f"[W3_SPAWN] fault: editor_id={_editor_id} object_id={_object_id}: {_e}")
                 _faults.append(f"{_editor_id}: {_e}")
 
         return SpawnReport(

@@ -12,6 +12,7 @@ path: backend/tests/sandbox/micro/test_mutual_attention.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_mutual_attention.py -v; cd ..
 """
+
 import pytest
 from app.domain.tick import create_tick_state
 from app.services.npc import attention_reflex as ar
@@ -31,11 +32,7 @@ def _raw(npc_id):
 
 
 def _evidence(result, observer, subject):
-    snaps = [
-        s
-        for s in result.cognition_snapshots
-        if s["observer_id"] == observer and s["subject_id"] == subject
-    ]
+    snaps = [s for s in result.cognition_snapshots if s["observer_id"] == observer and s["subject_id"] == subject]
     return snaps[-1]["evidence"] if snaps else 0.0
 
 
@@ -67,8 +64,7 @@ def _two_ticks(orm_heading_tick101):
             all_npcs_raw=raws,
             effective_drives_map={},
             interventions=[],
-            attention_states_map={"orm": r1.attention_delta["orm"],
-                                  "maid_lusya": r1.attention_delta["maid_lusya"]},
+            attention_states_map={"orm": r1.attention_delta["orm"], "maid_lusya": r1.attention_delta["maid_lusya"]},
         )
     )
 
@@ -80,6 +76,4 @@ def test_turn_toward_accumulates_evidence_stationary_pair() -> None:
     # Control: Орм НЕ повернулся (heading остался) → E не растёт.
     ctrl = _two_ticks(0.0)
     e_ctrl = _evidence(ctrl, "maid_lusya", "orm")
-    assert e_treat > e_ctrl, (
-        f"turn-канал мёртв для стационарных пар: treat={e_treat}, ctrl={e_ctrl}"
-    )
+    assert e_treat > e_ctrl, f"turn-канал мёртв для стационарных пар: treat={e_treat}, ctrl={e_ctrl}"

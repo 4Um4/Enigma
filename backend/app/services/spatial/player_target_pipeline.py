@@ -15,6 +15,7 @@ TODO: Возможно, стоит добавить к PlayerTargetResult бол
 TODO: Логирование и мониторинг — сейчас есть базовые логгеры, но можно добавить больше контекста для отладки (например, какие именно переходы детектируются, какие цели извлекаются).
 TODO: В detect_and_publish_spatial_transitions() можно добавить фильтрацию по локации или другим параметрам, чтобы не публиковать слишком много событий, если это не нужно. Сейчас все transitions публикуются без фильтрации.
 """
+
 from __future__ import annotations
 
 import logging
@@ -71,12 +72,10 @@ def extract_player_target(
             )
 
     _extractor = PlayerTargetExtractor()
-    _target_id, _target_name, _target_obj, _player_pos, _player_dists = (
-        _extractor.extract(
-            action_text=raw_input or "",
-            npc_contexts=_npc_ctx_list,
-            scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
-        )
+    _target_id, _target_name, _target_obj, _player_pos, _player_dists = _extractor.extract(
+        action_text=raw_input or "",
+        npc_contexts=_npc_ctx_list,
+        scene_state=_scene_pre if isinstance(_scene_pre, dict) else {},
     )
 
     # ADR-048 Phase 2: Запись player_distances/player_position в scene_state ЗАПРЕЩЕНА.
@@ -111,15 +110,10 @@ def detect_and_publish_spatial_transitions(
     _spatial_events = detect_transitions(prev_distances, curr_distances)
     if _spatial_events:
         logger.debug(
-            f"[SPATIAL] {len(_spatial_events)} transitions: "
-            f"{[(e.npc_id, e.event_type) for e in _spatial_events]}"
+            f"[SPATIAL] {len(_spatial_events)} transitions: {[(e.npc_id, e.event_type) for e in _spatial_events]}"
         )
         for _sp in _spatial_events:
-            _evt_type = (
-                EventType.PROXIMITY_CLOSE
-                if _sp.event_type == "proximity_close"
-                else EventType.PROXIMITY_LEAVE
-            )
+            _evt_type = EventType.PROXIMITY_CLOSE if _sp.event_type == "proximity_close" else EventType.PROXIMITY_LEAVE
             _ge = EventDTO.create(
                 event_type=_evt_type.value,
                 source="player",
@@ -150,11 +144,7 @@ def build_spatial_data_for_dm(
     _npc_ids = list(_npc_positions.keys())
     # КРИТИЧЕСКАЯ ДИАГНОСТИКА: почему npc_positions пустой?
     if not _npc_ids:
-        _scene_keys = (
-            list(_scene.keys())[:10]
-            if isinstance(_scene, dict)
-            else type(_scene).__name__
-        )
+        _scene_keys = list(_scene.keys())[:10] if isinstance(_scene, dict) else type(_scene).__name__
         import logging as _log
 
         _log.getLogger(__name__).error(
@@ -180,13 +170,12 @@ def build_spatial_data_for_dm(
                 _lp = _npc_positions.get(_nid, {}).get("local_position", {})
                 _nx, _ny = _lp.get("x"), _lp.get("y")
                 if isinstance(_nx, (int, float)) and isinstance(_ny, (int, float)):
-                    _player_distances[_nid] = (
-                        (_px - _nx) ** 2 + (_py - _ny) ** 2
-                    ) ** 0.5
+                    _player_distances[_nid] = ((_px - _nx) ** 2 + (_py - _ny) ** 2) ** 0.5
 
     _npcs_for_builder = []
     _player_lp = _npc_positions.get("player", {}).get("local_position", {})
     import math
+
     for _nid in _npc_ids:
         if _nid == "player":
             continue  # Игрок не должен быть в nearby_npcs
@@ -219,9 +208,7 @@ def build_spatial_data_for_dm(
         )
     # Диагностика: почему nearby_npcs может быть пустым?
     _has_player = "player" in _npc_positions
-    _player_xy_valid = isinstance(_player_lp.get("x"), (int, float)) and isinstance(
-        _player_lp.get("y"), (int, float)
-    )
+    _player_xy_valid = isinstance(_player_lp.get("x"), (int, float)) and isinstance(_player_lp.get("y"), (int, float))
     import logging as _log
 
     _log.getLogger(__name__).warning(

@@ -10,6 +10,7 @@ path: backend/app/domain/semantic_action.py
 Зависимости: dataclasses, typing
 Основные сущности: WorldActionType, SemanticAction, Precondition
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,7 +37,7 @@ class WorldActionType(str, Enum):
     PASS_THROUGH = "PASS_THROUGH"
     REPAIR = "REPAIR"
     SIT = "SIT"
-    STAND_UP = "STAND_UP"          # W0-остаток «STAND» канонизирован
+    STAND_UP = "STAND_UP"  # W0-остаток «STAND» канонизирован
     TAKE = "TAKE"
     MOVE = "MOVE"
     KICK = "KICK"
@@ -44,8 +45,8 @@ class WorldActionType(str, Enum):
     DROP = "DROP"
     THROW = "THROW"
     DISCARD = "DISCARD"
-    INSERT_ITEM = "INSERT_ITEM"    # reserved: W3 (compound)
-    REMOVE_ITEM = "REMOVE_ITEM"    # reserved: W3 (compound)
+    INSERT_ITEM = "INSERT_ITEM"  # reserved: W3 (compound)
+    REMOVE_ITEM = "REMOVE_ITEM"  # reserved: W3 (compound)
 
 
 @dataclass(frozen=True)
@@ -58,7 +59,8 @@ class Precondition:
         Precondition("CAN_GRIP_SMALL_OBJECT", ("npc_17",))
         Precondition("IS_ADJACENT_TO", ("npc_17", "door_42"))
     """
-    predicate: str             # named rule ID (W2 registry resolves)
+
+    predicate: str  # named rule ID (W2 registry resolves)
     args: Tuple[Any, ...]
 
 
@@ -69,9 +71,10 @@ class SemanticAction:
     INVARIANT (W0): ни одно поле не ссылается на animation, sprite или model.
     Renderer отдельно решает, как показать это действие (TZ §17, §27).
     """
-    action_type: WorldActionType                # закрытый реестр (WorldActionType)
-    target_object_id: Optional[str] = None     # WorldObject being acted upon
-    target_location_id: Optional[str] = None    # for ENTER/EXIT/MOVE
+
+    action_type: WorldActionType  # закрытый реестр (WorldActionType)
+    target_object_id: Optional[str] = None  # WorldObject being acted upon
+    target_location_id: Optional[str] = None  # for ENTER/EXIT/MOVE
     target_attachment_slot: Optional[str] = None  # for EQUIP (W4: hand.L, waist, ...)
     preconditions: Tuple[Precondition, ...] = ()  # W2: pure predicates
 
@@ -90,8 +93,5 @@ class SemanticAction:
             "target_object_id": self.target_object_id,
             "target_location_id": self.target_location_id,
             "target_attachment_slot": self.target_attachment_slot,
-            "preconditions": [
-                {"predicate": p.predicate, "args": list(p.args)}
-                for p in self.preconditions
-            ],
+            "preconditions": [{"predicate": p.predicate, "args": list(p.args)} for p in self.preconditions],
         }

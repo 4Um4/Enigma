@@ -17,6 +17,7 @@ ENIGMA Readiness Service (ADR-O-426 D70 / COV-D70 refactor).
 score_percent: 100 если обязательное ядро ok; 0 если ядро не готово.
 Опциональные partial не делают score 0 — только блокирующие ядро отказы.
 """
+
 from __future__ import annotations
 
 import logging
@@ -181,17 +182,11 @@ class ReadinessService:
         # next_steps — живые подсказки из реального состояния
         next_steps: list[str] = []
         if gate_result is not None and gate_result.config_warnings:
-            next_steps.append(
-                "Проверить .env / env vars: найдены неизвестные AIDM_-переменные (см. логи)."
-            )
+            next_steps.append("Проверить .env / env vars: найдены неизвестные AIDM_-переменные (см. логи).")
         if llm_server_status != "ready":
-            next_steps.append(
-                "LLM server не готов — убедиться что llama-server запущен или URL настроен."
-            )
+            next_steps.append("LLM server не готов — убедиться что llama-server запущен или URL настроен.")
         if not llm_router_ok or pool_count == 0:
-            next_steps.append(
-                "LLM Router/Pool деградированы — проверь initialize_router() / ModelPool init."
-            )
+            next_steps.append("LLM Router/Pool деградированы — проверь initialize_router() / ModelPool init.")
 
         return ReadinessReport(
             score_percent=score,

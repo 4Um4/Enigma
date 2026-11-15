@@ -21,6 +21,7 @@ DO NOT:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -104,9 +105,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -254,7 +253,12 @@ def main() -> int:
                 parent = getattr(loop, parent_name, None)
                 if parent is None:
                     continue
-                for attr_name in ("_resolver", "_epistemic_context_resolver", "context_resolver", "epistemic_context_resolver"):
+                for attr_name in (
+                    "_resolver",
+                    "_epistemic_context_resolver",
+                    "context_resolver",
+                    "epistemic_context_resolver",
+                ):
                     val = getattr(parent, attr_name, None)
                     if isinstance(val, EpistemicContextResolver):
                         resolver = val
@@ -289,7 +293,9 @@ def main() -> int:
                 if "resolver" in attr_name.lower() or "context" in attr_name.lower():
                     try:
                         val = getattr(loop, attr_name)
-                        print(f"    loop.{attr_name}: type={type(val).__name__}, is_resolver={isinstance(val, EpistemicContextResolver)}")
+                        print(
+                            f"    loop.{attr_name}: type={type(val).__name__}, is_resolver={isinstance(val, EpistemicContextResolver)}"
+                        )
                     except Exception:
                         pass
             return 1
@@ -299,7 +305,7 @@ def main() -> int:
 
         # Inspect resolver attributes
         print()
-        print(f"  --- resolver attributes ---")
+        print("  --- resolver attributes ---")
         try:
             for k, v in vars(resolver).items():
                 print(f"    resolver.{k}: {v!r} (type={type(v).__name__})")
@@ -330,12 +336,14 @@ def main() -> int:
 
         if resolver_store is not store:
             print()
-            print(f"  >>> WARNING: resolver.store IS NOT sub._store")
+            print("  >>> WARNING: resolver.store IS NOT sub._store")
             print(f"  >>> Belief was created in sub._store (id={id(store)})")
-            print(f"  >>> But resolver reads from different store (id={id(resolver_store) if resolver_store else 'None'})")
-            print(f"  >>> If they are different instances, resolver will NOT see Lusya's belief!")
+            print(
+                f"  >>> But resolver reads from different store (id={id(resolver_store) if resolver_store else 'None'})"
+            )
+            print("  >>> If they are different instances, resolver will NOT see Lusya's belief!")
         else:
-            print(f"  >>> CONFIRMED: same store instance — resolver will see Lusya's belief")
+            print("  >>> CONFIRMED: same store instance — resolver will see Lusya's belief")
 
         # =====================================================================
         # STEP 4: read production source of resolve() and helpers
@@ -349,29 +357,29 @@ def main() -> int:
             bounds = _find_function_bounds(src, "resolve")
             if bounds:
                 s, e = bounds
-                print(f"  resolve() at L{s+1}..L{e}:")
+                print(f"  resolve() at L{s + 1}..L{e}:")
                 for j in range(s, e):
-                    print(f"  L{j+1:4d}: {lines_arr[j]}")
+                    print(f"  L{j + 1:4d}: {lines_arr[j]}")
             else:
                 print("  [resolve() not found]")
 
             # Print REPORT_CONFIDENCE_THRESHOLD constant
             print()
-            print(f"  --- REPORT_CONFIDENCE_THRESHOLD constant ---")
+            print("  --- REPORT_CONFIDENCE_THRESHOLD constant ---")
             for i, line in enumerate(lines_arr, 1):
                 if "REPORT_CONFIDENCE_THRESHOLD" in line and "=" in line:
                     print(f"  L{i}: {line.rstrip()}")
 
             # Print report_proposition assignment
             print()
-            print(f"  --- report_proposition assignment sites ---")
+            print("  --- report_proposition assignment sites ---")
             for i, line in enumerate(lines_arr, 1):
                 if "report_proposition" in line and ("=" in line or "append" in line):
                     print(f"  L{i}: {line.rstrip()}")
 
             # Print claims_about_self assignment
             print()
-            print(f"  --- claims_about_self assignment sites ---")
+            print("  --- claims_about_self assignment sites ---")
             for i, line in enumerate(lines_arr, 1):
                 if "claims_about_self" in line and ("=" in line or "append" in line):
                     print(f"  L{i}: {line.rstrip()}")
@@ -390,7 +398,7 @@ def main() -> int:
             print(f"  type: {type(baseline_ctx).__name__}")
             if baseline_ctx is not None:
                 baseline_ctx_dict = _inspect_obj(baseline_ctx)
-                print(f"  --- EpistemicContext dump (BEFORE) ---")
+                print("  --- EpistemicContext dump (BEFORE) ---")
                 print(json.dumps(baseline_ctx_dict, indent=2, default=str, ensure_ascii=False)[:3000])
         except Exception as e:
             print(f"  ERROR: {e}")
@@ -420,9 +428,9 @@ def main() -> int:
         print(f"  event.source={evt.source}")
         print(f"  payload.target_id={payload['target_id']}")
         print(f"  payload.radius={payload['radius']}")
-        print(f"  Publishing...")
+        print("  Publishing...")
         bus.publish(evt)
-        print(f"  Published.")
+        print("  Published.")
 
         # Sanity: confirm belief exists in store (B5-D1 was closed, but reconfirm here)
         expected_prop = Proposition(
@@ -432,13 +440,15 @@ def main() -> int:
             polarity=True,
         )
         print()
-        print(f"  --- sanity: store.get('maid_lusya', expected_prop) ---")
+        print("  --- sanity: store.get('maid_lusya', expected_prop) ---")
         try:
             lusya_rec = store.get("maid_lusya", expected_prop)
             if lusya_rec is None:
-                print(f"  [STORE HAS NO RECORD for maid_lusya] — B5-D1 was supposed to be closed!")
+                print("  [STORE HAS NO RECORD for maid_lusya] — B5-D1 was supposed to be closed!")
             else:
-                print(f"  store record: confidence={getattr(lusya_rec, 'confidence', '?')}, source_id={getattr(lusya_rec, 'source_id', '?')}")
+                print(
+                    f"  store record: confidence={getattr(lusya_rec, 'confidence', '?')}, source_id={getattr(lusya_rec, 'source_id', '?')}"
+                )
         except Exception as e:
             print(f"  ERROR: {e}")
 
@@ -454,7 +464,7 @@ def main() -> int:
             print(f"  type: {type(after_ctx).__name__}")
             if after_ctx is not None:
                 after_ctx_dict = _inspect_obj(after_ctx)
-                print(f"  --- EpistemicContext dump (AFTER) ---")
+                print("  --- EpistemicContext dump (AFTER) ---")
                 print(json.dumps(after_ctx_dict, indent=2, default=str, ensure_ascii=False)[:6000])
         except Exception as e:
             print(f"  ERROR: {e}")
@@ -492,7 +502,7 @@ def main() -> int:
 
         if rp_value is not None and rp_value != "ATTR_NOT_FOUND" and rp_value != "KEY_NOT_FOUND":
             print()
-            print(f"  --- report_proposition details ---")
+            print("  --- report_proposition details ---")
             rp_inspect = _inspect_obj(rp_value)
             print(json.dumps(rp_inspect, indent=2, default=str, ensure_ascii=False)[:2000])
 
@@ -504,10 +514,12 @@ def main() -> int:
                 # Handle Enum predicate
                 rp_pred_val = rp_pred.value if hasattr(rp_pred, "value") else rp_pred
                 print()
-                print(f"  --- exact match check ---")
-                print(f"  expected: subject_id=player, predicate=insulted, object_id=tavern_keeper_tornin")
+                print("  --- exact match check ---")
+                print("  expected: subject_id=player, predicate=insulted, object_id=tavern_keeper_tornin")
                 print(f"  actual:   subject_id={rp_subj!r}, predicate={rp_pred_val!r}, object_id={rp_obj!r}")
-                print(f"  MATCH: {rp_subj == 'player' and rp_pred_val == 'insulted' and rp_obj == 'tavern_keeper_tornin'}")
+                print(
+                    f"  MATCH: {rp_subj == 'player' and rp_pred_val == 'insulted' and rp_obj == 'tavern_keeper_tornin'}"
+                )
 
         # =====================================================================
         # STEP 9: also inspect claims_about_self (for completeness)
@@ -523,7 +535,7 @@ def main() -> int:
         print(f"  type: {type(cas_value).__name__ if cas_value is not None else 'None'}")
         if cas_value is not None and cas_value != "ATTR_NOT_FOUND" and cas_value != "KEY_NOT_FOUND":
             print()
-            print(f"  --- claims_about_self details ---")
+            print("  --- claims_about_self details ---")
             print(json.dumps(_inspect_obj(cas_value), indent=2, default=str, ensure_ascii=False)[:2000])
 
         # =====================================================================
@@ -534,12 +546,12 @@ def main() -> int:
         print(f"  after_ctx:    {after_ctx!r}")
         if baseline_ctx_dict and after_ctx_dict:
             print()
-            print(f"  --- baseline keys ---")
+            print("  --- baseline keys ---")
             for k in sorted(baseline_ctx_dict.keys() if isinstance(baseline_ctx_dict, dict) else []):
                 v = baseline_ctx_dict.get(k) if isinstance(baseline_ctx_dict, dict) else None
                 print(f"    {k}: {str(v)[:80]}")
             print()
-            print(f"  --- after keys ---")
+            print("  --- after keys ---")
             for k in sorted(after_ctx_dict.keys() if isinstance(after_ctx_dict, dict) else []):
                 v = after_ctx_dict.get(k) if isinstance(after_ctx_dict, dict) else None
                 print(f"    {k}: {str(v)[:80]}")
@@ -551,12 +563,17 @@ def main() -> int:
 
         rp_exists = rp_value is not None and rp_value != "ATTR_NOT_FOUND" and rp_value != "KEY_NOT_FOUND"
         rp_match = False
-        if rp_exists and hasattr(rp_value, "subject_id") and hasattr(rp_value, "predicate") and hasattr(rp_value, "object_id"):
+        if (
+            rp_exists
+            and hasattr(rp_value, "subject_id")
+            and hasattr(rp_value, "predicate")
+            and hasattr(rp_value, "object_id")
+        ):
             rp_subj = getattr(rp_value, "subject_id")
             rp_pred = getattr(rp_value, "predicate")
             rp_obj = getattr(rp_value, "object_id")
             rp_pred_val = rp_pred.value if hasattr(rp_pred, "value") else rp_pred
-            rp_match = (rp_subj == "player" and rp_pred_val == "insulted" and rp_obj == "tavern_keeper_tornin")
+            rp_match = rp_subj == "player" and rp_pred_val == "insulted" and rp_obj == "tavern_keeper_tornin"
 
         print(f"  resolver found:               {resolver is not None}")
         print(f"  resolver.store IS sub._store:  {resolver_store is store}")
@@ -566,33 +583,33 @@ def main() -> int:
         print()
 
         if rp_exists and rp_match:
-            print(f"  >>> VERDICT: B5-E1 IS NOT A DEFECT")
-            print(f"  >>> Production EpistemicContextResolver.resolve('maid_lusya') DID return")
-            print(f"  >>> the report_proposition = Proposition(player, INSULTED, tavern_keeper_tornin)")
-            print(f"  >>> in the EpistemicContext, after PLAYER_INSULTS.")
-            print(f"  >>>")
-            print(f"  >>> B5-E1 chain segment works:")
-            print(f"  >>>   belief(Lusya, confidence=0.5) → resolver → report_proposition in context")
-            print(f"  >>>")
-            print(f"  >>> NEXT: investigate B5-E2 — DecisionHub — does it produce SPREAD_RUMOR intent")
-            print(f"  >>> when given this EpistemicContext?")
+            print("  >>> VERDICT: B5-E1 IS NOT A DEFECT")
+            print("  >>> Production EpistemicContextResolver.resolve('maid_lusya') DID return")
+            print("  >>> the report_proposition = Proposition(player, INSULTED, tavern_keeper_tornin)")
+            print("  >>> in the EpistemicContext, after PLAYER_INSULTS.")
+            print("  >>>")
+            print("  >>> B5-E1 chain segment works:")
+            print("  >>>   belief(Lusya, confidence=0.5) → resolver → report_proposition in context")
+            print("  >>>")
+            print("  >>> NEXT: investigate B5-E2 — DecisionHub — does it produce SPREAD_RUMOR intent")
+            print("  >>> when given this EpistemicContext?")
         elif rp_exists and not rp_match:
-            print(f"  >>> VERDICT: B5-E1 DEFECT — report_proposition EXISTS but does NOT match expected")
-            print(f"  >>> Expected: Proposition(player, INSULTED, tavern_keeper_tornin)")
+            print("  >>> VERDICT: B5-E1 DEFECT — report_proposition EXISTS but does NOT match expected")
+            print("  >>> Expected: Proposition(player, INSULTED, tavern_keeper_tornin)")
             print(f"  >>> Got: {rp_value!r}")
-            print(f"  >>> Need to inspect resolver filtering by predicate or object_id")
+            print("  >>> Need to inspect resolver filtering by predicate or object_id")
         elif not rp_exists:
-            print(f"  >>> VERDICT: B5-E1 DEFECT — report_proposition IS MISSING from EpistemicContext")
-            print(f"  >>> Despite B5-D1 confirming belief exists in store with confidence=0.5 ≥ 0.25")
-            print(f"  >>> Possible causes:")
-            print(f"  >>>   1. resolver.store IS NOT sub._store (different instance)")
-            print(f"  >>>   2. resolver has additional filter beyond REPORT_CONFIDENCE_THRESHOLD")
-            print(f"  >>>   3. resolver expects different proposition shape (e.g., polarity=False)")
-            print(f"  >>>   4. resolve() signature takes more params than just agent_id")
-            print(f"  >>>   5. resolver caches baseline and doesn't refresh")
-            print(f"  >>> Examine Step 4 (source) + Step 3 (store identity) to identify the cause")
+            print("  >>> VERDICT: B5-E1 DEFECT — report_proposition IS MISSING from EpistemicContext")
+            print("  >>> Despite B5-D1 confirming belief exists in store with confidence=0.5 ≥ 0.25")
+            print("  >>> Possible causes:")
+            print("  >>>   1. resolver.store IS NOT sub._store (different instance)")
+            print("  >>>   2. resolver has additional filter beyond REPORT_CONFIDENCE_THRESHOLD")
+            print("  >>>   3. resolver expects different proposition shape (e.g., polarity=False)")
+            print("  >>>   4. resolve() signature takes more params than just agent_id")
+            print("  >>>   5. resolver caches baseline and doesn't refresh")
+            print("  >>> Examine Step 4 (source) + Step 3 (store identity) to identify the cause")
         else:
-            print(f"  >>> VERDICT: UNKNOWN — needs manual inspection of Step 7 dump")
+            print("  >>> VERDICT: UNKNOWN — needs manual inspection of Step 7 dump")
 
         # ---- Cleanup ----
         try:
@@ -603,8 +620,10 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

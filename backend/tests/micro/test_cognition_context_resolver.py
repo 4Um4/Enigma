@@ -8,7 +8,6 @@
 Запуск: cd backend; python -m pytest tests/micro/test_cognition_context_resolver.py -v; cd ..
 """
 
-
 from app.services.memory.dialogue_session import DialogueSession
 from app.services.npc.cognition_context import CognitionContextResolver
 
@@ -17,9 +16,7 @@ class _SessionMemory:
     def __init__(self) -> None:
         self._sessions: dict = {}
 
-    def get_dialogue_session(
-        self, campaign_id: str, npc_id: str, partner_id: str = "player"
-    ) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         key = (campaign_id, npc_id, partner_id)
         if key not in self._sessions:
             self._sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
@@ -31,7 +28,10 @@ def test_claims_projected_with_heard_framing():
     r = CognitionContextResolver(mem, campaign_id_provider=lambda: "T")
     s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     s.add_claim(
-        text="представился как «Мю»", speaker="player", confidence=0.9, tick=1,
+        text="представился как «Мю»",
+        speaker="player",
+        confidence=0.9,
+        tick=1,
     )
     block = r.resolve_block("merchant_goran")
     assert "Мю" in block
@@ -52,7 +52,10 @@ def test_open_questions_projected():
     r = CognitionContextResolver(mem, campaign_id_provider=lambda: "T")
     s = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     s.add_open_question(
-        text="кто ты?", asked_by="player", addressed_to="merchant_goran", tick=2,
+        text="кто ты?",
+        asked_by="player",
+        addressed_to="merchant_goran",
+        tick=2,
     )
     block = r.resolve_block("merchant_goran")
     assert "кто ты?" in block

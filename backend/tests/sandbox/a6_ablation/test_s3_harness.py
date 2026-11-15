@@ -1,4 +1,5 @@
 """A6 S3 proxy logger tests — verify precision + restore + delegation."""
+
 import pytest
 
 

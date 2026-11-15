@@ -140,10 +140,7 @@ class PlayerAvatarService:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
             # Проверка совпадения имени
             if data.get("state", {}).get("npc_id") != player_name:
-                logger.warning(
-                    f"[AVATAR] имя не совпадает: "
-                    f"{data.get('state', {}).get('npc_id')} != {player_name}"
-                )
+                logger.warning(f"[AVATAR] имя не совпадает: {data.get('state', {}).get('npc_id')} != {player_name}")
                 return None
             # B1.3-FIX + J-FIX: загрузка журнала — MERGE, не перезапись.
             # RAM может быть новее диска (append персистит, но между append
@@ -151,20 +148,17 @@ class PlayerAvatarService:
             if "dialog_journal" in data:
                 _disk = data["dialog_journal"]
                 _ram = self._dialog_journals.get(campaign_id, [])
-                self._dialog_journals[campaign_id] = (
-                    _ram if len(_ram) >= len(_disk) else _disk
-                )
+                self._dialog_journals[campaign_id] = _ram if len(_ram) >= len(_disk) else _disk
             # ADR-O-409: NAME-оси merge не нужен (dict, не список):
             # RAM-версия всегда новее (note_* персистит сразу)
-            if self._KEY_NAME_KNOWLEDGE in data and isinstance(
-                    data[self._KEY_NAME_KNOWLEDGE], dict):
-                self._name_knowledge[campaign_id] = dict(
-                    data[self._KEY_NAME_KNOWLEDGE])
+            if self._KEY_NAME_KNOWLEDGE in data and isinstance(data[self._KEY_NAME_KNOWLEDGE], dict):
+                self._name_knowledge[campaign_id] = dict(data[self._KEY_NAME_KNOWLEDGE])
             return cast(dict, data)
         except Exception as e:
             # P0-D (S208): violation обязан быть различим от игровой ошибки
             # до деградации в None (диагностический след для CDS).
             from app.errors import ArchitecturalViolationError
+
             if isinstance(e, ArchitecturalViolationError):
                 logger.critical(f"[ARCH_VIOLATION][AVATAR_LOAD] {e}", exc_info=True)
             else:
@@ -269,10 +263,7 @@ class PlayerAvatarService:
     # в течение сессии.
     _KEY_IDENTITY_UUIDS = "identity_uuids"
 
-
-    def ensure_identity_uuids(
-        self, campaign_id: str, player_name: str
-    ) -> "IdentityUUIDs":
+    def ensure_identity_uuids(self, campaign_id: str, player_name: str) -> "IdentityUUIDs":
         """Возвращает устойчивые UUID-P, UUID-A, UUID-B для кампании.
 
         1. RAM-кэш (если уже загружены в этой сессии)
@@ -292,21 +283,17 @@ class PlayerAvatarService:
         import json as _json
 
         from app.domain.identity_uuids import IdentityUUIDs
+
         path = self._avatar_path(campaign_id)
         if path.exists():
             try:
                 raw_data = _json.loads(path.read_text(encoding="utf-8-sig"))
-                existing = IdentityUUIDs.from_dict(
-                    raw_data.get(self._KEY_IDENTITY_UUIDS)
-                )
+                existing = IdentityUUIDs.from_dict(raw_data.get(self._KEY_IDENTITY_UUIDS))
                 if existing is not None:
                     self._identity_uuids_cache[campaign_id] = existing
                     return existing
             except Exception as e:
-                logger.warning(
-                    f"[IDENTITY_UUIDS] Failed to load {path}: {e}. "
-                    f"Falling through to generate_new."
-                )
+                logger.warning(f"[IDENTITY_UUIDS] Failed to load {path}: {e}. Falling through to generate_new.")
 
         # 3. Generate new + persist
         new_uuids = IdentityUUIDs.generate_new()
@@ -360,9 +347,7 @@ class PlayerAvatarService:
 
     # ── Миграция: characters.json → player_avatar.json ───────────────
 
-    def migrate_from_characters_json(
-        self, campaign_id: str, sheet: CharacterSheet
-    ) -> None:
+    def migrate_from_characters_json(self, campaign_id: str, sheet: CharacterSheet) -> None:
         """
         Первичная миграция: создаёт player_avatar.json из CharacterSheet.
         Вызывается один раз при первом выборе персонажа.
@@ -415,9 +400,7 @@ class PlayerAvatarService:
             wounds.append(
                 {
                     "body_part": w.body_part,
-                    "severity": w.severity.value
-                    if hasattr(w.severity, "value")
-                    else str(w.severity),
+                    "severity": w.severity.value if hasattr(w.severity, "value") else str(w.severity),
                     "cause": w.cause,
                     "tick_received": w.tick_received,
                     "persistent": w.persistent,
@@ -441,9 +424,7 @@ class PlayerAvatarService:
             "dependency": state.dependency,
             "identity_integrity": state.identity_integrity,
             "pressure_resistance": state.pressure_resistance,
-            "will_state": state.will_state.value
-            if hasattr(state.will_state, "value")
-            else str(state.will_state),
+            "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
             "behavior_mask": mask_dict,
             "trauma_markers": list(state.trauma_markers),
             "current_role": state.current_role,
@@ -458,9 +439,7 @@ class PlayerAvatarService:
             # wounds/conditions (legacy), но не body_state (runtime truth).
             "body_state": state.body_state if state.body_state else {},
             # Эмоции
-            "emotion": state.emotion.value
-            if hasattr(state.emotion, "value")
-            else str(state.emotion),
+            "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
             "emotion_delta": state.emotion_delta,
             "state_modifiers": state.state_modifiers,
             # ADR-128: Runtime-поля, теряющиеся без сериализации.
@@ -487,9 +466,7 @@ class PlayerAvatarService:
             ],
             "drives_runtime": dict(state.drives_runtime),
             "strain_memory": dict(state.strain_memory),
-            "perceptual_kernel": {
-                k: v for k, v in state.perceptual_kernel.__dict__.items()
-            }
+            "perceptual_kernel": {k: v for k, v in state.perceptual_kernel.__dict__.items()}
             if state.perceptual_kernel
             else {},
         }
@@ -556,7 +533,10 @@ class PlayerAvatarService:
             # Значения берутся из body_state (если есть) или из legacy hp/max_hp.
             # ADR-128: body_state — SSOT физиологии. Без этого injuries,
             # blood_loss, pain, shock_impulse теряются при каждой загрузке.
-            body_state={**{"current_hp": float(data.get("hp", 0)), "max_hp": float(data.get("max_hp", 0))}, **dict(data.get("body_state") or {})},
+            body_state={
+                **{"current_hp": float(data.get("hp", 0)), "max_hp": float(data.get("max_hp", 0))},
+                **dict(data.get("body_state") or {}),
+            },
             # ADR-128: affective_load — интеграл давления. Без этого
             # эмоциональный pipeline сбрасывается в 0.0 при каждой загрузке.
             affective_load=float(data.get("affective_load", 0.0)),
@@ -578,12 +558,17 @@ class PlayerAvatarService:
     # Event Identity (ADR-O-404): ключи журнала — константы (§12.1)
     _KEY_EVENT_ID = "event_id"
     _KEY_TICK = "tick"
-    _KEY_NPC_ID = "npc_id"   # ADR-O-409: скрытый провенанс спикера (не UI)
-    _KEY_NAME_KNOWLEDGE = "name_knowledge"   # ADR-O-409: NAME-ось (§12.1)
+    _KEY_NPC_ID = "npc_id"  # ADR-O-409: скрытый провенанс спикера (не UI)
+    _KEY_NAME_KNOWLEDGE = "name_knowledge"  # ADR-O-409: NAME-ось (§12.1)
 
     def append_journal(
-        self, campaign_id: str, speaker: str, text: str,
-        channel: str = "narrative", event_id: str = "", tick: int = 0,
+        self,
+        campaign_id: str,
+        speaker: str,
+        text: str,
+        channel: str = "narrative",
+        event_id: str = "",
+        tick: int = 0,
         npc_id: str = "",
     ) -> None:
         """channel: direct (игрок-адресат) | overheard (подслушано) |
@@ -612,9 +597,7 @@ class PlayerAvatarService:
         self._dialog_journals[campaign_id].append(_entry)
         # Ограничение 100 последних высказываний
         if len(self._dialog_journals[campaign_id]) > 100:
-            self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][
-                -100:
-            ]
+            self._dialog_journals[campaign_id] = self._dialog_journals[campaign_id][-100:]
         self._persist_journal(campaign_id)
 
     def _persist_journal(self, campaign_id: str) -> None:
@@ -638,11 +621,8 @@ class PlayerAvatarService:
         if _journal is not None:
             data["dialog_journal"] = _journal
         # ADR-O-409: NAME-ось персистится тем же файлом (владелец один)
-        data[self._KEY_NAME_KNOWLEDGE] = self._name_knowledge.get(
-            campaign_id, {})
-        path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        data[self._KEY_NAME_KNOWLEDGE] = self._name_knowledge.get(campaign_id, {})
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def get_journal(self, campaign_id: str) -> list:
         """Возвращает буфер журнала для проекции во WorldSnapshotDTO (копия, чтобы предотвратить мутацию)."""
@@ -650,9 +630,7 @@ class PlayerAvatarService:
 
     # ── ADR-O-409: NAME-ось (знание ИМЁН игроком) ─────────────────────
 
-    def get_name_display(self, campaign_id: str, npc_id: str,
-                         true_name: str,
-                         recognition_confirmed: bool) -> str:
+    def get_name_display(self, campaign_id: str, npc_id: str, true_name: str, recognition_confirmed: bool) -> str:
         """ADR-O-409: show_name = recognition_confirmed AND name_confirmed.
         Прогрессия: Незнакомец → «Имя (?)» → Имя. FACE (recognition)
         передаётся параметром — владельцем остаётся M17/scene_state;
@@ -668,28 +646,24 @@ class PlayerAvatarService:
         # tentative (heard): имя известно как СЛОВО, не идентичность
         return f"{_rec.get('name', true_name)} (?)"
 
-    def note_name_heard(self, campaign_id: str, npc_id: str,
-                        name: str) -> None:
+    def note_name_heard(self, campaign_id: str, npc_id: str, name: str) -> None:
         """NPC_MENTION: услышанное имя → tentative ТОЛЬКО (STOP-вердикт
         Мастера: identity-link отсутствует физически — метод не принимает
         ни фото, ни лица; «Торнин видел Горана» не связывает имя с телом).
         Апгрейд unknown→tentative; понижение confirmed запрещено."""
         self._note_name(campaign_id, npc_id, name, "tentative", "heard")
 
-    def note_name_intro(self, campaign_id: str, npc_id: str,
-                        name: str) -> None:
+    def note_name_intro(self, campaign_id: str, npc_id: str, name: str) -> None:
         """SELF_INTRO: спикер произнёс своё имя → confirmed."""
         self._note_name(campaign_id, npc_id, name, "confirmed", "intro")
 
-    def note_name_linked(self, campaign_id: str, npc_id: str,
-                         name: str) -> None:
+    def note_name_linked(self, campaign_id: str, npc_id: str, name: str) -> None:
         """PLAYER_LINK (доска): игрок связал имя с лицом → confirmed,
         source=player_link. Решение игрока, не системы — внешний
         интерфейс мышления (BOARD, S293-формула)."""
         self._note_name(campaign_id, npc_id, name, "confirmed", "player_link")
 
-    def _note_name(self, campaign_id: str, npc_id: str, name: str,
-                   status: str, source: str) -> None:
+    def _note_name(self, campaign_id: str, npc_id: str, name: str, status: str, source: str) -> None:
         """Единственный write-path NAME-оси. Решётка статусов
         монотонна: unknown→tentative→confirmed; понижение запрещено
         (услышанное позже intro не «разучивает»). Персистенция
@@ -698,11 +672,9 @@ class PlayerAvatarService:
         _cmap = self._name_knowledge.setdefault(campaign_id, {})
         _cur = _cmap.get(npc_id)
         if _cur is None:
-            _cmap[npc_id] = {"status": status, "name": name,
-                             "source": source}
+            _cmap[npc_id] = {"status": status, "name": name, "source": source}
         elif _rank.get(status, 0) > _rank.get(_cur.get("status") or "", 0):
-            _cur.update({"status": status, "name": name,
-                         "source": source})
+            _cur.update({"status": status, "name": name, "source": source})
         else:
             return  # без апгрейда — без записи
         self._persist_journal(campaign_id)

@@ -37,9 +37,7 @@ class PresentationAssembler:
             entry = ObservedFactEntry(
                 target_id=fact.target_id,
                 fact_name=fact.fact_name,
-                value=fact.perceived_value
-                if hasattr(fact, "perceived_value")
-                else fact.value,
+                value=fact.perceived_value if hasattr(fact, "perceived_value") else fact.value,
                 confidence=fact.confidence,
                 via=fact.observed_via,
             )
@@ -51,11 +49,7 @@ class PresentationAssembler:
 
         return ObservedFactsBundle(facts=entries, by_target=by_target)
 
-    def assemble_visual_dto(
-        self,
-        perceived_signals: List,
-        recognition_map: Dict[str, dict]
-    ) -> VisualDTO:
+    def assemble_visual_dto(self, perceived_signals: List, recognition_map: Dict[str, dict]) -> VisualDTO:
         """Собирает VisualDTO для рендера сцены."""
         npc_states: List[NPCVisualState] = []
 
@@ -82,9 +76,19 @@ class PresentationAssembler:
             for s in sigs:
                 if s.channel == "body_manifestation":
                     if s.field == "muscle_tension":
-                        pose = PoseOverlay(tense_contour=s.perceived_value, frozen_overlay=pose.frozen_overlay, tremor_animation=pose.tremor_animation, collapse_posture=pose.collapse_posture)
+                        pose = PoseOverlay(
+                            tense_contour=s.perceived_value,
+                            frozen_overlay=pose.frozen_overlay,
+                            tremor_animation=pose.tremor_animation,
+                            collapse_posture=pose.collapse_posture,
+                        )
                     elif s.field == "tremor":
-                        pose = PoseOverlay(tense_contour=pose.tense_contour, frozen_overlay=pose.frozen_overlay, tremor_animation=s.perceived_value, collapse_posture=pose.collapse_posture)
+                        pose = PoseOverlay(
+                            tense_contour=pose.tense_contour,
+                            frozen_overlay=pose.frozen_overlay,
+                            tremor_animation=s.perceived_value,
+                            collapse_posture=pose.collapse_posture,
+                        )
                 elif s.channel == "gaze":
                     if s.field == "avoidance":
                         gaze = GazeArrow(avoidance=s.perceived_value)
@@ -93,14 +97,16 @@ class PresentationAssembler:
             min_conf = min((s.confidence for s in sigs), default=0.5)
             blur = max(0.0, 0.5 - min_conf) if min_conf < 0.5 else 0.0
 
-            npc_states.append(NPCVisualState(
-                npc_id=npc_id,
-                display_name=display_name,
-                name_certainty=recog.get("confidence", 0.0),
-                pose_overlay=pose,
-                gaze_arrow=gaze,
-                blur_intensity=blur
-            ))
+            npc_states.append(
+                NPCVisualState(
+                    npc_id=npc_id,
+                    display_name=display_name,
+                    name_certainty=recog.get("confidence", 0.0),
+                    pose_overlay=pose,
+                    gaze_arrow=gaze,
+                    blur_intensity=blur,
+                )
+            )
 
         return VisualDTO(npcs=tuple(npc_states))
 
@@ -127,15 +133,22 @@ class PresentationAssembler:
             for s in sigs:
                 if s.channel == "voice_manifestation":
                     has_voice = True
-                    if s.field == "tempo": v_tempo = s.perceived_value
-                    elif s.field == "pitch": v_pitch = s.perceived_value
-                    elif s.field == "loudness": v_loud = s.perceived_value
-                    elif s.field == "tremor": v_tremor = s.perceived_value
+                    if s.field == "tempo":
+                        v_tempo = s.perceived_value
+                    elif s.field == "pitch":
+                        v_pitch = s.perceived_value
+                    elif s.field == "loudness":
+                        v_loud = s.perceived_value
+                    elif s.field == "tremor":
+                        v_tremor = s.perceived_value
                 elif s.channel == "breathing":
                     has_breath = True
-                    if s.field == "rate": b_rate = s.perceived_value
-                    elif s.field == "depth": b_depth = s.perceived_value
-                    elif s.field == "irregularity": b_irreg = s.perceived_value
+                    if s.field == "rate":
+                        b_rate = s.perceived_value
+                    elif s.field == "depth":
+                        b_depth = s.perceived_value
+                    elif s.field == "irregularity":
+                        b_irreg = s.perceived_value
 
             if has_voice:
                 voices.append(VoiceAudio(npc_id=npc_id, tempo=v_tempo, pitch=v_pitch, loudness=v_loud, tremor=v_tremor))

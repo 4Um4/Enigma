@@ -142,9 +142,7 @@ class ResponseValidator:
         re.IGNORECASE,
     )
     # BUG-P1-10: Word boundaries, чтобы не резать "игроков" или "системой"
-    _FOURTH_WALL_RE = re.compile(
-        r"\b(?:" + "|".join(_FOURTH_WALL_WORDS) + r")\b", re.IGNORECASE
-    )
+    _FOURTH_WALL_RE = re.compile(r"\b(?:" + "|".join(_FOURTH_WALL_WORDS) + r")\b", re.IGNORECASE)
 
     def _strip_delivery_markers(self, text: str) -> str:
         """Удаляет маркеры доставки (whisper, [internal], *thought*) из начала текста."""
@@ -247,9 +245,7 @@ class ResponseValidator:
             lower_sent = sent.lower()
             if self._contains_movement(lower_sent):
                 # Проверяем, есть ли в предложении имя разрешённого NPC
-                is_allowed = any(
-                    npc_name.lower() in lower_sent for npc_name in allowed_npcs
-                )
+                is_allowed = any(npc_name.lower() in lower_sent for npc_name in allowed_npcs)
                 if not is_allowed:
                     # Если NPC не разрешён, вырезаем предложение (переводим в намерение)
                     # Пока просто вырезаем, чтобы не ломать грамматику

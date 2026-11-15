@@ -32,17 +32,13 @@ def apply_front_engine(
         from app.services.character.front_engine import FrontEngine
 
         _front_eng = FrontEngine()
-        _player_profile = character_service.get_or_create_profile(
-            campaign_id, player_name
-        )
+        _player_profile = character_service.get_or_create_profile(campaign_id, player_name)
         # Собираем сигналы давления из систем
         _player_rep = 0.0
         if reputation_engine:
             _rep_states = reputation_engine.get_all_faction_states()
             if _rep_states:
-                _player_rep = sum(s["reputation"] for s in _rep_states.values()) / len(
-                    _rep_states
-                )
+                _player_rep = sum(s["reputation"] for s in _rep_states.values()) / len(_rep_states)
         _world_pressure = _front_eng.compute_pressure(
             profile=_player_profile,
             player_reputation=_player_rep,
@@ -64,9 +60,7 @@ def apply_front_engine(
                 intensity=_world_pressure.total_pressure,
             )
         elif _front_decision.action == "intensify" and _player_profile.front:
-            _player_profile.front.intensity = min(
-                1.0, _player_profile.front.intensity + 0.1
-            )
+            _player_profile.front.intensity = min(1.0, _player_profile.front.intensity + 0.1)
         elif _front_decision.action in ("drop", "break") and _player_profile.front:
             if _front_decision.action == "break":
                 _player_profile.front.breaks.append(

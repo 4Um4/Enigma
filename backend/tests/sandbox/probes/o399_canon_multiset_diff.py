@@ -16,11 +16,15 @@ def canon_records(tag: str) -> list:
     recs = []
     for e in rd:
         e = {k: v for k, v in e.items() if k != "real_ts"}  # real_ts вне канона
-        recs.append((
-            e.get("timestamp", 0), e.get("game_time", 0),
-            e.get("speaker_id", ""), e.get("target_id", ""),
-            e.get("text", ""),
-        ))
+        recs.append(
+            (
+                e.get("timestamp", 0),
+                e.get("game_time", 0),
+                e.get("speaker_id", ""),
+                e.get("target_id", ""),
+                e.get("text", ""),
+            )
+        )
     return recs
 
 
@@ -52,5 +56,8 @@ hb = hashlib.sha256(json.dumps(common_b, ensure_ascii=False).encode()).hexdigest
 print()
 print(f"canon(A minus A-only) = {ha}")
 print(f"canon(B minus B-only) = {hb}")
-print("ОБЩЕЕ МУЛЬТИМНОЖЕСТВО СОВПАДАЕТ — вся разница = 2 A-only + 5 B-only"
-      if ha == hb else "ОБЩЕЕ МУЛЬТИМНОЖЕСТВО РАЗЛИЧАЕТСЯ — диф неполон")
+print(
+    "ОБЩЕЕ МУЛЬТИМНОЖЕСТВО СОВПАДАЕТ — вся разница = 2 A-only + 5 B-only"
+    if ha == hb
+    else "ОБЩЕЕ МУЛЬТИМНОЖЕСТВО РАЗЛИЧАЕТСЯ — диф неполон"
+)

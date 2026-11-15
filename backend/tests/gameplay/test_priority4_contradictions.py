@@ -13,6 +13,7 @@ Part A: NPC sees BOTH positive (polarity=True) and negative (polarity=False) cla
 Part B: EpistemicStore.to_dict/from_dict preserves polarity, provenance, confidence.
 Part C: No fabrication, no duplicates, contradiction survives round-trip.
 """
+
 from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.services.execution.dialogue_executor import DialogueExecutor
 from app.services.npc.epistemic_store import EpistemicStore
@@ -22,9 +23,13 @@ def _rec(agent, subj, pred, obj, polarity=True, conf=0.5, source="maid_lusya"):
     return EpistemicRecord(
         agent_id=agent,
         proposition=Proposition(subject_id=subj, predicate=pred, object_id=obj, polarity=polarity),
-        confidence=conf, source_id=source, source_claim_id=f"c-{agent}-{polarity}",
-        first_observed_tick=1, last_updated_tick=1,
-        source_type="testimony", original_source_id="player",
+        confidence=conf,
+        source_id=source,
+        source_claim_id=f"c-{agent}-{polarity}",
+        first_observed_tick=1,
+        last_updated_tick=1,
+        source_type="testimony",
+        original_source_id="player",
     )
 
 
@@ -35,7 +40,9 @@ class TestPartAContradictions:
         """A: polarity=False → contradictions section with source + confidence."""
         store = EpistemicStore()
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=True, conf=0.5))
-        store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko")
+        )
         de = DialogueExecutor(epistemic_store=store)
         result = de._format_contradictions("tornin", "Open_road")
         print(f"[A] Contradictions:\n{result}")
@@ -65,13 +72,21 @@ class TestPartAContradictions:
         """A: >5 negations → only last 5 shown."""
         store = EpistemicStore()
         for i in range(7):
-            store.upsert(EpistemicRecord(
-                agent_id="tornin",
-                proposition=Proposition(subject_id=f"npc_{i}", predicate=Predicate.INSULTED, object_id="tornin", polarity=False),
-                confidence=0.1 * i, source_id=f"src_{i}", source_claim_id=f"c_{i}",
-                first_observed_tick=i, last_updated_tick=i,
-                source_type="testimony", original_source_id=f"src_{i}",
-            ))
+            store.upsert(
+                EpistemicRecord(
+                    agent_id="tornin",
+                    proposition=Proposition(
+                        subject_id=f"npc_{i}", predicate=Predicate.INSULTED, object_id="tornin", polarity=False
+                    ),
+                    confidence=0.1 * i,
+                    source_id=f"src_{i}",
+                    source_claim_id=f"c_{i}",
+                    first_observed_tick=i,
+                    last_updated_tick=i,
+                    source_type="testimony",
+                    original_source_id=f"src_{i}",
+                )
+            )
         de = DialogueExecutor(epistemic_store=store)
         result = de._format_contradictions("tornin", "Open_road")
         assert result.count("•") == 5, f"expected 5 bullets, got {result.count('•')}"
@@ -86,25 +101,33 @@ class TestPartBSaveLoad:
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3))
         data = store.to_dict()
         store2 = EpistemicStore.from_dict(data)
-        record = store2.get("tornin", Proposition(
-            subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=False))
+        record = store2.get(
+            "tornin", Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=False)
+        )
         assert record is not None, "record not found after round-trip"
         assert record.proposition.polarity is False, f"polarity changed: {record.proposition.polarity}"
 
     def test_provenance_preserved_round_trip(self) -> None:
         """B: source_type, original_source_id, ticks survive round-trip."""
         store = EpistemicStore()
-        store.upsert(EpistemicRecord(
-            agent_id="tornin",
-            proposition=Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin"),
-            confidence=0.5, source_id="maid_lusya", source_claim_id="c1",
-            first_observed_tick=3, last_updated_tick=7,
-            source_type="testimony", original_source_id="player",
-        ))
+        store.upsert(
+            EpistemicRecord(
+                agent_id="tornin",
+                proposition=Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin"),
+                confidence=0.5,
+                source_id="maid_lusya",
+                source_claim_id="c1",
+                first_observed_tick=3,
+                last_updated_tick=7,
+                source_type="testimony",
+                original_source_id="player",
+            )
+        )
         data = store.to_dict()
         store2 = EpistemicStore.from_dict(data)
-        record = store2.get("tornin", Proposition(
-            subject_id="player", predicate=Predicate.INSULTED, object_id="tornin"))
+        record = store2.get(
+            "tornin", Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin")
+        )
         assert record.source_type == "testimony", f"source_type: {record.source_type}"
         assert record.original_source_id == "player", f"original: {record.original_source_id}"
         assert record.first_observed_tick == 3
@@ -116,15 +139,18 @@ class TestPartBSaveLoad:
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", conf=0.42))
         data = store.to_dict()
         store2 = EpistemicStore.from_dict(data)
-        record = store2.get("tornin", Proposition(
-            subject_id="player", predicate=Predicate.INSULTED, object_id="tornin"))
+        record = store2.get(
+            "tornin", Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin")
+        )
         assert abs(record.confidence - 0.42) < 0.001, f"confidence: {record.confidence}"
 
     def test_both_polarities_survive_round_trip(self) -> None:
         """B: both polarity=True and False survive to_dict/from_dict."""
         store = EpistemicStore()
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=True, conf=0.5))
-        store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko")
+        )
         data = store.to_dict()
         assert len(data) == 2, f"expected 2 serialized, got {len(data)}"
         store2 = EpistemicStore.from_dict(data)
@@ -167,13 +193,17 @@ class TestPartCNegativeScenarios:
         """C: polarity=False survives round-trip (contradiction not lost)."""
         store = EpistemicStore()
         store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=True))
-        store.upsert(_rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko"))
+        store.upsert(
+            _rec("tornin", "player", Predicate.INSULTED, "tornin", polarity=False, conf=0.3, source="guard_borko")
+        )
         data = store.to_dict()
         store2 = EpistemicStore.from_dict(data)
-        pos = store2.get("tornin", Proposition(
-            subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=True))
-        neg = store2.get("tornin", Proposition(
-            subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=False))
+        pos = store2.get(
+            "tornin", Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=True)
+        )
+        neg = store2.get(
+            "tornin", Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id="tornin", polarity=False)
+        )
         assert pos is not None and pos.proposition.polarity is True
         assert neg is not None and neg.proposition.polarity is False
 

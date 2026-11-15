@@ -45,22 +45,25 @@ def _bak(state_file):
 
 
 class TestDetector:
-    @pytest.mark.parametrize("payload,status,source,reason", [
-        ({"scene_state": {"location_id": "t"}}, MIGRABLE, SOURCE_V0_SINGLE, None),
-        ({"scene_state": "junk"}, UNMIGRABLE, None, REASON_INVALID_V0),
-        ({"scenes": {"t": {}}}, MIGRABLE, SOURCE_V1_UNSTAMPED, None),
-        ({"scenes": {"t": {}}, "scene_state": {"x": 1}}, MIGRABLE, SOURCE_V1_UNSTAMPED, None),
-        ({"scenes": {"t": "junk"}}, UNMIGRABLE, None, REASON_INVALID_SCENES),
-        ({"schema_version": 1, "scenes": {"t": {}}}, CURRENT, None, None),
-        ({"schema_version": 1, "scenes": {"t": {}}, "scene_state": {}}, UNMIGRABLE, None, REASON_INCONSISTENT_V1),
-        ({"schema_version": 1}, UNMIGRABLE, None, REASON_INCONSISTENT_V1),
-        ({"schema_version": 0, "scene_state": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
-        ({"schema_version": 2, "scenes": {}}, UNMIGRABLE, None, REASON_NEWER_VERSION),
-        ({"schema_version": "1", "scenes": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
-        ({"schema_version": True, "scenes": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
-        ({}, UNMIGRABLE, None, REASON_UNKNOWN_FORMAT),
-        (["list"], UNMIGRABLE, None, REASON_NOT_DICT),
-    ])
+    @pytest.mark.parametrize(
+        "payload,status,source,reason",
+        [
+            ({"scene_state": {"location_id": "t"}}, MIGRABLE, SOURCE_V0_SINGLE, None),
+            ({"scene_state": "junk"}, UNMIGRABLE, None, REASON_INVALID_V0),
+            ({"scenes": {"t": {}}}, MIGRABLE, SOURCE_V1_UNSTAMPED, None),
+            ({"scenes": {"t": {}}, "scene_state": {"x": 1}}, MIGRABLE, SOURCE_V1_UNSTAMPED, None),
+            ({"scenes": {"t": "junk"}}, UNMIGRABLE, None, REASON_INVALID_SCENES),
+            ({"schema_version": 1, "scenes": {"t": {}}}, CURRENT, None, None),
+            ({"schema_version": 1, "scenes": {"t": {}}, "scene_state": {}}, UNMIGRABLE, None, REASON_INCONSISTENT_V1),
+            ({"schema_version": 1}, UNMIGRABLE, None, REASON_INCONSISTENT_V1),
+            ({"schema_version": 0, "scene_state": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
+            ({"schema_version": 2, "scenes": {}}, UNMIGRABLE, None, REASON_NEWER_VERSION),
+            ({"schema_version": "1", "scenes": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
+            ({"schema_version": True, "scenes": {}}, UNMIGRABLE, None, REASON_UNKNOWN_VERSION),
+            ({}, UNMIGRABLE, None, REASON_UNKNOWN_FORMAT),
+            (["list"], UNMIGRABLE, None, REASON_NOT_DICT),
+        ],
+    )
     def test_classifier(self, payload, status, source, reason):
         v = classify_parsed_save(payload)
         assert (v.status, v.source, v.reason) == (status, source, reason)
@@ -181,9 +184,14 @@ def _make_lifecycle(tmp_path):
         persist_world_canon=lambda *a, **k: None,
     )
     lc = CampaignLifecycle(
-        scene_manager=object(), rel_store=object(), memory_manager=mm,
-        tick_orch=object(), avatar_service=object(), mvp_controller=object(),
-        get_life_engine=lambda: None, load_npcs=lambda: [],
+        scene_manager=object(),
+        rel_store=object(),
+        memory_manager=mm,
+        tick_orch=object(),
+        avatar_service=object(),
+        mvp_controller=object(),
+        get_life_engine=lambda: None,
+        load_npcs=lambda: [],
         saves_dir=tmp_path / "saves",
     )
     return lc, events
@@ -216,5 +224,7 @@ class TestReaders:
     def test_resolve_current_location(self):
         assert sm.resolve_current_location({"scenes": {"t": {"location_id": "tavern"}}}) == "tavern"
         assert sm.resolve_current_location({"scene_state": {"location_id": "tavern"}}) == "tavern"
-        assert sm.resolve_current_location({"scenes": {"t": {}}, "metadata": {"current_location": "street"}}) == "street"
+        assert (
+            sm.resolve_current_location({"scenes": {"t": {}}, "metadata": {"current_location": "street"}}) == "street"
+        )
         assert sm.resolve_current_location({}) is None

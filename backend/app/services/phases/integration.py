@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/integration.py
 Зависимости: app.services.cfrm, app.services.identity, app.services.presentation
 Основные сущности: Phase9IntegrationDeps, run_phase_9_integration
 """
+
 from __future__ import annotations
 
 import copy
@@ -50,9 +51,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
             # scene_state: player-path → shared_context.scene_state, idle →
             # ctx.scene_state (симметрично commit_phase-сплиту — defense-in-depth
             # для LOD-пути, где flush уходит в Фазу 10 мимо Фазы 9).
-            _re_deltas = [
-                d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP
-            ]
+            _re_deltas = [d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP]
             if _re_deltas:
                 # Носитель = по правилу коммита (commit_phase): player-path →
                 # shared_context.scene_state, idle → ctx.scene_state. Приоритет
@@ -62,21 +61,16 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                 # семантика повторяет вызов Фазы 10 (tick_orchestrator:2584).
                 _re_scene = (
                     ctx.shared_context.scene_state
-                    if getattr(ctx, "is_player_turn", False)
-                    and ctx.shared_context is not None
+                    if getattr(ctx, "is_player_turn", False) and ctx.shared_context is not None
                     else ctx.scene_state
                 )
                 deps.state_applicator.apply_relationship_deltas(_re_deltas, _re_scene)
-            _rest = [
-                d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP
-            ]
+            _rest = [d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP]
             from app.services.tick_utils import aggregate_deltas
 
             _aggregated = aggregate_deltas(_rest)
             if _aggregated:
-                deps.state_applicator.apply_batch(
-                    _aggregated, ctx.interpretation_snapshot, ctx.campaign_id
-                )
+                deps.state_applicator.apply_batch(_aggregated, ctx.interpretation_snapshot, ctx.campaign_id)
             ctx.delta_buffer.clear()
 
     # --- CFRM P2: 3-фазный редюсер и интерпретация давления ---
@@ -88,9 +82,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
         )
     if _cfrm_enter:
         if not deps.spatial_service:
-            logger.warning(
-                "[CFRM_P2_SKIP] spatial_service is None — affective pipeline disabled"
-            )
+            logger.warning("[CFRM_P2_SKIP] spatial_service is None — affective pipeline disabled")
         cluster_graph = (
             deps.spatial_service.build_cluster_graph() if deps.spatial_service else None  # noqa: ENIGMA001
         )
@@ -108,18 +100,13 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
             # ADR-116: Диагностика phenomena_states
             _ph_count = len(phenomena_states) if phenomena_states else 0
             _ph_threats = (
-                {
-                    eid: round(getattr(ps, "threat_level", 0), 2)
-                    for eid, ps in (phenomena_states or {}).items()
-                }
+                {eid: round(getattr(ps, "threat_level", 0), 2) for eid, ps in (phenomena_states or {}).items()}
                 if _ph_count
                 else {}
             )
             # IPT-CLEANUP: WARNING → DEBUG. Отладочный вывод CFRM-фазы — не warning.
             # ADR-116: Диагностика phenomena_states для разработчика.
-            logger.debug(
-                f"[CFRM_P2] phenomena_count={_ph_count} threats={_ph_threats}"
-            )
+            logger.debug(f"[CFRM_P2] phenomena_count={_ph_count} threats={_ph_threats}")
 
             # Интерпретация: Превращение локальной истины в обновление восприятия (ADR-O)
             for entity_id, p_state in phenomena_states.items():
@@ -178,9 +165,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
                     _profile_l0 = personality_from_legacy(npc_raw)
                     _beliefs = deps.crystallized_belief_store.get_beliefs(entity_id)
-                    _drives_projection = deps.drive_resolver.resolve_drives(
-                        _profile_l0, _beliefs
-                    )
+                    _drives_projection = deps.drive_resolver.resolve_drives(_profile_l0, _beliefs)
 
                     _psyche_raw = npc_raw.get("psyche", {})
                     psyche = {
@@ -201,11 +186,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                         compute_continuous_drift,
                     )
 
-                    _rigidity = (
-                        _psyche_raw.get("identity_rigidity", 0.5)
-                        if _psyche_raw
-                        else 0.5
-                    )
+                    _rigidity = _psyche_raw.get("identity_rigidity", 0.5) if _psyche_raw else 0.5
 
                     # Легковесная проекция ядра для TIFL (на основе дельт)
                     _pk_load_for_tifl = min(
@@ -224,12 +205,8 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     }
                     if _abs_error > 0.05:
                         _w_fear = perception_payload.threat_gradient_delta * _drive_fear
-                        _w_control = (
-                            perception_payload.uncertainty_delta * _drive_control
-                        )
-                        _w_signif = (
-                            perception_payload.anomaly_score_delta * _drive_significance
-                        )
+                        _w_control = perception_payload.uncertainty_delta * _drive_control
+                        _w_signif = perception_payload.anomaly_score_delta * _drive_significance
                         _total_w = _w_fear + _w_control + _w_signif + 1e-6
                         _error_vector = {
                             "fear": _w_fear / _total_w,
@@ -246,9 +223,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                         current_tick=ctx.tick_number,
                     )
                     if _drift_events:
-                        deps.l1_chronicle.commit_tick_buffer(
-                            _drift_events, ctx.tick_number
-                        )
+                        deps.l1_chronicle.commit_tick_buffer(_drift_events, ctx.tick_number)
 
                     pk_dict = npc_raw.get("perceptual_kernel", {})
                     _body_idle = npc_raw.get("body_state") or {}
@@ -260,7 +235,9 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     # Внешние стимулы затухают, если тело слабо связано с миром (сон/усталость).
                     _cp = _body_idle.get("coupling_profile")
                     if _cp:
-                        _threat_percieved = perception_payload.threat_gradient_delta * _cp.get("external_hearing_mult", 1.0)
+                        _threat_percieved = perception_payload.threat_gradient_delta * _cp.get(
+                            "external_hearing_mult", 1.0
+                        )
                         _uncert_percieved = perception_payload.uncertainty_delta * _cp.get("external_vision_mult", 1.0)
                         _anom_percieved = perception_payload.anomaly_score_delta * _cp.get("external_vision_mult", 1.0)
                     else:
@@ -273,31 +250,26 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                             1.0,
                             max(
                                 0.0,
-                                pk_dict.get("threat_gradient", 0.0)
-                                + _threat_percieved,
+                                pk_dict.get("threat_gradient", 0.0) + _threat_percieved,
                             ),
                         ),
                         uncertainty=min(
                             1.0,
                             max(
                                 0.0,
-                                pk_dict.get("uncertainty", 0.0)
-                                + _uncert_percieved,
+                                pk_dict.get("uncertainty", 0.0) + _uncert_percieved,
                             ),
                         ),
                         anomaly_score=min(
                             1.0,
                             max(
                                 0.0,
-                                pk_dict.get("anomaly_score", 0.0)
-                                + _anom_percieved,
+                                pk_dict.get("anomaly_score", 0.0) + _anom_percieved,
                             ),
                         ),
                         compliance_bias=pk_dict.get("compliance_bias", 0.0),
                         aggression_inhibition=pk_dict.get("aggression_inhibition", 0.0),
-                        initiative_suppression=pk_dict.get(
-                            "initiative_suppression", 0.0
-                        ),
+                        initiative_suppression=pk_dict.get("initiative_suppression", 0.0),
                         somatic_urgency=_somatic_urg_idle,
                     )
 
@@ -305,18 +277,11 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
                     if "_projection_frames" not in locals():  # noqa: ENIGMA003
                         _projection_frames = []
-                    if (
-                        projected_kernel.threat_gradient > 0.05
-                        or projected_kernel.initiative_suppression > 0.2
-                    ):
+                    if projected_kernel.threat_gradient > 0.05 or projected_kernel.initiative_suppression > 0.2:
                         signal = (
                             "avoid_gaze"
                             if projected_kernel.threat_gradient > 0.5
-                            else (
-                                "freeze"
-                                if projected_kernel.initiative_suppression > 0.7
-                                else "calm"
-                            )
+                            else ("freeze" if projected_kernel.initiative_suppression > 0.7 else "calm")
                         )
                         _projection_frames.append(
                             ProjectionFrame(
@@ -350,9 +315,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     # BUG FIX: Обновляем только изменённые поля PerceptualKernel в npc_raw.
                     # Перезапись всего словаря убивала compliance_bias и recent_directive,
                     # применённые StateApplicator в Фазе 8.
-                    if "perceptual_kernel" not in npc_raw or not isinstance(
-                        npc_raw["perceptual_kernel"], dict
-                    ):
+                    if "perceptual_kernel" not in npc_raw or not isinstance(npc_raw["perceptual_kernel"], dict):
                         npc_raw["perceptual_kernel"] = {}
                     _pk_raw = npc_raw["perceptual_kernel"]
                     _pk_raw["threat_gradient"] = projected_kernel.threat_gradient
@@ -360,9 +323,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     _pk_raw["anomaly_score"] = projected_kernel.anomaly_score
                     _pk_raw["somatic_urgency"] = projected_kernel.somatic_urgency
 
-                    emotion_payload = resolve_emotion_transition(
-                        new_load, current_load, psyche
-                    )
+                    emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
 
                     # §ENIGMA-DUAL-CIRCUIT: Sustaining Loop УБИТ (S73).
                     # Эмоция не удерживается искусственно при высоком load.
@@ -371,16 +332,9 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
 
                     if emotion_payload:
                         # SHI-FIX: L1Chronicle emission for fear
-                        if (
-                            hasattr(deps, "l1_chronicle")
-                            and deps.l1_chronicle is not None
-                        ):
+                        if hasattr(deps, "l1_chronicle") and deps.l1_chronicle is not None:
                             _emo_tag = getattr(emotion_payload, "emotion_tag", None)  # noqa: ENIGMA002
-                            if (
-                                _emo_tag
-                                and hasattr(_emo_tag, "value")
-                                and "fear" in _emo_tag.value
-                            ):
+                            if _emo_tag and hasattr(_emo_tag, "value") and "fear" in _emo_tag.value:
                                 deps.l1_chronicle.commit_tick_buffer(
                                     [
                                         TraitDriftEvent(
@@ -397,9 +351,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                         # Передаем новое значение интеграла в Applicator для сохранения в NPCState
                         from dataclasses import replace
 
-                        emotion_payload = replace(
-                            emotion_payload, affective_load=new_load
-                        )
+                        emotion_payload = replace(emotion_payload, affective_load=new_load)
 
                         # ADR-116: Диагностика эмоционального пайплайна
                         logger.debug(
@@ -421,11 +373,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     if not ctx.phase_2_events:
         logger.debug("[L2.5] Skipping crystallization — no phase_2_events this tick")
     else:
-        _npc_truth_source = (
-            ctx.interpretation_snapshot
-            if ctx.interpretation_snapshot is not None
-            else ctx.all_npcs_raw
-        )
+        _npc_truth_source = ctx.interpretation_snapshot if ctx.interpretation_snapshot is not None else ctx.all_npcs_raw
         for npc_dict in _npc_truth_source:
             _npc_id = npc_dict.get("npc_id")
             if not _npc_id:
@@ -459,9 +407,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
                     continue
 
             # L0: Извлечение базовых драйвов для модуляции
-            _drives_base = npc_dict.get(
-                "drives", npc_dict.get("psyche", {}).get("drives_base", {})
-            )
+            _drives_base = npc_dict.get("drives", npc_dict.get("psyche", {}).get("drives_base", {}))
             if not _drives_base:
                 _drives_base = {
                     "control": 0.25,
@@ -499,14 +445,8 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     )
 
     # DSTC: Читаем NPC из interpretation_snapshot (M₀ + deltas), а не из M₀.
-    _npc_truth_source = (
-        ctx.interpretation_snapshot
-        if ctx.interpretation_snapshot is not None
-        else ctx.all_npcs_raw
-    )
-    player_dict = next(
-        (n for n in _npc_truth_source if n.get("npc_id") == "player"), None
-    )
+    _npc_truth_source = ctx.interpretation_snapshot if ctx.interpretation_snapshot is not None else ctx.all_npcs_raw
+    player_dict = next((n for n in _npc_truth_source if n.get("npc_id") == "player"), None)
     _avatar_projection = (
         assemble_avatar_presentation(player_dict) if player_dict else None  # noqa: ENIGMA001
     )
@@ -544,9 +484,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     _all_signals = []
     _npc_positions = ctx.scene_state.get("npc_positions", {})
     _body_map = (
-        {n.get("id") or n.get("npc_id"): n.get("body_state") for n in _npc_truth_source}
-        if _npc_truth_source
-        else {}
+        {n.get("id") or n.get("npc_id"): n.get("body_state") for n in _npc_truth_source} if _npc_truth_source else {}
     )
 
     for _nid, _ndata in _npc_positions.items():
@@ -603,9 +541,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     )
     if _facts_bundle.facts:
         for f in _facts_bundle.facts:
-            _facts_for_dm.append(
-                f"- {f.fact_name} ({f.target_id}, confidence={f.confidence:.2f})"
-            )
+            _facts_for_dm.append(f"- {f.fact_name} ({f.target_id}, confidence={f.confidence:.2f})")
         logger.debug(f"[DEBUG_EPISTEMOLOGY] FactsBundle: {' | '.join(_facts_for_dm)}")
 
     ctx.observed_facts_for_dm = _facts_for_dm
@@ -634,12 +570,9 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     from dataclasses import asdict
 
     _visual_dto = _assembler.assemble_visual_dto(
-        perceived_signals=_all_signals,
-        recognition_map=ctx.scene_state.get("player_recognition", {})
+        perceived_signals=_all_signals, recognition_map=ctx.scene_state.get("player_recognition", {})
     )
-    _audible_dto = _assembler.assemble_audible_dto(
-        perceived_signals=_all_signals
-    )
+    _audible_dto = _assembler.assemble_audible_dto(perceived_signals=_all_signals)
 
     # Сборка WorldSnapshotDTO (вне цикла!)
     builder = deps.snapshot_builder

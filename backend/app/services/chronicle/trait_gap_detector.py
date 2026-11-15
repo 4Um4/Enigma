@@ -117,13 +117,10 @@ def collect_words(
     return words, neighbors, src
 
 
-def build_report(
-    docs_by_npc: Dict[str, ChronicleDocument], campaign: str
-) -> Dict[str, Any]:
+def build_report(docs_by_npc: Dict[str, ChronicleDocument], campaign: str) -> Dict[str, Any]:
     # L4-UX: пустой вход = не молчаливый пустой файл, а честный диагноз
     _has_gap_input = any(
-        e.kind
-        in (EntryKind.PORTRET, EntryKind.TRAIT_SEED, EntryKind.BELIEF_SEED, EntryKind.DESIRE_SEED)
+        e.kind in (EntryKind.PORTRET, EntryKind.TRAIT_SEED, EntryKind.BELIEF_SEED, EntryKind.DESIRE_SEED)
         or e.provenance in _AUTHOR_OK
         for doc in docs_by_npc.values()
         for e in doc.entries
@@ -181,11 +178,11 @@ def render_markdown(rep: Dict[str, Any]) -> str:
     for r in rep["records"]:
         if r["status"] == "НЕТ В ИГРЕ":
             gaps += 1
-        lines.append(
-            f"| {r['word']} | {r['count']} | {r['status']} | {', '.join(r['neighbors'][:4]) or '—'} |"
-        )
+        lines.append(f"| {r['word']} | {r['count']} | {r['status']} | {', '.join(r['neighbors'][:4]) or '—'} |")
     lines.append("")
-    lines.append(f"**Разрывов (НЕТ В ИГРЕ): {gaps} из {rep['total']}** — кандидаты на новые переменные Character Calibration / телесного контура.")
+    lines.append(
+        f"**Разрывов (НЕТ В ИГРЕ): {gaps} из {rep['total']}** — кандидаты на новые переменные Character Calibration / телесного контура."
+    )
     return "\n".join(lines)
 
 

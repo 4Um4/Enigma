@@ -19,6 +19,7 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/behavior_mask_closure_test.py
 Exit-code — диагностический (вердикт Q3): 0 = измерение завершено и отчёт записан
     (НЕ «контракты выполнены»); 1 = INVALID. Регрессионный режим — после фикса (AC-4).
 """
+
 from __future__ import annotations
 
 import copy
@@ -66,12 +67,17 @@ _WARA_CLUSTER = [
 ]
 
 
-def _mk(cid, contour, contract, path, status, expected, actual,
-        stage=None, note=None) -> Dict[str, Any]:
+def _mk(cid, contour, contract, path, status, expected, actual, stage=None, note=None) -> Dict[str, Any]:
     return {
-        "id": cid, "contour": contour, "contract": contract, "evidence_path": path,
-        "status": status, "expected": expected, "actual": actual,
-        "break_stage": stage, "note": note,
+        "id": cid,
+        "contour": contour,
+        "contract": contract,
+        "evidence_path": path,
+        "status": status,
+        "expected": expected,
+        "actual": actual,
+        "break_stage": stage,
+        "note": note,
     }
 
 
@@ -93,6 +99,7 @@ class _PersistenceTap:
 
     def attach(self) -> None:
         from app.models.npc_state import NPCState
+
         # Дескриптор снимаем из __dict__ ДО подмены; функцию — через __get__
         # (совместимо со всеми версиями Python, без опоры на __func__)
         self._orig_descriptor = NPCState.__dict__["to_persistence_dict"]
@@ -103,15 +110,17 @@ class _PersistenceTap:
             _m = getattr(state, "behavior_mask", None)
             _ws = getattr(state, "will_state", None)
             _pers = getattr(state, "personality", None)
-            tap.captures.append({
-                "seq": len(tap.captures),
-                "npc_id": getattr(state, "npc_id", None),
-                "mask_at_call": _m.mask.value if _m is not None else None,
-                "intensity_at_call": float(_m.intensity) if _m is not None else None,
-                "will_state_at_call": getattr(_ws, "value", None),
-                "personality_willpower": getattr(_pers, "willpower", None),
-                "_ref": state,
-            })
+            tap.captures.append(
+                {
+                    "seq": len(tap.captures),
+                    "npc_id": getattr(state, "npc_id", None),
+                    "mask_at_call": _m.mask.value if _m is not None else None,
+                    "intensity_at_call": float(_m.intensity) if _m is not None else None,
+                    "will_state_at_call": getattr(_ws, "value", None),
+                    "personality_willpower": getattr(_pers, "willpower", None),
+                    "_ref": state,
+                }
+            )
             return tap._orig_func(state, npc_dict)
 
         NPCState.to_persistence_dict = staticmethod(_wrapped)
@@ -119,12 +128,14 @@ class _PersistenceTap:
 
     def detach(self) -> None:
         from app.models.npc_state import NPCState
+
         if self._active and self._orig_descriptor is not None:
             NPCState.to_persistence_dict = self._orig_descriptor
             self._active = False
 
     def verify_restored(self) -> bool:
         from app.models.npc_state import NPCState
+
         return NPCState.__dict__.get("to_persistence_dict") is self._orig_descriptor
 
     def finalize(self) -> List[Dict[str, Any]]:
@@ -132,19 +143,19 @@ class _PersistenceTap:
         out: List[Dict[str, Any]] = []
         for c in self.captures:
             _m = getattr(c["_ref"], "behavior_mask", None)
-            out.append({
-                "seq": c["seq"],
-                "obj_id": id(c["_ref"]),
-                "npc_id": c["npc_id"],
-                "mask_at_call": c["mask_at_call"],
-                "mask_after": _m.mask.value if _m is not None else None,
-                "intensity_after": float(_m.intensity) if _m is not None else None,
-                "applied_at_day_after": (
-                    _m.applied_at_day if _m is not None else None
-                ),
-                "will_state_at_call": c["will_state_at_call"],
-                "personality_willpower": c["personality_willpower"],
-            })
+            out.append(
+                {
+                    "seq": c["seq"],
+                    "obj_id": id(c["_ref"]),
+                    "npc_id": c["npc_id"],
+                    "mask_at_call": c["mask_at_call"],
+                    "mask_after": _m.mask.value if _m is not None else None,
+                    "intensity_after": float(_m.intensity) if _m is not None else None,
+                    "applied_at_day_after": (_m.applied_at_day if _m is not None else None),
+                    "will_state_at_call": c["will_state_at_call"],
+                    "personality_willpower": c["personality_willpower"],
+                }
+            )
         return out
 
 
@@ -188,6 +199,7 @@ class _ExecuteTap:
         orch = game_loop._tick_orch
         orig_execute = orch.execute
         from app.services.npc.decision_hub import DecisionHub
+
         orig_score_all = DecisionHub._score_all
 
         tap = self
@@ -220,13 +232,16 @@ class _ExecuteTap:
             if npc_id == tap.npc_id and tap._active_slot_index is not None:
                 slot_idx = tap._active_slot_index
                 if tap._components_trace_per_tick[slot_idx] is not None:
-                    tap._integrity_violations.append({
-                        "tick_index": slot_idx,
-                        "reason": "double_score_all_in_one_execute",
-                        "npc_id": npc_id,
-                    })
+                    tap._integrity_violations.append(
+                        {
+                            "tick_index": slot_idx,
+                            "reason": "double_score_all_in_one_execute",
+                            "npc_id": npc_id,
+                        }
+                    )
                 else:
                     import copy as _copy
+
                     tap._components_trace_per_tick[slot_idx] = _copy.deepcopy(components_trace)
             return scores, components_trace
 
@@ -259,6 +274,7 @@ class _ExecuteTap:
         # Восстановление _score_all (H1a) — проверка по ссылке (is), не по __name__
         if self._orig_score_all is not None and self._score_all_wrapper is not None:
             from app.services.npc.decision_hub import DecisionHub
+
             current = getattr(DecisionHub, "_score_all", None)
             # Сравниваем по is — надёжно для closures (имя может совпадать у разных tap)
             if current is self._score_all_wrapper:
@@ -310,9 +326,7 @@ class _RelStoreStub:
     """
 
     def __init__(self, trust: float, fear: float) -> None:
-        self._data: Dict[str, Dict[str, float]] = {
-            "player": {"trust": trust, "fear": fear}
-        }
+        self._data: Dict[str, Dict[str, float]] = {"player": {"trust": trust, "fear": fear}}
 
     def get_all_for_source(self, campaign_id: str, npc_id: str) -> Dict[str, Dict[str, float]]:
         return {k: dict(v) for k, v in self._data.items()}
@@ -355,19 +369,20 @@ def _run_leg(run_id: str, preset_path: str, instrumented: bool) -> Tuple[Dict[st
 
     fingerprint: List[Dict[str, Any]] = []
     mask_per_tick: List[Optional[str]] = []
-    for tick_list in (getattr(result, "npc_captures", None) or []):
-        g = next((n for n in (tick_list or [])
-                  if (n.get("id") or n.get("npc_id")) == _NPC), {})
+    for tick_list in getattr(result, "npc_captures", None) or []:
+        g = next((n for n in (tick_list or []) if (n.get("id") or n.get("npc_id")) == _NPC), {})
         p = g.get("psyche", {}) or {}
         mask_per_tick.append(p.get("behavior_mask", None))
-        fingerprint.append({
-            "stress": p.get("stress", None),
-            "state": p.get("state", None),
-            "identity_integrity": p.get("identity_integrity", None),
-            "pressure_resistance": p.get("pressure_resistance", None),
-            "intent": g.get("intent", None),
-            "affective_load": g.get("affective_load", None),
-        })
+        fingerprint.append(
+            {
+                "stress": p.get("stress", None),
+                "state": p.get("state", None),
+                "identity_integrity": p.get("identity_integrity", None),
+                "pressure_resistance": p.get("pressure_resistance", None),
+                "intent": g.get("intent", None),
+                "affective_load": g.get("affective_load", None),
+            }
+        )
 
     rec: Dict[str, Any] = {
         "run_id": run_id,
@@ -422,9 +437,7 @@ def _run_leg(run_id: str, preset_path: str, instrumented: bool) -> Tuple[Dict[st
         "captured_npc": len(mine),
         # phase-origin: маска появилась на объекте ПОСЛЕ вызова проекции (ORDER-дефект)
         "phase_origin_mask_writes": sum(
-            1 for c in mine
-            if c["mask_at_call"] in (None, "none")
-            and c["mask_after"] not in (None, "none")
+            1 for c in mine if c["mask_at_call"] in (None, "none") and c["mask_after"] not in (None, "none")
         ),
         "fake_writes": sum(1 for c in mine if c["mask_after"] == "fake_submission"),
         "fingerprint": fingerprint,
@@ -442,9 +455,7 @@ def _diagnostic_leg() -> Dict[str, Any]:
     from app.services.player_session_service import player_session_service
 
     runner = ExperimentRunner()
-    cfg = ExperimentConfig(
-        preset_path=_PRESETS["LEG-F70"], duration_ticks=10, campaign_id=_CAMPAIGN
-    )
+    cfg = ExperimentConfig(preset_path=_PRESETS["LEG-F70"], duration_ticks=10, campaign_id=_CAMPAIGN)
     runner.start(cfg)
     player_session_service.select_player(cfg.campaign_id, "player")
     per_tick: List[Dict[str, Any]] = []
@@ -458,25 +469,24 @@ def _diagnostic_leg() -> Dict[str, Any]:
             tap.detach()
         caps = [c for c in tap.finalize() if c["npc_id"] == _NPC]
         nc = getattr(runner, "_npc_captures", None) or []
-        g = next((n for n in (nc[-1] or [])
-                  if (n.get("id") or n.get("npc_id")) == _NPC), {})
+        g = next((n for n in (nc[-1] or []) if (n.get("id") or n.get("npc_id")) == _NPC), {})
         rc = getattr(runner, "_rel_captures", None) or []
         rel = rc[-1].get(_NPC, None) if rc and isinstance(rc[-1], dict) else None
-        per_tick.append({
-            "tick": _t + 1,
-            "captures_in_seq": [
-                {"seq": c["seq"], "mask_at_call": c["mask_at_call"],
-                 "mask_after": c["mask_after"]} for c in caps
-            ],
-            "dict_mask_at_tick_end": (g.get("psyche", {}) or {}).get("behavior_mask", None),
-            "rel_goran": rel,
-        })
+        per_tick.append(
+            {
+                "tick": _t + 1,
+                "captures_in_seq": [
+                    {"seq": c["seq"], "mask_at_call": c["mask_at_call"], "mask_after": c["mask_after"]} for c in caps
+                ],
+                "dict_mask_at_tick_end": (g.get("psyche", {}) or {}).get("behavior_mask", None),
+                "rel_goran": rel,
+            }
+        )
     runner.stop()
     return {"evidence_path": "in-game", "per_tick": per_tick}
 
 
-def _unit_chain(f70_fin: Dict[str, Any],
-                f0_fin: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def _unit_chain(f70_fin: Dict[str, Any], f0_fin: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Изолированные грани локализации (isolated; §5 вердикта)."""
     from app.models.npc_state import Intent, NPCState, NPCStateAdapter
     from app.services.npc.decision_hub import DecisionHub
@@ -484,8 +494,7 @@ def _unit_chain(f70_fin: Dict[str, Any],
 
     out: Dict[str, Any] = {}
 
-    def _phase_call(fin: Dict[str, Any], trust: float, fear: float,
-                    game_day: int = 3) -> _PersistenceTap:
+    def _phase_call(fin: Dict[str, Any], trust: float, fear: float, game_day: int = 3) -> _PersistenceTap:
         """Один вызов фазы на изолированной копии реального dict.
 
         game_day=3: ненулевой, чтобы applied_at_day был отличим от 0-дефолта.
@@ -523,9 +532,7 @@ def _unit_chain(f70_fin: Dict[str, Any],
     out["personality_willpower_seen"] = first.get("personality_willpower", None)
     out["tap_restored"] = tap70.verify_restored()
     out["order_broken"] = bool(
-        first
-        and first.get("mask_at_call") in (None, "none")
-        and first.get("mask_after") not in (None, "none")
+        first and first.get("mask_at_call") in (None, "none") and first.get("mask_after") not in (None, "none")
     )
 
     refs = [c for c in tap70.captures if c["npc_id"] == _NPC]
@@ -543,10 +550,10 @@ def _unit_chain(f70_fin: Dict[str, Any],
     restored = NPCStateAdapter.from_legacy(proj) if proj else None
     out["restore_mask"] = restored.behavior_mask.mask.value if restored else None
     out["restore_roundtrip_ok"] = bool(
-        restored is not None and masked_state is not None
+        restored is not None
+        and masked_state is not None
         and restored.behavior_mask.mask.value == masked_state.behavior_mask.mask.value
-        and abs(float(restored.behavior_mask.intensity)
-                - float(masked_state.behavior_mask.intensity)) < 1e-9
+        and abs(float(restored.behavior_mask.intensity) - float(masked_state.behavior_mask.intensity)) < 1e-9
     )
 
     # ── CONSUME (AC-2 ур.2, пост-фикс): мир ДАЁТ потребителю маску — real
@@ -556,15 +563,12 @@ def _unit_chain(f70_fin: Dict[str, Any],
     probes = [Intent.TALK.value, Intent.ATTACK.value, Intent.IDLE.value]
     real_state = NPCStateAdapter.from_legacy(copy.deepcopy(f70_fin))
     out["consume_real"] = {i: hub._behavior_mask_modifier(i, real_state) for i in probes}
-    control_state = (NPCStateAdapter.from_legacy(copy.deepcopy(f0_fin))
-                     if f0_fin else None)
+    control_state = NPCStateAdapter.from_legacy(copy.deepcopy(f0_fin)) if f0_fin else None
     out["consume_control"] = (
-        {i: hub._behavior_mask_modifier(i, control_state) for i in probes}
-        if control_state is not None else {}
+        {i: hub._behavior_mask_modifier(i, control_state) for i in probes} if control_state is not None else {}
     )
     out["consume_masked"] = (
-        {i: hub._behavior_mask_modifier(i, masked_state) for i in probes}
-        if masked_state is not None else {}
+        {i: hub._behavior_mask_modifier(i, masked_state) for i in probes} if masked_state is not None else {}
     )
     out["consume_deforms"] = bool(
         control_state is not None
@@ -579,27 +583,30 @@ def _unit_chain(f70_fin: Dict[str, Any],
         sw = _phase_call(f70_fin, trust=-60.0, fear=fear)
         s = _mine(sw)
         c = s[0] if s else {}
-        out["boundary_sweep"].append({
-            "fear": fear,
-            "mask": c.get("mask_after", None),
-            "intensity": c.get("intensity_after", None),
-        })
+        out["boundary_sweep"].append(
+            {
+                "fear": fear,
+                "mask": c.get("mask_after", None),
+                "intensity": c.get("intensity_after", None),
+            }
+        )
 
     # ── Проверка №8 (compute-уровень): условия 70 → 0, сброс по контракту ──
     tap0 = _phase_call(f70_fin, trust=-60.0, fear=0.0)
     m0 = _mine(tap0)
     out["transition_mask_after_fear0"] = m0[0]["mask_after"] if m0 else None
     out["transition_ok_compute"] = bool(
-        out["compute_mask"] == "fake_submission"
-        and out["transition_mask_after_fear0"] != "fake_submission"
+        out["compute_mask"] == "fake_submission" and out["transition_mask_after_fear0"] != "fake_submission"
     )
 
     # ── COLLAPSE-unit: ветка BROKEN (isolated; вход ставится на реальном
     #    объекте через object.__setattr__ — зеркалит прод-писателя :232) ──
     from app.models.behavior_mask import BehaviorMask, BehaviorMaskState
+
     st_collapse = NPCStateAdapter.from_legacy(copy.deepcopy(f70_fin))
     object.__setattr__(
-        st_collapse, "behavior_mask",
+        st_collapse,
+        "behavior_mask",
         BehaviorMaskState(mask=BehaviorMask.COLLAPSE, intensity=0.8),
     )
     hub2 = DecisionHub(seed=20261)
@@ -629,11 +636,9 @@ def _divergence(control: Dict[str, Any], treatment: Dict[str, Any]) -> Dict[str,
     cf, tf = control.get("fingerprint", []), treatment.get("fingerprint", [])
     first_diff = None
     for i in range(min(len(cf), len(tf))):
-        for k in ("stress", "state", "identity_integrity",
-                  "pressure_resistance", "intent", "affective_load"):
+        for k in ("stress", "state", "identity_integrity", "pressure_resistance", "intent", "affective_load"):
             if cf[i].get(k) != tf[i].get(k):
-                first_diff = {"tick": i + 1, "field": k,
-                              "control": cf[i].get(k), "treatment": tf[i].get(k)}
+                first_diff = {"tick": i + 1, "field": k, "control": cf[i].get(k), "treatment": tf[i].get(k)}
                 break
         if first_diff:
             break
@@ -652,11 +657,11 @@ def _divergence(control: Dict[str, Any], treatment: Dict[str, Any]) -> Dict[str,
         "P1_parity": {"ok": diff <= {"fear"}, "diff_keys": sorted(diff)},
         "P2_mask_state": p2,
         "P3_delivery": p3,
-        "P4_scores": ("boundary: scores_trace в npc_contexts runner'ом не экспонируется; "
-                      "изолированная грань — CONSUME-unit"),
+        "P4_scores": (
+            "boundary: scores_trace в npc_contexts runner'ом не экспонируется; изолированная грань — CONSUME-unit"
+        ),
         "P5_attribution": (
-            "NOT_DELIVERED: P3 отрицательна ⇒ расхождение миров приписывается "
-            "fear-каналам, маска-доля = 0"
+            "NOT_DELIVERED: P3 отрицательна ⇒ расхождение миров приписывается fear-каналам, маска-доля = 0"
             if not p3.get("mask_in_dump")
             else "delivered — требует скоринговой атрибуции (этап после фикса)"
         ),
@@ -671,6 +676,7 @@ def _score_contrast(control: Dict[str, Any], treatment: Dict[str, Any]) -> Dict[
     маска ВЫКЛ/ВКЛ). Полная изоляция без инъекции невозможна (запрещена) —
     честный предел: направление + детерминированное срабатывание (B10)."""
     from app.models.npc_state import Intent
+
     boosted = (Intent.TALK.value, Intent.OBSERVE.value, Intent.IDLE.value)
     suppressed = (Intent.ATTACK.value, Intent.INTIMIDATE.value, Intent.WARN.value)
 
@@ -698,66 +704,93 @@ def _score_contrast(control: Dict[str, Any], treatment: Dict[str, Any]) -> Dict[
             ok_suppress = True
             break
     available = any(v["control"] is not None for v in detail.values())
-    status = (_PASS if (ok_boost and ok_suppress)
-              else (_NOT_PROVEN if not available else _FAIL))
-    return {"status": status, "ok_boost": ok_boost,
-            "ok_suppress": ok_suppress, "detail": detail}
+    status = _PASS if (ok_boost and ok_suppress) else (_NOT_PROVEN if not available else _FAIL)
+    return {"status": status, "ok_boost": ok_boost, "ok_suppress": ok_suppress, "detail": detail}
 
 
-def _contour_a(legs: Dict[str, Any], units: Dict[str, Any],
-               div: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _contour_a(legs: Dict[str, Any], units: Dict[str, Any], div: Dict[str, Any]) -> List[Dict[str, Any]]:
     f70 = legs["LEG-F70"]
     delivered = bool(f70.get("mask_in_dump")) and f70.get("behavior_mask") == "fake_submission"
     col = legs.get("LEG-COLLAPSE", {})
     col_broken = col.get("will_state") == "broken"
     checks = [
-        _mk("A1", "A",
+        _mk(
+            "A1",
+            "A",
             "Испуганный NPC изображает покорность, сохраняя намерения (will≠broken)",
-            "in-game", _PASS if delivered else _FAIL,
+            "in-game",
+            _PASS if delivered else _FAIL,
             "fake_submission доставлена; will_state≠broken; TALK-буст",
-            f"mask={f70.get('behavior_mask')}, in_dump={f70.get('mask_in_dump')}, "
-            f"will_state={f70.get('will_state')}",
+            f"mask={f70.get('behavior_mask')}, in_dump={f70.get('mask_in_dump')}, will_state={f70.get('will_state')}",
             stage=None if delivered else "PROJECTION+PERSIST",
-            note=("Уровень 2 не достигнут: доставка разорвана (ORDER+WARA). "
-                  "TALK-буст невычислим в рантайме — scores не экспонированы (граница).")),
-        _mk("A2", "A", "Покорность ≠ слом: FAKE и COLLAPSE причинно различимы",
-            "in-game", _PASS if delivered and col_broken else _FAIL,
+            note=(
+                "Уровень 2 не достигнут: доставка разорвана (ORDER+WARA). "
+                "TALK-буст невычислим в рантайме — scores не экспонированы (граница)."
+            ),
+        ),
+        _mk(
+            "A2",
+            "A",
+            "Покорность ≠ слом: FAKE и COLLAPSE причинно различимы",
+            "in-game",
+            _PASS if delivered and col_broken else _FAIL,
             "обе маски доставлены и наблюдаемо различимы (FAKE говорит, COLLAPSE молчит)",
             f"fake_in_dump={f70.get('mask_in_dump')}; collapse_leg_will_state={col.get('will_state')}",
             stage="PROJECTION+PERSIST",
-            note="Механизм различения закодирован (TALK ×буст vs IDLE-доминанта), доставки нет."),
-        _mk("A3", "A", "Длительное притворство имеет последствия",
-            "isolated", _NOT_IMPL,
+            note="Механизм различения закодирован (TALK ×буст vs IDLE-доминанта), доставки нет.",
+        ),
+        _mk(
+            "A3",
+            "A",
+            "Длительное притворство имеет последствия",
+            "isolated",
+            _NOT_IMPL,
             "рост intensity / эффект applied_at_day через N тиков",
-            "applied_at_day write-only (читателей нет); роста intensity нет; "
-            "resentment в WARA-кластере",
-            note="Функциональность отсутствует целиком — кристаллизация 0.8+ недостижима."),
-        _mk("A4", "A", "NPC меняет стратегию при изменении обстоятельств",
-            "in-game", _PASS if delivered else _FAIL,
+            "applied_at_day write-only (читателей нет); роста intensity нет; resentment в WARA-кластере",
+            note="Функциональность отсутствует целиком — кристаллизация 0.8+ недостижима.",
+        ),
+        _mk(
+            "A4",
+            "A",
+            "NPC меняет стратегию при изменении обстоятельств",
+            "in-game",
+            _PASS if delivered else _FAIL,
             "смена условий 70→0: маска сбрасывается, поведение возвращается",
             f"compute-переход={units.get('transition_ok_compute')}; "
             f"доставка={delivered}; mask_ticks_present={f70.get('mask_ticks_present')}",
             stage="PROJECTION+PERSIST",
-            note="Compute-семантика сброса жива (юнит); игровое проявление невозможно без доставки."),
-        _mk("A5", "A", "Игрок не получает скрытое состояние напрямую",
-            "in-game", _PASS,
+            note="Compute-семантика сброса жива (юнит); игровое проявление невозможно без доставки.",
+        ),
+        _mk(
+            "A5",
+            "A",
+            "Игрок не получает скрытое состояние напрямую",
+            "in-game",
+            _PASS,
             "маска живёт во внутреннем psyche; player-проекции не содержат mask-полей",
             f"mask_in_psyche={f70.get('behavior_mask')}",
-            note=("ВАКУУМНО: телепатии нет, потому что канала нет. После этапа A "
-                  "контракт обязан выполняться по правильной причине — перепроверка обязательна. "
-                  "Граница: проверено на персистентном dict; WorldSnapshotDTO не инструментировался.")),
-        _mk("A6", "A", "Поступки дают основания для выводов (теллы, ложный эмоц. слой)",
-            "isolated", _NOT_IMPL,
+            note=(
+                "ВАКУУМНО: телепатии нет, потому что канала нет. После этапа A "
+                "контракт обязан выполняться по правильной причине — перепроверка обязательна. "
+                "Граница: проверено на персистентном dict; WorldSnapshotDTO не инструментировался."
+            ),
+        ),
+        _mk(
+            "A6",
+            "A",
+            "Поступки дают основания для выводов (теллы, ложный эмоц. слой)",
+            "isolated",
+            _NOT_IMPL,
             "manifestations/nuance читают маску",
             "BehaviorManifestationService и generate_emotional_nuance маску не читают; "
             "EmotionalNuanceEngine не существует; is_concealment_mask — 0 вызывателей",
-            note="Слой наблюдения за маской не реализован (ступень D)."),
+            note="Слой наблюдения за маской не реализован (ступень D).",
+        ),
     ]
     return checks
 
 
-def _contour_b(legs: Dict[str, Any], units: Dict[str, Any],
-               div: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _contour_b(legs: Dict[str, Any], units: Dict[str, Any], div: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Контур B: матрица интеграционной доставки (пост-фикс формулировки, этап A)."""
     f0 = legs["LEG-F0"]
     f07 = legs["LEG-F0.7"]
@@ -768,120 +801,213 @@ def _contour_b(legs: Dict[str, Any], units: Dict[str, Any],
     sweep = {s["fear"]: s for s in units.get("boundary_sweep", [])}
     # Python 3.11: поля подстановки f-string не переносятся между литералами
     # (PEP 701 — только 3.12+) — значения считаются локально
-    mask_missing = [k for k in ("behavior_mask", "behavior_mask_intensity",
-                                "behavior_mask_applied_at_day")
-                    if k in (units.get("persist_missing_keys") or [])]
-    cluster_missing = [k for k in (units.get("persist_missing_keys") or [])
-                       if k in ("resentment", "dependency")]
+    mask_missing = [
+        k
+        for k in ("behavior_mask", "behavior_mask_intensity", "behavior_mask_applied_at_day")
+        if k in (units.get("persist_missing_keys") or [])
+    ]
+    cluster_missing = [k for k in (units.get("persist_missing_keys") or []) if k in ("resentment", "dependency")]
     checks = [
-        _mk("B1", "B", "F0: без оснований FAKE не возникает (контроль ложных срабатываний)",
-            "in-game", _PASS if f0.get("fake_writes", 0) == 0 else _FAIL,
+        _mk(
+            "B1",
+            "B",
+            "F0: без оснований FAKE не возникает (контроль ложных срабатываний)",
+            "in-game",
+            _PASS if f0.get("fake_writes", 0) == 0 else _FAIL,
             "fake_writes=0; ключ пишется со значением none",
-            f"fake_writes={f0.get('fake_writes')}, mask={f0.get('behavior_mask')}"),
-        _mk("B2", "B", "F0.7: малый страх — вычисление и доставка",
-            "in-game", (_NOT_PROVEN if f07.get("skipped")
-                        else (_FAIL if not f07.get("mask_in_dump") else _PASS)),
+            f"fake_writes={f0.get('fake_writes')}, mask={f0.get('behavior_mask')}",
+        ),
+        _mk(
+            "B2",
+            "B",
+            "F0.7: малый страх — вычисление и доставка",
+            "in-game",
+            (_NOT_PROVEN if f07.get("skipped") else (_FAIL if not f07.get("mask_in_dump") else _PASS)),
             "reader sees _fear=70>60 ⇒ fake_submission; доставлена в psyche",
-            (f"leg_skipped: {f07.get('skipped')}" if f07.get("skipped")
-             else f"store_fear={f07.get('store_read', {}).get('fear')}, "
-                  f"mask={f07.get('behavior_mask')}, in_dump={f07.get('mask_in_dump')}"),
+            (
+                f"leg_skipped: {f07.get('skipped')}"
+                if f07.get("skipped")
+                else f"store_fear={f07.get('store_read', {}).get('fear')}, "
+                f"mask={f07.get('behavior_mask')}, in_dump={f07.get('mask_in_dump')}"
+            ),
             stage="PROJECTION+PERSIST",
-            note=("Этап A: доставка закрыта (ORDER+WARA). Шкала: 0.7 producer → "
-                  "70 reader — порог мёртв (этап B); compute при 0.7 доказан "
-                  "boundary-sweep (fake 0.7).")),
-        _mk("B3", "B", "F30: средний страх — переход через порог",
-            "in-game", (_NOT_PROVEN if f30.get("skipped") else _FAIL),
+            note=(
+                "Этап A: доставка закрыта (ORDER+WARA). Шкала: 0.7 producer → "
+                "70 reader — порог мёртв (этап B); compute при 0.7 доказан "
+                "boundary-sweep (fake 0.7)."
+            ),
+        ),
+        _mk(
+            "B3",
+            "B",
+            "F30: средний страх — переход через порог",
+            "in-game",
+            (_NOT_PROVEN if f30.get("skipped") else _FAIL),
             "градиент: различие с F0.7 при доставке",
-            (f"leg_skipped: {f30.get('skipped')}" if f30.get("skipped")
-             else f"store_fear={f30.get('store_read', {}).get('fear')}, "
-                  f"mask={f30.get('behavior_mask')}; "
-                  f"sweep: 0.7→{sweep.get(0.7, {}).get('mask')}, "
-                  f"0.61→{sweep.get(0.61, {}).get('mask')}"),
+            (
+                f"leg_skipped: {f30.get('skipped')}"
+                if f30.get("skipped")
+                else f"store_fear={f30.get('store_read', {}).get('fear')}, "
+                f"mask={f30.get('behavior_mask')}; "
+                f"sweep: 0.7→{sweep.get(0.7, {}).get('mask')}, "
+                f"0.61→{sweep.get(0.61, {}).get('mask')}"
+            ),
             stage="PERSIST",
-            note=("Тождественность F0.7/F30/F70 фиксирует мёртвость порога на "
-                  "прод-шкале (×100) — этап B, не дефект доставки.")),
-        _mk("B4", "B", "F70: высокая интенсивность — полная цепь доставки",
-            "in-game", _FAIL if not f70.get("mask_in_dump") else _PASS,
+            note=(
+                "Тождественность F0.7/F30/F70 фиксирует мёртвость порога на "
+                "прод-шкале (×100) — этап B, не дефект доставки."
+            ),
+        ),
+        _mk(
+            "B4",
+            "B",
+            "F70: высокая интенсивность — полная цепь доставки",
+            "in-game",
+            _FAIL if not f70.get("mask_in_dump") else _PASS,
             "compute N/N, delivery N/N, in_dump=true",
             f"phase_origin_writes={f70.get('phase_origin_mask_writes')}, "
             f"fake_writes={f70.get('fake_writes')}, "
             f"mask_ticks_present={f70.get('mask_ticks_present')}, "
             f"in_dump={f70.get('mask_in_dump')}",
             stage="PROJECTION+PERSIST",
-            note=("Этап A: полная цепь. Тики 1–7/28 без маски в dict — "
-                  "диагностическая нога (кандидат: пост-фазное затирание).")),
-        _mk("B5", "B", "NONE-базлайн: реальный dict без контрактных входов",
-            "isolated", _PASS,
+            note=(
+                "Этап A: полная цепь. Тики 1–7/28 без маски в dict — "
+                "диагностическая нога (кандидат: пост-фазное затирание)."
+            ),
+        ),
+        _mk(
+            "B5",
+            "B",
+            "NONE-базлайн: реальный dict без контрактных входов",
+            "isolated",
+            _PASS,
             "маска не возникает без оснований",
             f"transition_mask_after_fear0={units.get('transition_mask_after_fear0')}",
-            note="Нейтральный вход на реальном dict; фактическое значение записано."),
-        _mk("B6a", "B", "COLLAPSE-нога: WillState.BROKEN возник (verify-first, Q1)",
+            note="Нейтральный вход на реальном dict; фактическое значение записано.",
+        ),
+        _mk(
+            "B6a",
+            "B",
+            "COLLAPSE-нога: WillState.BROKEN возник (verify-first, Q1)",
             "in-game",
-            (_PASS if col_broken and col.get("behavior_mask") == "collapse"
-             else (_FAIL if col_broken else _NOT_PROVEN)),
+            (
+                _PASS
+                if col_broken and col.get("behavior_mask") == "collapse"
+                else (_FAIL if col_broken else _NOT_PROVEN)
+            ),
             "psyche.state=broken возник; маска collapse доставлена",
             f"fixture={'есть' if col else 'отсутствует'}, leg={col.get('skipped', 'OK')}, "
             f"will_state={col.get('will_state')}, mask={col.get('behavior_mask')}, "
             f"integrity_final={(col.get('fingerprint') or [{}])[-1].get('identity_integrity')}",
-            note=("NOT_PROVEN = задокументированная недостижимость легальными входами: "
-                  "BREAK_WILL_BROKEN_PRESSURE_THRESHOLD=80 > максимума давления (social 40; "
-                  "при мёртвом willpower-входе движок делит на 1.5 → ~27); deformation-стадия "
-                  "≈230 тиков распада. Не искусственный FAIL маски (вердикт Q1); compute-ветка "
-                  "покрыта B6b. Фактическая семантика max-pressure ноги: доставляет FAKE 0.7, "
-                  "BROKEN недостижим. Сценарный путь ADR-O-367 — кандидат этапа фикса.")),
-        _mk("B6b", "B", "COLLAPSE-compute: ветка BROKEN в фазе",
-            "isolated", _PASS if units.get("collapse_compute") == "collapse" else _NOT_PROVEN,
+            note=(
+                "NOT_PROVEN = задокументированная недостижимость легальными входами: "
+                "BREAK_WILL_BROKEN_PRESSURE_THRESHOLD=80 > максимума давления (social 40; "
+                "при мёртвом willpower-входе движок делит на 1.5 → ~27); deformation-стадия "
+                "≈230 тиков распада. Не искусственный FAIL маски (вердикт Q1); compute-ветка "
+                "покрыта B6b. Фактическая семантика max-pressure ноги: доставляет FAKE 0.7, "
+                "BROKEN недостижим. Сценарный путь ADR-O-367 — кандидат этапа фикса."
+            ),
+        ),
+        _mk(
+            "B6b",
+            "B",
+            "COLLAPSE-compute: ветка BROKEN в фазе",
+            "isolated",
+            _PASS if units.get("collapse_compute") == "collapse" else _NOT_PROVEN,
             "will_state=BROKEN ⇒ маска collapse (0.8)",
             f"collapse_compute={units.get('collapse_compute')}, "
             f"will_state_seen={units.get('collapse_will_state_seen')}",
-            note="Если NOT_PROVEN: break-движок переопределил will_state до проверки маски."),
-        _mk("B7-mask", "B", "Round-trip МАСКИ: сериализация → восстановление (этап A)",
+            note="Если NOT_PROVEN: break-движок переопределил will_state до проверки маски.",
+        ),
+        _mk(
+            "B7-mask",
+            "B",
+            "Round-trip МАСКИ: сериализация → восстановление (этап A)",
             "isolated",
-            (_PASS if units.get("restore_roundtrip_ok") and not mask_missing
-             else _FAIL),
+            (_PASS if units.get("restore_roundtrip_ok") and not mask_missing else _FAIL),
             "тип/intensity/day совпадают",
             f"mask_missing={mask_missing}, roundtrip={units.get('restore_roundtrip_ok')}",
-            note="Закрыто этапом A (ORDER+WARA); гейт регрессионного режима."),
-        _mk("B7-cluster", "B", "Кластер resentment/dependency: round-trip",
-            "isolated", _FAIL,
+            note="Закрыто этапом A (ORDER+WARA); гейт регрессионного режима.",
+        ),
+        _mk(
+            "B7-cluster",
+            "B",
+            "Кластер resentment/dependency: round-trip",
+            "isolated",
+            _FAIL,
             "поля переживают границу тика",
             f"missing={cluster_missing}",
-            note=("ОТКРЫТОЕ РЕШЕНИЕ МАСТЕРА (кластер — отдельное архитектурное "
-                  "решение, не блокер A). Красный = регистрация долга, НЕ гейт.")),
-        _mk("B8a", "B", "Смена условий (compute): 70 → 0",
-            "isolated", _PASS if units.get("transition_ok_compute") else _FAIL,
+            note=(
+                "ОТКРЫТОЕ РЕШЕНИЕ МАСТЕРА (кластер — отдельное архитектурное "
+                "решение, не блокер A). Красный = регистрация долга, НЕ гейт."
+            ),
+        ),
+        _mk(
+            "B8a",
+            "B",
+            "Смена условий (compute): 70 → 0",
+            "isolated",
+            _PASS if units.get("transition_ok_compute") else _FAIL,
             "fake → не-fake (сброс по контракту, без залипания)",
-            f"70→{units.get('compute_mask')}; 0→{units.get('transition_mask_after_fear0')}"),
-        _mk("B8b", "B", "Смена условий (in-game): межтиковое состояние",
-            "in-game", _FAIL if f70.get("mask_ticks_present", 0) == 0 else _PASS,
+            f"70→{units.get('compute_mask')}; 0→{units.get('transition_mask_after_fear0')}",
+        ),
+        _mk(
+            "B8b",
+            "B",
+            "Смена условий (in-game): межтиковое состояние",
+            "in-game",
+            _FAIL if f70.get("mask_ticks_present", 0) == 0 else _PASS,
             "маска переживает тик; переходы наблюдаемы",
             f"mask_ticks_present={f70.get('mask_ticks_present')}/{_TICKS}",
             stage="PERSIST",
-            note=("Этап A: маска переживает тики; включение/сбросы condition-driven "
-                  "(см. mask_per_tick); тики 1–7/28 — диагностическая нога.")),
-        _mk("B9", "B", "ORDER: вычисленное состояние проецируется",
-            "isolated", _FAIL if units.get("order_broken") else _PASS,
+            note=(
+                "Этап A: маска переживает тики; включение/сбросы condition-driven "
+                "(см. mask_per_tick); тики 1–7/28 — диагностическая нога."
+            ),
+        ),
+        _mk(
+            "B9",
+            "B",
+            "ORDER: вычисленное состояние проецируется",
+            "isolated",
+            _FAIL if units.get("order_broken") else _PASS,
             "маска в объекте ДО проекции ⇒ попадает в dict",
-            f"mask_at_call={units.get('compute', {}).get('mask_at_call')}, "
-            f"mask_after={units.get('compute_mask')}",
+            f"mask_at_call={units.get('compute', {}).get('mask_at_call')}, mask_after={units.get('compute_mask')}",
             stage="PROJECTION",
-            note=("Этап A/V3: order_broken=false — маска пишется ДО проекции. "
-                  "Пре-фикс: S318, маска писалась ПОСЛЕ (decision.py:196>137).")),
-        _mk("B10", "B", "CONSUME (AC-2 ур.2): модификатор на РЕАЛЬНЫХ данных",
-            "isolated", _PASS if units.get("consume_deforms") else _FAIL,
+            note=(
+                "Этап A/V3: order_broken=false — маска пишется ДО проекции. "
+                "Пре-фикс: S318, маска писалась ПОСЛЕ (decision.py:196>137)."
+            ),
+        ),
+        _mk(
+            "B10",
+            "B",
+            "CONSUME (AC-2 ур.2): модификатор на РЕАЛЬНЫХ данных",
+            "isolated",
+            _PASS if units.get("consume_deforms") else _FAIL,
             "контроль F0→1.0; F70-состояние: attack<1<talk",
             f"control={units.get('consume_control')}, real={units.get('consume_real')}, "
             f"masked={units.get('consume_masked')}",
-            note=("Пост-фикс: мир даёт потребителю маску — real деформирует; "
-                  "равенство real≈masked — детерминизм модификатора.")),
-        _mk("B11", "B", "Дивергенция: поведенческий эффект маски",
-            "in-game", _FAIL if not div.get("P3_delivery", {}).get("mask_in_dump") else _PASS,
+            note=(
+                "Пост-фикс: мир даёт потребителю маску — real деформирует; "
+                "равенство real≈masked — детерминизм модификатора."
+            ),
+        ),
+        _mk(
+            "B11",
+            "B",
+            "Дивергенция: поведенческий эффект маски",
+            "in-game",
+            _FAIL if not div.get("P3_delivery", {}).get("mask_in_dump") else _PASS,
             "расхождение миров, медиированное маской (P1–P5)",
             f"P1={div.get('P1_parity')}, P2={div.get('P2_mask_state')}, "
             f"P3={div.get('P3_delivery')}, first_diff={div.get('first_diff')}",
             stage="EFFECT",
-            note=(f"Атрибуция: {div.get('P5_attribution')}. Манифестационный потенциал "
-                  f"(интенты CONTROL): {div.get('manifestation_potential_intents')}")),
+            note=(
+                f"Атрибуция: {div.get('P5_attribution')}. Манифестационный потенциал "
+                f"(интенты CONTROL): {div.get('manifestation_potential_intents')}"
+            ),
+        ),
     ]
     return checks
 
@@ -890,44 +1016,51 @@ def _break_map(legs: Dict[str, Any], units: Dict[str, Any]) -> Dict[str, str]:
     """Пост-фикс карта (этап A): закрытые разрывы + открытые долги."""
     f70 = legs["LEG-F70"]
     compute_ok = units.get("compute_mask") == "fake_submission"
-    cluster = [k for k in (units.get("persist_missing_keys") or [])
-               if k in ("resentment", "dependency")]
-    mask_missing = [k for k in ("behavior_mask", "behavior_mask_intensity",
-                                "behavior_mask_applied_at_day")
-                    if k in (units.get("persist_missing_keys") or [])]
+    cluster = [k for k in (units.get("persist_missing_keys") or []) if k in ("resentment", "dependency")]
+    mask_missing = [
+        k
+        for k in ("behavior_mask", "behavior_mask_intensity", "behavior_mask_applied_at_day")
+        if k in (units.get("persist_missing_keys") or [])
+    ]
     return {
         "COMPUTE": "alive" if compute_ok else "unproven",
         "PROJECTION": (
-            "broken (S318): маска после проекции" if units.get("order_broken")
+            "broken (S318): маска после проекции"
+            if units.get("order_broken")
             else "fixed (этап A/V3): фазовые захваты fake→fake, переходов 0"
         ),
         "PERSIST": (
             ("broken (WARA): не пишутся " + ", ".join(mask_missing))
             if mask_missing
-            else ("fixed (этап A): mask×3 пишутся; cluster debt: "
-                  + (", ".join(cluster) if cluster else "—"))
+            else ("fixed (этап A): mask×3 пишутся; cluster debt: " + (", ".join(cluster) if cluster else "—"))
         ),
-        "RESTORE": ("fixed (этап A): round-trip ok"
-                    if units.get("restore_roundtrip_ok")
-                    else "broken: round-trip теряет маску"),
-        "CONSUME": ("alive-in-scores (этап A/№3): сигнатура ×0.155 в реальных "
-                    "корах; семантика инвертирована на отрицательных — этап B"
-                    if f70.get("mask_in_dump") else "not-fired"),
-        "EFFECT": ("delivered (сигнатура в скорах + релокации носителя); "
-                   "направление — этап B (B12)"
-                   if f70.get("mask_in_dump") else "not-delivered"),
-        "INPUTS": ("trust/fear живы; willpower/hidden_truth/rc — мёртвые входы "
-                   "(открытые долги, вне этапа A)"),
-        "OPEN": ("тики 1–7/28 — диагностическая нога; game_day=0 (G6)"
-                 + ("; кластер: " + ", ".join(cluster) + " (решение Мастера)"
-                    if cluster else "")),
+        "RESTORE": (
+            "fixed (этап A): round-trip ok" if units.get("restore_roundtrip_ok") else "broken: round-trip теряет маску"
+        ),
+        "CONSUME": (
+            "alive-in-scores (этап A/№3): сигнатура ×0.155 в реальных "
+            "корах; семантика инвертирована на отрицательных — этап B"
+            if f70.get("mask_in_dump")
+            else "not-fired"
+        ),
+        "EFFECT": (
+            "delivered (сигнатура в скорах + релокации носителя); направление — этап B (B12)"
+            if f70.get("mask_in_dump")
+            else "not-delivered"
+        ),
+        "INPUTS": ("trust/fear живы; willpower/hidden_truth/rc — мёртвые входы (открытые долги, вне этапа A)"),
+        "OPEN": (
+            "тики 1–7/28 — диагностическая нога; game_day=0 (G6)"
+            + ("; кластер: " + ", ".join(cluster) + " (решение Мастера)" if cluster else "")
+        ),
     }
 
 
 def _git_sha() -> str:
     try:
-        r = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                           capture_output=True, text=True, cwd=str(_ROOT), timeout=10)
+        r = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=str(_ROOT), timeout=10
+        )
         return r.stdout.strip() or "unavailable"
     except Exception:
         return "unavailable"
@@ -941,8 +1074,7 @@ def main() -> int:
         for run_id, preset in _PRESETS.items():
             if not (_ROOT / preset).exists():
                 # Фикстура не создана — честный NOT_PROVEN, не INVALID (вердикт Q1)
-                legs[run_id] = {"run_id": run_id, "evidence_path": "in-game",
-                                "skipped": "fixture_missing"}
+                legs[run_id] = {"run_id": run_id, "evidence_path": "in-game", "skipped": "fixture_missing"}
                 continue
             try:
                 rec, fin = _run_leg(run_id, preset, instrumented=run_id in _INSTRUMENTED)
@@ -952,7 +1084,8 @@ def main() -> int:
                 # не обходится), остальные ноги выполняются. Частичный отчёт за
                 # доказательство не выдаётся: у каждой ноги явный статус.
                 legs[run_id] = {
-                    "run_id": run_id, "evidence_path": "in-game",
+                    "run_id": run_id,
+                    "evidence_path": "in-game",
                     "skipped": f"load_error: {type(e).__name__}: {e}",
                 }
                 continue
@@ -965,27 +1098,40 @@ def main() -> int:
         units = _unit_chain(fins["LEG-F70"], fins.get("LEG-F0"))
         div = _divergence(legs["LEG-F0"], legs["LEG-F70"])
         sc = _score_contrast(legs.get("LEG-F0", {}), legs.get("LEG-F0.7", {}))
-        checks = _contour_a(legs, units, div) + _contour_b(legs, units, div) + [
-            _mk("B12", "B", "AC-2 ур.3: маска влияет на реальные скоры (F0 vs F0.7)",
-                "in-game", sc["status"],
-                "boosted (talk/observe/idle) ↑; suppressed (attack/intimidate/warn) ↓",
-                json.dumps(sc["detail"], ensure_ascii=False),
-                note=("Доставка доказана (этап A/№3): сигнатура множителя ×0.155 в "
-                      "реальных скорах (F0.7 −0.52→≈−0.10; F70 −2.0→≈−0.31; контроль "
-                      "F0 неизменен). FAIL = контракт НАПРАВЛЕНИЯ нарушен потребителем: "
-                      "на отрицательных скорах множитель инвертирует семантику — "
-                      "«подавленный» attack растёт к нулю, «усиленные» talk/idle "
-                      "падают. Красный целевой — до этапа B; в гейты не входит.")),
-        ]
+        checks = (
+            _contour_a(legs, units, div)
+            + _contour_b(legs, units, div)
+            + [
+                _mk(
+                    "B12",
+                    "B",
+                    "AC-2 ур.3: маска влияет на реальные скоры (F0 vs F0.7)",
+                    "in-game",
+                    sc["status"],
+                    "boosted (talk/observe/idle) ↑; suppressed (attack/intimidate/warn) ↓",
+                    json.dumps(sc["detail"], ensure_ascii=False),
+                    note=(
+                        "Доставка доказана (этап A/№3): сигнатура множителя ×0.155 в "
+                        "реальных скорах (F0.7 −0.52→≈−0.10; F70 −2.0→≈−0.31; контроль "
+                        "F0 неизменен). FAIL = контракт НАПРАВЛЕНИЯ нарушен потребителем: "
+                        "на отрицательных скорах множитель инвертирует семантику — "
+                        "«подавленный» attack растёт к нулю, «усиленные» talk/idle "
+                        "падают. Красный целевой — до этапа B; в гейты не входит."
+                    ),
+                ),
+            ]
+        )
         diag = _diagnostic_leg()
     except Exception as e:
         # INVALID: измерение не завершено (§3.12: INVALID ≠ FAIL)
-        report = {"stage": "0.6", "status": _INVALID,
-                  "error": f"{type(e).__name__}: {e}",
-                  "completed_legs": list(legs.keys())}
+        report = {
+            "stage": "0.6",
+            "status": _INVALID,
+            "error": f"{type(e).__name__}: {e}",
+            "completed_legs": list(legs.keys()),
+        }
         _REPORT.parent.mkdir(parents=True, exist_ok=True)
-        _REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2),
-                           encoding="utf-8")
+        _REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"[BM-CLOSURE] INVALID: {type(e).__name__}: {e}")
         print(f"[BM-CLOSURE] Отчёт (частичный): {_REPORT}")
         return 1
@@ -995,15 +1141,16 @@ def main() -> int:
         "stage": "0.6",
         "status": "measured",
         "legs_completed": {
-            rid: ("skipped: " + r["skipped"] if "skipped" in (r or {}) else "OK")
-            for rid, r in legs.items()
+            rid: ("skipped: " + r["skipped"] if "skipped" in (r or {}) else "OK") for rid, r in legs.items()
         },
         "environment": {
             "git_sha": _git_sha(),
-            "campaign": _CAMPAIGN, "npc": _NPC, "ticks": _TICKS,
+            "campaign": _CAMPAIGN,
+            "npc": _NPC,
+            "ticks": _TICKS,
             "presets": _PRESETS,
             "note": "базлайн зафиксирован П0–П2 (git, хэши, бэкап R002); "
-                    "воспроизведение R002 — reports/lab_r002_rerun_s0_6.log",
+            "воспроизведение R002 — reports/lab_r002_rerun_s0_6.log",
         },
         "checks": checks,
         "break_map": _break_map(legs, units),
@@ -1028,25 +1175,63 @@ def main() -> int:
         "missing_contracts": [c["id"] for c in checks if c["status"] == _NOT_IMPL],
         "scales_weights_audit": {
             "rows": [
-                {"param": "fear", "source": "RelationshipStore", "scale": "V2 -100..100",
-                 "transform": "×100 (decision.py:214)", "threshold": ">60 reader ⇒ >0.6 producer",
-                 "consumer": "фаза маски", "runtime": {k: legs[k].get("store_read", {}).get("fear")
-                                                        for k in ("LEG-F0", "LEG-F0.7", "LEG-F30", "LEG-F70")}},
-                {"param": "fear→intensity(FAKE)", "source": "-", "scale": "-",
-                 "transform": "min(0.7, fear)", "threshold": "полоса 0.6–0.7, выше сатурация",
-                 "consumer": "хаб-модификатор", "runtime": units.get("boundary_sweep")},
-                {"param": "trust", "source": "RelationshipStore", "scale": "V2",
-                 "transform": "нет", "threshold": "<0 (FAKE), <-50 (BETRAYAL)",
-                 "consumer": "фаза маски", "runtime": {"F70": legs["LEG-F70"].get("store_read", {}).get("trust")}},
-                {"param": "willpower", "source": "NPCPersonality L0 (getattr дефолт 50)",
-                 "scale": "0..100?", "transform": "нет", "threshold": ">40 — проходит по умолчанию",
-                 "consumer": "фаза маски", "runtime": units.get("personality_willpower_seen")},
-                {"param": "suppression", "source": "-", "scale": "0.1..0.8",
-                 "transform": "max(0.1, 0.8-0.7·int)", "threshold": "конкуренция с OpportunityEngine не проверена",
-                 "consumer": "хаб-модификатор", "runtime": units.get("consume_masked")},
-                {"param": "applied_at_day", "source": "фаза", "scale": "день",
-                 "transform": "-", "threshold": "write-only: читателей нет",
-                 "consumer": "отсутствует", "runtime": units.get("compute_applied_at_day")},
+                {
+                    "param": "fear",
+                    "source": "RelationshipStore",
+                    "scale": "V2 -100..100",
+                    "transform": "×100 (decision.py:214)",
+                    "threshold": ">60 reader ⇒ >0.6 producer",
+                    "consumer": "фаза маски",
+                    "runtime": {
+                        k: legs[k].get("store_read", {}).get("fear")
+                        for k in ("LEG-F0", "LEG-F0.7", "LEG-F30", "LEG-F70")
+                    },
+                },
+                {
+                    "param": "fear→intensity(FAKE)",
+                    "source": "-",
+                    "scale": "-",
+                    "transform": "min(0.7, fear)",
+                    "threshold": "полоса 0.6–0.7, выше сатурация",
+                    "consumer": "хаб-модификатор",
+                    "runtime": units.get("boundary_sweep"),
+                },
+                {
+                    "param": "trust",
+                    "source": "RelationshipStore",
+                    "scale": "V2",
+                    "transform": "нет",
+                    "threshold": "<0 (FAKE), <-50 (BETRAYAL)",
+                    "consumer": "фаза маски",
+                    "runtime": {"F70": legs["LEG-F70"].get("store_read", {}).get("trust")},
+                },
+                {
+                    "param": "willpower",
+                    "source": "NPCPersonality L0 (getattr дефолт 50)",
+                    "scale": "0..100?",
+                    "transform": "нет",
+                    "threshold": ">40 — проходит по умолчанию",
+                    "consumer": "фаза маски",
+                    "runtime": units.get("personality_willpower_seen"),
+                },
+                {
+                    "param": "suppression",
+                    "source": "-",
+                    "scale": "0.1..0.8",
+                    "transform": "max(0.1, 0.8-0.7·int)",
+                    "threshold": "конкуренция с OpportunityEngine не проверена",
+                    "consumer": "хаб-модификатор",
+                    "runtime": units.get("consume_masked"),
+                },
+                {
+                    "param": "applied_at_day",
+                    "source": "фаза",
+                    "scale": "день",
+                    "transform": "-",
+                    "threshold": "write-only: читателей нет",
+                    "consumer": "отсутствует",
+                    "runtime": units.get("compute_applied_at_day"),
+                },
             ],
             "note": "Первичный аудит (§3 вердикта): факты пути данных; целевое поведение — TBD Мастера.",
         },
@@ -1088,15 +1273,17 @@ def main() -> int:
     _REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Явный статус каждой ноги — частичный прогон не выдаётся за полный (директива №4)
-    print("[BM-CLOSURE] Ноги: " + "; ".join(
-        f"{rid}={'OK' if 'skipped' not in (r or {}) else r.get('skipped')}"
-        for rid, r in legs.items()))
+    print(
+        "[BM-CLOSURE] Ноги: "
+        + "; ".join(f"{rid}={'OK' if 'skipped' not in (r or {}) else r.get('skipped')}" for rid, r in legs.items())
+    )
     for c in checks:
-        print(f"[BM-CLOSURE] {c['id']} [{c['contour']}/{c['evidence_path']}] "
-              f"{c['status']} — {c['contract']}")
-    print(f"[BM-CLOSURE] Итог: PASS={counts.get(_PASS, 0)} FAIL={counts.get(_FAIL, 0)} "
-          f"NOT_IMPLEMENTED={counts.get(_NOT_IMPL, 0)} NOT_PROVEN={counts.get(_NOT_PROVEN, 0)} "
-          f"INVALID={counts.get(_INVALID, 0)}")
+        print(f"[BM-CLOSURE] {c['id']} [{c['contour']}/{c['evidence_path']}] {c['status']} — {c['contract']}")
+    print(
+        f"[BM-CLOSURE] Итог: PASS={counts.get(_PASS, 0)} FAIL={counts.get(_FAIL, 0)} "
+        f"NOT_IMPLEMENTED={counts.get(_NOT_IMPL, 0)} NOT_PROVEN={counts.get(_NOT_PROVEN, 0)} "
+        f"INVALID={counts.get(_INVALID, 0)}"
+    )
     bm = _break_map(legs, units)
     print(f"[BM-CLOSURE] Разрывы: PROJECTION={bm['PROJECTION']}; PERSIST={bm['PERSIST']}")
     # Регрессионный режим: ненулевой exit ТОЛЬКО по утверждённому контракту
@@ -1104,10 +1291,8 @@ def main() -> int:
     # недостижимость, шкала, кластер) — НЕ гейты. B12 — вне гейтов до
     # подтверждения стабильности скор-инструмента.
     _GATES = {"B2", "B4", "B7-mask", "B8b", "B9", "B10"}
-    gate_failures = [c["id"] for c in checks
-                     if c["id"] in _GATES and c["status"] != _PASS]
-    print(f"[BM-CLOSURE] Гейты регрессии: "
-          f"{'OK' if not gate_failures else 'FAIL: ' + ', '.join(gate_failures)}")
+    gate_failures = [c["id"] for c in checks if c["id"] in _GATES and c["status"] != _PASS]
+    print(f"[BM-CLOSURE] Гейты регрессии: {'OK' if not gate_failures else 'FAIL: ' + ', '.join(gate_failures)}")
     print(f"[BM-CLOSURE] Отчёт: {_REPORT}")
     return 1 if gate_failures else 0
 

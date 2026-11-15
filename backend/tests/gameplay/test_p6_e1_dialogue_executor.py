@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p6_e1_dialogue_executor.py
+# path: /project/backend/tests/gameplay/test_p6_e1_dialogue_executor.py
 """
 Файл: backend/tests/gameplay/test_p6_e1_dialogue_executor.py
 Назначение: P6/E1 — T8: сквозной P1→P6 через DialogueExecutor (router=None:

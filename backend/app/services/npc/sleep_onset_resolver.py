@@ -13,6 +13,7 @@ path: /project/backend/app/services/npc/sleep_onset_resolver.py
 - НЕ решает поведение при отказе (no-BED ≠ resting — вердикт §9).
 - НЕ вводит новые калибровки (пороги — существующие GAP9/паралич; закон №13).
 """
+
 from __future__ import annotations
 
 import logging

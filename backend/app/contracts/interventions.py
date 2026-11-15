@@ -4,6 +4,7 @@
 Зависимости: стандартная библиотека Python.
 Основные сущности: InterventionEven
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,9 +25,7 @@ class InterventionEvent:
     tick: int
 
     @classmethod
-    def from_player_action(
-        cls, action_text: str, player_name: str, tick: int, **kwargs: Any
-    ) -> "InterventionEvent":
+    def from_player_action(cls, action_text: str, player_name: str, tick: int, **kwargs: Any) -> "InterventionEvent":
         """Factory для player actions (backward compat для GameLoop)."""
         return cls(
             source="player",

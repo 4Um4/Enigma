@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_adr_o323_boundary_arrival_traversal_proposal.py
+# path: /project/backend/tests/gameplay/test_adr_o323_boundary_arrival_traversal_proposal.py
 # Назначение: ADR-O-323 FIX-01 — regression test.
 #   boundary_arrival переходит через traversal_complete (whitelist SSM),
 #   не вызывает MISSING_TRAVERSAL_PROPOSAL violation.
@@ -26,6 +26,7 @@ MISSING_TRAVERSAL_PROPOSAL violation в SceneStateManager (ERROR-level).
 3. NPC корректно переносится в новую сцену (location_id обновлён).
 4. Обычное внутрисценовое перемещение не сломано (active_traversals populated).
 """
+
 import logging
 import types
 from typing import Any, List
@@ -57,6 +58,7 @@ class _SyncPool:
 
 def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     from app.domain.execution import TaskKind
+
     _sched = getattr(harness.game_loop, "_task_scheduler", None)
     if _sched is None:
         _sched = harness.game_loop._get_task_scheduler()
@@ -81,9 +83,8 @@ def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     # (structural propagation без семантической проверки).
     from app.services.cognition.proposition_verifier import PassthroughVerifier
     from app.services.execution.dialogue_materializer import DialogueMaterializer
-    _sched._materializers["dialogue_line"] = DialogueMaterializer(
-        proposition_verifier=PassthroughVerifier()
-    )
+
+    _sched._materializers["dialogue_line"] = DialogueMaterializer(proposition_verifier=PassthroughVerifier())
     print("[WIRING] _materializers['dialogue_line'] = PassthroughVerifier (structural test)")
 
 
@@ -154,14 +155,11 @@ class TestADRO323BoundaryArrival:
         _ts = next((s for s in _states if s.get("npc_id") == "thief_shadow"), None)
         assert _ts is not None, "thief_shadow не найден в LifeEngine"
         _loc = _ts.get("location_id")
-        assert _loc in ("city_gate", "tavern"), (
-            f"unexpected location_id={_loc}; expected city_gate or tavern"
-        )
+        assert _loc in ("city_gate", "tavern"), f"unexpected location_id={_loc}; expected city_gate or tavern"
         if _loc == "city_gate":
             print(f"[ADR-O-323] PASS: thief_shadow crossed scene → location_id={_loc}")
         else:
-            print(f"[ADR-O-323] INFO: thief_shadow stayed in {_loc} "
-                  "(boundary not reached in 10 ticks)")
+            print(f"[ADR-O-323] INFO: thief_shadow stayed in {_loc} (boundary not reached in 10 ticks)")
 
     def test_intrascene_traversal_still_works(self, harness):
         """Регрессия: обычное внутрисценовое перемещение создаёт proposal.
@@ -174,11 +172,9 @@ class TestADRO323BoundaryArrival:
         _scene = harness.get_scene_fresh() or {}
         _travs = _scene.get("active_traversals", {}) or {}
         assert len(_travs) > 0, (
-            f"Регрессия: active_traversals пуст. Обычное внутрисценовое "
-            f"перемещение сломано. traversals={_travs}"
+            f"Регрессия: active_traversals пуст. Обычное внутрисценовое перемещение сломано. traversals={_travs}"
         )
-        print(f"[ADR-O-323] PASS: intrascene traversal works, "
-              f"active_traversals count={len(_travs)}")
+        print(f"[ADR-O-323] PASS: intrascene traversal works, active_traversals count={len(_travs)}")
 
 
 if __name__ == "__main__":

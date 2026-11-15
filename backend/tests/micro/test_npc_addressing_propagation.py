@@ -5,6 +5,7 @@ path: /project/backend/tests/micro/test_npc_addressing_propagation.py
 Зависимости: app.domain.tick, app.services.events.npc_addressing_delivery_subscriber
 Основные сущности: тесты battery 1-10
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -112,21 +113,14 @@ def test_9_early_return_contains_npc_addressing():
     src = _read_game_loop_source()
     assert '"player_turn_in_flight"' in src
     idx = src.index('"player_turn_in_flight"')
-    assert "npc_addressing" in src[idx:idx + 200]
+    assert "npc_addressing" in src[idx : idx + 200]
 
 
 def test_10_no_scene_returns_contain_npc_addressing():
     """Source-inspection: return statements with 'no_scene' contain 'npc_addressing'."""
     src = _read_game_loop_source()
     lines = src.split("\n")
-    no_scene_returns = [
-        l for l in lines
-        if '"no_scene"' in l and l.strip().startswith("return")
-    ]
-    assert len(no_scene_returns) >= 2, (
-        f"Expected >=2 no_scene return statements, found {len(no_scene_returns)}"
-    )
+    no_scene_returns = [l for l in lines if '"no_scene"' in l and l.strip().startswith("return")]
+    assert len(no_scene_returns) >= 2, f"Expected >=2 no_scene return statements, found {len(no_scene_returns)}"
     for line in no_scene_returns:
-        assert "npc_addressing" in line, (
-            f"no_scene return must contain 'npc_addressing': {line.strip()}"
-        )
+        assert "npc_addressing" in line, f"no_scene return must contain 'npc_addressing': {line.strip()}"

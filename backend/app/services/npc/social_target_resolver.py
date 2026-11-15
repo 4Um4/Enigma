@@ -21,8 +21,11 @@ class SocialTargetResolver:
 
     @staticmethod
     def resolve(
-        state: Any, spatial_query: Optional[Any], all_npc_ids: List[str],
-        relationship_store: Optional[Any] = None, campaign_id: str = ""
+        state: Any,
+        spatial_query: Optional[Any],
+        all_npc_ids: List[str],
+        relationship_store: Optional[Any] = None,
+        campaign_id: str = "",
     ) -> Optional[str]:
         if not spatial_query:
             return None
@@ -53,7 +56,9 @@ class SocialTargetResolver:
 
             # Отсекаем только явных врагов
             if _trust < SOCIAL_TRUST_HOSTILE_THRESHOLD:
-                logger.debug(f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < {SOCIAL_TRUST_HOSTILE_THRESHOLD})")
+                logger.debug(
+                    f"[SOCIAL_TARGET] {state.npc_id} skips {nid} (trust={_trust:.1f} < {SOCIAL_TRUST_HOSTILE_THRESHOLD})"
+                )
                 continue
             _filtered_candidates.append((nid, _trust))
 
@@ -79,7 +84,5 @@ class SocialTargetResolver:
 
         if _best_target:
             # IPT-CLEANUP: WARNING → INFO. Нормальный выбор social target — не warning.
-            logger.info(
-                f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_best_target} (dist={_min_dist:.1f}, LoS=True)"
-            )
+            logger.info(f"[SOCIAL_TARGET] npc={state.npc_id} -> target={_best_target} (dist={_min_dist:.1f}, LoS=True)")
         return _best_target

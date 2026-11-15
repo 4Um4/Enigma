@@ -5,6 +5,7 @@ path: /frontend/portrait_renderer.py
 Зависимости: pygame, sprite_registry, expression_resolver
 Основные сущности: PortraitRenderer
 """
+
 import logging
 from typing import Any, List, Optional
 
@@ -12,6 +13,7 @@ import pygame
 from sprite_registry import sprite_registry
 
 logger = logging.getLogger(__name__)
+
 
 class PortraitRenderer:
     """Рисует портреты NPC и Игрока во время активного диалога. Не знает о конфигах."""
@@ -25,19 +27,25 @@ class PortraitRenderer:
         entities: List[Any],
         npc_speech_bubbles: dict,
         player_speech: Optional[dict],
-        casting_repo: Any
+        casting_repo: Any,
     ):
         """Отрисовка портретов. Активируется только при наличии реплик."""
         _now = pygame.time.get_ticks()
         screen_w, screen_h = screen.get_size()
         _size = 192  # Размер портрета
-        
+
         # 1. Игрок (справа)
         _player_entity = next((e for e in entities if e.entity_id == "player"), None)
         _player_result = casting_repo.resolve_entity(_player_entity) if _player_entity else None
-        
+
         self._update_fade("player", player_speech is not None, _now)
-        self._draw_portrait(screen, "player", _player_result.asset if _player_result else None, screen_w - _size - 20, screen_h - _size - 40)
+        self._draw_portrait(
+            screen,
+            "player",
+            _player_result.asset if _player_result else None,
+            screen_w - _size - 20,
+            screen_h - _size - 40,
+        )
 
         # 2. NPC (слева)
         _active_npc_id = None
@@ -45,11 +53,11 @@ class PortraitRenderer:
             _sorted = sorted(npc_speech_bubbles.items(), key=lambda item: item[1].get("tick", 0), reverse=True)
             if _sorted:
                 _active_npc_id = _sorted[0][0]
-        
+
         if _active_npc_id:
             _entity = next((e for e in entities if e.entity_id == _active_npc_id), None)
             _result = casting_repo.resolve_entity(_entity) if _entity else None
-            
+
             self._update_fade(_active_npc_id, True, _now)
             self._draw_portrait(screen, _active_npc_id, _result.asset if _result else None, 20, screen_h - _size - 40)
         else:
@@ -65,14 +73,14 @@ class PortraitRenderer:
         dt = max(0.001, (now - state["last_update"]) / 1000.0)
         state["last_update"] = now
         state["target"] = 255.0 if is_active else 0.0
-        
+
         speed = 1275.0 if state["target"] > state["alpha"] else 255.0
-        
+
         if state["alpha"] < state["target"]:
             state["alpha"] = min(state["target"], state["alpha"] + speed * dt)
         else:
             state["alpha"] = max(state["target"], state["alpha"] - speed * dt)
-            
+
         self._fade_state[target_id] = state
 
     def _draw_portrait(self, screen: pygame.Surface, target_id: str, sprite_info: Optional[list], x: int, y: int):
@@ -81,7 +89,7 @@ class PortraitRenderer:
         # S176 FIX: Если путь пустой или данных нет — не рисуем квадрат вообще
         if not state or state["alpha"] <= 0.1 or not sprite_info or len(sprite_info) < 3 or not sprite_info[0]:
             return
-            
+
         try:
             # S176: Поддержка точного пиксельного кропа [sheet, x, y, w, h, threshold, outline]
             if len(sprite_info) >= 5:
@@ -94,12 +102,12 @@ class PortraitRenderer:
                     int(sprite_info[3]),
                     int(sprite_info[4]),
                     _t,
-                    _o
+                    _o,
                 )
             else:
                 # Легаси: сеточный формат [sheet, col, row]
                 _surf = sprite_registry.get(sprite_info[0], sprite_info[1], sprite_info[2])
-                
+
             if _surf:
                 # S176 FIX: Сохраняем пропорции портрета, чтобы не сплющивать модель
                 sw, sh = _surf.get_size()

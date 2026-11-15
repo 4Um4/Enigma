@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /project/backend/app/services/events/npc_dialogue_subscriber.py
 Назначение: Слушает NPC_SPOKE события, замыкая цикл восприятия для NPC-NPC диалогов
     (эмоции, память, отношения).
@@ -96,12 +96,7 @@ class NpcDialogueSubscriber:
 
             _states = self._get_npc_state() or []
             _speaker_raw = next(
-                (
-                    n
-                    for n in _states
-                    if isinstance(n, dict)
-                    and (n.get("npc_id") or n.get("id")) == speaker
-                ),
+                (n for n in _states if isinstance(n, dict) and (n.get("npc_id") or n.get("id")) == speaker),
                 None,
             )
             if _speaker_raw is None:
@@ -119,9 +114,7 @@ class NpcDialogueSubscriber:
                 _content_class = CONTENT_EAVESDROP_FULL
             return _secret_id, _content_class
         except Exception as _e:
-            logger.warning(
-                f"[NPC_DIALOGUE_SUB] eavesdrop label failed ({speaker}): {_e}"
-            )
+            logger.warning(f"[NPC_DIALOGUE_SUB] eavesdrop label failed ({speaker}): {_e}")
             return None, None
 
     def _refresh_name_gate(self, scene_state: dict) -> None:
@@ -137,19 +130,14 @@ class NpcDialogueSubscriber:
         _positions: Dict[str, Any] = {}
         if self._get_spatial_query:
             _sq = self._get_spatial_query()
-            _positions = (getattr(_sq, "_npc_positions", None) or {}
-                          if _sq else {})
+            _positions = getattr(_sq, "_npc_positions", None) or {} if _sq else {}
         _gate = scene_state.setdefault("name_gate", {})
         for _nid, _rent in _recog.items():
             _pdata = _positions.get(_nid)
-            _tname = (
-                _pdata.get("name")
-                if isinstance(_pdata, dict)
-                else getattr(_pdata, "name", None)
-            ) or _nid
+            _tname = (_pdata.get("name") if isinstance(_pdata, dict) else getattr(_pdata, "name", None)) or _nid
             _gate[_nid] = self._avatar_service.get_name_display(
-                _campaign_id, _nid, _tname,
-                _rent.get("status") == "confirmed")
+                _campaign_id, _nid, _tname, _rent.get("status") == "confirmed"
+            )
 
     def drain_pending_recognition(self, scene_state: dict) -> None:
         """M17 этап 2: применение pending tentative-записей в drain-границе
@@ -239,9 +227,10 @@ class NpcDialogueSubscriber:
                     _speaker_pos = _spatial_query._npc_positions.get(speaker, {}).get("local_position", {})
                     if _player_pos and _speaker_pos:
                         import math
+
                         _dist_to_player = math.hypot(
                             _player_pos.get("x", 0.0) - _speaker_pos.get("x", 0.0),
-                            _player_pos.get("y", 0.0) - _speaker_pos.get("y", 0.0)
+                            _player_pos.get("y", 0.0) - _speaker_pos.get("y", 0.0),
                         )
                 # Р-Г (GC-DIALOGUE-01): порог журнала игрока — из event.radius
                 # (SpeechExposure SSOT, Р-В): whisper 3 / normal 6 / loud 10 /
@@ -251,12 +240,10 @@ class NpcDialogueSubscriber:
                 # меняют сегодняшнее поведение и не раздувают журнал на сцену.
                 # Локальный импорт — прецедент файла (math, PerceptualKernel).
                 from app.domain.communication import exposure_radius
+
                 _evt_radius = getattr(event, "radius", None)
                 _journal_threshold = 8.0  # легаси-порог S128 (fail-open)
-                if (
-                    isinstance(_evt_radius, (int, float))
-                    and 0.0 <= float(_evt_radius) <= exposure_radius("shout")
-                ):
+                if isinstance(_evt_radius, (int, float)) and 0.0 <= float(_evt_radius) <= exposure_radius("shout"):
                     _journal_threshold = float(_evt_radius)
                 if _dist_to_player < _journal_threshold and is_canonical:
                     # INV-NPC-NAME: журнал игрока хранит наблюдаемое имя, не machine-id.
@@ -274,11 +261,11 @@ class NpcDialogueSubscriber:
                     if speaker in _npc_positions:
                         _sp_data = _npc_positions[speaker]
                         _resolved = (
-                            _sp_data.get("name")
-                            if isinstance(_sp_data, dict) else getattr(_sp_data, "name", None)
+                            _sp_data.get("name") if isinstance(_sp_data, dict) else getattr(_sp_data, "name", None)
                         ) or (
                             _sp_data.get("display_name")
-                            if isinstance(_sp_data, dict) else getattr(_sp_data, "display_name", None)
+                            if isinstance(_sp_data, dict)
+                            else getattr(_sp_data, "display_name", None)
                         )
                         if _resolved:
                             _speaker_name = _resolved
@@ -316,8 +303,7 @@ class NpcDialogueSubscriber:
                             _face = _channel == "direct"
                             # SELF_INTRO: спикер произнёс собственное имя
                             if _resolved and _resolved in text:
-                                self._avatar_service.note_name_intro(
-                                    _campaign_id, speaker, _resolved)
+                                self._avatar_service.note_name_intro(_campaign_id, speaker, _resolved)
                             # NPC_MENTION (ADR-O-409, STOP-вердикт):
                             # чужие имена, услышанные в тексте → tentative
                             # ТОЛЬКО. Identity-link НЕ создаётся: услышать
@@ -327,19 +313,19 @@ class NpcDialogueSubscriber:
                                 if _oid == speaker or _oid == "player":
                                     continue
                                 _oname = (
-                                    _odata.get("name")
-                                    if isinstance(_odata, dict)
-                                    else getattr(_odata, "name", None)
+                                    _odata.get("name") if isinstance(_odata, dict) else getattr(_odata, "name", None)
                                 )
                                 if _oname and _oname in text:
-                                    self._avatar_service.note_name_heard(
-                                        _campaign_id, _oid, _oname)
+                                    self._avatar_service.note_name_heard(_campaign_id, _oid, _oname)
                             _speaker_name = (
-                                self._avatar_service.get_name_display(
-                                    _campaign_id, speaker, _resolved, _face)
-                                if _resolved else _speaker_name)
+                                self._avatar_service.get_name_display(_campaign_id, speaker, _resolved, _face)
+                                if _resolved
+                                else _speaker_name
+                            )
                         self._avatar_service.append_journal(
-                            campaign_id=_campaign_id, speaker=_speaker_name, text=text,
+                            campaign_id=_campaign_id,
+                            speaker=_speaker_name,
+                            text=text,
                             channel=_channel,
                             event_id=str(getattr(event, "id", "") or ""),
                             tick=int(_event_tick or tick or 0),
@@ -356,11 +342,7 @@ class NpcDialogueSubscriber:
                         self._pending_recognition.append((speaker, "confirmed"))
                     elif _channel == "overheard":
                         _addr_id = listener
-                        if (
-                            _addr_id
-                            and _addr_id != speaker
-                            and _addr_id in _npc_positions
-                        ):
+                        if _addr_id and _addr_id != speaker and _addr_id in _npc_positions:
                             self._pending_recognition.append(_addr_id)
                     # E2 (S256, mini-ADR E2-1..E2-4): реплика ДОСТАВЛЕНА —
                     # мембрана S128/Р-Г пройдена, журнал игрока записан.
@@ -371,16 +353,10 @@ class NpcDialogueSubscriber:
                     # mark_discovered недостижим вне Bridge (Р1).
                     if listener != "player" and speaker != "player":
                         try:
-                            _bridge = (
-                                self._get_discovery_bridge()
-                                if self._get_discovery_bridge is not None
-                                else None
-                            )
+                            _bridge = self._get_discovery_bridge() if self._get_discovery_bridge is not None else None
                             if _bridge is not None:
                                 # P7-B: метка по провенансу знания спикера
-                                _label = self._resolve_eavesdrop_label(
-                                    speaker, topic, payload
-                                ) or (None, None)
+                                _label = self._resolve_eavesdrop_label(speaker, topic, payload) or (None, None)
                                 _secret_id, _content_class = _label
                                 _bridge.process(
                                     SurfaceEvent(
@@ -393,19 +369,14 @@ class NpcDialogueSubscriber:
                                     )
                                 )
                         except Exception as _e2_err:
-                            logger.warning(
-                                "[NPC_DIALOGUE_SUB] eavesdrop emit failed "
-                                f"({speaker}): {_e2_err}"
-                            )
+                            logger.warning(f"[NPC_DIALOGUE_SUB] eavesdrop emit failed ({speaker}): {_e2_err}")
 
         # Р-А: SELF_TALK_SENTINEL — внешне слышимое бормотание без агента-адресата.
         # Журнал выше СОХРАНЁН: реплика экстернализована, игрок подслушивает легально.
         # Агентная обработка (STM / отношения / L1) для фантома запрещена: адресат
         # не является субъектом. Лог "X heard Y" для фантома не порождается.
         if listener == SELF_TALK_SENTINEL:
-            logger.debug(
-                f"[NPC_DIALOGUE_SUB] self-talk {speaker}: агентная обработка пропущена (journal-only)"
-            )
+            logger.debug(f"[NPC_DIALOGUE_SUB] self-talk {speaker}: агентная обработка пропущена (journal-only)")
             return
 
         # Р-Б2: Мембрана адресата (S192-паритет с ClaimEventSubscriber). Агентная
@@ -422,6 +393,7 @@ class NpcDialogueSubscriber:
                     try:
                         _dist_m = _sq_m.distance(speaker, listener)
                         from app.models.npc_state import PerceptualKernel
+
                         if not PerceptualKernel.can_observe(event, _dist_m, listener, listener):
                             logger.info(
                                 f"[NPC_DIALOGUE_SUB] membrane: {listener} не воспринимает "
@@ -431,13 +403,11 @@ class NpcDialogueSubscriber:
                             return
                     except Exception as _membrane_err:
                         logger.warning(
-                            f"[NPC_DIALOGUE_SUB] membrane check failed "
-                            f"({listener}/{speaker}): {_membrane_err}"
+                            f"[NPC_DIALOGUE_SUB] membrane check failed ({listener}/{speaker}): {_membrane_err}"
                         )
 
         logger.info(
-            f"[NPC_DIALOGUE_SUB] {listener} heard {speaker} "
-            f"(tone={tone}, topic={topic!r}, canonical={is_canonical})"
+            f"[NPC_DIALOGUE_SUB] {listener} heard {speaker} (tone={tone}, topic={topic!r}, canonical={is_canonical})"
         )
 
         try:
@@ -447,16 +417,19 @@ class NpcDialogueSubscriber:
                 # пусто — _process_canonical возьмёт content-hash fallback.
                 _event_id = str(getattr(event, "id", "") or "")
                 self._process_canonical(
-                    speaker, listener, text, tone, topic, tick, event_id=_event_id,
+                    speaker,
+                    listener,
+                    text,
+                    tone,
+                    topic,
+                    tick,
+                    event_id=_event_id,
                     event_tick=_event_tick,
                 )
             else:
-                self._process_ambient(speaker, listener, tone, topic, tick,
-                                      event_tick=_event_tick)
+                self._process_ambient(speaker, listener, tone, topic, tick, event_tick=_event_tick)
         except Exception as e:
-            logger.exception(
-                f"[NPC_DIALOGUE_SUB] failed for {listener} hearing {speaker}: {e}"
-            )
+            logger.exception(f"[NPC_DIALOGUE_SUB] failed for {listener} hearing {speaker}: {e}")
 
     def _process_canonical(
         self,
@@ -491,9 +464,10 @@ class NpcDialogueSubscriber:
                 _session = self.memory.get_dialogue_session(_campaign_id, listener, partner_id=speaker)
                 _stm_before = _session.to_prompt_block()
                 _queue = get_intelligence_queue()
-                _ev_id = event_id or hashlib.md5(
-                    f"{_campaign_id}:{speaker}:{listener}:{text}:{tick}".encode("utf-8")
-                ).hexdigest()
+                _ev_id = (
+                    event_id
+                    or hashlib.md5(f"{_campaign_id}:{speaker}:{listener}:{text}:{tick}".encode("utf-8")).hexdigest()
+                )
                 if _queue is not None:
                     _queue.enqueue(
                         event_id=_ev_id,
@@ -561,6 +535,7 @@ class NpcDialogueSubscriber:
             # BUG-DL-06: Отложенная запись в L2 (narrative_cache) через буфер MemoryManager.
             # Фаза 3 следующего тика применит это событие к свежему NPCState.
             from app.domain.events import EventDTO
+
             _dialogue_event = EventDTO.create(
                 event_type="dialogue_line",
                 source=speaker,
@@ -592,6 +567,7 @@ class NpcDialogueSubscriber:
         _npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
         if _npc_event_type:
             from app.services.npc.decision.social_deltas import get_base_delta
+
             delta_trust, delta_fear, _ = get_base_delta(_npc_event_type)
         else:
             delta_trust, delta_fear = 0.0, 0.0
@@ -607,13 +583,13 @@ class NpcDialogueSubscriber:
                 cause=f"npc_dialogue_sub:{tone.lower()}",
             )
             logger.info(
-                f"[NPC_DIALOGUE_SUB] {listener} rel update: "
-                f"{speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f}"
+                f"[NPC_DIALOGUE_SUB] {listener} rel update: {speaker} trust={delta_trust:+.1f} fear={delta_fear:+.1f}"
             )
 
             # NEW-3: Bridge 2 — пишем NPC-NPC диалог в L1Chronicle для BeliefCrystallizationEngine
             if self._l1_chronicle:
                 from app.domain.identity_events import TraitDriftEvent
+
                 _drift_event = TraitDriftEvent(
                     tick_id=tick,
                     target_id=listener,
@@ -653,6 +629,7 @@ class NpcDialogueSubscriber:
         _npc_event_type = _TONE_TO_NPC_EVENT.get(tone)
         if _npc_event_type:
             from app.services.npc.decision.social_deltas import get_base_delta
+
             _bt, _bf, _ = get_base_delta(_npc_event_type)
             delta_trust, delta_fear = _bt * 0.2, _bf * 0.2
         else:
@@ -678,6 +655,7 @@ class NpcDialogueSubscriber:
         try:
             if self._l1_chronicle:
                 from app.domain.identity_events import TraitDriftEvent
+
                 _drift_event = TraitDriftEvent(
                     tick_id=tick,
                     target_id=listener,

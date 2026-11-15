@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_overrides_initial_state.py
+"""path: /frontend/map_editor/tests/test_overrides_initial_state.py
 
 Назначение: ME-1.10 autotests — typed overrides + initial_state validation.
     _resolve_one (data_manager.py:1117) already validates:
@@ -18,9 +18,7 @@ from data_manager import (  # type: ignore[import-not-found]
     DataManager,
 )
 
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
 
 _TEST_BLUEPRINT = {
     "blueprint_id": "test_chest",
@@ -56,9 +54,7 @@ def dm_with_blueprint(tmp_path: Path) -> DataManager:
     assets_dir = tmp_path / "assets"
     bp_dir = assets_dir / "catalogs" / "test" / "blueprints"
     bp_dir.mkdir(parents=True)
-    (bp_dir / "test_chest.json").write_text(
-        json.dumps(_TEST_BLUEPRINT, ensure_ascii=False), encoding="utf-8"
-    )
+    (bp_dir / "test_chest.json").write_text(json.dumps(_TEST_BLUEPRINT, ensure_ascii=False), encoding="utf-8")
 
     dm = DataManager()
     dm.set_base_dir(tmp_path)

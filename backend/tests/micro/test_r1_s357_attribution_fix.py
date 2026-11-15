@@ -13,6 +13,7 @@ R1 (S357): Тесты исправления ложной атрибуции pla
 2. Автономное событие с реальным адресатом -> target_id=intent_target.
 3. Обычное действие игрока -> target_id=player_target_id.
 """
+
 from __future__ import annotations
 
 import types
@@ -22,6 +23,7 @@ import pytest
 
 
 # --- mock-фабрики (unit-тест функций, не интеграция) ---
+
 
 class _FakeIntent(Enum):
     TALK = "TALK"
@@ -38,8 +40,7 @@ def _make_decision(intent_value: str = "TALK", intent_target=None, deltas=None):
     )
 
 
-def _make_hub_event(event_type: str = "world_tick", actor_id: str = "merchant_goran",
-                    target_id=None, payload=None):
+def _make_hub_event(event_type: str = "world_tick", actor_id: str = "merchant_goran", target_id=None, payload=None):
     """Mock EventContext: только поля, читаемые тестируемыми функциями."""
     return types.SimpleNamespace(
         event_type=event_type,
@@ -68,6 +69,7 @@ from app.services.npc.npc_tick_pipeline import (
 # =========================================================================
 # create_memory_event — три случая
 # =========================================================================
+
 
 class TestCreateMemoryEventAttribution:
     """R1: create_memory_event получает правильный target_id."""
@@ -134,8 +136,7 @@ class TestCreateMemoryEventAttribution:
 
         assert evt is not None
         assert evt.payload["target_id"] == "merchant_goran", (
-            f"Автономное событие с target: должен быть 'merchant_goran', "
-            f"получен {evt.payload['target_id']!r}"
+            f"Автономное событие с target: должен быть 'merchant_goran', получен {evt.payload['target_id']!r}"
         )
 
     def test_3_player_action_preserved(self):
@@ -145,9 +146,7 @@ class TestCreateMemoryEventAttribution:
         Ожидание: target_id="guard_borko" (прежняя атрибуция сохранена).
         """
         decision = _make_decision(intent_value="ATTACK", intent_target=None)
-        hub_event = _make_hub_event(
-            event_type="player_interacts", actor_id="player", target_id="guard_borko"
-        )
+        hub_event = _make_hub_event(event_type="player_interacts", actor_id="player", target_id="guard_borko")
         state_l2 = _make_state_l2(emotion="fearful", stress=30.0)
 
         # Симулируем логику call site (точка 1226 после патча):
@@ -176,6 +175,7 @@ class TestCreateMemoryEventAttribution:
 # apply_perception_memory — три случая
 # =========================================================================
 
+
 class TestApplyPerceptionMemoryAttribution:
     """R1: apply_perception_memory получает правильный target_id."""
 
@@ -185,9 +185,7 @@ class TestApplyPerceptionMemoryAttribution:
         player_target_id="" (WORLD_TICK), hub_event.target_id=None.
         Ожидание: target_id="" (честное отсутствие), НЕ "player".
         """
-        hub_event = _make_hub_event(
-            event_type="world_tick", actor_id="merchant_goran", target_id=None
-        )
+        hub_event = _make_hub_event(event_type="world_tick", actor_id="merchant_goran", target_id=None)
         state_l2 = _make_state_l2()
 
         # Симулируем логику call site (точка 208 после патча):
@@ -215,9 +213,7 @@ class TestApplyPerceptionMemoryAttribution:
         player_target_id="" (WORLD_TICK), hub_event.target_id="merchant_goran".
         Ожидание: target_id="merchant_goran".
         """
-        hub_event = _make_hub_event(
-            event_type="world_tick", actor_id="guard_borko", target_id="merchant_goran"
-        )
+        hub_event = _make_hub_event(event_type="world_tick", actor_id="guard_borko", target_id="merchant_goran")
         state_l2 = _make_state_l2()
 
         # Симулируем логику call site (точка 208 после патча):
@@ -235,8 +231,7 @@ class TestApplyPerceptionMemoryAttribution:
 
         assert evt is not None
         assert evt.payload["target_id"] == "merchant_goran", (
-            f"Восприятие с target: должен быть 'merchant_goran', "
-            f"получен {evt.payload['target_id']!r}"
+            f"Восприятие с target: должен быть 'merchant_goran', получен {evt.payload['target_id']!r}"
         )
 
     def test_6_perception_player_action_preserved(self):
@@ -245,9 +240,7 @@ class TestApplyPerceptionMemoryAttribution:
         player_target_id="guard_borko" (ход игрока).
         Ожидание: target_id="guard_borko".
         """
-        hub_event = _make_hub_event(
-            event_type="player_interacts", actor_id="player", target_id="guard_borko"
-        )
+        hub_event = _make_hub_event(event_type="player_interacts", actor_id="player", target_id="guard_borko")
         state_l2 = _make_state_l2()
 
         # Симулируем логику call site (точка 208 после патча):
@@ -273,6 +266,7 @@ class TestApplyPerceptionMemoryAttribution:
 # =========================================================================
 # call site resolution — проверка логики патча
 # =========================================================================
+
 
 class TestCallSiteResolutionLogic:
     """R1: логика разрешения target в call sites (точки 1226 и 208)."""

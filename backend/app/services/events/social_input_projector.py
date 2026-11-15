@@ -87,13 +87,16 @@ class SocialInputProjector:
                 _listeners = payload.get("listener_ids", [])
                 if not _listeners and _src:
                     from app.services.npc.perception_filter import filter_perceiving_npcs
+
                     _all_npc_ids = [c["npc_id"] for c in ctx.all_npc_contexts]
                     _sq = getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA002
                     if _sq is not None:
                         _listeners = filter_perceiving_npcs(
                             npc_ids=_all_npc_ids,
                             event=event,
-                            scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},  # noqa: ENIGMA002
+                            scene_state=getattr(ctx.shared_context, "scene_state", None)
+                            or ctx.tick_ctx.scene_state
+                            or {},  # noqa: ENIGMA002
                             spatial_query=_sq,
                         )
                 # BUG-V68-002 FIX: Восстановлен случайно удалённый цикл обработки слушателей.
@@ -105,13 +108,16 @@ class SocialInputProjector:
                 _listeners = payload.get("listener_ids", [])
                 if not _listeners:
                     from app.services.npc.perception_filter import filter_perceiving_npcs
+
                     _all_npc_ids = [c["npc_id"] for c in ctx.all_npc_contexts]
                     _sq = getattr(ctx.shared_context, "spatial_query", None)  # noqa: ENIGMA002
                     if _sq is not None:
                         _listeners = filter_perceiving_npcs(
                             npc_ids=_all_npc_ids,
                             event=event,
-                            scene_state=getattr(ctx.shared_context, "scene_state", None) or ctx.tick_ctx.scene_state or {},  # noqa: ENIGMA002
+                            scene_state=getattr(ctx.shared_context, "scene_state", None)
+                            or ctx.tick_ctx.scene_state
+                            or {},  # noqa: ENIGMA002
                             spatial_query=_sq,
                         )
                 for listener in _listeners:
@@ -124,9 +130,7 @@ class SocialInputProjector:
                     deltas.append(self._mk_delta(_tgt, _INPUT_PRESENCE))
 
         if deltas:
-            logger.debug(
-                f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events."
-            )
+            logger.debug(f"[SOCIAL_INPUT] Generated {len(deltas)} input deltas from {len(events)} events.")
 
         return Phase8Result(deltas=deltas, events_processed=len(events))
 

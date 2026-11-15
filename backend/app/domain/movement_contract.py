@@ -18,6 +18,7 @@ from typing import Any, List, Optional, Tuple
 
 class PathStatus(Enum):
     """Чёткие состояния результата поиска пути."""
+
     NO_PATH = "NO_PATH"
     ALREADY_AT_TARGET = "ALREADY_AT_TARGET"
     VALID_PATH = "VALID_PATH"
@@ -25,6 +26,7 @@ class PathStatus(Enum):
 
 class MovementFailure(Enum):
     """Таксономия ошибок движения для быстрой локализации разрыва контура."""
+
     NONE = "M000"
     INVALID_SOURCE_POSITION = "M001"
     SOURCE_NODE_NOT_FOUND = "M002"
@@ -39,6 +41,7 @@ class MovementFailure(Enum):
 @dataclass
 class MovementTrace:
     """Чёрный ящик движения (S-141). Фиксирует каждый шаг перемещения NPC."""
+
     actor_id: str
 
     source_position: Optional[Tuple[float, float]] = None

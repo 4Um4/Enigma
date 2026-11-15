@@ -4,6 +4,7 @@ path: /backend/app/domain/execution.py
 Зависимости: typing, dataclasses, enum
 Основные сущности: TaskKind, TaskState, TaskPriority, QueuedTask, TaskExecutor, Artifact, Materializer
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

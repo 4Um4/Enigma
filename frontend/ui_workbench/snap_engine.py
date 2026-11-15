@@ -8,6 +8,7 @@ magnet-targets на 4 стороны + выбор ближайшего конф�
 Зависимости: pygame
 Основные сущности: SnapEngine
 """
+
 from typing import List, Optional, Tuple
 
 import pygame
@@ -89,8 +90,8 @@ class SnapEngine:
         for rc in others:
             if not moved.colliderect(rc):
                 continue
-            push_left = rc.left - moved.right      # < 0
-            push_right = rc.right - moved.left     # > 0
+            push_left = rc.left - moved.right  # < 0
+            push_right = rc.right - moved.left  # > 0
             push_up = rc.top - moved.bottom
             push_down = rc.bottom - moved.top
             # Минимальная сдвижка из четырёх направлений

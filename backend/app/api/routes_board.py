@@ -10,6 +10,7 @@ path: /project/backend/app/api/routes_board.py
 Зависимости: fastapi, pydantic, app.services.player_board_service
 Основные сущности: board_router, CardOpRequest, player_board_service
 """
+
 from __future__ import annotations
 
 from typing import List, Literal, Optional, cast
@@ -155,8 +156,10 @@ def post_hypotheses(campaign_id: str, payload: HypOpPayload) -> dict:
             player_board_service.mutate(
                 campaign_id,
                 lambda b: edit_hypothesis(
-                    b, cast(str, payload.hyp_id),
-                    text=payload.text, status=payload.status,
+                    b,
+                    cast(str, payload.hyp_id),
+                    text=payload.text,
+                    status=payload.status,
                 ),
             )
             return {"status": "ok"}

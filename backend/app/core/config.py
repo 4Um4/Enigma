@@ -20,7 +20,7 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Железобетонное определение BASE_DIR независимо от того, откуда запущен Python
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # Если запущено как скомпилированный exe (на будущее)
     BASE_DIR = Path(sys.executable).resolve().parent
 else:
@@ -79,16 +79,12 @@ class Settings(BaseSettings):
     # Валидация в GameLoop: prune вызывается только при keep_last > 0.
     replay_budget_keep_last: int = 0
 
-    llama_cpp_server_executable: str = str(
-        BASE_DIR / "Models LLM" / "llama" / "llama-server.exe"
-    )
+    llama_cpp_server_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-server.exe")
     llama_cpp_executable: str = str(BASE_DIR / "Models LLM" / "llama" / "llama-cli.exe")
     # MIGRATION S374: Qwen2.5-7B Q6_K → Hermes-3-Llama-3.1-8B Q4_K_M
     # Probe v2+v3 winner: SCORE 89.62 (v2) / 82.68 (v3), 0 errors, censorship 1.00
     # Non-breaking: model_id stays "qwen_7b" (17 refs), only file path swapped
-    llama_cpp_model_path: str = str(
-        BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf"
-    )
+    llama_cpp_model_path: str = str(BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf")
 
     # Единый источник истины для API и LLM портов
     api_host: str = "127.0.0.1"
@@ -122,6 +118,7 @@ class Settings(BaseSettings):
         """Динамически вычисляет ngl из gpu_profile.json (Дополнение А, п. А.4)."""
         if not hasattr(self, "_gpu_layers_cache") or self._gpu_layers_cache is None:
             import json
+
             _profile_path = BASE_DIR / "config" / "gpu_profile.json"
             if _profile_path.exists():
                 try:
@@ -139,14 +136,17 @@ class Settings(BaseSettings):
         """Кэшированная политика контента. Загружается при первом обращении."""
         if not hasattr(self, "_content_policy_cache") or self._content_policy_cache is None:
             from app.core.content_policy import load_content_policy
+
             self._content_policy_cache: "ContentPolicy" = load_content_policy(self)
         return self._content_policy_cache
 
     def reload_content_policy(self) -> "ContentPolicy":
         """Принудительный reload. Вызывается из settings screen после изменения игроком."""
         from app.core.content_policy import load_content_policy
+
         self._content_policy_cache = load_content_policy(self)
         return self._content_policy_cache
+
     movement_debug: bool = False
     orchestrator_debug: bool = False
     dm_debug: bool = False
@@ -178,17 +178,11 @@ class Settings(BaseSettings):
     # Модели проекта (S380: top-3 from probe v2+v3)
     # ─────────────────────────────────────────────────────────────────
     # S380: qwen_7b = Hermes-3 (primary, default); key unchanged (17 refs non-breaking)
-    model_qwen_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf"
-    )
+    model_qwen_7b_path: str = str(BASE_DIR / "Models LLM" / "Lumimaid-v0.2-8B-Q4_K_M-imat.gguf")
     # S380: Qwen2.5-7B Q4_K_M (alternative)
-    model_qwen_2_5_7b_path: str = str(
-        BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf"
-    )
+    model_qwen_2_5_7b_path: str = str(BASE_DIR / "Models LLM" / "Qwen2.5-7B-Instruct-abliterated-v2.Q4_K_M.gguf")
     # S380: Saiga-Llama3-8B Q4_K_M (third; GGUF metadata: saiga_llama3_8b)
-    model_saiga_llama3_8b_path: str = str(
-        BASE_DIR / "Models LLM" / "Saiga-Llama3-8B (Q4_K_M).gguf"
-    )
+    model_saiga_llama3_8b_path: str = str(BASE_DIR / "Models LLM" / "Saiga-Llama3-8B (Q4_K_M).gguf")
 
     # Agent → Model mapping (все агенты → одна модель)
     agent_model_map: Dict[str, str] = {
@@ -201,9 +195,7 @@ class Settings(BaseSettings):
 
     available_models: Dict[str, ModelConfig] = {}
 
-    log_dir: Path = Field(
-        default_factory=lambda: BASE_DIR / "backend" / "data" / "logs"
-    )
+    log_dir: Path = Field(default_factory=lambda: BASE_DIR / "backend" / "data" / "logs")
 
     system_prompt_file: str = str(BASE_DIR / "backend" / "prompts" / "dm_system.txt")
 
@@ -282,10 +274,7 @@ class Settings(BaseSettings):
             from pathlib import Path as _Path
 
             if not _Path(mcfg.path).exists():
-                _logger.error(
-                    f"[CONFIG] Модель '{key}' ({mcfg.display_name}) "
-                    f"не найдена: {mcfg.path}"
-                )
+                _logger.error(f"[CONFIG] Модель '{key}' ({mcfg.display_name}) не найдена: {mcfg.path}")
 
     def get_context_for_agent(self, agent_name: str) -> int:
         """Бюджет контекста для агента (не больше ctx_size модели)."""
@@ -369,6 +358,7 @@ def _log_unknown_aidm_env(settings_instance: "Settings") -> None:
     for name in Settings.model_fields.keys():
         known_upper.add(name.upper())
     from app.core.config import ModelConfig  # noqa: PLC0415
+
     for name in ModelConfig.model_fields.keys():
         known_upper.add(name.upper())
 
@@ -378,11 +368,7 @@ def _log_unknown_aidm_env(settings_instance: "Settings") -> None:
     # known_upper хранит имена БЕЗ префикса (API_PORT, не AIDM_API_PORT);
     # срезаем AIDM_ перед сравнением.
     for key in sorted(_os.environ.keys()):
-        if (
-            key.startswith("AIDM_")
-            and key[5:].upper() not in known_upper
-            and key not in seen
-        ):
+        if key.startswith("AIDM_") and key[5:].upper() not in known_upper and key not in seen:
             seen.add(key)
             _logger.warning(
                 "[CONFIG] Unknown AIDM_ env variable in process: %s "
@@ -399,11 +385,7 @@ def _log_unknown_aidm_env(settings_instance: "Settings") -> None:
                 if line.startswith("#") or "=" not in line:
                     continue
                 key = line.split("=", 1)[0].strip()
-                if (
-                    key.startswith("AIDM_")
-                    and key[5:].upper() not in known_upper
-                    and key not in seen
-                ):
+                if key.startswith("AIDM_") and key[5:].upper() not in known_upper and key not in seen:
                     seen.add(key)
                     _logger.warning(
                         "[CONFIG] Unknown AIDM_ variable in .env: %s "

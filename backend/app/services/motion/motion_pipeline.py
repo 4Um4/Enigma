@@ -5,6 +5,7 @@ path: backend/app/services/motion/motion_pipeline.py
 Зависимости: motion_core, typing
 Основные сущности: SteeringResolver, MotionIntegrator
 """
+
 from __future__ import annotations
 
 import math
@@ -50,9 +51,7 @@ class CollisionAvoidance:
         # S91: Проверка геометрии (стены)
         aff = topology.query_affordance_field(region, future_pos)
         if aff.can_pass < 0.5:
-            return CollisionAvoidance._try_sides(
-                drive, pos, topology, region, npc_positions, current_npc_id
-            )
+            return CollisionAvoidance._try_sides(drive, pos, topology, region, npc_positions, current_npc_id)
 
         # S91: Проверка других NPC (с учётом их скорости)
         if npc_positions:
@@ -69,13 +68,9 @@ class CollisionAvoidance:
                 other_future_x = ox + other_vel[0] * ETKE_IK_SUBSTEP_DT
                 other_future_y = oy + other_vel[1] * ETKE_IK_SUBSTEP_DT
 
-                dist = math.hypot(
-                    future_pos[0] - other_future_x, future_pos[1] - other_future_y
-                )
+                dist = math.hypot(future_pos[0] - other_future_x, future_pos[1] - other_future_y)
                 if dist < CollisionAvoidance.NPC_RADIUS:
-                    return CollisionAvoidance._try_sides(
-                        drive, pos, topology, region, npc_positions, current_npc_id
-                    )
+                    return CollisionAvoidance._try_sides(drive, pos, topology, region, npc_positions, current_npc_id)
 
         return drive  # Путь свободен
 
@@ -96,9 +91,7 @@ class CollisionAvoidance:
             pos[1] + left_dir[1] * CollisionAvoidance.LOOK_AHEAD,
         )
         if topology.query_affordance_field(region, left_pos).can_pass >= 0.5:
-            if not CollisionAvoidance._check_npc_collision(
-                left_pos, npc_positions, current_npc_id
-            ):
+            if not CollisionAvoidance._check_npc_collision(left_pos, npc_positions, current_npc_id):
                 return DriveVector(left_dir, drive.intensity * 0.8, drive.primitive)
 
         # Проверяем правый вектор
@@ -108,9 +101,7 @@ class CollisionAvoidance:
             pos[1] + right_dir[1] * CollisionAvoidance.LOOK_AHEAD,
         )
         if topology.query_affordance_field(region, right_pos).can_pass >= 0.5:
-            if not CollisionAvoidance._check_npc_collision(
-                right_pos, npc_positions, current_npc_id
-            ):
+            if not CollisionAvoidance._check_npc_collision(right_pos, npc_positions, current_npc_id):
                 return DriveVector(right_dir, drive.intensity * 0.8, drive.primitive)
 
         # Тупик — останавливаемся
@@ -138,9 +129,7 @@ class CollisionAvoidance:
             other_future_x = ox + other_vel[0] * ETKE_IK_SUBSTEP_DT
             other_future_y = oy + other_vel[1] * ETKE_IK_SUBSTEP_DT
 
-            dist = math.hypot(
-                check_pos[0] - other_future_x, check_pos[1] - other_future_y
-            )
+            dist = math.hypot(check_pos[0] - other_future_x, check_pos[1] - other_future_y)
             if dist < CollisionAvoidance.NPC_RADIUS:
                 return True
         return False
@@ -176,9 +165,7 @@ class SteeringResolver:
         Returns:
             Новая скорость (vx, vy).
         """
-        if drive.intensity <= 0.0 or (
-            drive.direction[0] == 0.0 and drive.direction[1] == 0.0
-        ):
+        if drive.intensity <= 0.0 or (drive.direction[0] == 0.0 and drive.direction[1] == 0.0):
             # Нет давления — тормозим
             return (0.0, 0.0)
 

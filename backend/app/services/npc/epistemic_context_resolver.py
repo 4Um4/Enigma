@@ -7,7 +7,7 @@ path: /project/backend/app/services/npc/epistemic_context_resolver.py
 
 import logging
 
-from app.domain.epistemology import EpistemicContext, Predicate, BeliefSummary
+from app.domain.epistemology import BeliefSummary, EpistemicContext, Predicate
 from app.services.npc.epistemic_store import EpistemicStore
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,13 @@ _THREAT_PREDICATES = (Predicate.STOLE, Predicate.ATTACKED)
 REPORT_PREDICATES = (Predicate.INSULTED,)
 REPORT_CONFIDENCE_THRESHOLD = 0.25
 
+
 class EpistemicContextResolver:
     """
     Преобразует EpistemicStore -> EpistemicContext.
     Чистая функция (Read-Only). Не мутирует Store.
     """
+
     def __init__(self, store: EpistemicStore):
         self._store = store
 
@@ -50,9 +52,7 @@ class EpistemicContextResolver:
         """
         best = 0.0
         for r in self._store.get_all_for_agent(agent_id):
-            if (r.proposition.subject_id == subject_id
-                    and r.proposition.polarity
-                    and r.confidence > best):
+            if r.proposition.subject_id == subject_id and r.proposition.polarity and r.confidence > best:
                 best = r.confidence
         return best
 
@@ -94,10 +94,12 @@ class EpistemicContextResolver:
             # лица (object_id != agent_id, subject_id != agent_id). Отдельный порог
             # (REPORT_CONFIDENCE_THRESHOLD < CONFIDENCE_THRESHOLD): report — салиентность,
             # не угроза; слышанное через цепочку свидетельств дешевеет.
-            if (pred in REPORT_PREDICATES
-                    and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
-                    and _obj != agent_id
-                    and subj != agent_id):
+            if (
+                pred in REPORT_PREDICATES
+                and record.confidence >= REPORT_CONFIDENCE_THRESHOLD
+                and _obj != agent_id
+                and subj != agent_id
+            ):
                 if record.confidence > _report_conf:
                     _report_conf = record.confidence
                     _report_prop = record.proposition
@@ -137,7 +139,7 @@ class EpistemicContextResolver:
         # selection pattern. claims_about_self[0] = highest-confidence self-claim.
         about_self_with_conf.sort(key=lambda x: x[1], reverse=True)
         _claim_source = about_self_with_conf[0][2] if about_self_with_conf else None
-        
+
         # A19.5 Step 2: Сборка топ-3 наиболее уверенных убеждений для DecisionHub
         # Сортируем все записи агента по confidence (desc) и берём топ-3
         all_records_sorted = sorted(records, key=lambda r: r.confidence, reverse=True)[:3]
@@ -147,10 +149,11 @@ class EpistemicContextResolver:
                 confidence=r.confidence,
                 source_id=r.source_id,
                 subject_id=r.proposition.subject_id,
-                object_id=r.proposition.object_id
-            ) for r in all_records_sorted
+                object_id=r.proposition.object_id,
+            )
+            for r in all_records_sorted
         )
-        
+
         return EpistemicContext(
             agent_id=agent_id,
             perceived_threats=tuple(threats),
@@ -170,9 +173,7 @@ class EpistemicContextResolver:
         )
 
     @staticmethod
-    def to_modifiers(
-        context: EpistemicContext, archetype: str = ""
-    ) -> dict[str, float]:
+    def to_modifiers(context: EpistemicContext, archetype: str = "") -> dict[str, float]:
         """
         S188: Преобразует EpistemicContext в нейтральные decision modifiers.
         DecisionHub получает только числа, не зная об эпистемической семантике.
@@ -190,6 +191,7 @@ class EpistemicContextResolver:
                 from app.domain.epistemic_dispositions import (
                     get_epistemic_disposition,
                 )
+
                 _disp = get_epistemic_disposition(archetype)
                 for _intent, _weight in _disp.items():
                     if _weight > 0.0:

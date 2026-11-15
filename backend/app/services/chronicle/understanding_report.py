@@ -1,4 +1,4 @@
-﻿"""path: backend/app/services/chronicle/understanding_report.py
+"""path: backend/app/services/chronicle/understanding_report.py
 Назначение: отчёт «поняла / не поняла» по каждому пункту биографии (вердикт
             Мастера: Все.md = канон -> сеялка -> игра показывает понимание).
             Парсит нумерованные пункты из author_text каждого NPC, считает
@@ -23,21 +23,88 @@ from typing import Any, Dict, Iterator, List, Set, Tuple
 
 # ----------------------------- НАСТРОЙКИ ---------------------------------
 
-FULL_T = 0.35   # порог "поняла": доля значимых слов пункта в записи
-PART_T = 0.18   # порог "частично"
+FULL_T = 0.35  # порог "поняла": доля значимых слов пункта в записи
+PART_T = 0.18  # порог "частично"
 
 STATUS_RU = {"OK": "✓ поняла", "PART": "~ частично", "MISS": "✗ не поняла"}
 
 STOPWORDS = {
-    "что", "она", "они", "оно", "его", "ее", "ему", "ей", "их", "как", "так",
-    "это", "этот", "эта", "эти", "был", "была", "было", "были", "быть",
-    "есть", "для", "при", "над", "под", "уже", "еще", "только", "если",
-    "чтобы", "там", "тут", "где", "чем", "том", "того", "всех", "весь",
-    "вся", "себя", "своей", "своего", "своих", "свою", "когда", "даже",
-    "или", "потому", "через", "после", "перед", "без", "между", "один",
-    "одна", "одно", "два", "три", "все", "который", "которая",
-    "которое", "которые", "просто", "пока", "тоже", "такой", "такая",
-    "такое", "такие", "сам", "сама", "сами", "может", "могут", "должен",
+    "что",
+    "она",
+    "они",
+    "оно",
+    "его",
+    "ее",
+    "ему",
+    "ей",
+    "их",
+    "как",
+    "так",
+    "это",
+    "этот",
+    "эта",
+    "эти",
+    "был",
+    "была",
+    "было",
+    "были",
+    "быть",
+    "есть",
+    "для",
+    "при",
+    "над",
+    "под",
+    "уже",
+    "еще",
+    "только",
+    "если",
+    "чтобы",
+    "там",
+    "тут",
+    "где",
+    "чем",
+    "том",
+    "того",
+    "всех",
+    "весь",
+    "вся",
+    "себя",
+    "своей",
+    "своего",
+    "своих",
+    "свою",
+    "когда",
+    "даже",
+    "или",
+    "потому",
+    "через",
+    "после",
+    "перед",
+    "без",
+    "между",
+    "один",
+    "одна",
+    "одно",
+    "два",
+    "три",
+    "все",
+    "который",
+    "которая",
+    "которое",
+    "которые",
+    "просто",
+    "пока",
+    "тоже",
+    "такой",
+    "такая",
+    "такое",
+    "такие",
+    "сам",
+    "сама",
+    "сами",
+    "может",
+    "могут",
+    "должен",
 }
 
 WORD_RE = re.compile(r"[0-9A-Za-zА-Яа-яЁё]+")
@@ -57,10 +124,12 @@ def parse_items(author_text: str) -> List[Dict[str, Any]]:
         line = raw.strip()
         m = ITEM_RE.match(line)
         if m:
-            items.append({
-                "n": int(m.group(1)),
-                "text": m.group(2).replace("**", "").strip(),
-            })
+            items.append(
+                {
+                    "n": int(m.group(1)),
+                    "text": m.group(2).replace("**", "").strip(),
+                }
+            )
         elif items and line and line != "---":
             items[-1]["text"] += " " + line.replace("**", "")
     return items
@@ -102,9 +171,7 @@ def docs_from_dir(base: Any) -> Tuple[Dict[str, Any], List[str]]:
                     break
             else:
                 candidates = [
-                    v for v in doc.values()
-                    if isinstance(v, list) and v
-                    and all(isinstance(e, dict) for e in v)
+                    v for v in doc.values() if isinstance(v, list) and v and all(isinstance(e, dict) for e in v)
                 ]
                 if candidates:
                     doc = {**doc, "entries": max(candidates, key=len)}
@@ -156,10 +223,7 @@ def _entry_id(entry: Any) -> str:
 
 def tokens(text: str) -> Set[str]:
     normalized = text.lower().replace("ё", "е")
-    return {
-        w for w in WORD_RE.findall(normalized)
-        if len(w) >= 3 and w not in STOPWORDS
-    }
+    return {w for w in WORD_RE.findall(normalized) if len(w) >= 3 and w not in STOPWORDS}
 
 
 # ------------------------------- ОТЧЁТ ------------------------------------
@@ -190,8 +254,7 @@ def build_report(docs_by_npc: Dict[str, Any], campaign: str) -> Dict[str, Any]:
         entries = list(raw_entries or [])
         items = parse_items(author_text or "")
 
-        etoks = [(tokens(_entry_blob(e)), _kind_name(e), _entry_id(e))
-                 for e in entries]
+        etoks = [(tokens(_entry_blob(e)), _kind_name(e), _entry_id(e)) for e in entries]
         records: List[Dict[str, Any]] = []
         for it in items:
             itoks = tokens(it["text"])
@@ -201,20 +264,24 @@ def build_report(docs_by_npc: Dict[str, Any], campaign: str) -> Dict[str, Any]:
                 cov = (len(itoks & etok) / len(itoks)) if itoks else 0.0
                 best = max(best, cov)
                 if cov >= PART_T:
-                    matched.append({
-                        "entry_id": eid,
-                        "kind": kname,
-                        "coverage": round(cov, 3),
-                    })
+                    matched.append(
+                        {
+                            "entry_id": eid,
+                            "kind": kname,
+                            "coverage": round(cov, 3),
+                        }
+                    )
             matched.sort(key=lambda m: m["coverage"], reverse=True)
             status = "OK" if best >= FULL_T else ("PART" if best >= PART_T else "MISS")
-            records.append({
-                "n": it["n"],
-                "status": status,
-                "best": round(best, 3),
-                "matched": matched[:5],
-                "text": _short(it["text"]),
-            })
+            records.append(
+                {
+                    "n": it["n"],
+                    "status": status,
+                    "best": round(best, 3),
+                    "matched": matched[:5],
+                    "text": _short(it["text"]),
+                }
+            )
         stat = {
             "items": len(items),
             "ok": sum(1 for r in records if r["status"] == "OK"),
@@ -224,16 +291,15 @@ def build_report(docs_by_npc: Dict[str, Any], campaign: str) -> Dict[str, Any]:
         }
         for key in ("items", "ok", "part", "miss"):
             totals[key] += stat[key]
-        per_npc.append({
-            "npc": npc,
-            "stats": stat,
-            "records": records,
-        })
+        per_npc.append(
+            {
+                "npc": npc,
+                "stats": stat,
+                "records": records,
+            }
+        )
 
-    percent = (
-        100 * (totals["ok"] + totals["part"]) / totals["items"]
-        if totals["items"] else 0.0
-    )
+    percent = 100 * (totals["ok"] + totals["part"]) / totals["items"] if totals["items"] else 0.0
     return {
         "campaign": campaign,
         "thresholds": {"full": FULL_T, "part": PART_T},
@@ -264,10 +330,7 @@ def render_markdown(rep: Dict[str, Any]) -> str:
     ]
     for block in rep["per_npc"]:
         s = block["stats"]
-        lines.append(
-            f"| {block['npc']} | {s['items']} | {s['ok']} | {s['part']}"
-            f" | {s['miss']} | {s['entries']} |"
-        )
+        lines.append(f"| {block['npc']} | {s['items']} | {s['ok']} | {s['part']} | {s['miss']} | {s['entries']} |")
     lines.append("")
     for block in rep["per_npc"]:
         lines.append(f"## {block['npc']}")
@@ -279,10 +342,7 @@ def render_markdown(rep: Dict[str, Any]) -> str:
             lines.append(f"### {STATUS_RU[status]} — {len(group)}")
             lines.append("")
             for r in group:
-                kinds = ", ".join(
-                    f"{m['kind']} {int(m['coverage'] * 100)}%"
-                    for m in r["matched"][:3]
-                )
+                kinds = ", ".join(f"{m['kind']} {int(m['coverage'] * 100)}%" for m in r["matched"][:3])
                 if kinds:
                     lines.append(f"- **п.{r['n']}** {r['text']} → {kinds}")
                 else:

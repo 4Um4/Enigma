@@ -133,6 +133,7 @@ class NPCSandbox:
 
         # P8: Добавляем Игрока в экономический контур
         from app.models.economy import EconomicProfile, Need, NeedType
+
         player_ep = EconomicProfile(
             npc_id="player",
             gold=48.0,  # Стартовый капитал игрока (из body_state["money"])
@@ -149,34 +150,40 @@ class NPCSandbox:
 
         # P8: Реальные долги по лору
         from app.models.economy import Obligation
+
         # Торнин должен Гильдии Воров (Тень - сборщик)
         _tavern_ep = eco_profiles.get("tavern_keeper_tornin")
         if _tavern_ep:
-            _tavern_ep.obligations.append(Obligation(
-                obligation_type="debt_to_guild",
-                amount=50.0,
-                due_in_ticks=72,  # 3 дня на возврат
-                penalty_per_tick=0.05,
-                creditor_id="thief_shadow"
-            ))
+            _tavern_ep.obligations.append(
+                Obligation(
+                    obligation_type="debt_to_guild",
+                    amount=50.0,
+                    due_in_ticks=72,  # 3 дня на возврат
+                    penalty_per_tick=0.05,
+                    creditor_id="thief_shadow",
+                )
+            )
             print("[SANDBOX] Лор: Торнин должен 50.0G Гильдии Воров (срок: 72 тика)")
-        
+
         # Горан должен криминалам за провал поставки
         _goran_ep = eco_profiles.get("merchant_goran")
         if _goran_ep:
-            _goran_ep.obligations.append(Obligation(
-                obligation_type="debt_to_criminals",
-                amount=100.0,
-                due_in_ticks=48,  # 2 дня на возврат
-                penalty_per_tick=0.08,  # Криминалы давят сильнее
-                creditor_id="criminals"
-            ))
+            _goran_ep.obligations.append(
+                Obligation(
+                    obligation_type="debt_to_criminals",
+                    amount=100.0,
+                    due_in_ticks=48,  # 2 дня на возврат
+                    penalty_per_tick=0.08,  # Криминалы давят сильнее
+                    creditor_id="criminals",
+                )
+            )
             print("[SANDBOX] Лор: Горан должен 100.0G криминалам (срок: 48 тиков)")
 
         # P8: L1/L2.5 Идентичность и Убеждения
         from app.services.npc.belief_crystallization_engine import BeliefCrystallizationEngine
         from app.services.npc.l1_chronicle import L1Chronicle
         from app.services.npc.pattern_detector import PatternDetector
+
         self.l1_chronicle = L1Chronicle(store=None)  # In-memory only
         self.pattern_detector = PatternDetector(chronicle=self.l1_chronicle)
         belief_engine = BeliefCrystallizationEngine()
@@ -234,7 +241,7 @@ class NPCSandbox:
             if "player" in eco_profiles:
                 p_ep = eco_profiles["player"]
                 need_engine.tick(p_ep)
-                
+
                 # Игрок автоматически ест, если голоден и есть еда
                 for need in p_ep.base_needs:
                     if need.need_type == NeedType.FOOD and need.is_urgent:
@@ -325,6 +332,7 @@ class NPCSandbox:
 
                     # P8: BreakProgressEngine — деформация идентичности от стресса
                     from app.services.npc.break_progress_engine import BreakProgressEngine
+
                     _willpower_val = getattr(new_state, "willpower", 50) or 50
                     _break_deltas = BreakProgressEngine.calculate(
                         state=new_state,
@@ -342,9 +350,11 @@ class NPCSandbox:
                     if _break_deltas.recent_failures_delta != 0:
                         _rf = getattr(new_state, "recent_failures", 0) + _break_deltas.recent_failures_delta
                         new_state.recent_failures = max(0, _rf)
-                    
+
                     if _break_deltas.identity_integrity_delta < -0.01:
-                        print(f"[BREAK] {npc_id} integrity={new_state.identity_integrity:.3f} (Δ {_break_deltas.identity_integrity_delta:.4f})")
+                        print(
+                            f"[BREAK] {npc_id} integrity={new_state.identity_integrity:.3f} (Δ {_break_deltas.identity_integrity_delta:.4f})"
+                        )
 
                 except Exception as e:
                     print(f"[SANDBOX_ERROR] npc={npc_id} tick={tick} error={e}")
@@ -358,8 +368,7 @@ class NPCSandbox:
                     if food_need and food_need.effective_urgency > 0.6:
                         # Голод = телесный дистресс. Интегратор учтёт волю (willpower) личности.
                         new_state.perceptual_kernel.somatic_urgency = max(
-                            new_state.perceptual_kernel.somatic_urgency,
-                            food_need.effective_urgency
+                            new_state.perceptual_kernel.somatic_urgency, food_need.effective_urgency
                         )
                         # Смерть от голода только при максимуме и без еды
                         if food_need.effective_urgency >= 0.95 and not ep.has_good("food", 1.0):
@@ -393,27 +402,27 @@ class NPCSandbox:
 
                     _drives_raw = profile_l0.drives_base or {}
                     _willpower_val = getattr(new_state, "willpower", 50) or 50
-                    
+
                     psyche = {
                         "fear": _drives_raw.get("fear", 0.25),
                         "control": _drives_raw.get("control", 0.25),
                         "significance": _drives_raw.get("significance", 0.25),
                         "willpower": min(1.0, float(_willpower_val) / 100.0),
                     }
-                    
+
                     current_load = new_state.affective_load
                     current_memory = new_state.affective_memory
-                    
+
                     new_load, new_memory = integrate_affective_pressure(
                         kernel=new_state.perceptual_kernel,
                         psyche=psyche,
                         current_load=current_load,
                         current_memory=current_memory,
                     )
-                    
+
                     new_state.affective_load = new_load
                     new_state.affective_memory = new_memory
-                    
+
                     emotion_payload = resolve_emotion_transition(new_load, current_load, psyche)
                     if emotion_payload:
                         new_state.stress = min(100.0, new_state.stress + emotion_payload.stress_delta)
@@ -448,29 +457,40 @@ class NPCSandbox:
                     # P8: Лорные ночные взаимодействия (выполняются один раз за ночь через Торнина)
                     if is_rest_tick and npc_id == "tavern_keeper_tornin":
                         from app.domain.identity_events import TraitDriftEvent
+
                         _goran_ep = eco_profiles.get("merchant_goran")
                         _borko_ep = eco_profiles.get("guard_borko")
                         _shadow_ep = eco_profiles.get("thief_shadow")
-                        
+
                         # 1. Взятка: Горан -> Борко
                         if _goran_ep and _borko_ep and _goran_ep.can_afford(5.0):
                             _goran_ep.spend(5.0)
                             _borko_ep.receive(5.0)
                             print("[NIGHT] Взятка: Горан заплатил Борко 5.0G")
-                            self.l1_chronicle.append(TraitDriftEvent(
-                                tick_id=tick, target_id="guard_borko", source_id="merchant_goran",
-                                effect_value=1.0, event_type="bribe"
-                            ))
+                            self.l1_chronicle.append(
+                                TraitDriftEvent(
+                                    tick_id=tick,
+                                    target_id="guard_borko",
+                                    source_id="merchant_goran",
+                                    effect_value=1.0,
+                                    event_type="bribe",
+                                )
+                            )
 
                         # 2. Шантаж: Тень -> Горан
                         if _goran_ep and _shadow_ep and _goran_ep.can_afford(10.0):
                             _goran_ep.spend(10.0)
                             _shadow_ep.receive(10.0)
                             print("[NIGHT] Шантаж: Горан заплатил Тени 10.0G")
-                            self.l1_chronicle.append(TraitDriftEvent(
-                                tick_id=tick, target_id="merchant_goran", source_id="thief_shadow",
-                                effect_value=-1.0, event_type="blackmail"
-                            ))
+                            self.l1_chronicle.append(
+                                TraitDriftEvent(
+                                    tick_id=tick,
+                                    target_id="merchant_goran",
+                                    source_id="thief_shadow",
+                                    effect_value=-1.0,
+                                    event_type="blackmail",
+                                )
+                            )
                             _goran_ctx = npc_contexts.get("merchant_goran")
                             if _goran_ctx and _goran_ctx["state"]:
                                 _goran_ctx["state"].stress = min(100.0, _goran_ctx["state"].stress + 5.0)
@@ -610,7 +630,9 @@ class NPCSandbox:
                 _p_ep = eco_profiles.get("player")
                 _t_ep = eco_profiles.get("tavern_keeper_tornin")
                 if _p_ep and _t_ep:
-                    print(f"[DAY END] День {tick // 24}: Игрок(gold={_p_ep.gold:.2f}G, food={_p_ep.goods.get('food', 0.0):.1f}) | Тавернщик(food_stock={_t_ep.stock_for_sale.get('food', 0.0):.1f})")
+                    print(
+                        f"[DAY END] День {tick // 24}: Игрок(gold={_p_ep.gold:.2f}G, food={_p_ep.goods.get('food', 0.0):.1f}) | Тавернщик(food_stock={_t_ep.stock_for_sale.get('food', 0.0):.1f})"
+                    )
 
                 # P8: L2.5 Кристаллизация убеждений (раз в день)
                 for _npc_id, _profile in eco_profiles.items():
@@ -622,10 +644,7 @@ class NPCSandbox:
                         _drives = _npc_ctx["profile"].drives_base if _npc_ctx else {}
                         _existing = npc_beliefs.get(_npc_id, [])
                         _new_beliefs = belief_engine.crystallize(
-                            evidence_list=_evidence,
-                            drives_base=_drives,
-                            existing_beliefs=_existing,
-                            current_tick=tick
+                            evidence_list=_evidence, drives_base=_drives, existing_beliefs=_existing, current_tick=tick
                         )
                         self.npc_beliefs[_npc_id] = _new_beliefs
                         for b in _new_beliefs:
@@ -648,7 +667,9 @@ class NPCSandbox:
                             # Банкротство — списываем всё что есть, добавляем стресс
                             _spent = ep.gold
                             ep.spend(_spent)
-                            print(f"[BANKRUPT] {npc_id} не может оплатить {daily_cost:.2f}G (заплатил {_spent:.2f}G) — СТРЕСС!")
+                            print(
+                                f"[BANKRUPT] {npc_id} не может оплатить {daily_cost:.2f}G (заплатил {_spent:.2f}G) — СТРЕСС!"
+                            )
                             _ctx = npc_contexts.get(npc_id)
                             if _ctx:
                                 _ctx["state"].stress = min(100.0, _ctx["state"].stress + 15.0)
@@ -1137,20 +1158,20 @@ def main() -> None:
         reporter.plot_charts()
 
         # P8: Отчёт по убеждениям (L2.5) и хронике (L1)
-        if hasattr(sandbox, 'npc_beliefs') and sandbox.npc_beliefs:
+        if hasattr(sandbox, "npc_beliefs") and sandbox.npc_beliefs:
             print("\n[REPORTER] Формирование отчёта убеждений...")
             with open("sandbox_beliefs.md", "w", encoding="utf-8") as f:
                 f.write("# Убеждения NPC (L2.5) и Хроника (L1)\n\n")
-                
+
                 # L1: Статистика по хронике
                 f.write("## Накопленные события (L1 Chronicle)\n\n")
                 f.write("| NPC | Событий в L1 |\n")
                 f.write("|-----|--------------|\n")
-                if hasattr(sandbox, 'l1_chronicle'):
+                if hasattr(sandbox, "l1_chronicle"):
                     for _nid in sandbox.npc_beliefs.keys():
                         _events = sandbox.l1_chronicle.query_raw(_nid)
                         f.write(f"| {_nid} | {len(_events)} |\n")
-                
+
                 # L2.5: Кристаллизованные убеждения
                 f.write("\n## Кристаллизованные убеждения (L2.5)\n\n")
                 f.write("| NPC | Источник | Трейт | Вес |\n")

@@ -197,6 +197,7 @@ async def dashboard() -> str:
     </html>
     """
 
+
 @router.get("/health")
 async def health(request: Request, game_loop: Any = Depends(get_game_loop)) -> dict:
     from app.services.llm.provider_manager import get_model_pool
@@ -205,19 +206,14 @@ async def health(request: Request, game_loop: Any = Depends(get_game_loop)) -> d
 
     llm_status = check_llm_health(use_cache=True)
     active_campaigns = list(player_session_service._sessions.keys())
-    total_players = sum(
-        bool(player_session_service.is_player_active(camp_id))
-        for camp_id in active_campaigns
-    )
+    total_players = sum(bool(player_session_service.is_player_active(camp_id)) for camp_id in active_campaigns)
     pool_status = await pool.get_status()
 
     # DEBT-STARTUP-1: Статус фоновых задач старта
     startup_status = getattr(request.app.state, "startup_status", {})  # noqa: ENIGMA002
     _llm_server = startup_status.get("llm_server", "unknown")
     _llm_health = startup_status.get("llm_health", "unknown")
-    _llm_overall = (
-        "ready" if _llm_server == "ready" and _llm_health == "ready" else _llm_server
-    )
+    _llm_overall = "ready" if _llm_server == "ready" and _llm_health == "ready" else _llm_server
 
     # N1/M-03 FIX: ENIGMA SELF-HEALING Telemetry Dashboard (Уровень 7)
     mvp = getattr(game_loop, "mvp_controller", None)  # noqa: ENIGMA002
@@ -306,13 +302,9 @@ async def set_content_policy(payload: dict) -> dict:
 def system_status(game_loop: Any = Depends(get_game_loop)) -> dict:
     llm_status = check_llm_health(use_cache=False)
     memory_sessions = len(player_session_service._sessions)
-    sessions_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sessions"
-    )
+    sessions_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "sessions")
     disk_sessions = (
-        len([f for f in os.listdir(sessions_dir) if f.endswith(".json")])
-        if os.path.exists(sessions_dir)
-        else 0
+        len([f for f in os.listdir(sessions_dir) if f.endswith(".json")]) if os.path.exists(sessions_dir) else 0
     )
     uptime = int(time.time() - app_start_time)
     return {
@@ -350,6 +342,7 @@ async def restart_llm() -> dict:
     """Перезапуск llama-server (debug-алиас; прод-путь — /api/llm/restart)."""
     return await restart_llm_production()
 
+
 # --- LLM Downloader API ---
 from app.services.llm.downloader import download_model, get_model_status
 
@@ -360,6 +353,7 @@ async def llm_status() -> dict:
     import os
 
     from app.core.config import settings
+
     _status = get_model_status()
 
     # Фикс D: Добавляем явную причину отсутствия LLM для UI
@@ -390,11 +384,7 @@ async def llm_outage() -> dict:
     from app.services.llm.provider_manager import get_model_pool
 
     _pool = get_model_pool()
-    _pool_status = (
-        _pool.pool_backoff_status()
-        if _pool is not None
-        else {"degraded": False, "models": {}}
-    )
+    _pool_status = _pool.pool_backoff_status() if _pool is not None else {"degraded": False, "models": {}}
     if _pool_status["degraded"]:
         _until = max(
             (m["backoff_until"] for m in _pool_status["models"].values()),
@@ -409,9 +399,7 @@ async def llm_outage() -> dict:
     if _health.get("status") != "online":
         return {
             "status": "unconfirmed",
-            "reason": str(
-                _health.get("details", _health.get("status", "unknown"))
-            ),
+            "reason": str(_health.get("details", _health.get("status", "unknown"))),
             "backoff_until": 0.0,
         }
     return {"status": "online", "reason": None, "backoff_until": 0.0}
@@ -423,12 +411,15 @@ async def llm_download(model_key: str, background_tasks: BackgroundTasks, force:
     background_tasks.add_task(download_model, model_key, force=force)
     return {"status": "started", "model": model_key}
 
+
 @router.post("/llm/cancel/{model_key}")
 async def llm_cancel(model_key: str) -> dict:
     """Отменяет активное скачивание модели (недокачанный файл будет удалён)."""
     from app.services.llm.downloader import cancel_download
+
     _ok = cancel_download(model_key)
     return {"status": "cancelled" if _ok else "not_downloading", "model": model_key}
+
 
 @router.post("/llm/select/{model_key}")
 async def llm_select(model_key: str) -> dict:
@@ -464,17 +455,22 @@ async def llm_select(model_key: str) -> dict:
     kill_llama_server()
 
     import time
+
     time.sleep(2)  # Даём Windows время освободить порт 8181
 
     success = restart_llama_server()
     if not success:
         # Вместо 500 ошибки, возвращаем текстовое сообщение для UI
-        return {"test_prompt": "", "test_response": "ОШИБКА: LLM сервер не смог запуститься с этой моделью. Возможно, не хватает VRAM или файл повреждён."}
+        return {
+            "test_prompt": "",
+            "test_response": "ОШИБКА: LLM сервер не смог запуститься с этой моделью. Возможно, не хватает VRAM или файл повреждён.",
+        }
 
     # Отправляем реальный игровой промпт с профилем NPC (Борко), чтобы проверить качество модели
     test_response = ""
     try:
         import json
+
         # Загружаем профиль стражника Борко
         borko_path = BASE_DIR / "config" / "npc" / "individuals" / "borko.json"
         borko_data = {}
@@ -488,21 +484,15 @@ async def llm_select(model_key: str) -> dict:
         notes = borko_data.get("author_notes", "")
 
         # Формируем честный системный промпт, как в реальной игре
-        sys_prompt = (
-            f"Ты играешь роль {name}. {desc} "
-            f"Твоя манера речи: {voice} "
-            f"Психология: {notes}"
-        )
+        sys_prompt = f"Ты играешь роль {name}. {desc} Твоя манера речи: {voice} Психология: {notes}"
 
         # Провокационный промпт, требующий отыгрыша роли
         user_prompt = "Игрок подходит к тебе и шепчет: 'Борко, я знаю, ты пропустил караван, после которого нашли труп. Кого ты покрыл?'. Ответь одной короткой фразой."
 
         from app.services.llm.llama_cpp_provider import LlamaCppProvider
+
         provider = LlamaCppProvider(server_url=settings.llama_cpp_server_url)
-        test_response = provider.complete(
-            prompt=user_prompt,
-            system_prompt=sys_prompt
-        )
+        test_response = provider.complete(prompt=user_prompt, system_prompt=sys_prompt)
         return {"test_prompt": user_prompt, "test_response": test_response}
 
     except Exception as e:
@@ -526,18 +516,12 @@ def readiness_status(request: Request) -> ReadinessReport:
 
 
 @router.post("/campaign/load", response_model=CampaignLoadResponse)
-def load_campaign(
-    request: CampaignLoadRequest, game_loop: Any = Depends(get_game_loop)
-) -> CampaignLoadResponse:
-    return cast(
-        CampaignLoadResponse, game_loop.load_campaign(request.campaign_id, request.world_id)
-    )
+def load_campaign(request: CampaignLoadRequest, game_loop: Any = Depends(get_game_loop)) -> CampaignLoadResponse:
+    return cast(CampaignLoadResponse, game_loop.load_campaign(request.campaign_id, request.world_id))
 
 
 @router.post("/game/skip_time/{campaign_id}")
-def skip_time(
-    campaign_id: str, ticks: int = 10, game_loop: Any = Depends(get_game_loop)
-) -> dict:
+def skip_time(campaign_id: str, ticks: int = 10, game_loop: Any = Depends(get_game_loop)) -> dict:
     """
     Промотка времени (Time Skip) — вызывает TimeSkipExecutor.
     Использует Policy B (остановка на значимом событии).
@@ -563,36 +547,24 @@ def idle_tick(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict
         # npc_positions из world_snapshot через конвертер (обратная совместимость)
         _npc_pos_dict: dict = {}
         _ws = (
-            _result.get("world_snapshot")
-            if isinstance(_result, dict)
-            else getattr(_result, "world_snapshot", None)  # noqa: ENIGMA002
+            _result.get("world_snapshot") if isinstance(_result, dict) else getattr(_result, "world_snapshot", None)  # noqa: ENIGMA002
         )
         if _ws is not None:
             _npc_pos = (
-                _ws.get("npc_positions")
-                if isinstance(_ws, dict)
-                else getattr(_ws, "npc_positions", None)  # noqa: ENIGMA002
+                _ws.get("npc_positions") if isinstance(_ws, dict) else getattr(_ws, "npc_positions", None)  # noqa: ENIGMA002
             )
             # A2-FIX: npc_positions уже Dict[str, NPCPositionDTO] (canonical). Адаптер удалён.
             if isinstance(_npc_pos, dict):
                 _npc_pos_dict = _npc_pos
             elif isinstance(_npc_pos, list):
                 # Fallback для legacy snapshots (если кто-то вернёт List)
-                _npc_pos_dict = {
-                    p.get("npc_id"): p
-                    for p in _npc_pos
-                    if isinstance(p, dict) and "npc_id" in p
-                }
+                _npc_pos_dict = {p.get("npc_id"): p for p in _npc_pos if isinstance(p, dict) and "npc_id" in p}
 
         _status = _result.get("status") if isinstance(_result, dict) else _result.status
         # DEBT-FE-DELTAS: ключ выровнен с return game_loop.idle_tick ("events").
         # Легаси-чтение "significant_events" у dict всегда давало None (мёртвый
         # канал). Объектная ветка — defensive для прямого TickResultDTO.
-        _events = (
-            _result.get("events")
-            if isinstance(_result, dict)
-            else _result.significant_events
-        )
+        _events = _result.get("events") if isinstance(_result, dict) else _result.significant_events
 
         return {
             "status": _status,
@@ -608,9 +580,7 @@ def idle_tick(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> dict
 
 
 @router.post("/world/tick/{world_id}", response_model=WorldTickResponse)
-def force_world_tick(
-    world_id: str, game_loop: Any = Depends(get_game_loop)
-) -> WorldTickResponse:
+def force_world_tick(world_id: str, game_loop: Any = Depends(get_game_loop)) -> WorldTickResponse:
     tick = game_loop.world_scheduler.maybe_tick(world_id, settings.world_tick_minutes)
     return WorldTickResponse(world_id=world_id, **tick)
 
@@ -652,9 +622,7 @@ def combat_attack(request: CombatActionRequest) -> CombatStateResponse:
     return _combat_response(state)
 
 
-@router.post(
-    "/combat/next-turn/{campaign_id}/{combat_id}", response_model=CombatStateResponse
-)
+@router.post("/combat/next-turn/{campaign_id}/{combat_id}", response_model=CombatStateResponse)
 def combat_next_turn(campaign_id: str, combat_id: str) -> CombatStateResponse:
     state = combat_service.next_turn(campaign_id, combat_id)
     return _combat_response(state)
@@ -701,7 +669,8 @@ async def set_avatar_gender(payload: dict, game_loop: Any = Depends(get_game_loo
 
 @router.post("/avatar/{campaign_id}/names/link")
 async def link_player_name(
-    campaign_id: str, payload: dict,
+    campaign_id: str,
+    payload: dict,
     game_loop: Any = Depends(get_game_loop),
 ) -> dict:
     """ADR-O-409 PLAYER_LINK: игрок связал имя с лицом на доске →
@@ -733,14 +702,10 @@ async def get_known_names(campaign_id: str, request: Request) -> dict:
 
 
 @router.post("/game/turn", response_model=ChatTurnResponse)
-async def game_turn(
-    request: ChatTurnRequest, game_loop: Any = Depends(get_game_loop)
-) -> ChatTurnResponse:
+async def game_turn(request: ChatTurnRequest, game_loop: Any = Depends(get_game_loop)) -> ChatTurnResponse:
     if request.actions:
         player_name = request.actions[0].player_name
-        if not player_session_service.is_player_active(
-            request.campaign_id, player_name
-        ):
+        if not player_session_service.is_player_active(request.campaign_id, player_name):
             raise HTTPException(
                 status_code=412,
                 detail=f"Игрок '{player_name}' не активен. Пожалуйста, выберите персонажа.",
@@ -761,10 +726,12 @@ def get_end_screen(campaign_id: str, game_loop: Any = Depends(get_game_loop)) ->
     # 8.1 FIX: Теперь отдаёт текстовые поля для UI
     return cast(Dict[str, Any], game_loop.mvp_controller.serialize_end_screen())
 
+
 @router.get("/game/status/{campaign_id}")
 def get_campaign_status(campaign_id: str) -> dict:
     """БАГ-4 (S292): статус завершённости для FE-грейтинга «Продолжить»."""
     from app.services.campaign_state_service import get_campaign_state_service
+
     _cs = get_campaign_state_service().get_campaign_state(campaign_id)
     return {
         "campaign_id": campaign_id,
@@ -787,6 +754,7 @@ def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop))
     # семантика «новая игра = не завершена» бесплатна.
     try:
         from app.services.campaign_state_service import get_campaign_state_service
+
         _cs = get_campaign_state_service().get_campaign_state(campaign_id)
         _cs.metadata["campaign_finished"] = True
         get_campaign_state_service().save(campaign_id)
@@ -794,6 +762,7 @@ def finalize_campaign(campaign_id: str, game_loop: Any = Depends(get_game_loop))
         logger.error(f"[FINALIZE] failed to persist campaign_finished flag: {_fin_err}")
 
     return {"status": "ok", "campaign_id": campaign_id, "diff_captured": True, "finished": True}
+
 
 # NEW-MEM-002 FIX: API endpoint для просмотра таблиц воспоминаний NPC
 def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any]:
@@ -828,15 +797,9 @@ def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any
     # — Recall / suppressed (чистые функции от кэша) —
     if _cache:
         _recalled = _mm.recall(_cache, hidden_from_id="player", limit=5)
-        xray["recalled"] = [
-            {"summary": m.summary, "importance": m.importance}
-            for m in _recalled
-        ]
+        xray["recalled"] = [{"summary": m.summary, "importance": m.importance} for m in _recalled]
         _suppressed = _mm.get_suppressed_secrets(_cache)
-        xray["suppressed_secrets"] = [
-            {"summary": m.summary, "importance": m.importance}
-            for m in _suppressed
-        ]
+        xray["suppressed_secrets"] = [{"summary": m.summary, "importance": m.importance} for m in _suppressed]
     else:
         xray["recalled"] = []
         xray["suppressed_secrets"] = []
@@ -859,17 +822,11 @@ def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any
 
             with open(_rt_path, "r", encoding="utf-8") as _f:
                 _runtime_list = _json.load(_f)
-            _npc_dict = next(
-                (n for n in _runtime_list if n.get("id") == npc_id), None
-            )
+            _npc_dict = next((n for n in _runtime_list if n.get("id") == npc_id), None)
             if _npc_dict:
-                _json_state["beliefs"] = _npc_dict.get("psyche", {}).get(
-                    "beliefs", {}
-                )
+                _json_state["beliefs"] = _npc_dict.get("psyche", {}).get("beliefs", {})
                 _json_state["affective_load"] = _npc_dict.get("affective_load")
-                _json_state["narrative_cache_len"] = len(
-                    _npc_dict.get("narrative_cache", [])
-                )
+                _json_state["narrative_cache_len"] = len(_npc_dict.get("narrative_cache", []))
                 _json_state["stress"] = _npc_dict.get("psyche", {}).get("stress")
         else:
             _json_state["runtime_file"] = "not_found"
@@ -888,9 +845,7 @@ def _xray_memory(game_loop: Any, campaign_id: str, npc_id: str) -> Dict[str, Any
 
 
 @router.get("/debug/memories/{campaign_id}/{npc_id}")
-def get_npc_memories(
-    campaign_id: str, npc_id: str, game_loop: Any = Depends(get_game_loop)
-) -> Dict[str, Any]:
+def get_npc_memories(campaign_id: str, npc_id: str, game_loop: Any = Depends(get_game_loop)) -> Dict[str, Any]:
     """Возвращает crystallized_beliefs, event_memories и рентген памяти NPC."""
     result: Dict[str, Any] = {"crystallized_beliefs": [], "event_memories": []}
 
@@ -905,7 +860,8 @@ def get_npc_memories(
                     "source_id": b.source_id,
                     "trait": b.trait,
                     "weight": b.weight,
-                } for b in _beliefs
+                }
+                for b in _beliefs
             ]
 
     # 2. Event Memories (L2)
@@ -928,13 +884,15 @@ def get_npc_memories(
                         "event_type": m.get("event_type", ""),
                         "target_id": m.get("target_id", ""),
                         "is_secret": bool(m.get("is_secret", False)),
-                    } for m in _mems
+                    }
+                    for m in _mems
                 ]
 
     # 3. Рентген памяти (Фаза A Шаг 9): SQLite-ветка + JSON-ветка + отношения.
     # Read-only, детерминированно, без обхода приватных недр game_loop.
     result.update(_xray_memory(game_loop, campaign_id, npc_id))
     return result
+
 
 @router.post("/game/action")
 async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) -> dict:
@@ -971,16 +929,12 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
             session.active = True
             session.last_heartbeat = datetime.now()
             if not player_session_service.is_player_active(campaign_id, player):
-                raise HTTPException(
-                    status_code=412, detail=f"Игрок '{player}' не активен"
-                )
+                raise HTTPException(status_code=412, detail=f"Игрок '{player}' не активен")
 
         pool = get_model_pool()
         router_llm = get_router()
         dm_model_key = router_llm.get_model_for_agent("dm")
-        model_provider = await pool.get_model_async(
-            dm_model_key, "ROUTE", timeout_sec=30
-        )
+        model_provider = await pool.get_model_async(dm_model_key, "ROUTE", timeout_sec=30)
         model_selection = ModelSelection(
             provider=ModelProvider.llama_cpp,
             model_name=model_provider.key if model_provider else "fallback",
@@ -1033,6 +987,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
                         _actual_chunk_id = _primary_chunk.location_id
                         # P2-02: структурный лог (без поведенческих изменений).
                         from app.services.spatial.oracle_log import log_oracle_decision
+
                         log_oracle_decision(
                             tag="HTTP",
                             world_x=world_x,
@@ -1048,9 +1003,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
                         # Обновляем metadata для следующего запроса
                         # S83: Сохраняем world_position — idle_tick сможет вызвать Oracle
                         if campaign_state:
-                            campaign_state.metadata["current_location"] = (
-                                _actual_chunk_id
-                            )
+                            campaign_state.metadata["current_location"] = _actual_chunk_id
                             campaign_state.metadata["player_world_x"] = world_x
                             campaign_state.metadata["player_world_y"] = world_y
                             # A1-FIX: Atomic commit (Устав §4.2.1). Persistence parity with Direct path.
@@ -1083,9 +1036,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
 
         result = await game_loop.run_turn(turn_request)
         if result is None or not hasattr(result, "dm_response"):
-            logger.error(
-                "[ROUTES] game_loop.run_turn returned None or invalid object — pipeline failure"
-            )
+            logger.error("[ROUTES] game_loop.run_turn returned None or invalid object — pipeline failure")
             raise HTTPException(
                 status_code=500,
                 detail="Game loop returned invalid response — internal pipeline failure",
@@ -1121,9 +1072,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
                 elif isinstance(_raw_positions, list):
                     # Fallback для legacy snapshots
                     _npc_pos_dict = {
-                        p.get("npc_id", f"npc_{i}"): p
-                        for i, p in enumerate(_raw_positions)
-                        if isinstance(p, dict)
+                        p.get("npc_id", f"npc_{i}"): p for i, p in enumerate(_raw_positions) if isinstance(p, dict)
                     }
 
         # Resume-фикс (action-путь — ОСНОВНОЙ путь ходов из игры): пишем в
@@ -1139,9 +1088,11 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
             )
         try:
             _player_ws = (_npc_pos_dict or {}).get("player") or {}
-            _fact_loc = _player_ws.get("location_id") if isinstance(
-                _player_ws, dict
-            ) else getattr(_player_ws, "location_id", None)  # noqa: ENIGMA002
+            _fact_loc = (
+                _player_ws.get("location_id")
+                if isinstance(_player_ws, dict)
+                else getattr(_player_ws, "location_id", None)
+            )  # noqa: ENIGMA002
             if _fact_loc:
                 _cs_action = campaign_service.get_campaign_state(campaign_id)
                 if _cs_action is not None:
@@ -1192,6 +1143,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
             os.makedirs(_error_log_dir, exist_ok=True)
             _error_path = os.path.join(_error_log_dir, "error.log")
             import time as _time
+
             with open(_error_path, "a", encoding="utf-8") as f:
                 f.write(f"\n=== {_time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
                 f.write(traceback.format_exc())
@@ -1202,9 +1154,7 @@ async def game_action(request: dict, game_loop: Any = Depends(get_game_loop)) ->
 
         # Полный traceback в cds_backend.log
         logger.error(f"[GAME_ACTION] {e}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500, detail=f"Internal Server Error: {str(e)[:200]}"
-        )
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)[:200]}")
 
 
 # ── R5 (CCH-15 P4): Автономная симуляция (opt-in) ──────────────────
@@ -1260,13 +1210,9 @@ async def autonomous_simulation_status(campaign_id: str, game_loop: Any = Depend
 
 
 @router.get("/session/state/{campaign_id}", response_model=SessionInterfaceState)
-def session_state(
-    campaign_id: str, game_loop: Any = Depends(get_game_loop)
-) -> SessionInterfaceState:
+def session_state(campaign_id: str, game_loop: Any = Depends(get_game_loop)) -> SessionInterfaceState:
     state = game_loop.session_state(campaign_id)
-    state.players = [
-        char.name for char in character_service.list_characters(campaign_id)
-    ]
+    state.players = [char.name for char in character_service.list_characters(campaign_id)]
     return cast(SessionInterfaceState, state)
 
 
@@ -1368,10 +1314,7 @@ def add_interface_player(campaign_id: str, request: dict) -> dict:
 @router.get("/interface/facts/{campaign_id}")
 def get_interface_facts(campaign_id: str, category: str | None = None) -> List[dict]:
     facts = campaign_service.get_world_facts(campaign_id, category=category)
-    return [
-        {"id": f.id, "text": f.text, "category": f.category, "tags": f.tags}
-        for f in facts
-    ]
+    return [{"id": f.id, "text": f.text, "category": f.category, "tags": f.tags} for f in facts]
 
 
 @router.post("/interface/facts/{campaign_id}")
@@ -1388,10 +1331,7 @@ def add_interface_fact(campaign_id: str, request: dict) -> dict:
 @router.get("/interface/sessions/{campaign_id}")
 def get_interface_sessions(campaign_id: str) -> List[dict]:
     sessions = campaign_service.get_session_summaries(campaign_id)
-    return [
-        {"id": s.id, "date": s.date, "summary": s.summary, "location": s.location}
-        for s in sessions
-    ]
+    return [{"id": s.id, "date": s.date, "summary": s.summary, "location": s.location} for s in sessions]
 
 
 # === Player Session / Heartbeat ===
@@ -1401,9 +1341,7 @@ def get_interface_sessions(campaign_id: str) -> List[dict]:
 def player_heartbeat(request: HeartbeatRequest) -> HeartbeatResponse:
     characters = character_service.list_characters(request.campaign_id)
     if all(c.name != request.player_name for c in characters):
-        raise HTTPException(
-            status_code=412, detail=f"Персонаж '{request.player_name}' не найден"
-        )
+        raise HTTPException(status_code=412, detail=f"Персонаж '{request.player_name}' не найден")
     session = player_session_service.heartbeat(request.campaign_id, request.player_name)
     return HeartbeatResponse(
         active=session.active,
@@ -1434,8 +1372,10 @@ from pydantic import BaseModel
 
 class NewGameRequest(BaseModel):
     """Контракт команды начала новой игры."""
+
     continuity_mode: WorldContinuityMode = WorldContinuityMode.ISOLATED
     source_campaign_id: Optional[str] = None
+
 
 @router.post("/game/new/{campaign_id}")
 def new_game(campaign_id: str, request: NewGameRequest, game_loop: Any = Depends(get_game_loop)) -> dict:
@@ -1450,7 +1390,7 @@ def new_game(campaign_id: str, request: NewGameRequest, game_loop: Any = Depends
             game_loop.new_game(
                 campaign_id=campaign_id,
                 continuity_mode=request.continuity_mode,
-                source_campaign_id=request.source_campaign_id
+                source_campaign_id=request.source_campaign_id,
             ),
         )
     except CampaignResetError as exc:
@@ -1493,9 +1433,7 @@ def create_player_session(
         raise HTTPException(status_code=400, detail="Поле 'player' обязательно")
     characters = character_service.list_characters(campaign_id)
     if all(c.name != player_name for c in characters):
-        raise HTTPException(
-            status_code=404, detail=f"Персонаж '{player_name}' не найден"
-        )
+        raise HTTPException(status_code=404, detail=f"Персонаж '{player_name}' не найден")
     player_session_service.select_player(campaign_id, player_name)
     # Сбрасываем флаг сессии — следующий ход будет session_start (сброс стресса NPC)
     game_loop.reset_session_flag(campaign_id)
@@ -1510,11 +1448,10 @@ def create_player_session(
 def select_player(request: PlayerSelectRequest) -> PlayerSelectResponse:
     characters = character_service.list_characters(request.campaign_id)
     if all(c.name != request.player for c in characters):
-        raise HTTPException(
-            status_code=404, detail=f"Персонаж '{request.player}' не найден"
-        )
+        raise HTTPException(status_code=404, detail=f"Персонаж '{request.player}' не найден")
     player_session_service.select_player(request.campaign_id, request.player)
     return PlayerSelectResponse(status="ok", player=request.player)
+
 
 # ── ADR-O-330: Spatial Observatory API ──────────────────────────────
 @router.post("/spatial/observatory")
@@ -1528,28 +1465,28 @@ async def spatial_observatory_inspect(payload: dict = Body(...)) -> dict:
     campaign_id = payload.get("campaign_id", "Open_road")
     location_id = payload.get("location_id", "tavern_silver_wolf")
     editor_data = payload.get("editor_data", {})
-    agents_data = payload.get("agents_data", {}) # Опционально, для topology-only inspection
+    agents_data = payload.get("agents_data", {})  # Опционально, для topology-only inspection
 
     if not editor_data:
         raise HTTPException(status_code=400, detail="editor_data is required")
 
     try:
         result_dto = observatory_service.inspect(
-            campaign_id=campaign_id,
-            location_id=location_id,
-            editor_data=editor_data,
-            agents_data=agents_data
+            campaign_id=campaign_id, location_id=location_id, editor_data=editor_data, agents_data=agents_data
         )
         return asdict(result_dto)
     except Exception as e:
         import traceback
-        traceback.print_exc() # Выводим полный traceback в консоль
+
+        traceback.print_exc()  # Выводим полный traceback в консоль
         logger.error(f"[OBSERVATORY_API] Error during inspection: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # ── Подсистема 3: Causal Probes Dashboard ───────────────────────────
 @router.get("/probes/dashboard")
 async def probes_dashboard() -> dict:
     """Возвращает историю результатов runtime-проб за последние 100 тиков."""
     from app.services.probes.probe_alerts import probe_alerts
+
     return probe_alerts.get_dashboard()

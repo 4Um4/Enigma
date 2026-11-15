@@ -111,9 +111,7 @@ def _make_lusya_scene(extra: dict | None = None) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_migration_shifts_local_position(
-    manager: SceneStateManager, tavern_editor_world: dict
-) -> None:
+def test_w5_migration_shifts_local_position(manager: SceneStateManager, tavern_editor_world: dict) -> None:
     """W5: версия < W + world frame → сдвиг local_position на origin.
 
     Реальные данные: maid_lusya local_position=(7.987, 1.826) — ЛОКАЛЬНЫЕ
@@ -146,9 +144,7 @@ def test_w5_migration_shifts_local_position(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_idempotent_on_repeated_load(
-    manager: SceneStateManager, tavern_editor_world: dict
-) -> None:
+def test_w5_idempotent_on_repeated_load(manager: SceneStateManager, tavern_editor_world: dict) -> None:
     """W5: coord_frame_version='W' → no-op, persist НЕ вызван."""
     manager._find_editor_location = lambda cid, lid: tavern_editor_world
     # local_position уже мировой (после первой миграции)
@@ -194,13 +190,11 @@ def test_w5_new_scene_global_positions_survive_repeated_restore(
     persisted_scenes: dict[str, dict] = {}
 
     def persist_scenes(*, all_scenes: dict[str, dict], **kwargs: object) -> None:
-        persisted_scenes.update(
-            {location_id: deepcopy(state) for location_id, state in all_scenes.items()}
-        )
+        persisted_scenes.update({location_id: deepcopy(state) for location_id, state in all_scenes.items()})
 
     manager._persistence.atomic_commit_all.side_effect = persist_scenes
-    manager._persistence.load_scene_at.side_effect = (
-        lambda campaign_id, location_id: deepcopy(persisted_scenes.get(location_id))
+    manager._persistence.load_scene_at.side_effect = lambda campaign_id, location_id: deepcopy(
+        persisted_scenes.get(location_id)
     )
 
     assert scene["coord_frame_version"] == "W"
@@ -228,9 +222,7 @@ def test_w5_new_scene_global_positions_survive_repeated_restore(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_node_17_does_not_raise(
-    manager: SceneStateManager, tavern_editor_world: dict
-) -> None:
+def test_w5_node_17_does_not_raise(manager: SceneStateManager, tavern_editor_world: dict) -> None:
     """B-15: висячая ссылка maid_lusya.position='node_17' не роняет миграцию.
 
     Миграция работает с local_position, не с position (node-id). Node_17
@@ -257,9 +249,7 @@ def test_w5_node_17_does_not_raise(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_local_frame_file_no_shift(
-    manager: SceneStateManager, tavern_editor_local: dict
-) -> None:
+def test_w5_local_frame_file_no_shift(manager: SceneStateManager, tavern_editor_local: dict) -> None:
     """W5: global_coords=False → файл локальный, самосогласован; только версия."""
     manager._find_editor_location = lambda cid, lid: tavern_editor_local
     scene = _make_lusya_scene()
@@ -279,9 +269,7 @@ def test_w5_local_frame_file_no_shift(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_no_persistence_graceful(
-    tmp_path: Path, tavern_editor_world: dict
-) -> None:
+def test_w5_no_persistence_graceful(tmp_path: Path, tavern_editor_world: dict) -> None:
     """W5: PersistencePort=None → версия в RAM, no crash, warning logged."""
     manager = SceneStateManager(data_dir=tmp_path, persistence=None)
     manager._find_editor_location = lambda cid, lid: tavern_editor_world
@@ -302,9 +290,7 @@ def test_w5_no_persistence_graceful(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def test_w5_skips_zero_zero(
-    manager: SceneStateManager, tavern_editor_world: dict
-) -> None:
+def test_w5_skips_zero_zero(manager: SceneStateManager, tavern_editor_world: dict) -> None:
     """ADR-121: (0,0) трактуется как битая координата → пропускается.
 
     _enrich_local_positions восстановит её из fallback-цепочки
@@ -357,4 +343,3 @@ def test_w5_editor_not_found_deferred(manager: SceneStateManager) -> None:
     assert lp["y"] == _MAID_LUSYA_Y
     # persist НЕ вызван
     manager._persistence.atomic_commit_all.assert_not_called()
-    

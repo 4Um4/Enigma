@@ -76,9 +76,7 @@ class EventBus:
 
     # ── Event Identity ────────────────────────────────────────────────────
 
-    def set_identity_provider(
-        self, provider: Optional[Callable[[str, str], Tuple[int, int]]]
-    ) -> None:
+    def set_identity_provider(self, provider: Optional[Callable[[str, str], Tuple[int, int]]]) -> None:
         """Привязывает провайдер identity: (event_type, source) -> (tick, ordinal).
 
         Прецедент API — attach_cfrm_bridge. Финализация происходит ровно
@@ -103,9 +101,7 @@ class EventBus:
         except LookupError:
             # Громкая телеметрия, provisional fallback: событие не теряется,
             # но отсутствие сцены фиксируется (L4-дисциплина, не молчание)
-            logger.error(
-                f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id"
-            )
+            logger.error(f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id")
             return event
         _tick, _ordinal = self._identity_provider(event.type, event.source)
         _seed = f"{event.type}:{event.source}:{_tick}:{_ordinal}".encode("utf-8")
@@ -127,10 +123,7 @@ class EventBus:
           или None (игнорируется).
         """
         self._handlers.setdefault(event_type.value, []).append(handler)
-        logger.debug(
-            f"[EVENT_BUS] Подписан обработчик на {event_type.name}: "
-            f"{handler.__qualname__}"
-        )
+        logger.debug(f"[EVENT_BUS] Подписан обработчик на {event_type.name}: {handler.__qualname__}")
 
     def unsubscribe(self, event_type: EventType, handler: EventHandler) -> None:
         """Удаляет обработчик."""
@@ -147,10 +140,7 @@ class EventBus:
         Закон 2.1.2: Возвращает List[EventDTO] — результаты обработчиков.
         """
         if not isinstance(event, EventDTO):
-            raise TypeError(
-                f"EventBus.publish() принимает только EventDTO, "
-                f"получен {type(event).__name__}"
-            )
+            raise TypeError(f"EventBus.publish() принимает только EventDTO, получен {type(event).__name__}")
 
         # Event Identity: финализация id ДО любых подписчиков и CFRM-моста —
         # все потребители видят финальный identity
@@ -184,7 +174,7 @@ class EventBus:
                     else:
                         logger.error(
                             f"[EVENT_BUS] Обработчик упал (попытка 2/2): {handler.__qualname__} → {e}. Sending to DLQ.",
-                            exc_info=True
+                            exc_info=True,
                         )
 
             if not _success:
@@ -234,18 +224,12 @@ class EventBus:
 
     # ── Утилиты ───────────────────────────────────────────────────────────
 
-    def get_recent_events(
-        self, limit: int = 20, campaign_id: str = ""
-    ) -> List[EventDTO]:
+    def get_recent_events(self, limit: int = 20, campaign_id: str = "") -> List[EventDTO]:
         """Последние N событий для debug и context_builder.
         Если campaign_id указан — фильтрует только события этой кампании.
         """
         if campaign_id:
-            filtered = [
-                e
-                for e in self._event_log
-                if e.payload.get("campaign_id") == campaign_id
-            ]
+            filtered = [e for e in self._event_log if e.payload.get("campaign_id") == campaign_id]
             return filtered[-limit:]
         return self._event_log[-limit:]
 

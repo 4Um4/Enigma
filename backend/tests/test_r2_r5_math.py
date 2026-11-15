@@ -50,7 +50,9 @@ def test_r2_r5_core_math():
     # R2: DECISION CORE (Что решает NPC?)
     # ==========================================
     hub = DecisionHub(seed=42)  # Фиксированный seed для повторяемости
-    decision: DecisionResult = hub.compute(state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES)
+    decision: DecisionResult = hub.compute(
+        state=state, personality=personality, event=event, effective_drives=_MOCK_DRIVES
+    )
 
     print("\n--- R2: DECISION HUB ---")
     print(f"Выбранное намерение (Intent): {decision.intent.value}")

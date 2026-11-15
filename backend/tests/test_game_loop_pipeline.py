@@ -48,7 +48,9 @@ def game_loop(mock_deps):
     return GameLoop(**mock_deps)
 
 
-@pytest.mark.skip(reason="Flaky integration test: AsyncMock breaks sync DMResult expectations in run_dm_phase. Needs refactor.")
+@pytest.mark.skip(
+    reason="Flaky integration test: AsyncMock breaks sync DMResult expectations in run_dm_phase. Needs refactor."
+)
 @pytest.mark.anyio
 async def test_run_pipeline_returns_pipeline_state(game_loop):
     """Базовый тест: _run_pipeline должен завершиться и вернуть _PipelineState."""

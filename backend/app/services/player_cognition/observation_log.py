@@ -23,7 +23,7 @@ class ObservationLog:
         observation_type: str,
         content: str,
         source_id: Optional[str] = None,
-        source_type: ObservationSourceType = ObservationSourceType.UNKNOWN
+        source_type: ObservationSourceType = ObservationSourceType.UNKNOWN,
     ) -> Observation:
         """Добавляет сырую наблюдение в лог."""
         obs = Observation(
@@ -32,21 +32,24 @@ class ObservationLog:
             observation_type=observation_type,
             source_id=source_id,
             source_type=source_type,
-            content=content
+            content=content,
         )
         self._observations.append(obs)
         self._next_id += 1
         return obs
 
-    def add_evidence(self, observation_id: int, secret_id: str, evidence_strength: float, polarity: EvidencePolarity = EvidencePolarity.SUPPORTS) -> EvidenceLink:
+    def add_evidence(
+        self,
+        observation_id: int,
+        secret_id: str,
+        evidence_strength: float,
+        polarity: EvidencePolarity = EvidencePolarity.SUPPORTS,
+    ) -> EvidenceLink:
         """Добавляет каноническую связь наблюдения с секретом."""
         if observation_id not in {o.observation_id for o in self._observations}:
             raise ValueError(f"Observation {observation_id} not found")
         link = EvidenceLink(
-            observation_id=observation_id,
-            secret_id=secret_id,
-            evidence_strength=evidence_strength,
-            polarity=polarity
+            observation_id=observation_id, secret_id=secret_id, evidence_strength=evidence_strength, polarity=polarity
         )
         self._evidence.append(link)
         return link

@@ -48,10 +48,20 @@ def main() -> int:
     out = Path("reports") / ("bm_factorial_iso_" + key + ".json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("[BM-ISO] " + key + " alone: y1=" + str(m["y1_window"])
-          + " y1_masked=" + str(m["y1_masked"])
-          + " y2=" + str(m["y2_share"])
-          + " mask_ticks=" + str(m["mask_ticks"]) + " -> " + str(out))
+    print(
+        "[BM-ISO] "
+        + key
+        + " alone: y1="
+        + str(m["y1_window"])
+        + " y1_masked="
+        + str(m["y1_masked"])
+        + " y2="
+        + str(m["y2_share"])
+        + " mask_ticks="
+        + str(m["mask_ticks"])
+        + " -> "
+        + str(out)
+    )
     return 0
 
 

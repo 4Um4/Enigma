@@ -82,8 +82,7 @@ def generate_conclusion_proposals(
             # L4 (INV-SILENT-FAILURE): отказ наблюдаем; мусорное value —
             # аномалия данных события: skip с диагнозом, не тихий провал
             logger.warning(
-                "[CONCLUSION_ENGINE] невалидное value в дельте опыта "
-                f"(trace={payload.get('trace_id', '?')}) — skip"
+                f"[CONCLUSION_ENGINE] невалидное value в дельте опыта (trace={payload.get('trace_id', '?')}) — skip"
             )
             continue
         if value < THREAT_CONCLUSION_THRESHOLD:
@@ -93,9 +92,7 @@ def generate_conclusion_proposals(
         causal_parent = str(payload.get("causal_parent", ""))
         owner_id = parse_owner_from_trace_id(trace_id)
         if owner_id is None:
-            logger.warning(
-                f"[CONCLUSION_ENGINE] trace_id без owner-сегмента — skip: {trace_id}"
-            )
+            logger.warning(f"[CONCLUSION_ENGINE] trace_id без owner-сегмента — skip: {trace_id}")
             continue
 
         proposals.append(

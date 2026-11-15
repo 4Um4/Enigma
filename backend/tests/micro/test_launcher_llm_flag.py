@@ -39,7 +39,7 @@ def test_off_rollback_not_bypassed(launcher_src: str) -> None:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        if '_env["LLM_RESILIENCE_V1"]' not in line or '=' not in line:
+        if '_env["LLM_RESILIENCE_V1"]' not in line or "=" not in line:
             continue
         if line.startswith("if "):
             continue
@@ -57,7 +57,9 @@ def test_s377_anchor_present(launcher_src: str) -> None:
     lines = launcher_src.splitlines()
     for i, raw in enumerate(lines):
         if GUARD in raw:
-            context = "\n".join(lines[max(0, i - 8):i])
-            assert "S377" in context or "ROLLOUT-ON" in context, "missing S377/ROLLOUT-ON anchor comment above the guarded block"
+            context = "\n".join(lines[max(0, i - 8) : i])
+            assert "S377" in context or "ROLLOUT-ON" in context, (
+                "missing S377/ROLLOUT-ON anchor comment above the guarded block"
+            )
             return
     pytest.fail("guarded ROLLOUT-ON block not found")

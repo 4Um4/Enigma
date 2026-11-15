@@ -14,8 +14,16 @@ R2-B5-D1 PRODUCTION WIRING FORENSICS.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, logging, math, copy, types
+import os
+import sys
+import json
+import traceback
+import logging
+import math
+import copy
+import types
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -46,14 +54,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_b5_d1_wiring_forensics.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -73,7 +87,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -87,7 +101,7 @@ def _grep_in_dir(directory: Path, patterns: List[str], file_exts: List[str] = ("
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         for i, line in enumerate(src.split("\n"), 1):
             for pat in patterns:
@@ -113,9 +127,20 @@ def stage_a_find_registration() -> Dict[str, Any]:
 
     # 2. All places where its handlers are registered in EventBus
     print("\n--- A.2: Все регистрации обработчиков в EventBus ---")
-    results2 = _grep_in_dir(_BACKEND, ["subscribe.*CLAIM", "subscribe.*NPC_SPOKE", "subscribe.*PLAYER_INSULT",
-                                        "subscribe.*COMMUNICATION_CLAIM", "subscribe.*PLAYER_SPOKE",
-                                        "claim_subscriber", "on_claim_event", "on_npc_spoke", "on_player_spoke"])
+    results2 = _grep_in_dir(
+        _BACKEND,
+        [
+            "subscribe.*CLAIM",
+            "subscribe.*NPC_SPOKE",
+            "subscribe.*PLAYER_INSULT",
+            "subscribe.*COMMUNICATION_CLAIM",
+            "subscribe.*PLAYER_SPOKE",
+            "claim_subscriber",
+            "on_claim_event",
+            "on_npc_spoke",
+            "on_player_spoke",
+        ],
+    )
     for path, ln, line in results2:
         if "test" not in str(path).lower() and "sandbox" not in str(path).lower():
             rel = path.relative_to(_BACKEND) if path.is_relative_to(_BACKEND) else path
@@ -134,8 +159,8 @@ def stage_a_find_registration() -> Dict[str, Any]:
             print(f"\n  File: {path.relative_to(_BACKEND)}")
             for j in range(start, end):
                 marker = " >>>" if j + 1 == ln else "    "
-                print(f"  {marker} L{j+1}: {lines[j]}")
-        except:
+                print(f"  {marker} L{j + 1}: {lines[j]}")
+        except Exception:
             pass
 
     result["pass"] = True
@@ -165,19 +190,21 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
         for attr in subscriber_attrs:
             if hasattr(bus, attr):
                 subs = getattr(bus, attr)
-                print(f"  bus.{attr}: type={type(subs).__name__}, keys/len={len(subs) if hasattr(subs, '__len__') else '?'}")
+                print(
+                    f"  bus.{attr}: type={type(subs).__name__}, keys/len={len(subs) if hasattr(subs, '__len__') else '?'}"
+                )
                 if isinstance(subs, dict):
                     for event_type, callbacks in subs.items():
                         print(f"    {event_type}: {len(callbacks) if hasattr(callbacks, '__len__') else 1} callbacks")
-                        if hasattr(callbacks, '__iter__'):
+                        if hasattr(callbacks, "__iter__"):
                             for cb in callbacks:
-                                cb_obj = getattr(cb, '__self__', None)
+                                cb_obj = getattr(cb, "__self__", None)
                                 if cb_obj and isinstance(cb_obj, ClaimEventSubscriber):
                                     found_subscribers.append(cb_obj)
                                     print(f"      → ClaimEventSubscriber found! id={id(cb_obj)}")
                 elif isinstance(subs, list):
                     for cb in subs:
-                        cb_obj = getattr(cb, '__self__', None)
+                        cb_obj = getattr(cb, "__self__", None)
                         if cb_obj and isinstance(cb_obj, ClaimEventSubscriber):
                             found_subscribers.append(cb_obj)
                             print(f"  → ClaimEventSubscriber found! id={id(cb_obj)}")
@@ -192,12 +219,12 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
                 if isinstance(val, ClaimEventSubscriber):
                     found_subscribers.append(val)
                     print(f"  loop.{attr_name}: ClaimEventSubscriber! id={id(val)}")
-                elif hasattr(val, '__dict__'):
+                elif hasattr(val, "__dict__"):
                     for k2, v2 in vars(val).items():
                         if isinstance(v2, ClaimEventSubscriber):
                             found_subscribers.append(v2)
                             print(f"  loop.{attr_name}.{k2}: ClaimEventSubscriber! id={id(v2)}")
-            except:
+            except Exception:
                 pass
 
         # Search in tick_orch
@@ -212,7 +239,7 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
                     if isinstance(val, ClaimEventSubscriber):
                         found_subscribers.append(val)
                         print(f"  tick_orch.{attr_name}: ClaimEventSubscriber! id={id(val)}")
-                except:
+                except Exception:
                     pass
 
         # Also check ServiceFactory
@@ -227,12 +254,12 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
                     if isinstance(val, ClaimEventSubscriber):
                         found_subscribers.append(val)
                         print(f"  _svc.{attr_name}: ClaimEventSubscriber! id={id(val)}")
-                    elif hasattr(val, '__dict__'):
+                    elif hasattr(val, "__dict__"):
                         for k2, v2 in vars(val).items():
                             if isinstance(v2, ClaimEventSubscriber):
                                 found_subscribers.append(v2)
                                 print(f"  _svc.{attr_name}.{k2}: ClaimEventSubscriber! id={id(v2)}")
-                except:
+                except Exception:
                     pass
 
         if found_subscribers:
@@ -245,7 +272,7 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
             print(f"  type: {type(sq_provider).__name__}")
 
             if sq_provider and sq_provider != "NOT_FOUND" and callable(sq_provider):
-                print(f"  Calling _get_spatial_query()...")
+                print("  Calling _get_spatial_query()...")
                 try:
                     sq = sq_provider()
                     print(f"  Result: {sq}")
@@ -258,8 +285,8 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
                 except Exception as e:
                     print(f"  ERROR: {e}")
             else:
-                print(f"  _get_spatial_query is None or not callable → SPATIAL MEMBRANE DISABLED")
-                print(f"  → on_claim_event fallback: only target_id added to listeners")
+                print("  _get_spatial_query is None or not callable → SPATIAL MEMBRANE DISABLED")
+                print("  → on_claim_event fallback: only target_id added to listeners")
 
             # Check _engine and _store
             engine = getattr(sub, "_engine", None)
@@ -272,8 +299,8 @@ def stage_b_check_instance(loop) -> Dict[str, Any]:
             result["sq_provider"] = str(sq_provider)
             result["sq_provider_is_none"] = sq_provider is None or sq_provider == "NOT_FOUND"
         else:
-            print(f"\n  ClaimEventSubscriber NOT FOUND anywhere in runtime")
-            print(f"  → Possibly created lazily or via different mechanism")
+            print("\n  ClaimEventSubscriber NOT FOUND anywhere in runtime")
+            print("  → Possibly created lazily or via different mechanism")
             result["found"] = False
 
         return result
@@ -302,36 +329,40 @@ def stage_c_production_composition() -> Dict[str, Any]:
     src = glb_path.read_text(encoding="utf-8", errors="replace")
     lines = src.split("\n")
 
-    print(f"\n--- C.1: Поиск ClaimEventSubscriber в game_loop_builder.py ---")
+    print("\n--- C.1: Поиск ClaimEventSubscriber в game_loop_builder.py ---")
     for i, line in enumerate(lines, 1):
         if "claim" in line.lower() or "ClaimEvent" in line or "spatial_query" in line.lower():
             print(f"  L{i}: {line.rstrip()}")
 
-    print(f"\n--- C.2: Поиск SpatialQueryService в game_loop_builder.py ---")
+    print("\n--- C.2: Поиск SpatialQueryService в game_loop_builder.py ---")
     for i, line in enumerate(lines, 1):
         if "spatial" in line.lower() and ("query" in line.lower() or "service" in line.lower()):
             print(f"  L{i}: {line.rstrip()}")
 
     # Also check scene_state_manager.py
-    print(f"\n--- C.3: Поиск spatial_query в scene_state_manager.py ---")
+    print("\n--- C.3: Поиск spatial_query в scene_state_manager.py ---")
     ssm_path = _BACKEND / "app/services/scene_state_manager.py"
     if ssm_path.exists():
         src2 = ssm_path.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src2.split("\n"), 1):
-            if "spatial" in line.lower() and ("query" in line.lower() or "claim" in line.lower() or "subscriber" in line.lower()):
+            if "spatial" in line.lower() and (
+                "query" in line.lower() or "claim" in line.lower() or "subscriber" in line.lower()
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
     # Check tick_orchestrator.py for subscriber creation
-    print(f"\n--- C.4: Поиск в tick_orchestrator.py ---")
+    print("\n--- C.4: Поиск в tick_orchestrator.py ---")
     to_path = _BACKEND / "app/services/tick_orchestrator.py"
     if to_path.exists():
         src3 = to_path.read_text(encoding="utf-8", errors="replace")
         for i, line in enumerate(src3.split("\n"), 1):
-            if "claim" in line.lower() and ("subscriber" in line.lower() or "import" in line.lower() or "create" in line.lower()):
+            if "claim" in line.lower() and (
+                "subscriber" in line.lower() or "import" in line.lower() or "create" in line.lower()
+            ):
                 print(f"  L{i}: {line.rstrip()}")
 
     # Search broadly for spatial_query_provider assignment
-    print(f"\n--- C.5: Поиск spatial_query_provider = / spatial_query_provider= ---")
+    print("\n--- C.5: Поиск spatial_query_provider = / spatial_query_provider= ---")
     results = _grep_in_dir(_BACKEND, ["spatial_query_provider"])
     for path, ln, line in results:
         if "test" not in str(path).lower() and "sandbox" not in str(path).lower():
@@ -365,9 +396,9 @@ def stage_d_runtime_trace(loop) -> Dict[str, Any]:
                 subs = getattr(bus, attr)
                 if isinstance(subs, dict):
                     for et, callbacks in subs.items():
-                        if hasattr(callbacks, '__iter__'):
+                        if hasattr(callbacks, "__iter__"):
                             for cb in callbacks:
-                                cb_obj = getattr(cb, '__self__', None)
+                                cb_obj = getattr(cb, "__self__", None)
                                 if cb_obj and isinstance(cb_obj, ClaimEventSubscriber):
                                     sub = cb_obj
                                     break
@@ -386,14 +417,14 @@ def stage_d_runtime_trace(loop) -> Dict[str, Any]:
                         if isinstance(val, ClaimEventSubscriber):
                             sub = val
                             break
-                        if hasattr(val, '__dict__'):
+                        if hasattr(val, "__dict__"):
                             for k2, v2 in vars(val).items():
                                 if isinstance(v2, ClaimEventSubscriber):
                                     sub = v2
                                     break
                         if sub:
                             break
-                    except:
+                    except Exception:
                         pass
 
         if sub is None:
@@ -440,11 +471,13 @@ def stage_d_runtime_trace(loop) -> Dict[str, Any]:
                 lusya_records = store.get_all_for_agent("maid_lusya")
                 captured["lusya_records_after"] = len(lusya_records)
                 for r in lusya_records[:5]:
-                    captured.setdefault("lusya_records_detail", []).append({
-                        "proposition": str(r.proposition),
-                        "confidence": r.confidence,
-                        "source_id": r.source_id,
-                    })
+                    captured.setdefault("lusya_records_detail", []).append(
+                        {
+                            "proposition": str(r.proposition),
+                            "confidence": r.confidence,
+                            "source_id": r.source_id,
+                        }
+                    )
 
             return result_orig
 
@@ -453,25 +486,31 @@ def stage_d_runtime_trace(loop) -> Dict[str, Any]:
         # Clear bus and publish PLAYER_INSULTS
         try:
             bus.clear()
-        except:
+        except Exception:
             pass
 
         payload = {
-            "action_type": "player_insults", "target_id": "tavern_keeper_tornin",
-            "content": "оскорбление", "event_tick": 1, "visibility": "public",
-            "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+            "action_type": "player_insults",
+            "target_id": "tavern_keeper_tornin",
+            "content": "оскорбление",
+            "event_tick": 1,
+            "visibility": "public",
+            "radius": 999.0,
+            "location": "tavern",
+            "campaign_id": "Open_road",
             "raw_input": "оскорбление",
         }
-        evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                              payload=payload, persistence_level="working")
+        evt = EventDTO.create(
+            event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+        )
         bus.publish(evt)
 
         # Also need to trigger on_player_spoke (which calls on_claim_event)
         # The subscriber should be subscribed to PLAYER_INSULTS or PLAYER_SPOKE
-        print(f"\n  Published PLAYER_INSULTS")
+        print("\n  Published PLAYER_INSULTS")
 
         # Print captured state
-        print(f"\n--- D.1: Captured state from runtime trace ---")
+        print("\n--- D.1: Captured state from runtime trace ---")
         for k, v in captured.items():
             if k == "lusya_records_detail":
                 print(f"  {k}:")
@@ -508,7 +547,7 @@ def stage_e_perceptual_kernel() -> Dict[str, Any]:
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         if "class PerceptualKernel" in src or "def can_observe" in src:
             pk_path = f
@@ -524,7 +563,7 @@ def stage_e_perceptual_kernel() -> Dict[str, Any]:
     lines = src.split("\n")
 
     # Print can_observe method
-    print(f"\n--- can_observe method ---")
+    print("\n--- can_observe method ---")
     in_method = False
     method_lines = []
     for i, line in enumerate(lines):
@@ -549,16 +588,18 @@ def stage_e_perceptual_kernel() -> Dict[str, Any]:
                 if lines[j].strip() == "":
                     continue
                 cur_indent = len(lines[j]) - len(lines[j].lstrip())
-                if cur_indent <= indent and (lines[j].lstrip().startswith("def ") or lines[j].lstrip().startswith("class ")):
+                if cur_indent <= indent and (
+                    lines[j].lstrip().startswith("def ") or lines[j].lstrip().startswith("class ")
+                ):
                     end = j
                     break
-            print(f"  can_observe at L{start+1}–L{end}:")
+            print(f"  can_observe at L{start + 1}–L{end}:")
             for j in range(start, end):
-                print(f"  L{j+1}: {lines[j]}")
+                print(f"  L{j + 1}: {lines[j]}")
             break
 
     # Check for HEARING_RADIUS in this file
-    print(f"\n--- HEARING_RADIUS / radius references ---")
+    print("\n--- HEARING_RADIUS / radius references ---")
     for i, line in enumerate(lines, 1):
         if "HEARING_RADIUS" in line or "hearing_radius" in line.lower():
             print(f"  L{i}: {line.rstrip()}")
@@ -579,7 +620,7 @@ def final_verdict(stage_b_result: Dict, stage_c_result: Dict, stage_d_result: Di
     subscriber_found = stage_b_result.get("found", False)
     captured = stage_d_result.get("captured", {})
 
-    print(f"""
+    print("""
 =============================================================================
 ФАКТЫ
 =============================================================================
@@ -598,57 +639,57 @@ def final_verdict(stage_b_result: Dict, stage_c_result: Dict, stage_d_result: Di
             print(f"    branch: {captured.get('branch', 'if (spatial_query exists)')}")
             print(f"    lusya_records_after: {captured.get('lusya_records_after', 'N/A')}")
 
-    print(f"""
+    print("""
 =============================================================================
 ВЕРДИКТ
 =============================================================================
 """)
 
     if not subscriber_found:
-        print(f"  >>> ВЫВОД: 2. MISSING PRODUCTION SERVICE")
-        print(f"  >>> ClaimEventSubscriber НЕ НАЙДЕН в production runtime")
-        print(f"  >>> Возможно, создаётся лениво или через другой механизм")
-        print(f"  >>> Нужно проверить EventBus subscriber registration")
+        print("  >>> ВЫВОД: 2. MISSING PRODUCTION SERVICE")
+        print("  >>> ClaimEventSubscriber НЕ НАЙДЕН в production runtime")
+        print("  >>> Возможно, создаётся лениво или через другой механизм")
+        print("  >>> Нужно проверить EventBus subscriber registration")
     elif sq_provider_none:
-        print(f"  >>> ВЫВОД: 1. WIRING DEFECT")
-        print(f"  >>> ClaimEventSubscriber существует, но _get_spatial_query = None")
-        print(f"  >>> spatial_query_provider не передан при создании подписчика")
-        print(f"  >>> on_claim_event fallback: только target_id добавлен в listeners")
-        print(f"  >>> maid_lusya НЕ target_id → НЕ в listeners → belief не создан")
-        print(f"")
-        print(f"  >>> МИНИМАЛЬНОЕ ИСПРАВЛЕНИЕ:")
-        print(f"  >>> Найти, где ClaimEventSubscriber создаётся в production")
-        print(f"  >>> Передать spatial_query_provider, который возвращает SpatialQueryService")
-        print(f"  >>> SpatialQueryService должен иметь доступ к scene_state['npc_positions']")
-        print(f"  >>>")
-        print(f"  >>> ЗАТРАГИВАЕМЫЕ ФАЙЛЫ:")
-        print(f"  >>> - app/services/game_loop_builder.py (или где создаётся подписчик)")
-        print(f"  >>> - app/services/spatial/spatial_query_service.py (если нужно создать)")
-        print(f"  >>>")
-        print(f"  >>> РИСКИ:")
-        print(f"  >>> - spatial membrane начнёт фильтровать слушателей по дистанции")
-        print(f"  >>> - NPC слишком далеко (>10m) могут быть исключены")
-        print(f"  >>> - player ↔ maid_lusya distance = 10.086m > HEARING_RADIUS 10.0m")
-        print(f"  >>> - Даже с spatial_query, maid_lusya может быть исключена (на 9см)")
-        print(f"  >>>")
-        print(f"  >>> ТЕСТЫ:")
-        print(f"  >>> 1. distance('player', 'maid_lusya') возвращает корректную дистанцию")
-        print(f"  >>> 2. distance('player', 'tavern_keeper_tornin') возвращает корректную дистанцию")
-        print(f"  >>> 3. NPC → NPC distance не регрессирует")
-        print(f"  >>> 4. PLAYER_INSULTS при допустимой дистанции создаёт belief у Люси")
-        print(f"  >>> 5. Provenance и confidence не изменяются неожиданным образом")
+        print("  >>> ВЫВОД: 1. WIRING DEFECT")
+        print("  >>> ClaimEventSubscriber существует, но _get_spatial_query = None")
+        print("  >>> spatial_query_provider не передан при создании подписчика")
+        print("  >>> on_claim_event fallback: только target_id добавлен в listeners")
+        print("  >>> maid_lusya НЕ target_id → НЕ в listeners → belief не создан")
+        print("")
+        print("  >>> МИНИМАЛЬНОЕ ИСПРАВЛЕНИЕ:")
+        print("  >>> Найти, где ClaimEventSubscriber создаётся в production")
+        print("  >>> Передать spatial_query_provider, который возвращает SpatialQueryService")
+        print("  >>> SpatialQueryService должен иметь доступ к scene_state['npc_positions']")
+        print("  >>>")
+        print("  >>> ЗАТРАГИВАЕМЫЕ ФАЙЛЫ:")
+        print("  >>> - app/services/game_loop_builder.py (или где создаётся подписчик)")
+        print("  >>> - app/services/spatial/spatial_query_service.py (если нужно создать)")
+        print("  >>>")
+        print("  >>> РИСКИ:")
+        print("  >>> - spatial membrane начнёт фильтровать слушателей по дистанции")
+        print("  >>> - NPC слишком далеко (>10m) могут быть исключены")
+        print("  >>> - player ↔ maid_lusya distance = 10.086m > HEARING_RADIUS 10.0m")
+        print("  >>> - Даже с spatial_query, maid_lusya может быть исключена (на 9см)")
+        print("  >>>")
+        print("  >>> ТЕСТЫ:")
+        print("  >>> 1. distance('player', 'maid_lusya') возвращает корректную дистанцию")
+        print("  >>> 2. distance('player', 'tavern_keeper_tornin') возвращает корректную дистанцию")
+        print("  >>> 3. NPC → NPC distance не регрессирует")
+        print("  >>> 4. PLAYER_INSULTS при допустимой дистанции создаёт belief у Люси")
+        print("  >>> 5. Provenance и confidence не изменяются неожиданным образом")
     elif captured.get("lusya_records_after", 0) > 0:
-        print(f"  >>> ВЫВОД: 3. NOT A WIRING DEFECT")
-        print(f"  >>> Provider существует и работает; maid_lusya получила belief")
-        print(f"  >>> Причина отсутствия belief — в другом участке")
+        print("  >>> ВЫВОД: 3. NOT A WIRING DEFECT")
+        print("  >>> Provider существует и работает; maid_lusya получила belief")
+        print("  >>> Причина отсутствия belief — в другом участке")
     else:
-        print(f"  >>> ВЫВОД: НЕОПРЕДЕЛЁН")
-        print(f"  >>> Provider существует, но maid_lusya всё ещё не получила belief")
-        print(f"  >>> Нужно проверить can_observe (Этап E)")
-        print(f"  >>> distance player ↔ maid_lusya = 10.086m > HEARING_RADIUS 10.0m")
-        print(f"  >>> Возможно: can_observe использует HEARING_RADIUS, а не event.radius")
+        print("  >>> ВЫВОД: НЕОПРЕДЕЛЁН")
+        print("  >>> Provider существует, но maid_lusya всё ещё не получила belief")
+        print("  >>> Нужно проверить can_observe (Этап E)")
+        print("  >>> distance player ↔ maid_lusya = 10.086m > HEARING_RADIUS 10.0m")
+        print("  >>> Возможно: can_observe использует HEARING_RADIUS, а не event.radius")
 
-    print(f"""
+    print("""
 =============================================================================
 ССЫЛКИ НА КОД
 =============================================================================
@@ -657,8 +698,8 @@ def final_verdict(stage_b_result: Dict, stage_c_result: Dict, stage_d_result: Di
     if subscriber_found:
         print(f"  ClaimEventSubscriber: id={stage_b_result.get('found', False)}")
         print(f"  _get_spatial_query: {stage_b_result.get('sq_provider', 'N/A')}")
-    print(f"  claim_event_subscriber.py L244-278: spatial membrane (if/else)")
-    print(f"  claim_event_subscriber.py L275-278: fallback (target_id only)")
+    print("  claim_event_subscriber.py L244-278: spatial membrane (if/else)")
+    print("  claim_event_subscriber.py L275-278: fallback (target_id only)")
     print(f"  PerceptualKernel.can_observe: {stage_e_result.get('pass', False)}")
 
 
@@ -671,14 +712,13 @@ def main() -> int:
     print(f"OUT_FILE: {OUT_FILE}")
     print("=" * 78)
 
-    stage_a_result = {}
     stage_b_result = {}
     stage_c_result = {}
     stage_d_result = {}
     stage_e_result = {}
 
     try:
-        stage_a_result = stage_a_find_registration()
+        stage_a_find_registration()
     except Exception as e:
         print(f"[stage A error: {e}]")
         traceback.print_exc()
@@ -727,11 +767,14 @@ def main() -> int:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

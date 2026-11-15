@@ -19,7 +19,10 @@ def bc2_enabled() -> bool:
     Прецедент BC1_ENABLED (conclusion_runtime.py:22-25).
     """
     return os.environ.get("BC2_ENABLED", "").strip().lower() in (
-        "1", "true", "on", "yes",
+        "1",
+        "true",
+        "on",
+        "yes",
     )
 
 
@@ -84,9 +87,7 @@ def run_expectation_formation_guarded(ctx: Any, orchestrator: Any) -> None:
             if conclusion is None:
                 continue
             context = build_expectation_context(conclusion, ctx, orchestrator)
-            for expectation in conclusion_to_expectations(
-                conclusion, context, current_tick
-            ):
+            for expectation in conclusion_to_expectations(conclusion, context, current_tick):
                 store.apply(expectation)
         if collector:
             logger.info(

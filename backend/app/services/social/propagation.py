@@ -101,19 +101,13 @@ def propagate_social_rumors(
             _event_type = _dm_res.event_context.event_type
             _actor_id = _dm_res.event_context.actor_id
 
-    if (
-        not social_engine
-        or not _target_id
-        or _intensity < social_engine.MIN_ORIGIN_INTENSITY
-    ):
+    if not social_engine or not _target_id or _intensity < social_engine.MIN_ORIGIN_INTENSITY:
         return social_tick, []
 
     social_tick += 1
 
     # Свидетели = NPC, получившие прямую вербализацию
-    _witness_ids = {
-        c.get("npc_id") for c in (shared_context.npc_contexts or []) if c.get("npc_id")
-    }
+    _witness_ids = {c.get("npc_id") for c in (shared_context.npc_contexts or []) if c.get("npc_id")}
 
     _social_results = social_engine.propagate(
         event_type=_event_type,
@@ -196,10 +190,7 @@ def propagate_social_rumors(
                     )
                 )
             logger.debug(
-                f"[SOCIAL] {pr.npc_id}: "
-                f"trust{pr.trust_delta:+.3f} "
-                f"stress{pr.stress_delta:+.3f} "
-                f"({pr.rumor.hop} hops)"
+                f"[SOCIAL] {pr.npc_id}: trust{pr.trust_delta:+.3f} stress{pr.stress_delta:+.3f} ({pr.rumor.hop} hops)"
             )
 
     # Чистая функция: не мутируем shared_context.

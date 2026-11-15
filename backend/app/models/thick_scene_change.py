@@ -9,6 +9,7 @@ ProjectionEngine применяет ThickSceneChange БЕЗ вычислений
 
 Rule 123: SceneChange без полного SpatialResolution при NPC_POSITION — запрещён.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,9 +20,7 @@ from typing import Any, Dict, Optional, Tuple
 class SpatialTransitionMode(str, Enum):
     """Политика применения позиции (Authoritative vs Presentation)."""
 
-    IMMEDIATE = (
-        "IMMEDIATE"  # Snap (телепортация, серверная коррекция, завершение маршрута)
-    )
+    IMMEDIATE = "IMMEDIATE"  # Snap (телепортация, серверная коррекция, завершение маршрута)
     INTERPOLATED = "INTERPOLATED"  # Плавное движение (создание TraversalState)
 
 

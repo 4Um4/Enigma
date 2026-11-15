@@ -72,17 +72,14 @@ def emit_and_accumulate_scene_events(
 
         if scene_events:
             logger.warning(
-                f"[SCENE_EVENTS] {len(scene_events)} events emitted: "
-                f"{[e.event_type.value for e in scene_events]}"
+                f"[SCENE_EVENTS] {len(scene_events)} events emitted: {[e.event_type.value for e in scene_events]}"
             )
             # Накопление в scene_state для cross-tick восприятия (БАГ 2)
             _se_accum = scene_state.setdefault("raw_scene_events", [])
             _se_accum.extend(asdict(e) for e in scene_events)
             if len(_se_accum) > _MAX_ACCUMULATED_EVENTS:
                 scene_state["raw_scene_events"] = _se_accum[-_MAX_ACCUMULATED_EVENTS:]
-            logger.warning(
-                f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state"
-            )
+            logger.warning(f"[SCENE_ACCUM] total={len(_se_accum)} events in scene_state")
 
     except Exception as err:
         logger.warning(f"[SCENE_EVENTS] error: {err}")

@@ -11,6 +11,7 @@ SUPERBOX-ACCUSATION (S211, слой 4, §18): убеждение игрока = 
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/accusation_gate_test.py
 """
+
 import sys
 import tempfile
 from pathlib import Path
@@ -51,11 +52,12 @@ def _make_compiler(rel_store, resolver):
 def _give_belief(store, engine, subject, conf_provider_value=0.8):
     """Игрок получает belief через живой движок ревизии (не инъекцию!)."""
     from app.domain.epistemology import ClaimEvent
+
     # создаём belief напрямую движком (claim от источника с высокой reliability)
-    prop = Proposition(subject_id=subject, predicate=Predicate.STOLE,
-                       object_id="gold", polarity=True)
-    claim = ClaimEvent(event_id="e1", claim_id=f"c-{subject}", speaker_id="goran",
-                       listener_id="player", proposition=prop, tick=1)
+    prop = Proposition(subject_id=subject, predicate=Predicate.STOLE, object_id="gold", polarity=True)
+    claim = ClaimEvent(
+        event_id="e1", claim_id=f"c-{subject}", speaker_id="goran", listener_id="player", proposition=prop, tick=1
+    )
     record = engine.revise("player", claim, None)
     store.upsert(record)
     return record
@@ -69,17 +71,25 @@ def main() -> int:
 
     store = EpistemicStore()
     engine = BeliefRevisionEngine(
-        reliability_provider=type("P", (), {"get_reliability": staticmethod(
-            lambda observer, source, context=None: 0.9)})()
+        reliability_provider=type(
+            "P", (), {"get_reliability": staticmethod(lambda observer, source, context=None: 0.9)}
+        )()
     )
     resolver = EpistemicContextResolver(store=store)
     rel = RelationshipStore(data_dir=tempfile.mkdtemp(prefix="acc_gate_"))
     comp = _make_compiler(rel, resolver)
 
     def _accuse(target, tick):
-        return comp.process_action(PlayerAction(
-            action_id=f"act-{tick}", tick=tick, actor_id="player",
-            action_type=ActionType.ACCUSE, target_id=target, description="обвиняю"))
+        return comp.process_action(
+            PlayerAction(
+                action_id=f"act-{tick}",
+                tick=tick,
+                actor_id="player",
+                action_type=ActionType.ACCUSE,
+                target_id=target,
+                description="обвиняю",
+            )
+        )
 
     # ── C3: без belief ──────────────────────────────────────────────
     r3 = _accuse("thief_shadow", 1)
@@ -96,12 +106,20 @@ def main() -> int:
 
     # ── C2: слабый belief (0.4 — ниже порога) ───────────────────────
     from app.domain.epistemology import EpistemicRecord
-    store.upsert(EpistemicRecord(
-        agent_id="player",
-        proposition=Proposition(subject_id="maid_lusya", predicate=Predicate.STOLE,
-                                object_id="gold", polarity=True),
-        confidence=0.4, source_id="rumor", source_claim_id="c-weak",
-        first_observed_tick=1, last_updated_tick=1))
+
+    store.upsert(
+        EpistemicRecord(
+            agent_id="player",
+            proposition=Proposition(
+                subject_id="maid_lusya", predicate=Predicate.STOLE, object_id="gold", polarity=True
+            ),
+            confidence=0.4,
+            source_id="rumor",
+            source_claim_id="c-weak",
+            first_observed_tick=1,
+            last_updated_tick=1,
+        )
+    )
     r2 = _accuse("maid_lusya", 3)
     c2 = isinstance(r2, str) and "conf=0.40" in r2
     print(f"[C2] Слабый слух (0.4): отклонено — {'✅' if c2 else '❌'}")
@@ -111,20 +129,19 @@ def main() -> int:
     _give_belief(store, engine, "guard_borko")
     r4 = _accuse("guard_borko", 4)
     c4 = r4 is None
-    print(f"[C4] Ложное обвинение невиновного (вера 0.9): ПРОХОДИТ — "
-          f"{'✅' if c4 else '❌'} (истину решат NPC, не движок)")
+    print(
+        f"[C4] Ложное обвинение невиновного (вера 0.9): ПРОХОДИТ — {'✅' if c4 else '❌'} (истину решат NPC, не движок)"
+    )
     ok = ok and c4
 
     # ── C5: последствия (RelationshipStore) ─────────────────────────
     _pair = rel.get_pair(CAMP, "guard_borko", "player") or {}
     c5 = _pair.get("fear", 0.0) > 0.0 and _pair.get("trust", 100.0) < 100.0
-    print(f"[C5] Дельты применены: fear={_pair.get('fear')}, trust={_pair.get('trust')} "
-          f"— {'✅' if c5 else '❌'}")
+    print(f"[C5] Дельты применены: fear={_pair.get('fear')}, trust={_pair.get('trust')} — {'✅' if c5 else '❌'}")
     ok = ok and c5
 
     print("=" * 64)
-    print("🎉 УБЕЖДЕНИЕ = СПОСОБНОСТЬ: игрок действует из знания — и может ошибиться."
-          if ok else "❌ ТЕСТ С ОШИБКАМИ")
+    print("🎉 УБЕЖДЕНИЕ = СПОСОБНОСТЬ: игрок действует из знания — и может ошибиться." if ok else "❌ ТЕСТ С ОШИБКАМИ")
     print("=" * 64)
     return 0 if ok else 1
 

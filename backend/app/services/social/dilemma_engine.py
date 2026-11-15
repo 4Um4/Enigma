@@ -47,12 +47,7 @@ class DilemmaEngine:
             raise ValueError(f"Invalid choice {choice} for dilemma {dilemma_id}.")
 
         self._resolved.add(dilemma_id)
-        self._triggered.remove(dilemma_id) # Переводим из активных в разрешенные
+        self._triggered.remove(dilemma_id)  # Переводим из активных в разрешенные
 
         side = dilemma.sides[choice]
-        return DilemmaResolution(
-            dilemma_id=dilemma_id,
-            choice=choice,
-            tick=tick,
-            consequences=side.consequences
-        )
+        return DilemmaResolution(dilemma_id=dilemma_id, choice=choice, tick=tick, consequences=side.consequences)

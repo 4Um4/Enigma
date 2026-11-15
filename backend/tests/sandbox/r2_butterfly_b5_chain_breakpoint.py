@@ -15,8 +15,17 @@ R2-BUTTERFLY-B5-CHAIN-BREAKPOINT probe v2.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging, math, time, urllib.request
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
+import math
+import time
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -48,14 +57,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_butterfly_b5_chain_breakpoint.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -83,7 +98,7 @@ def _check_llm_server() -> bool:
         req = urllib.request.Request("http://127.0.0.1:8181/health")
         resp = urllib.request.urlopen(req, timeout=3)
         return resp.status == 200
-    except:
+    except Exception:
         return False
 
 
@@ -98,7 +113,7 @@ def stage_a_lusya_belief(loop, tick_orch) -> Dict[str, Any]:
         epistemic_store = getattr(tick_orch, "_epistemic_store", None)
         if epistemic_store is None:
             result["error"] = "EpistemicStore not found in tick_orch"
-            print(f"  [ERROR] EpistemicStore not found")
+            print("  [ERROR] EpistemicStore not found")
             return result
 
         lusya_records = epistemic_store.get_all_for_agent("maid_lusya")
@@ -118,29 +133,29 @@ def stage_a_lusya_belief(loop, tick_orch) -> Dict[str, Any]:
                 "first_observed_tick": r.first_observed_tick,
                 "last_updated_tick": r.last_updated_tick,
             }
-            print(f"\n  Record:")
+            print("\n  Record:")
             for k, v in rec_info.items():
                 print(f"    {k}: {v}")
 
             # Check if this is the INSULTED record
             if "INSULTED" in str(r.proposition.predicate):
                 insult_records.append(rec_info)
-                print(f"    >>> INSULTED RECORD FOUND ✓")
+                print("    >>> INSULTED RECORD FOUND ✓")
 
         if insult_records:
             result["pass"] = True
             result["insult_records"] = insult_records
             result["has_belief"] = True
-            print(f"\n  >>> Люсьина belief об оскорблении: НАЙДЕН ✓")
+            print("\n  >>> Люсьина belief об оскорблении: НАЙДЕН ✓")
         else:
             result["has_belief"] = False
-            print(f"\n  >>> Люсьина belief об оскорблении: НЕ НАЙДЕН ✗")
-            print(f"  >>> Точка разрыва: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
-            print(f"  >>> Возможные причины:")
-            print(f"      - ClaimEventSubscriber.on_player_spoke не обработал PLAYER_INSULTS")
-            print(f"      - spatial_query_provider не найден (None)")
-            print(f"      - PerceptualKernel.can_observe вернул False")
-            print(f"      - Люсьина не в радиусе hearing (HEARING_RADIUS=10.0)")
+            print("\n  >>> Люсьина belief об оскорблении: НЕ НАЙДЕН ✗")
+            print("  >>> Точка разрыва: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
+            print("  >>> Возможные причины:")
+            print("      - ClaimEventSubscriber.on_player_spoke не обработал PLAYER_INSULTS")
+            print("      - spatial_query_provider не найден (None)")
+            print("      - PerceptualKernel.can_observe вернул False")
+            print("      - Люсьина не в радиусе hearing (HEARING_RADIUS=10.0)")
 
         # Also check all records for context
         result["all_records_count"] = len(lusya_records)
@@ -178,7 +193,7 @@ def stage_b_lusya_decisions(loop, tick_orch) -> Dict[str, Any]:
         npc_intents = scene.get("npc_intents", {})
         lusya_intent = npc_intents.get("maid_lusya", {})
 
-        print(f"\n  maid_lusya last intent:")
+        print("\n  maid_lusya last intent:")
         print(f"    intent: {lusya_intent.get('intent', '?')}")
         print(f"    target: {lusya_intent.get('intent_target', '?')}")
         print(f"    score: {lusya_intent.get('score', '?')}")
@@ -193,9 +208,11 @@ def stage_b_lusya_decisions(loop, tick_orch) -> Dict[str, Any]:
         if decision_hub:
             print(f"\n  DecisionHub found: {type(decision_hub).__name__}")
             # Check if there's a history/log
-            history = getattr(decision_hub, "_decision_history", None) or \
-                      getattr(decision_hub, "_history", None) or \
-                      getattr(decision_hub, "_last_decisions", None)
+            history = (
+                getattr(decision_hub, "_decision_history", None)
+                or getattr(decision_hub, "_history", None)
+                or getattr(decision_hub, "_last_decisions", None)
+            )
             if history:
                 print(f"  Decision history found: {type(history)}")
                 if isinstance(history, dict):
@@ -204,12 +221,12 @@ def stage_b_lusya_decisions(loop, tick_orch) -> Dict[str, Any]:
                     for d in lusya_history[-5:]:
                         print(f"    {d}")
                 elif isinstance(history, list):
-                    lusya_history = [d for d in history if getattr(d, 'npc_id', '') == "maid_lusya"]
+                    lusya_history = [d for d in history if getattr(d, "npc_id", "") == "maid_lusya"]
                     print(f"  maid_lusya decisions: {len(lusya_history)}")
             else:
-                print(f"  No decision history attribute found")
+                print("  No decision history attribute found")
         else:
-            print(f"  DecisionHub not found in tick_orch")
+            print("  DecisionHub not found in tick_orch")
 
         result["pass"] = True
         result["last_intent"] = lusya_intent.get("intent", "?")
@@ -245,7 +262,7 @@ def stage_c_dialogue_executor(loop, tick_orch, lusya_belief_result: Dict) -> Dic
                 break
 
         if not dlg_executor:
-            print(f"  No dialogue executor found")
+            print("  No dialogue executor found")
             result["error"] = "no dialogue executor"
             return result
 
@@ -255,12 +272,12 @@ def stage_c_dialogue_executor(loop, tick_orch, lusya_belief_result: Dict) -> Dic
         print(f"\n  LLM router: {'Mock (NOT real LLM)' if is_mock else 'Real'}")
 
         if is_mock:
-            print(f"  >>> ВНИМАНИЕ: LLM router — MOCK")
-            print(f"  >>> Mock возвращает placeholder текст, не генерирует proposition")
-            print(f"  >>> NPC_SPOKE публикуется БЕЗ proposition в payload")
-            print(f"  >>> ClaimEventSubscriber.on_npc_spoke проверяет payload.get('proposition')")
-            print(f"  >>> Если proposition = None → on_claim_event НЕ вызывается")
-            print(f"  >>> Fallback в on_npc_spoke не маппит spread_rumor → нет proposition")
+            print("  >>> ВНИМАНИЕ: LLM router — MOCK")
+            print("  >>> Mock возвращает placeholder текст, не генерирует proposition")
+            print("  >>> NPC_SPOKE публикуется БЕЗ proposition в payload")
+            print("  >>> ClaimEventSubscriber.on_npc_spoke проверяет payload.get('proposition')")
+            print("  >>> Если proposition = None → on_claim_event НЕ вызывается")
+            print("  >>> Fallback в on_npc_spoke не маппит spread_rumor → нет proposition")
 
         result["is_mock_llm"] = is_mock
         result["pass"] = True
@@ -285,11 +302,11 @@ def stage_d_claim_subscriber_fallback() -> Dict[str, Any]:
     src = ces_path.read_text(encoding="utf-8", errors="replace")
     lines = src.split("\n")
 
-    print(f"\n--- D.1: on_npc_spoke — полный код (L41-87) ---")
+    print("\n--- D.1: on_npc_spoke — полный код (L41-87) ---")
     for i, line in enumerate(lines[40:87], 41):
         print(f"  L{i}: {line}")
 
-    print(f"""
+    print("""
 >>> D.2: Анализ fallback для spread_rumor
 
   on_npc_spoke (L41-87) обрабатывает NPC_SPOKE БЕЗ proposition:
@@ -311,22 +328,22 @@ def stage_d_claim_subscriber_fallback() -> Dict[str, Any]:
             print(f"  Found spread_rumor mapping at L{i}: {line.rstrip()}")
 
     if not has_spread_rumor_mapping:
-        print(f"  ✗ НЕТ маппинга для spread_rumor в on_npc_spoke fallback!")
-        print(f"  >>> Когда Lusya выбирает SPREAD_RUMOR и LLM не генерирует proposition:")
-        print(f"      1. NPC_SPOKE публикуется с intent_type='spread_rumor'")
-        print(f"      2. on_npc_spoke проверяет payload.get('proposition') → None")
-        print(f"      3. Fallback: intent_type='spread_rumor' не маппится в Proposition")
-        print(f"      4. prop = None → on_claim_event НЕ вызывается")
-        print(f"      5. BeliefRevisionEngine НЕ вызывается")
-        print(f"      6. EpistemicStore Торнина НЕ обновляется")
-        print(f"  >>> Это ВТОРОЙ DEFEKT (после mock LLM)")
+        print("  ✗ НЕТ маппинга для spread_rumor в on_npc_spoke fallback!")
+        print("  >>> Когда Lusya выбирает SPREAD_RUMOR и LLM не генерирует proposition:")
+        print("      1. NPC_SPOKE публикуется с intent_type='spread_rumor'")
+        print("      2. on_npc_spoke проверяет payload.get('proposition') → None")
+        print("      3. Fallback: intent_type='spread_rumor' не маппится в Proposition")
+        print("      4. prop = None → on_claim_event НЕ вызывается")
+        print("      5. BeliefRevisionEngine НЕ вызывается")
+        print("      6. EpistemicStore Торнина НЕ обновляется")
+        print("  >>> Это ВТОРОЙ DEFEKT (после mock LLM)")
 
     # Also check on_player_spoke — does PLAYER_INSULTS create a proposition?
-    print(f"\n--- D.3: on_player_spoke — обработка PLAYER_INSULTS (L89-122) ---")
+    print("\n--- D.3: on_player_spoke — обработка PLAYER_INSULTS (L89-122) ---")
     for i, line in enumerate(lines[88:122], 89):
         print(f"  L{i}: {line}")
 
-    print(f"""
+    print("""
 >>> D.4: Анализ on_player_spoke для PLAYER_INSULTS
 
   on_player_spoke (L89-122) обрабатывает PLAYER_INSULTS:
@@ -355,7 +372,7 @@ def stage_d_claim_subscriber_fallback() -> Dict[str, Any]:
 """)
 
     # Check if player position is tracked
-    print(f"\n--- D.5: Проверка позиции игрока в scene_state ---")
+    print("\n--- D.5: Проверка позиции игрока в scene_state ---")
 
     result["pass"] = True
     result["has_spread_rumor_fallback"] = has_spread_rumor_mapping
@@ -374,15 +391,15 @@ def stage_e_real_llm() -> Dict[str, Any]:
     print(f"\n  LLM server (http://127.0.0.1:8181/health): {'AVAILABLE ✓' if llm_available else 'NOT AVAILABLE ✗'}")
 
     if llm_available:
-        print(f"  >>> Real LLM доступен — можно запустить эксперимент без mock")
+        print("  >>> Real LLM доступен — можно запустить эксперимент без mock")
         result["llm_available"] = True
         result["pass"] = True
     else:
-        print(f"  >>> Real LLM НЕ доступен — диагностика A-D без real LLM")
-        print(f"  >>> Выводы, требующие real LLM:")
-        print(f"    - Фактическое содержание реплик Торнина")
-        print(f"    - Причинная связь реплик с услышанным")
-        print(f"    - Проверка, генерирует ли LLM proposition в payload")
+        print("  >>> Real LLM НЕ доступен — диагностика A-D без real LLM")
+        print("  >>> Выводы, требующие real LLM:")
+        print("    - Фактическое содержание реплик Торнина")
+        print("    - Причинная связь реплик с услышанным")
+        print("    - Проверка, генерирует ли LLM proposition в payload")
         result["llm_available"] = False
 
     return result
@@ -404,6 +421,7 @@ def full_experiment() -> Dict[str, Any]:
         from app.domain.events import EventDTO
 
         import tempfile
+
         saves_dir = Path(tempfile.mkdtemp(prefix="r2_b5_v2_"))
         settings.saves_dir = str(saves_dir)
         settings.environment = "development"
@@ -418,7 +436,7 @@ def full_experiment() -> Dict[str, Any]:
         print(f"\n  LLM available: {llm_available}")
 
         if not llm_available:
-            print(f"  >>> LLM НЕ доступен — mock будет использован, но это помечено")
+            print("  >>> LLM НЕ доступен — mock будет использован, но это помечено")
             # Still mock to avoid crashes
             try:
                 ts = loop._get_task_scheduler()
@@ -427,62 +445,71 @@ def full_experiment() -> Dict[str, Any]:
                         ex._router = MagicMock()
                         if hasattr(ex._router, "route"):
                             ex._router.route.return_value = "[Mock — LLM unavailable]"
-            except:
+            except Exception:
                 pass
 
         # Clear event bus
         try:
             get_event_bus().clear()
-        except:
+        except Exception:
             pass
 
         # Spies
         all_speeches: List[Dict] = []
         all_claims: List[Dict] = []
-        all_decisions: List[Dict] = []
 
         def _spy_spoke(event):
             payload = getattr(event, "payload", {})
-            all_speeches.append({
-                "speaker": getattr(event, "source", "?"),
-                "target": payload.get("target_id", "?"),
-                "intent": payload.get("intent_type", "?"),
-                "content": str(payload.get("content", ""))[:200],
-                "has_proposition": bool(payload.get("proposition")),
-                "proposition": payload.get("proposition"),
-                "tick": payload.get("event_tick", payload.get("tick", "?")),
-            })
+            all_speeches.append(
+                {
+                    "speaker": getattr(event, "source", "?"),
+                    "target": payload.get("target_id", "?"),
+                    "intent": payload.get("intent_type", "?"),
+                    "content": str(payload.get("content", ""))[:200],
+                    "has_proposition": bool(payload.get("proposition")),
+                    "proposition": payload.get("proposition"),
+                    "tick": payload.get("event_tick", payload.get("tick", "?")),
+                }
+            )
 
         def _spy_claim(event):
             payload = getattr(event, "payload", {})
-            all_claims.append({
-                "speaker": getattr(event, "source", "?"),
-                "proposition": payload.get("proposition"),
-                "claim_id": payload.get("claim_id", "?"),
-                "tick": payload.get("event_tick", payload.get("tick", "?")),
-            })
+            all_claims.append(
+                {
+                    "speaker": getattr(event, "source", "?"),
+                    "proposition": payload.get("proposition"),
+                    "claim_id": payload.get("claim_id", "?"),
+                    "tick": payload.get("event_tick", payload.get("tick", "?")),
+                }
+            )
 
         try:
             get_event_bus().subscribe(EventType.NPC_SPOKE, _spy_spoke)
             get_event_bus().subscribe(EventType.COMMUNICATION_CLAIM, _spy_claim)
-        except:
+        except Exception:
             pass
 
         # Publish PLAYER_INSULTS
-        print(f"\n  Publishing PLAYER_INSULTS (target=tavern_keeper_tornin)...")
+        print("\n  Publishing PLAYER_INSULTS (target=tavern_keeper_tornin)...")
         payload = {
-            "action_type": "player_insults", "target_id": "tavern_keeper_tornin",
-            "content": "оскорбление", "event_tick": 1, "visibility": "public",
-            "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+            "action_type": "player_insults",
+            "target_id": "tavern_keeper_tornin",
+            "content": "оскорбление",
+            "event_tick": 1,
+            "visibility": "public",
+            "radius": 999.0,
+            "location": "tavern",
+            "campaign_id": "Open_road",
             "raw_input": "оскорбление",
         }
-        evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                              payload=payload, persistence_level="working")
+        evt = EventDTO.create(
+            event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+        )
         get_event_bus().publish(evt)
-        print(f"  PLAYER_INSULTS published ✓")
+        print("  PLAYER_INSULTS published ✓")
 
         # Run 20 ticks
-        print(f"\n  Running 20 ticks...")
+        print("\n  Running 20 ticks...")
         for tick_i in range(1, 21):
             _log_capture.truncate(0)
             _log_capture.seek(0)
@@ -497,7 +524,9 @@ def full_experiment() -> Dict[str, Any]:
 
             if tick_speeches:
                 for s in tick_speeches:
-                    print(f"  [tick {tick_i}] NPC_SPOKE: {s['speaker']}→{s['target']} intent={s['intent']} has_prop={s['has_proposition']} content='{s['content'][:60]}'")
+                    print(
+                        f"  [tick {tick_i}] NPC_SPOKE: {s['speaker']}→{s['target']} intent={s['intent']} has_prop={s['has_proposition']} content='{s['content'][:60]}'"
+                    )
             if tick_claims:
                 for c in tick_claims:
                     print(f"  [tick {tick_i}] CLAIM: speaker={c['speaker']} prop={c['proposition']}")
@@ -511,7 +540,7 @@ def full_experiment() -> Dict[str, Any]:
 
         # After experiment: check EpistemicStore
         tick_orch = loop._tick_orch
-        epistemic_store = getattr(tick_orch, "_epistemic_store", None)
+        getattr(tick_orch, "_epistemic_store", None)
 
         # Run stages A-D
         result_a = stage_a_lusya_belief(loop, tick_orch)
@@ -534,11 +563,14 @@ def full_experiment() -> Dict[str, Any]:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         return result
@@ -562,7 +594,7 @@ def final_report(exp_result: Dict) -> None:
     stage_d = exp_result.get("stage_d", {})
     stage_e = exp_result.get("stage_e", {})
 
-    print(f"""
+    print("""
 =============================================================================
 ПОЛНАЯ ВРЕМЕННАЯ ШКАЛА СОБЫТИЙ
 =============================================================================
@@ -585,13 +617,13 @@ def final_report(exp_result: Dict) -> None:
             print(f"  source_id: {r.get('source_id')}")
             print(f"  original_source_id: {r.get('original_source_id')}")
     else:
-        print(f"  >>> ТОЧКА РАЗРЫВА #1: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
-        print(f"  >>> on_player_spoke создал proposition, но belief не записался")
-        print(f"  >>> Возможные причины:")
-        print(f"      - spatial_query_provider = None (нет spatial)")
-        print(f"      - player не в npc_positions → distance не вычисляется")
-        print(f"      - PerceptualKernel.can_observe вернул False")
-        print(f"      - HEARING_RADIUS = 10.0 — Люсьина слишком далеко")
+        print("  >>> ТОЧКА РАЗРЫВА #1: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
+        print("  >>> on_player_spoke создал proposition, но belief не записался")
+        print("  >>> Возможные причины:")
+        print("      - spatial_query_provider = None (нет spatial)")
+        print("      - player не в npc_positions → distance не вычисляется")
+        print("      - PerceptualKernel.can_observe вернул False")
+        print("      - HEARING_RADIUS = 10.0 — Люсьина слишком далеко")
 
     # Stage B verdict
     was_spread_rumor = stage_b.get("was_spread_rumor", False)
@@ -599,66 +631,66 @@ def final_report(exp_result: Dict) -> None:
     print(f"  last intent: {stage_b.get('last_intent', '?')}")
     print(f"  last target: {stage_b.get('last_target', '?')}")
     if not was_spread_rumor:
-        print(f"  >>> Люсьина НЕ выбрала SPREAD_RUMOR")
-        print(f"  >>> Возможные причины:")
+        print("  >>> Люсьина НЕ выбрала SPREAD_RUMOR")
+        print("  >>> Возможные причины:")
         if not has_lusya_belief:
-            print(f"      - Нет belief об оскорблении → нет report_proposition → нет spread_rumor boost")
+            print("      - Нет belief об оскорблении → нет report_proposition → нет spread_rumor boost")
         else:
-            print(f"      - report_proposition = None (object_id == agent_id для Люси? Нет — Люся не жертва)")
-            print(f"      - confidence < 0.25")
-            print(f"      - Другие intents имеют более высокий score")
+            print("      - report_proposition = None (object_id == agent_id для Люси? Нет — Люся не жертва)")
+            print("      - confidence < 0.25")
+            print("      - Другие intents имеют более высокий score")
 
     # Stage C verdict
     is_mock = stage_c.get("is_mock_llm", True)
     print(f"\nЭТАП C — DialogueExecutor: LLM = {'Mock' if is_mock else 'Real'}")
     if is_mock:
-        print(f"  >>> Mock LLM не генерирует proposition в NPC_SPOKE payload")
-        print(f"  >>> NPC_SPOKE публикуется с has_proposition=False")
+        print("  >>> Mock LLM не генерирует proposition в NPC_SPOKE payload")
+        print("  >>> NPC_SPOKE публикуется с has_proposition=False")
 
     # Stage D verdict
     has_fallback = stage_d.get("has_spread_rumor_fallback", False)
     defect_spread_rumor = stage_d.get("defect_spread_rumor_no_fallback", False)
     print(f"\nЭТАП D — ClaimEventSubscriber: spread_rumor fallback = {'✓ ЕСТЬ' if has_fallback else '✗ НЕТ'}")
     if defect_spread_rumor:
-        print(f"  >>> ПРОИЗВОДСТВЕННЫЙ ДЕФЕКТ: on_npc_spoke не маппит spread_rumor → proposition")
-        print(f"  >>> Когда NPC выбирает SPREAD_RUMOR и LLM не генерирует proposition:")
-        print(f"      1. NPC_SPOKE публикуется с intent_type='spread_rumor'")
-        print(f"      2. on_npc_spoke: payload.get('proposition') → None")
-        print(f"      3. Fallback маппит: accuse→STOLE, praise→HELPED, intimidate/attack→ATTACKED")
-        print(f"      4. spread_rumor: НЕТ маппинга!")
-        print(f"      5. prop = None → on_claim_event НЕ вызывается")
-        print(f"      6. BeliefRevisionEngine НЕ вызывается")
-        print(f"      7. EpistemicStore слушателя НЕ обновляется")
+        print("  >>> ПРОИЗВОДСТВЕННЫЙ ДЕФЕКТ: on_npc_spoke не маппит spread_rumor → proposition")
+        print("  >>> Когда NPC выбирает SPREAD_RUMOR и LLM не генерирует proposition:")
+        print("      1. NPC_SPOKE публикуется с intent_type='spread_rumor'")
+        print("      2. on_npc_spoke: payload.get('proposition') → None")
+        print("      3. Fallback маппит: accuse→STOLE, praise→HELPED, intimidate/attack→ATTACKED")
+        print("      4. spread_rumor: НЕТ маппинга!")
+        print("      5. prop = None → on_claim_event НЕ вызывается")
+        print("      6. BeliefRevisionEngine НЕ вызывается")
+        print("      7. EpistemicStore слушателя НЕ обновляется")
 
     # Stage E verdict
     llm_available = stage_e.get("llm_available", False)
     print(f"\nЭТАП E — Real LLM: {'AVAILABLE ✓' if llm_available else 'NOT AVAILABLE ✗'}")
     if not llm_available:
-        print(f"  >>> Требует real LLM:")
-        print(f"      - Фактическое содержание реплик")
-        print(f"      - Генерация proposition в NPC_SPOKE payload")
+        print("  >>> Требует real LLM:")
+        print("      - Фактическое содержание реплик")
+        print("      - Генерация proposition в NPC_SPOKE payload")
 
     # Overall verdict
-    print(f"""
+    print("""
 =============================================================================
 ТОЧНАЯ ПЕРВАЯ ТОЧКА РАЗРЫВА
 =============================================================================
 """)
 
     if not has_lusya_belief:
-        print(f"  ПЕРВАЯ ТОЧКА РАЗРЫВА: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
-        print(f"  Люсьин belief об оскорблении НЕ создан.")
-        print(f"  Без belief → нет report_proposition → нет SPREAD_RUMOR boost → нет речи → нет слуха")
+        print("  ПЕРВАЯ ТОЧКА РАЗРЫВА: PLAYER_INSULTS → EpistemicStore(maid_lusya)")
+        print("  Люсьин belief об оскорблении НЕ создан.")
+        print("  Без belief → нет report_proposition → нет SPREAD_RUMOR boost → нет речи → нет слуха")
     elif not was_spread_rumor:
-        print(f"  ПЕРВАЯ ТОЧКА РАЗРЫВА: DecisionHub(maid_lusya) → SPREAD_RUMOR")
-        print(f"  Люсьин belief есть, но SPREAD_RUMOR не выбран.")
+        print("  ПЕРВАЯ ТОЧКА РАЗРЫВА: DecisionHub(maid_lusya) → SPREAD_RUMOR")
+        print("  Люсьин belief есть, но SPREAD_RUMOR не выбран.")
     elif is_mock and defect_spread_rumor:
-        print(f"  ПЕРВАЯ ТОЧКА РАЗРЫВА: on_npc_spoke fallback для spread_rumor")
-        print(f"  NPC_SPOKE без proposition → fallback не маппит spread_rumor → нет ClaimEvent")
+        print("  ПЕРВАЯ ТОЧКА РАЗРЫВА: on_npc_spoke fallback для spread_rumor")
+        print("  NPC_SPOKE без proposition → fallback не маппит spread_rumor → нет ClaimEvent")
     else:
-        print(f"  Точка разрыва не определена — проверьте детали выше")
+        print("  Точка разрыва не определена — проверьте детали выше")
 
-    print(f"""
+    print("""
 =============================================================================
 СПИСОК ПОТЕНЦИАЛЬНЫХ ПРОИЗВОДСТВЕННЫХ ДЕФЕКТОВ
 =============================================================================
@@ -666,31 +698,37 @@ def final_report(exp_result: Dict) -> None:
 
     defects = []
     if not has_lusya_belief:
-        defects.append({
-            "id": "B5-D1",
-            "description": "PLAYER_INSULTS не создаёт belief в EpistemicStore(maid_lusya)",
-            "severity": "CRITICAL",
-            "evidence": "stage_a: has_belief=False",
-            "possible_cause": "spatial_query_provider=None или player не в npc_positions",
-        })
+        defects.append(
+            {
+                "id": "B5-D1",
+                "description": "PLAYER_INSULTS не создаёт belief в EpistemicStore(maid_lusya)",
+                "severity": "CRITICAL",
+                "evidence": "stage_a: has_belief=False",
+                "possible_cause": "spatial_query_provider=None или player не в npc_positions",
+            }
+        )
 
     if defect_spread_rumor:
-        defects.append({
-            "id": "B5-D2",
-            "description": "on_npc_spoke fallback не маппит spread_rumor → Proposition",
-            "severity": "HIGH",
-            "evidence": "claim_event_subscriber.py L56-71: только accuse, praise, intimidate, attack",
-            "possible_cause": "spread_rumor intent не имеет маппинга на Predicate",
-        })
+        defects.append(
+            {
+                "id": "B5-D2",
+                "description": "on_npc_spoke fallback не маппит spread_rumor → Proposition",
+                "severity": "HIGH",
+                "evidence": "claim_event_subscriber.py L56-71: только accuse, praise, intimidate, attack",
+                "possible_cause": "spread_rumor intent не имеет маппинга на Predicate",
+            }
+        )
 
     if is_mock:
-        defects.append({
-            "id": "B5-D3",
-            "description": "Mock LLM не генерирует proposition в NPC_SPOKE payload",
-            "severity": "INFO",
-            "evidence": "stage_c: is_mock_llm=True",
-            "possible_cause": "LLM server недоступен на 8181",
-        })
+        defects.append(
+            {
+                "id": "B5-D3",
+                "description": "Mock LLM не генерирует proposition в NPC_SPOKE payload",
+                "severity": "INFO",
+                "evidence": "stage_c: is_mock_llm=True",
+                "possible_cause": "LLM server недоступен на 8181",
+            }
+        )
 
     for d in defects:
         print(f"  ДЕФЕКТ {d['id']}: {d['description']}")
@@ -699,7 +737,7 @@ def final_report(exp_result: Dict) -> None:
         print(f"    Possible cause: {d['possible_cause']}")
         print()
 
-    print(f"""
+    print("""
 =============================================================================
 УЧАСТКИ, ТРЕБУЮЩИЕ REAL LLM
 =============================================================================

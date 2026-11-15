@@ -10,6 +10,7 @@
 Зависимости: app.services.game_loop.phase_1_input
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_fix3_order_gate.py -q; cd ..
 """
+
 from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.services.game_loop.phase_1_input import compute_intent_readiness
 
@@ -43,8 +44,7 @@ def test_fix3_legacy_acts_compat():
 
 def test_fix3_negated_false_bridge_unblocks():
     # Мост: LLM разобрала негацию (negated=False на не-реплике) → RESOLVED
-    f = _f(ActionType.DIALOGUE, "Не говори ему, а просто кивни.",
-           [{"type": "ORDER", "params": {}, "negated": False}])
+    f = _f(ActionType.DIALOGUE, "Не говори ему, а просто кивни.", [{"type": "ORDER", "params": {}, "negated": False}])
     assert compute_intent_readiness(f, "tavern_keeper", []) == "RESOLVED"
 
 

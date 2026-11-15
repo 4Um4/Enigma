@@ -17,6 +17,7 @@ WorldScheduler — независимый фоновый инициатор ав
 - run_autonomous_tick — единственная точка входа автономного тика в мир.
 - start_background_loop / stop_background_loop — управление фоновым циклом.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -42,9 +43,7 @@ class WorldScheduler:
     изменения состояния через TickOrchestrator.
     """
 
-    def __init__(
-        self, memory: LayeredMemory, world_agent: WorldSimulationAgent
-    ) -> None:
+    def __init__(self, memory: LayeredMemory, world_agent: WorldSimulationAgent) -> None:
         self.memory = memory
         self.world_agent = world_agent
         # R4: ссылка на game_loop (устанавливается после конструирования GameLoop)
@@ -93,11 +92,7 @@ class WorldScheduler:
             _npcs = self.memory.store.recent(f"npcs_runtime_{world_id}", limit=10)
             for _npc in _npcs:
                 if _npc.get("life_status") == "ALIVE":
-                    _events.append({
-                        "type": "idle_tick",
-                        "actor": _npc.get("id", "unknown"),
-                        "tick": now.isoformat()
-                    })
+                    _events.append({"type": "idle_tick", "actor": _npc.get("id", "unknown"), "tick": now.isoformat()})
         except Exception as e:
             logger.error(f"[WORLD_SCHEDULER] Failed to generate idle_tick events for {world_id}: {e}", exc_info=True)
 
@@ -146,14 +141,17 @@ class WorldScheduler:
             # уже в asyncio.to_thread от start_background_loop, либо из теста)
             result = self._game_loop.idle_tick(campaign_id)
             logger.info(
-                f"[WORLD_SCHEDULER] autonomous tick {campaign_id}: "
-                f"status={result.get('status') if result else 'None'}"
+                f"[WORLD_SCHEDULER] autonomous tick {campaign_id}: status={result.get('status') if result else 'None'}"
             )
-            return result if result else {
-                "status": "no_result",
-                "npc_positions": {},
-                "npc_addressing": [],
-            }
+            return (
+                result
+                if result
+                else {
+                    "status": "no_result",
+                    "npc_positions": {},
+                    "npc_addressing": [],
+                }
+            )
         except Exception as e:
             logger.error(
                 f"[WORLD_SCHEDULER] autonomous tick {campaign_id} failed: {e}",
@@ -188,10 +186,7 @@ class WorldScheduler:
             return
 
         self._loop_running = True
-        logger.info(
-            f"[WORLD_SCHEDULER] background loop started: campaigns={campaign_ids} "
-            f"interval={interval_seconds}s"
-        )
+        logger.info(f"[WORLD_SCHEDULER] background loop started: campaigns={campaign_ids} interval={interval_seconds}s")
 
         async def _loop() -> None:
             try:

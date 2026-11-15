@@ -37,6 +37,7 @@ def test_identity_module_shape():
     assert "Как зовут твоего караванщика?" in m.contrast_block
     assert "ASK_IDENTITY" in m.contrast_block and "QUESTION" in m.contrast_block
     import re
+
     assert not re.search(_PROBE_LEXEMES, m.contrast_block), "probe-лексема в identity-модуле"
 
 

@@ -43,9 +43,7 @@ class PerceivedSignal:
     confidence: float  # 0.0-1.0 (вычисляется из resolution и signal_salience)
 
     perceived_at: float  # game_time_seconds
-    perceived_via: Tuple[
-        str, ...
-    ]  # ("visual",) | ("auditory",) | ("visual", "auditory")
+    perceived_via: Tuple[str, ...]  # ("visual",) | ("auditory",) | ("visual", "auditory")
 
     # Дистанция и свет (для UI: размытие/шум при low confidence)
     distance: float

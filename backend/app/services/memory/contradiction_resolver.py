@@ -100,16 +100,12 @@ def resolve(
     # Точное совпадение приоритетнее подстроки.
     # Противоречие и подтверждение взаимоисключают друг друга за один тик.
     contra = CONTRADICTIONS.get(tag, {})
-    contra_delta = contra.get(event_type) or next(
-        (d for k, d in contra.items() if k in event_type), None
-    )
+    contra_delta = contra.get(event_type) or next((d for k, d in contra.items() if k in event_type), None)
 
     confirm_delta = None
     if contra_delta is None:
         confirm = CONFIRMATIONS.get(tag, {})
-        confirm_delta = confirm.get(event_type) or next(
-            (d for k, d in confirm.items() if k in event_type), None
-        )
+        confirm_delta = confirm.get(event_type) or next((d for k, d in confirm.items() if k in event_type), None)
 
     raw_delta = contra_delta if contra_delta is not None else confirm_delta
     scaled_delta = 0.0

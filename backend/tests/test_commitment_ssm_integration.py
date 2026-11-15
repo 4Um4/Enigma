@@ -98,9 +98,7 @@ class TestSSMCommitmentMirror:
         commitment, cause verbatim от upstream (№7: SSM не классифицирует)."""
         ssm = SceneStateManager()
 
-        applied = ssm.apply_changes(
-            "test_campaign", [_make_change(tick=5, target=_NODE_A)], scene_state
-        )
+        applied = ssm.apply_changes("test_campaign", [_make_change(tick=5, target=_NODE_A)], scene_state)
 
         assert applied == 1
         trav = scene_state["active_traversals"][_NPC]

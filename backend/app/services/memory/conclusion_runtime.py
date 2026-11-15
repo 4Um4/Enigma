@@ -92,10 +92,7 @@ def run_conclusion_formation_guarded(ctx: Any, orchestrator: Any) -> None:
         for proposal in proposals:
             gate.apply(proposal, consumer_dispatch=store.apply)
         if proposals:
-            logger.info(
-                f"[BC1] tick={ctx.tick_number}: {len(proposals)} proposal(s) "
-                f"-> gate"
-            )
+            logger.info(f"[BC1] tick={ctx.tick_number}: {len(proposals)} proposal(s) -> gate")
     except Exception as _bc1_err:  # noqa: ENIGMA001
         # D5: деградация канала, не тика (паттерн run_affordance_facts_guarded)
         logger.warning(f"[BC1] conclusion formation failed: {_bc1_err}")

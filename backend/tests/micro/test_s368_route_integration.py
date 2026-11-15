@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 S368 INTEGRATION: вызываем реальный routes_chronicle.decompose_fragment и
 проверяем, что ChronicleEntry в draft получил historical_age через fallback.
@@ -10,6 +10,7 @@ S368 INTEGRATION: вызываем реальный routes_chronicle.decompose_f
 
 Запуск: python -m pytest backend/tests/micro/test_s368_route_integration.py -v
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -79,6 +80,7 @@ def _setup_isolated_store(monkeypatch, tmp_path: Path) -> ChronicleStore:
 
 def _set_mock_decomposer(monkeypatch, items, anchors) -> None:
     from app.api import routes_chronicle as rc
+
     mock = _MockDecomposer(items, anchors)
     monkeypatch.setattr(rc, "_get_decomposer", lambda: mock)
 
@@ -121,16 +123,14 @@ def test_route_fallback_full_path_to_chronicle_entry(monkeypatch, tmp_path):
 
     by_kind = {e.kind: e for e in entries}
     assert by_kind[EntryKind.EVENT].historical_age == 8, (
-        f"EVENT.historical_age должен быть 8 (fallback), "
-        f"получено {by_kind[EntryKind.EVENT].historical_age}"
+        f"EVENT.historical_age должен быть 8 (fallback), получено {by_kind[EntryKind.EVENT].historical_age}"
     )
     assert by_kind[EntryKind.RELATIONSHIP].historical_age is None, (
         f"RELATIONSHIP.historical_age должен быть None (контракт: age только для событий), "
         f"получено {by_kind[EntryKind.RELATIONSHIP].historical_age}"
     )
     assert by_kind[EntryKind.EFFECT].historical_age is None, (
-        f"EFFECT.historical_age должен быть None, "
-        f"получено {by_kind[EntryKind.EFFECT].historical_age}"
+        f"EFFECT.historical_age должен быть None, получено {by_kind[EntryKind.EFFECT].historical_age}"
     )
 
     # Проверка 4: provenance = LLM_DRAFT (всё ещё черновик, не канон)
@@ -170,9 +170,7 @@ def test_route_llm_age_priority_over_fallback(monkeypatch, tmp_path):
     doc = store.load_draft("test_campaign", "test_npc")
     entries = list(doc.entries)
     assert len(entries) == 1
-    assert entries[0].historical_age == 24, (
-        f"ожидал 24 (LLM priority), получил {entries[0].historical_age}"
-    )
+    assert entries[0].historical_age == 24, f"ожидал 24 (LLM priority), получил {entries[0].historical_age}"
 
 
 def test_route_no_fallback_multiple_anchors(monkeypatch, tmp_path):
@@ -249,6 +247,5 @@ def test_route_no_fallback_multiple_events(monkeypatch, tmp_path):
     entries = list(doc.entries)
     assert len(entries) == 2
     assert all(e.historical_age is None for e in entries), (
-        f"2 EVENT → неопределённость, ожидал None для обоих, "
-        f"получено {[e.historical_age for e in entries]}"
+        f"2 EVENT → неопределённость, ожидал None для обоих, получено {[e.historical_age for e in entries]}"
     )

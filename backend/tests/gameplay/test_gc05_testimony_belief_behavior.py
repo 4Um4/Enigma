@@ -33,6 +33,7 @@ L3-интеграционная проверка downstream-пути с инъе
   - Тест не доказывает работу TaskScheduler → DialogueMaterializer
   - Тест доказывает: downstream-path (NPC_SPOKE → ClaimEvent → Belief → Decision) работает
 """
+
 import logging
 
 import pytest
@@ -40,9 +41,9 @@ from tests.gameplay.harness import TavernGameplayHarness
 
 logger = logging.getLogger("gameplay.gc05")
 
-_WITNESS = "maid_lusya"   # Свидетель — кто "рассказывает"
+_WITNESS = "maid_lusya"  # Свидетель — кто "рассказывает"
 _LISTENER = "guard_borko"  # Слушатель — кто получает belief
-_TARGET = "player"         # Объект обвинения/атаки
+_TARGET = "player"  # Объект обвинения/атаки
 
 
 def _read_epistemic_records(harness, agent_id: str):
@@ -125,33 +126,37 @@ class TestGC05TestimonyBeliefBehavior:
         _records_before = _read_epistemic_records(harness, _LISTENER)
         print(f"[GC05-A] guard_borko beliefs before: {len(_records_before)} records")
         for r in _records_before:
-            print(f"  {r.get('proposition', {}).get('predicate')} "
-                  f"subject={r.get('proposition', {}).get('subject_id')} "
-                  f"conf={r.get('confidence')}")
+            print(
+                f"  {r.get('proposition', {}).get('predicate')} "
+                f"subject={r.get('proposition', {}).get('subject_id')} "
+                f"conf={r.get('confidence')}"
+            )
 
         # 2. Инъекция NPC_SPOKE: maid_lusya "intimidate" player
-        _event = _inject_npc_spoke(
-            harness, speaker_id=_WITNESS,
-            intent_type="intimidate", target_id=_TARGET
+        _event = _inject_npc_spoke(harness, speaker_id=_WITNESS, intent_type="intimidate", target_id=_TARGET)
+        print(
+            f"[GC05-A] injected NPC_SPOKE: source={_event.source} "
+            f"target={_event.payload.get('target_id')} "
+            f"intent={_event.payload.get('intent_type')}"
         )
-        print(f"[GC05-A] injected NPC_SPOKE: source={_event.source} "
-              f"target={_event.payload.get('target_id')} "
-              f"intent={_event.payload.get('intent_type')}")
 
         # 3. Assert: EpistemicStore содержит EpistemicRecord для guard_borko
         _records_after = _read_epistemic_records(harness, _LISTENER)
         print(f"[GC05-A] guard_borko beliefs after: {len(_records_after)} records")
         for r in _records_after:
             _prop = r.get("proposition", {})
-            print(f"  predicate={_prop.get('predicate')} "
-                  f"subject={_prop.get('subject_id')} "
-                  f"object={_prop.get('object_id')} "
-                  f"conf={r.get('confidence')} "
-                  f"source={r.get('source_id')}")
+            print(
+                f"  predicate={_prop.get('predicate')} "
+                f"subject={_prop.get('subject_id')} "
+                f"object={_prop.get('object_id')} "
+                f"conf={r.get('confidence')} "
+                f"source={r.get('source_id')}"
+            )
 
         # Ищем запись о player (ATTACKED by maid_lusya)
         _player_beliefs = [
-            r for r in _records_after
+            r
+            for r in _records_after
             if r.get("proposition", {}).get("subject_id") == _WITNESS
             and r.get("proposition", {}).get("predicate") == "attacked"
             and r.get("proposition", {}).get("object_id") == _TARGET
@@ -169,16 +174,16 @@ class TestGC05TestimonyBeliefBehavior:
 
         _record = _player_beliefs[0]
         assert _record.get("confidence", 0.0) > 0.0, (
-            f"GC05-A FAIL: EpistemicRecord существует, но confidence=0.0 — "
-            f"belief не сформирован. Record: {_record}"
+            f"GC05-A FAIL: EpistemicRecord существует, но confidence=0.0 — belief не сформирован. Record: {_record}"
         )
         assert _record.get("source_id") == _WITNESS, (
-            f"GC05-A FAIL: source_id={_record.get('source_id')} "
-            f"≠ {_WITNESS} — provenance нарушен. Record: {_record}"
+            f"GC05-A FAIL: source_id={_record.get('source_id')} ≠ {_WITNESS} — provenance нарушен. Record: {_record}"
         )
-        print(f"[GC05-A] PASS: guard_borko believes {_WITNESS} attacked "
-              f"{_TARGET} conf={_record['confidence']:.2f} "
-              f"source={_record['source_id']}")
+        print(
+            f"[GC05-A] PASS: guard_borko believes {_WITNESS} attacked "
+            f"{_TARGET} conf={_record['confidence']:.2f} "
+            f"source={_record['source_id']}"
+        )
 
     def test_belief_persists_after_idle_tick(self, harness):
         """EpistemicRecord переживает idle_tick (round-trip persistence).
@@ -188,10 +193,7 @@ class TestGC05TestimonyBeliefBehavior:
         persisted state.
         """
         # 1. Инъекция NPC_SPOKE
-        _inject_npc_spoke(
-            harness, speaker_id=_WITNESS,
-            intent_type="intimidate", target_id=_TARGET
-        )
+        _inject_npc_spoke(harness, speaker_id=_WITNESS, intent_type="intimidate", target_id=_TARGET)
 
         # 2. Проверить belief существует
         _records_after_inject = _read_epistemic_records(harness, _LISTENER)
@@ -212,7 +214,8 @@ class TestGC05TestimonyBeliefBehavior:
         # 4. Assert: belief сохранён после idle_tick
         _records_after_tick = _read_epistemic_records(harness, _LISTENER)
         _persisted_belief = [
-            r for r in _records_after_tick
+            r
+            for r in _records_after_tick
             if r.get("proposition", {}).get("subject_id") == _WITNESS
             and r.get("proposition", {}).get("predicate") == "attacked"
             and r.get("proposition", {}).get("object_id") == _TARGET
@@ -225,8 +228,7 @@ class TestGC05TestimonyBeliefBehavior:
             f"Persistence broken: epistemic_records не сохраняются "
             f"через atomic_commit_all, или не читаются при следующем тике."
         )
-        print(f"[GC05-B] PASS: belief persisted after 2 idle_ticks "
-              f"(conf={_persisted_belief[0].get('confidence'):.2f})")
+        print(f"[GC05-B] PASS: belief persisted after 2 idle_ticks (conf={_persisted_belief[0].get('confidence'):.2f})")
 
     def test_control_without_testimony_no_belief(self, harness):
         """Контроль: без NPC_SPOKE → EpistemicStore не содержит
@@ -241,7 +243,8 @@ class TestGC05TestimonyBeliefBehavior:
 
         # 2. Проверить: нет EpistemicRecord(player, ATTACKED, maid_lusya)
         _player_attacked = [
-            r for r in _records
+            r
+            for r in _records
             if r.get("proposition", {}).get("subject_id") == _WITNESS
             and r.get("proposition", {}).get("predicate") == "attacked"
             and r.get("proposition", {}).get("object_id") == _TARGET
@@ -255,8 +258,7 @@ class TestGC05TestimonyBeliefBehavior:
             f"({_WITNESS} attacked {_TARGET}) БЕЗ testimony — "
             f"причинная связь не доказана. Records: {_player_attacked}"
         )
-        print(f"[GC05-C] PASS: no testimony → no belief "
-              f"(control clean, {len(_records)} other records)")
+        print(f"[GC05-C] PASS: no testimony → no belief (control clean, {len(_records)} other records)")
 
 
 if __name__ == "__main__":

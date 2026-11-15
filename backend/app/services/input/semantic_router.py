@@ -48,9 +48,7 @@ def _load_labels() -> Dict[str, str]:
     меток — INVALID измерения, не тихий пустой срез."""
     path = os.environ.get(_LABELS_PATH_ENV, "")
     if not path:
-        raise RuntimeError(
-            f"{_LABELS_PATH_ENV} не задан: oracle-режим без меток — INVALID"
-        )
+        raise RuntimeError(f"{_LABELS_PATH_ENV} не задан: oracle-режим без меток — INVALID")
     cached = _LABELS_CACHE.get(path)
     if cached is not None:
         return cached
@@ -69,16 +67,9 @@ def _route_oracle(raw_text: str) -> Tuple[SemanticModule, ...]:
     модулей; ASCII-маркер: U+2205 отсутствует в cp1251 артефактов)."""
     labels = _load_labels()
     family = labels.get(raw_text)
-    enabled = {
-        item.strip().upper()
-        for item in os.environ.get(_FAMILIES_ENV, "PROV,ID").split(",")
-        if item.strip()
-    }
+    enabled = {item.strip().upper() for item in os.environ.get(_FAMILIES_ENV, "PROV,ID").split(",") if item.strip()}
     names: Tuple[str, ...] = ()
     if family in _FAMILY_TO_MODULE and family in enabled:
         names = (_FAMILY_TO_MODULE[family],)
-    print(
-        f"[SLICE] router=oracle text={raw_text!r} family={family!r} "
-        f"modules={names[0] if names else 'NONE'}"
-    )
+    print(f"[SLICE] router=oracle text={raw_text!r} family={family!r} modules={names[0] if names else 'NONE'}")
     return tuple(load_module(name) for name in names)

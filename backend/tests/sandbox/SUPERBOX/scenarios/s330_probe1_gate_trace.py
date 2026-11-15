@@ -9,6 +9,7 @@ S330-PROBE-1 (диагностика, НЕ фикс; мандат Мастера
 (паттерн ObservabilityTap ADR-O-361; поведение не меняется).
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/s330_probe1_gate_trace.py
 """
+
 import io
 import logging
 import os
@@ -39,9 +40,17 @@ TORNIN = "tavern_keeper_tornin"
 MAX_TICKS = 25
 # Пакет 4 (ТЗ АУДИТ-01): протоколы зондов — в reports/probes/
 REPORT = BACKEND_ROOT / "reports" / "probes" / "s330_probe1_gate_trace.txt"
-_MARKERS = ("GATE_B1_COLLAPSE", "GATE_B1_5", "reason=SAME_NODE",
-            "reason=PLAN_REJECTED", "ARBITER_GATE_2", "GATE_B1_ACCEPT",
-            "reason=SUCCESS", "NOT_FOUND", "COLLAPSE: npc")
+_MARKERS = (
+    "GATE_B1_COLLAPSE",
+    "GATE_B1_5",
+    "reason=SAME_NODE",
+    "reason=PLAN_REJECTED",
+    "ARBITER_GATE_2",
+    "GATE_B1_ACCEPT",
+    "reason=SUCCESS",
+    "NOT_FOUND",
+    "COLLAPSE: npc",
+)
 
 _buf = io.StringIO()
 
@@ -53,16 +62,19 @@ class _BufHandler(logging.Handler):
 
 def _instrument() -> None:
     logging.getLogger().setLevel(logging.CRITICAL)
-    for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-               "app.services.llm.llama_cpp_provider",
-               "app.services.game_loop.task_scheduler",
-               "app.services.execution.dialogue_queue",
-               "app.services.memory", "app.services.npc.npc_tick_pipeline"):
+    for _n in (
+        "app.services.llm.router",
+        "app.services.llm.provider_manager",
+        "app.services.llm.llama_cpp_provider",
+        "app.services.game_loop.task_scheduler",
+        "app.services.execution.dialogue_queue",
+        "app.services.memory",
+        "app.services.npc.npc_tick_pipeline",
+    ):
         logging.getLogger(_n).setLevel(logging.CRITICAL)
     _h = _BufHandler()
     _h.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
-    for _n in ("app.services.spatial", "app.services.phases",
-               "app.services.action", "app.services.npc"):
+    for _n in ("app.services.spatial", "app.services.phases", "app.services.action", "app.services.npc"):
         _lg = logging.getLogger(_n)
         _lg.setLevel(logging.DEBUG)
         _lg.addHandler(_h)
@@ -71,10 +83,11 @@ def _instrument() -> None:
 
 def _tap_process_intents() -> None:
     from app.services.spatial import movement_engine as _me
+
     _orig = _me.MovementEngine.process_intents
 
     def _wrapped(self, intents, *args, **kwargs):  # type: ignore[no-untyped-def]
-        for _it in (intents or []):
+        for _it in intents or []:
             _aid = getattr(_it, "actor_id", getattr(_it, "npc_id", "?"))
             if _aid == TORNIN:
                 _buf.write(
@@ -103,8 +116,7 @@ def _dump(world: types.SimpleNamespace, tick: int) -> None:
         _buf.write(f"[PROBE][COMMITMENT] tick={tick} {dict(_com)}\n")
     _np = (_sc.get("npc_positions") or {}).get(TORNIN)
     if _np is not None:
-        _buf.write(f"[PROBE][POS] tick={tick} position={_np.get('position')} "
-                   f"local={_np.get('local_position')}\n")
+        _buf.write(f"[PROBE][POS] tick={tick} position={_np.get('position')} local={_np.get('local_position')}\n")
 
 
 def main() -> int:

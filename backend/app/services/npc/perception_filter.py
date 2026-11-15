@@ -41,9 +41,6 @@ _LIGHT_LEVELS = {
 }
 
 
-
-
-
 def _get_position(entity_data: Dict[str, Any]) -> Optional[tuple[float, float]]:
     """
     Извлекает (x, y) из словаря позиции.
@@ -147,9 +144,7 @@ def _can_see(
     return _LIGHT_LEVELS.get(light, 1) >= _LIGHT_LEVELS[_MIN_LIGHT_FOR_SIGHT]
 
 
-def _can_hear(
-    npc_id: str, spatial_query: "SpatialQueryService", radius: float, scene_state: Dict[str, Any]
-) -> bool:
+def _can_hear(npc_id: str, spatial_query: "SpatialQueryService", radius: float, scene_state: Dict[str, Any]) -> bool:
     """
     NPC может слышать событие если:
       - не спит (громкий звук будит — проверяем отдельно)
@@ -232,10 +227,7 @@ def filter_perceiving_npcs(
             _dist = _npc_distance(npc_id, spatial_query)
             logger.debug(f"[PERCEPTION_SKIP] {npc_id}: dist={_dist:.1f}m (not visible)")
 
-    logger.debug(
-        f"[PERCEPTION_FILTER] {event_type}: "
-        f"{len(perceiving)}/{len(npc_ids)} NPC воспринимают событие"
-    )
+    logger.debug(f"[PERCEPTION_FILTER] {event_type}: {len(perceiving)}/{len(npc_ids)} NPC воспринимают событие")
     return perceiving
 
 

@@ -1,4 +1,3 @@
-import dataclasses
 # backend/app/services/npc/belief_revision_engine.py
 """
 path: /project/backend/app/services/npc/belief_revision_engine.py
@@ -17,19 +16,22 @@ logger = logging.getLogger(__name__)
 _CLAIM_WEIGHT: float = 1.0
 _SAME_SOURCE_BOOST: float = 0.2
 
+
 class SourceReliabilityProvider(Protocol):
     """
     Интерфейс для получения надёжности источника.
     Изолирует движок убеждений от социальных систем (RelationshipStore).
     """
-    def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float:
-        ...
+
+    def get_reliability(self, observer: str, source: str, context: Optional[dict] = None) -> float: ...
+
 
 class BeliefRevisionEngine:
     """
     DeterministicBeliefRevisionPolicy v0.1.
     Не использует LLM. Не мутирует RelationshipStore.
     """
+
     def __init__(self, reliability_provider: SourceReliabilityProvider):
         self._reliability_provider = reliability_provider
 
@@ -38,7 +40,7 @@ class BeliefRevisionEngine:
         listener_id: str,
         claim: ClaimEvent,
         existing_record: Optional[EpistemicRecord],
-        reliability_context: Optional[dict] = None
+        reliability_context: Optional[dict] = None,
     ) -> EpistemicRecord:
         """
         Обрабатывает ClaimEvent и возвращает новую/обновлённую EpistemicRecord.
@@ -52,9 +54,7 @@ class BeliefRevisionEngine:
         if reliability_context:
             _context.update(reliability_context)
         reliability = self._reliability_provider.get_reliability(
-            observer=listener_id,
-            source=claim.speaker_id,
-            context=_context
+            observer=listener_id, source=claim.speaker_id, context=_context
         )
 
         # Базовый вес утверждения (в будущем может зависеть от speech_act)
@@ -83,23 +83,29 @@ class BeliefRevisionEngine:
                 source_type=_src_type,
                 original_source_id=_orig_src,
                 # A19.5: Инициализация истории обработанных claim_id
-                seen_claim_ids=(claim.claim_id,)
+                seen_claim_ids=(claim.claim_id,),
             )
-            logger.info(f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})")
+            logger.info(
+                f"[BELIEF_REVISE] New belief: {listener_id} believes {claim.proposition.subject_id} {claim.proposition.predicate.value} {claim.proposition.object_id} (conf={new_record.confidence:.2f})"
+            )
         else:
             # A19.5: ИДЕМПОТЕНТНОСТЬ — проверка на повторную доставку того же claim_id
             if claim.claim_id in existing_record.seen_claim_ids:
                 # Этот claim уже был обработан. Возвращаем существующую запись БЕЗ ИЗМЕНЕНИЙ.
                 # Не обновляем ни confidence, ни last_updated_tick.
                 # Повторная доставка старого слуха — не новая информация.
-                logger.debug(f"[BELIEF_REVISE] Idempotent: {listener_id} already processed claim_id={claim.claim_id}, returning existing record unchanged")
+                logger.debug(
+                    f"[BELIEF_REVISE] Idempotent: {listener_id} already processed claim_id={claim.claim_id}, returning existing record unchanged"
+                )
                 return existing_record
 
             # Обновление существующего убеждения
             if existing_record.source_id == claim.speaker_id:
                 # Подтверждение от того же источника (небольшой буст)
                 # S199 (Фаза 8.2): max(0.0, ...) — защита от ухода в минус при отрицательной reliability (враги).
-                updated_conf = max(0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST)))
+                updated_conf = max(
+                    0.0, min(1.0, existing_record.confidence + (incoming_confidence * _SAME_SOURCE_BOOST))
+                )
             else:
                 # Независимое подтверждение (больший буст)
                 updated_conf = max(0.0, min(1.0, existing_record.confidence + incoming_confidence))
@@ -109,22 +115,24 @@ class BeliefRevisionEngine:
             # source_type сохраняется от прежней записи, если не пуст.
             _orig_src = existing_record.original_source_id or claim.speaker_id
             _src_type = existing_record.source_type or (reliability_context or {}).get("source_type", "testimony")
-            
+
             # A19.5: Добавляем текущий claim_id в историю обработанных
             new_seen = existing_record.seen_claim_ids + (claim.claim_id,)
-            
+
             new_record = EpistemicRecord(
                 agent_id=listener_id,
                 proposition=claim.proposition,
                 confidence=updated_conf,
-                source_id=claim.speaker_id, # Обновляем источник на самый свежий
+                source_id=claim.speaker_id,  # Обновляем источник на самый свежий
                 source_claim_id=claim.claim_id,
                 first_observed_tick=existing_record.first_observed_tick,
                 last_updated_tick=current_tick,
                 source_type=_src_type,
                 original_source_id=_orig_src,
-                seen_claim_ids=new_seen  # A19.5: Обновлённая история
+                seen_claim_ids=new_seen,  # A19.5: Обновлённая история
             )
-            logger.info(f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}")
+            logger.info(
+                f"[BELIEF_REVISE] Updated belief: {listener_id} belief updated to conf={new_record.confidence:.2f}"
+            )
 
         return new_record

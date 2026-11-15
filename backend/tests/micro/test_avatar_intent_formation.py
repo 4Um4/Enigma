@@ -63,9 +63,7 @@ def test_avatar_intent_desire_ref_preserved():
     """desire_ref сохранён — causal link к Desire."""
     npc = _avatar_with_hunger(nutrition=30.0)
     desires = npc.get("desires", [])
-    food_desire_id = next(
-        d["desire_id"] for d in desires if d.get("subject_class") == "food"
-    )
+    food_desire_id = next(d["desire_id"] for d in desires if d.get("subject_class") == "food")
     record = form_avatar_intent(npc, tick=1)
     assert record is not None
     assert record.desire_ref == food_desire_id
@@ -221,8 +219,8 @@ def test_desire_and_intent_not_mixed():
     # Desire says WHAT (food). Intent says HOW (approach).
     # They are different fields, not merged.
     assert record.intent.value == "approach"  # HOW
-    assert record.target == "food_portion"     # WHAT (from desire)
-    assert record.desire_ref != ""             # link to desire, not copy
+    assert record.target == "food_portion"  # WHAT (from desire)
+    assert record.desire_ref != ""  # link to desire, not copy
 
 
 # ── Change in Desire handled ──────────────────────────────────────
@@ -230,8 +228,8 @@ def test_desire_and_intent_not_mixed():
 
 def test_intent_changes_when_desire_changes():
     """Desire urgency changes → Intent urgency changes."""
-    npc_low = _avatar_with_hunger(nutrition=80.0)   # hunger = 0.2
-    npc_high = _avatar_with_hunger(nutrition=10.0)   # hunger = 0.9
+    npc_low = _avatar_with_hunger(nutrition=80.0)  # hunger = 0.2
+    npc_high = _avatar_with_hunger(nutrition=10.0)  # hunger = 0.9
     record_low = form_avatar_intent(npc_low, tick=1)
     record_high = form_avatar_intent(npc_high, tick=1)
     assert record_low.urgency < record_high.urgency
@@ -272,20 +270,22 @@ def test_only_one_active_avatar_intent_at_a_time():
     # Tick 2: thirst becomes most urgent → Desire(ale), Intent.APPROACH
     # Different subject_class → different desire_ref → SUPERSEDE
     npc_thirst = _avatar_with_hunger(nutrition=80.0)  # hunger=0.2 (low)
-    npc_thirst["body_state"]["hydration"] = 10.0       # thirst=0.9 (high)
+    npc_thirst["body_state"]["hydration"] = 10.0  # thirst=0.9 (high)
     _ensure_avatar_needs(npc_thirst)
     update_npc_desires(npc_thirst, tick=2)
     record2 = form_avatar_intent(npc_thirst, tick=2)
     store_avatar_intent(scene_state, record2, 2)
 
     active = [
-        e for e in scene_state["intent_lifecycle"].values()
+        e
+        for e in scene_state["intent_lifecycle"].values()
         if isinstance(e, dict)
         and e.get("control_source") == "avatar_initiative"
         and e.get("lifecycle_state") == "ACTIVE"
     ]
     superseded = [
-        e for e in scene_state["intent_lifecycle"].values()
+        e
+        for e in scene_state["intent_lifecycle"].values()
         if isinstance(e, dict)
         and e.get("control_source") == "avatar_initiative"
         and e.get("lifecycle_state") == "SUPERSEDED"
@@ -305,14 +305,8 @@ def test_no_record_marks_previous_superseded():
     store_avatar_intent(scene_state, record1, 1)
     store_avatar_intent(scene_state, None, 2)  # No new record
 
-    active = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if e.get("lifecycle_state") == "ACTIVE"
-    ]
-    superseded = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if e.get("lifecycle_state") == "SUPERSEDED"
-    ]
+    active = [e for e in scene_state["intent_lifecycle"].values() if e.get("lifecycle_state") == "ACTIVE"]
+    superseded = [e for e in scene_state["intent_lifecycle"].values() if e.get("lifecycle_state") == "SUPERSEDED"]
     assert len(active) == 0
     assert len(superseded) == 1
 
@@ -334,14 +328,8 @@ def test_formation_exception_voids_active_avatar_intent():
     # Simulate formation error: voided_avatar_intents called
     voided_avatar_intents(scene_state, tick=2)
 
-    active = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if e.get("lifecycle_state") == "ACTIVE"
-    ]
-    voided = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if e.get("lifecycle_state") == "VOIDED"
-    ]
+    active = [e for e in scene_state["intent_lifecycle"].values() if e.get("lifecycle_state") == "ACTIVE"]
+    voided = [e for e in scene_state["intent_lifecycle"].values() if e.get("lifecycle_state") == "VOIDED"]
     assert len(active) == 0
     assert len(voided) == 1
 
@@ -416,19 +404,15 @@ def test_same_desire_same_state_preserves_intent_id():
     assert active_t2 is not None
     intent_id_t2 = active_t2["intent_id"]
 
-    assert intent_id_t1 == intent_id_t2, (
-        f"Same desire should preserve intent_id: {intent_id_t1} != {intent_id_t2}"
-    )
+    assert intent_id_t1 == intent_id_t2, f"Same desire should preserve intent_id: {intent_id_t1} != {intent_id_t2}"
 
     # Lifecycle должен иметь ОДНУ запись (не накапливать)
     all_avatar_entries = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if isinstance(e, dict)
-        and e.get("control_source") == "avatar_initiative"
+        e
+        for e in scene_state["intent_lifecycle"].values()
+        if isinstance(e, dict) and e.get("control_source") == "avatar_initiative"
     ]
-    assert len(all_avatar_entries) == 1, (
-        f"Should not accumulate: {len(all_avatar_entries)} entries"
-    )
+    assert len(all_avatar_entries) == 1, f"Should not accumulate: {len(all_avatar_entries)} entries"
 
 
 def test_changed_desire_supersedes_previous_intent():
@@ -453,7 +437,7 @@ def test_changed_desire_supersedes_previous_intent():
     # Tick 2: Avatar теперь жаждет больше (hydration=10 → thirst=0.9,
     # nutrition остаётся 30 → hunger=0.7, но thirst доминирует)
     npc_thirst = _avatar_with_hunger(nutrition=80.0)  # hunger=0.2
-    npc_thirst["body_state"]["hydration"] = 10.0       # thirst=0.9
+    npc_thirst["body_state"]["hydration"] = 10.0  # thirst=0.9
     _ensure_avatar_needs(npc_thirst)
     update_npc_desires(npc_thirst, tick=2)
     record_thirst = form_avatar_intent(npc_thirst, tick=2)
@@ -461,7 +445,8 @@ def test_changed_desire_supersedes_previous_intent():
 
     # Проверяем: предыдущий → SUPERSEDED
     superseded = [
-        e for e in scene_state["intent_lifecycle"].values()
+        e
+        for e in scene_state["intent_lifecycle"].values()
         if isinstance(e, dict)
         and e.get("control_source") == "avatar_initiative"
         and e.get("lifecycle_state") == "SUPERSEDED"
@@ -495,29 +480,25 @@ def test_repeated_tick_does_not_accumulate_active_intents():
 
     # Должна быть ТОЛЬКО ОДНА ACTIVE запись
     active = [
-        e for e in scene_state["intent_lifecycle"].values()
+        e
+        for e in scene_state["intent_lifecycle"].values()
         if isinstance(e, dict)
         and e.get("control_source") == "avatar_initiative"
         and e.get("lifecycle_state") == "ACTIVE"
     ]
-    assert len(active) == 1, (
-        f"Only 1 ACTIVE intent expected, got {len(active)}"
-    )
+    assert len(active) == 1, f"Only 1 ACTIVE intent expected, got {len(active)}"
 
     # Всего в lifecycle должна быть 1 запись (не 5)
     all_avatar_entries = [
-        e for e in scene_state["intent_lifecycle"].values()
-        if isinstance(e, dict)
-        and e.get("control_source") == "avatar_initiative"
+        e
+        for e in scene_state["intent_lifecycle"].values()
+        if isinstance(e, dict) and e.get("control_source") == "avatar_initiative"
     ]
-    assert len(all_avatar_entries) == 1, (
-        f"Should not accumulate: {len(all_avatar_entries)} entries after 5 ticks"
-    )
+    assert len(all_avatar_entries) == 1, f"Should not accumulate: {len(all_avatar_entries)} entries after 5 ticks"
 
     # intent_ordinals должен быть 1 (не создавались новые intent_id)
     assert scene_state["intent_ordinals"].get("player") == 1, (
-        f"intent_ordinals[player] should be 1, got "
-        f"{scene_state['intent_ordinals'].get('player')}"
+        f"intent_ordinals[player] should be 1, got {scene_state['intent_ordinals'].get('player')}"
     )
 
 
@@ -545,7 +526,8 @@ def test_disappeared_desire_supersedes_previous_intent():
 
     # Previous → SUPERSEDED
     superseded = [
-        e for e in scene_state["intent_lifecycle"].values()
+        e
+        for e in scene_state["intent_lifecycle"].values()
         if isinstance(e, dict)
         and e.get("control_source") == "avatar_initiative"
         and e.get("lifecycle_state") == "SUPERSEDED"
@@ -578,9 +560,5 @@ def test_urgency_update_preserves_intent_id():
     active_t2 = get_active_avatar_intent(scene_state)
 
     # Same intent_id (continuity), updated urgency
-    assert active_t2["intent_id"] == intent_id_t1, (
-        "Same desire_ref should preserve intent_id even with urgency change"
-    )
-    assert active_t2["urgency"] == 0.9, (
-        f"Urgency should update to 0.9, got {active_t2['urgency']}"
-    )
+    assert active_t2["intent_id"] == intent_id_t1, "Same desire_ref should preserve intent_id even with urgency change"
+    assert active_t2["urgency"] == 0.9, f"Urgency should update to 0.9, got {active_t2['urgency']}"

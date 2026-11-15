@@ -5,6 +5,7 @@ OFF — легаси-ярлык (байт-идентично); ON — тольк
 
 Запуск: cd backend; python -m pytest tests/test_need_satisfaction_mode.py -v; cd ..
 """
+
 import os
 import unittest
 
@@ -56,10 +57,10 @@ class TestNeedSatisfactionMode(unittest.TestCase):
 
     def test_suppression_only_for_catalogued_needs(self):
         self._on()
-        self.assertTrue(als.legacy_need_suppressed("hunger"))     # food → EAT
+        self.assertTrue(als.legacy_need_suppressed("hunger"))  # food → EAT
         self.assertFalse(als.legacy_need_suppressed("social_urge"))  # нет записи
         os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = ""
-        self.assertFalse(als.legacy_need_suppressed("hunger"))    # частичный ON не подавляет
+        self.assertFalse(als.legacy_need_suppressed("hunger"))  # частичный ON не подавляет
 
     def test_need_driven_movement_on_prefers_unsuppressed(self):
         self._on()

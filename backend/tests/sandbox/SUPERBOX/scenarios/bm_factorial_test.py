@@ -138,7 +138,9 @@ def _git_head() -> str:
     try:
         out = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         return out.stdout.strip()
     except Exception:  # noqa: BLE001 — артефакт-метаданные, не симуляция
@@ -179,24 +181,14 @@ def main() -> int:
         )
         for c, ms in reps.items()
     }
-    cells = {
-        c: {k: v for k, v in ms[0].items() if k not in ("intent_seq", "mask_seq")}
-        for c, ms in reps.items()
-    }
+    cells = {c: {k: v for k, v in ms[0].items() if k not in ("intent_seq", "mask_seq")} for c, ms in reps.items()}
+
     # v1.0.1: канонический контраст — ОБЩЕЕ покрытое окно всех клеток
     # (средние на разных окнах несравнимы без оговорки — вердикт В2).
     def _covered(scores_raw: List[Dict[str, Any]]) -> set:
-        return {
-            i + 1
-            for i, s in enumerate(scores_raw)
-            if i + 1 >= _WINDOW_FROM and s and _d_gap(s) is not None
-        }
+        return {i + 1 for i, s in enumerate(scores_raw) if i + 1 >= _WINDOW_FROM and s and _d_gap(s) is not None}
 
-    common_window = (
-        sorted(set.intersection(*(_covered(ms[0]["scores_raw"]) for ms in reps.values())))
-        if reps
-        else []
-    )
+    common_window = sorted(set.intersection(*(_covered(ms[0]["scores_raw"]) for ms in reps.values()))) if reps else []
     y1_common: Dict[str, Optional[float]] = {}
     y2_common: Dict[str, Optional[float]] = {}
     for c, ms in reps.items():
@@ -204,11 +196,7 @@ def main() -> int:
         intents = ms[0]["intent_seq"]
         vals = [g for g in (_d_gap(spt[t - 1]) for t in common_window) if g is not None]
         y1_common[c] = round(sum(vals) / len(vals), 6) if vals else None
-        hits = sum(
-            1
-            for t in common_window
-            if t - 1 < len(intents) and intents[t - 1] in _INCONSISTENT
-        )
+        hits = sum(1 for t in common_window if t - 1 < len(intents) and intents[t - 1] in _INCONSISTENT)
         y2_common[c] = round(hits / len(common_window), 6) if common_window else None
 
     interaction = {
@@ -268,19 +256,19 @@ def main() -> int:
                 "но не устраняются)"
             ),
             "tiers": (
-                "Y1 — диагностическая (скоры); Y2 — поведенческая (победитель); "
-                "смешение ярусов запрещено (SPEC §3)"
+                "Y1 — диагностическая (скоры); Y2 — поведенческая (победитель); смешение ярусов запрещено (SPEC §3)"
             ),
         },
     }
     _REPORT.parent.mkdir(parents=True, exist_ok=True)
     _REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"[BM-FACTORIAL] D_int(Y1)={interaction['y1_window']} "
-          f"D_int(Y2)={interaction['y2_share']}")
-    print(f"[BM-FACTORIAL] common_window={common_window} "
-          f"D_int_common(Y1)={interaction['y1_common']} "
-          f"D_int_common(Y2)={interaction['y2_common']}")
+    print(f"[BM-FACTORIAL] D_int(Y1)={interaction['y1_window']} D_int(Y2)={interaction['y2_share']}")
+    print(
+        f"[BM-FACTORIAL] common_window={common_window} "
+        f"D_int_common(Y1)={interaction['y1_common']} "
+        f"D_int_common(Y2)={interaction['y2_common']}"
+    )
     print(f"[BM-FACTORIAL] determinism={determinism} mask_semantics={mask_semantics}")
     print(f"[BM-FACTORIAL] status={status} report={_REPORT}")
     # exit 1 только при INVALID детерминизма (дрейф окружения — не данные).

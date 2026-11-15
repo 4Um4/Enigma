@@ -36,17 +36,13 @@ class DeltaGate:
         """Валидация без применения: whitelist → кламп → идемпотентность.
         Возвращает клампнутое значение или None с причиной в логе."""
         if proposal.field not in self.WHITELIST:
-            logger.warning(
-                f"[DELTA_GATE] отклонено: поле '{proposal.field}' вне whitelist"
-            )
+            logger.warning(f"[DELTA_GATE] отклонено: поле '{proposal.field}' вне whitelist")
             return None
         lo, hi, _consumer = self.WHITELIST[proposal.field]
         clamped = max(lo, min(hi, proposal.value))
         key = (proposal.trace_id, proposal.field)
         if key in self._applied:
-            logger.info(
-                f"[DELTA_GATE] идемпотентность: {key} уже применён — пропуск"
-            )
+            logger.info(f"[DELTA_GATE] идемпотентность: {key} уже применён — пропуск")
             return None
         return clamped
 
@@ -79,15 +75,10 @@ class DeltaGate:
         if consumer_dispatch is not None:
             ok = consumer_dispatch(consumer, proposal.trace_id, clamped)
             if not ok:
-                logger.warning(
-                    f"[DELTA_GATE] потребитель '{consumer}' отверг дельту {key}"
-                )
+                logger.warning(f"[DELTA_GATE] потребитель '{consumer}' отверг дельту {key}")
                 return False
         self._applied.add(key)
-        logger.info(
-            f"[DELTA_GATE] применено: {key} = {clamped} "
-            f"(источник: {proposal.source})"
-        )
+        logger.info(f"[DELTA_GATE] применено: {key} = {clamped} (источник: {proposal.source})")
         # E2.0-b: трасса причинности для Chronicaler — observation only
         # (Закон XI: наблюдение не создаёт причинность)
         try:

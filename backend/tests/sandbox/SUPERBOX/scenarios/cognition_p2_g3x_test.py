@@ -20,6 +20,7 @@ SUPERBOX-COGNITION-P2 G3-X (S295-хвост): контролируемый эк�
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/cognition_p2_g3x_test.py
 """
+
 import asyncio
 import math
 import os
@@ -54,10 +55,10 @@ atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 # llama-server lifecycle (принцип Мастера: идентификация ≠ владение).
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="cog_p2g3x")
 except Exception as _e:
-    print(f"[G3-X] ⚠ LLM недоступна ({_e}) — DM-фаза будет деградировать, "
-          "но семантика MOVE резолвится fast-path")
+    print(f"[G3-X] ⚠ LLM недоступна ({_e}) — DM-фаза будет деградировать, но семантика MOVE резолвится fast-path")
 
 from app.models.schemas import ChatTurnRequest, PlayerAction
 from app.services.game_loop_builder import build_game_loop
@@ -105,11 +106,7 @@ def _angdiff(a: float, b: float) -> float:
 
 def _moving_ids(world) -> set:
     ss = _scene(world) or {}
-    return {
-        nid
-        for nid, tr in (ss.get("active_traversals") or {}).items()
-        if (tr or {}).get("status") == "MOVING"
-    }
+    return {nid for nid, tr in (ss.get("active_traversals") or {}).items() if (tr or {}).get("status") == "MOVING"}
 
 
 def _idle_tics(world, n: int):
@@ -154,9 +151,7 @@ async def main_async() -> int:
 
     initialize_model_pool()
 
-    world = types.SimpleNamespace(
-        game_loop=build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    )
+    world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data")))
     _idle_tics(world, 2)  # init сцены + стабильный снимок
 
     # ── Выбор стационарного NPC (до 3 попыток) ──────────────────────
@@ -224,9 +219,7 @@ async def main_async() -> int:
         pxy_now = _xy(pos2.get("player"))
         nxy_now = _xy(pos2.get(target))
         if pxy_now and nxy_now:
-            live_bearing = math.atan2(
-                pxy_now[1] - nxy_now[1], pxy_now[0] - nxy_now[0]
-            )
+            live_bearing = math.atan2(pxy_now[1] - nxy_now[1], pxy_now[0] - nxy_now[0])
             diff = _angdiff(cur_h, live_bearing)
             b_ok = diff < 0.06  # единственный писатель heading — attention_orient
         ok = ok and b_ok

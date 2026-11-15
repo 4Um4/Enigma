@@ -16,6 +16,7 @@ semantic_acts из NPC_SPOKE payload. Только SELF_INTRODUCTION —
 
 Без LLM. Идемпотентность по event_id.
 """
+
 from __future__ import annotations
 
 import logging
@@ -78,16 +79,11 @@ class NpcSpeechActSubscriber:
                     )
                     continue
 
-                session = self._memory.get_dialogue_session(
-                    campaign_id, listener, partner_id=speaker
-                )
+                session = self._memory.get_dialogue_session(campaign_id, listener, partner_id=speaker)
                 # Идемпотентность по event_id (Claim Bridge, ADR-O-404):
                 # работает между контурами — если NpcDialogueSubscriber._process_canonical
                 # уже написал Claim с тем же event_id, дубль не пройдёт.
-                if event_id and any(
-                    c.event_id == event_id
-                    for c in getattr(session, "claims", [])
-                ):
+                if event_id and any(c.event_id == event_id for c in getattr(session, "claims", [])):
                     logger.debug(f"[NPC_SPEECH_ACT] дубль event_id={event_id[:8]} — skip")
                     continue
 

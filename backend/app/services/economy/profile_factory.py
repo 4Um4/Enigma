@@ -9,6 +9,7 @@ path: /backend/app/services/economy/profile_factory.py
 Зависимости: app.models.economy (EconomicProfile, Need, NeedType), app.services.economy.psycho_economy (опционально)
 Основные сущности: create_profile_from_npc()
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional

@@ -14,6 +14,7 @@ path: backend/tests/calibration_lab/diag_replay_diff.py
 Зависимости: app.services.calibration.experiment_runner (path-hack ниже).
 Основные сущности: deep_diff, main.
 """
+
 from __future__ import annotations
 
 import sys

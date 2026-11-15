@@ -54,6 +54,7 @@ def evaluate_behavior_and_identity(
             _npc_state = NPCStateAdapter.from_legacy(npc_dict)
             # V8-PSY-19 FIX: Инкремент tick_age и удаление истёкших temporary_drives
             from app.models.npc_state import age_drives
+
             object.__setattr__(_npc_state, "temporary_drives", age_drives(_npc_state.temporary_drives))
 
             # V8-PSY-2 FIX: Willpower читается из NPCPersonality (L0), а не из несуществующего psyche
@@ -62,7 +63,7 @@ def evaluate_behavior_and_identity(
 
             # Шаг 1.1: Вычисление social_pressure на основе реальных trust и fear из RelationshipStore (SSOT)
             _social_pressure = 0.0
-            _support_present = False # V8-PSY-7 FIX: вычисляем наличие союзников
+            _support_present = False  # V8-PSY-7 FIX: вычисляем наличие союзников
             if relationship_store:
                 _rels = relationship_store.get_all_for_source(campaign_id, npc_id)
                 if _rels:
@@ -81,13 +82,19 @@ def evaluate_behavior_and_identity(
                     _fear_pressure = max(0.0, _max_fear) / 100.0 * 20.0
                     _social_pressure += min(20.0, _fear_pressure)
 
-                    logger.info(f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}")
+                    logger.info(
+                        f"[BREAK_PROGRESS] npc={npc_id} trust_min={_min_trust:.1f} fear_max={_max_fear:.1f} social_pressure={_social_pressure:.1f}"
+                    )
 
                     # Эмерджентные эмоции: высокое давление -> ANGRY/FEARFUL
                     # Порог снижен до 5.0, чтобы даже moderate pressure вызывало раздражение
                     if _social_pressure > 5.0:
-                        object.__setattr__(_npc_state, "emotion", EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY)
-                        logger.info(f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion.value} (social_pressure={_social_pressure:.1f})")
+                        object.__setattr__(
+                            _npc_state, "emotion", EmotionTag.FEARFUL if _max_fear > 50.0 else EmotionTag.ANGRY
+                        )
+                        logger.info(
+                            f"[EMOTION_EMERGENT] npc={npc_id} emotion={_npc_state.emotion.value} (social_pressure={_social_pressure:.1f})"
+                        )
 
                     # V8-PSY-7 FIX: Поддержка есть, если у NPC есть хотя бы один союзник (trust > 50)
                     for _rel in _rels.values():
@@ -100,38 +107,49 @@ def evaluate_behavior_and_identity(
                 state=_npc_state,
                 willpower=_willpower,
                 recent_failures=getattr(_npc_state, "recent_failures", 0),
-                support_present=_support_present, # V8-PSY-7 FIX: передаём вычисленное значение
+                support_present=_support_present,  # V8-PSY-7 FIX: передаём вычисленное значение
                 social_pressure=_social_pressure,
             )
 
-            object.__setattr__(_npc_state, "identity_integrity", max(
-                0.0,
-                min(
-                    1.0,
-                    _npc_state.identity_integrity
-                    + _break_deltas.identity_integrity_delta,
+            object.__setattr__(
+                _npc_state,
+                "identity_integrity",
+                max(
+                    0.0,
+                    min(
+                        1.0,
+                        _npc_state.identity_integrity + _break_deltas.identity_integrity_delta,
+                    ),
                 ),
-            ))
-            object.__setattr__(_npc_state, "pressure_resistance", max(
-                0.0,
-                min(
-                    1.0,
-                    _npc_state.pressure_resistance
-                    + _break_deltas.pressure_resistance_delta,
+            )
+            object.__setattr__(
+                _npc_state,
+                "pressure_resistance",
+                max(
+                    0.0,
+                    min(
+                        1.0,
+                        _npc_state.pressure_resistance + _break_deltas.pressure_resistance_delta,
+                    ),
                 ),
-            ))
-            object.__setattr__(_npc_state, "recent_failures", max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta))
+            )
+            object.__setattr__(
+                _npc_state, "recent_failures", max(0, _npc_state.recent_failures + _break_deltas.recent_failures_delta)
+            )
 
             if _break_deltas.will_state_override is not None:
                 object.__setattr__(_npc_state, "will_state", _break_deltas.will_state_override)
 
             # L2.7: LifeProjectResolver — продвигаем FSM жизненного проекта каждый тик
             from app.services.npc.life_project_resolver import LifeProjectResolver
+
             _old_state = getattr(_npc_state, "life_project_state", "ACTIVE")
 
             LifeProjectResolver.resolve(_npc_state, _break_deltas.identity_pressure, tick=tick_number)
             if _old_state != _npc_state.life_project_state:
-                logger.info(f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})")
+                logger.info(
+                    f"[LIFE_PROJECT] NPC {npc_id} FSM переход: {_old_state} -> {_npc_state.life_project_state} (Проект: {_npc_state.life_project})"
+                )
 
             # L1Chronicle: Фиксация давления и идентичности
             if l1_chronicle is not None:
@@ -192,9 +210,7 @@ def evaluate_behavior_and_identity(
 
             # ADR-S86.4: Расчёт BehaviorMask (гистерезисный социальный слой)
             _rel_cache = getattr(_npc_state, "relationship_cache", {})  # noqa: ENIGMA002
-            _player_rel = (
-                _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
-            )
+            _player_rel = _rel_cache.get("player", {}) if isinstance(_rel_cache, dict) else {}
 
             # V8-PSY-6 + M1b.3.4: БЕЗУСЛОВНАЯ гидратация (кэш = projection,
             # sticky-путь закрыт; store жив всегда post-cutover)
@@ -226,9 +242,11 @@ def evaluate_behavior_and_identity(
                 )
 
             if _new_mask != _npc_state.behavior_mask.mask:
-                object.__setattr__(_npc_state, "behavior_mask", BehaviorMaskState(
-                    mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day
-                ))
+                object.__setattr__(
+                    _npc_state,
+                    "behavior_mask",
+                    BehaviorMaskState(mask=_new_mask, intensity=_mask_intensity, applied_at_day=game_day),
+                )
 
             # [Этап A / ORDER-фикс, S318] Проекция перенесена сюда (была над
             # хроникой, ДО расчёта маски): маска писалась в объект после
@@ -259,6 +277,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
         logger.debug("SpatialQueryService missing in shared_context (decision.py). Falling back to scene_state reader.")
     if not _spatial_query and ctx.scene_state:
         from app.services.spatial.spatial_query_service import SpatialQueryService
+
         _spatial_query = SpatialQueryService(
             npc_positions=ctx.scene_state.get("npc_positions", {}),
             scene_state=ctx.scene_state,
@@ -277,33 +296,23 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
                 _target_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
                 if "player" not in _target_ids:
                     _target_ids.append("player")
-                _memory_weights_map[_nid] = (
-                    _svc.memory_manager.get_weights_for_decision(
-                        campaign_id=ctx.campaign_id, npc_id=_nid, target_ids=_target_ids
-                    )
+                _memory_weights_map[_nid] = _svc.memory_manager.get_weights_for_decision(
+                    campaign_id=ctx.campaign_id, npc_id=_nid, target_ids=_target_ids
                 )
-                _narrative_cache_map[_nid] = (
-                    _svc.memory_manager.load_narrative_from_sqlite(
-                        ctx.campaign_id, _nid
-                    )
-                )
+                _narrative_cache_map[_nid] = _svc.memory_manager.load_narrative_from_sqlite(ctx.campaign_id, _nid)
                 _identity_traits_map[_nid] = _svc.memory_manager.get_identity_traits(
                     campaign_id=ctx.campaign_id, npc_id=_nid
                 )
 
             if _svc.social_engine:
-                _social_modifiers_map[_nid] = (
-                    _svc.social_engine.compute_social_modifiers(
-                        npc_id=_nid,
-                        player_distances=_player_dists,
-                        event_type=getattr(ctx.shared_context, "action_type", None) or "idle"  # noqa: ENIGMA002
-                    )
+                _social_modifiers_map[_nid] = _svc.social_engine.compute_social_modifiers(
+                    npc_id=_nid,
+                    player_distances=_player_dists,
+                    event_type=getattr(ctx.shared_context, "action_type", None) or "idle",  # noqa: ENIGMA002
                 )
 
             if _svc.reputation_engine:
-                _reputation_modifiers_map[_nid] = (
-                    _svc.reputation_engine.compute_reputation_modifier(npc_id=_nid)
-                )
+                _reputation_modifiers_map[_nid] = _svc.reputation_engine.compute_reputation_modifier(npc_id=_nid)
 
             if hasattr(_svc, "economic_profiles"):
                 _economic_profiles_map[_nid] = _svc.economic_profiles.get(_nid)

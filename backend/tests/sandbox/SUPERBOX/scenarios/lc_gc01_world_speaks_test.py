@@ -112,9 +112,7 @@ def _states_map(world: Any) -> Dict[str, Any]:
 
 def _tornin_scene(world: Any) -> Dict[str, Any]:
     """Живая post-commit сцена (канон приёмки harness:237)."""
-    _ts = getattr(
-        getattr(world.game_loop, "scene_manager", None), "_tick_scenes", None
-    ) or {}
+    _ts = getattr(getattr(world.game_loop, "scene_manager", None), "_tick_scenes", None) or {}
     for _sc in _ts.values():
         if TORNIN in (_sc.get("npc_positions") or {}):
             return _sc
@@ -130,9 +128,7 @@ def _inject_player_near_tornin(world: Any) -> None:
 
     _scene = _tornin_scene(world)
     _lp = ((_scene.get("npc_positions") or {}).get(TORNIN) or {}).get("local_position") or {}
-    _update_player_position(
-        _scene, (float(_lp.get("x", 0.0)) + 0.5, float(_lp.get("y", 0.0)) + 0.5)
-    )
+    _update_player_position(_scene, (float(_lp.get("x", 0.0)) + 0.5, float(_lp.get("y", 0.0)) + 0.5))
 
 
 def _drive(
@@ -154,8 +150,7 @@ def _drive(
         _t = _states_map(world).get(TORNIN)
         if _t is None:
             raise AssertionError(
-                f"lc_gc01: {TORNIN} отсутствует в кэше LifeEngine — "
-                "инъекция входа невозможна (голод не будет создан)"
+                f"lc_gc01: {TORNIN} отсутствует в кэше LifeEngine — инъекция входа невозможна (голод не будет создан)"
             )
         _t.setdefault("needs", {})["hunger"] = hunger_value
         _t.setdefault("body_state", {})["hunger"] = hunger_value * 100.0
@@ -187,8 +182,7 @@ def _fingerprint(world: Any) -> Dict[str, Any]:
         "tick": _scene.get("tick"),
         "game_time_seconds": _scene.get("game_time_seconds"),
         "npc_positions": {
-            _k: (_v or {}).get("local_position")
-            for _k, _v in (_scene.get("npc_positions") or {}).items()
+            _k: (_v or {}).get("local_position") for _k, _v in (_scene.get("npc_positions") or {}).items()
         },
         "world_objects": _scene.get("world_objects"),
         "hunger": float((_t.get("needs") or {}).get("hunger", 1.0)),
@@ -257,18 +251,8 @@ def run_treatment() -> _GroupResult:
         _readonly_ok = _fp == _CONTROL_FP
         _ticks_ok = n_ticks == _CONTROL_TICKS
         _leak_free = not _scene_has_projection_artifacts(world)
-        _ok = (
-            bool(_flat)
-            and _shape_ok
-            and _tornin_spoke
-            and _readonly_ok
-            and _ticks_ok
-            and _leak_free
-        )
-        _fp_diff = sorted(
-            k for k in set(_CONTROL_FP) | set(_fp)
-            if _CONTROL_FP.get(k) != _fp.get(k)
-        )
+        _ok = bool(_flat) and _shape_ok and _tornin_spoke and _readonly_ok and _ticks_ok and _leak_free
+        _fp_diff = sorted(k for k in set(_CONTROL_FP) | set(_fp) if _CONTROL_FP.get(k) != _fp.get(k))
         return _GroupResult(
             "treatment_flag_on",
             _ok,
@@ -297,9 +281,7 @@ def run_negative() -> _GroupResult:
         # деятельности (shelter) легальны и не проецируются в v1-словаре —
         # канал обязан молчать всё окно.
         _t2 = _states_map(world).get(TORNIN) or {}
-        _hunger_still_closed = float(
-            (_t2.get("needs") or {}).get("hunger", 1.0)
-        ) < 0.5
+        _hunger_still_closed = float((_t2.get("needs") or {}).get("hunger", 1.0)) < 0.5
         _ok = _silent and _hunger_still_closed
         return _GroupResult(
             "negative_closed_needs",

@@ -54,9 +54,7 @@ class PersistencePort(ABC):
         ...
 
     @abstractmethod
-    def save_npc_runtime(
-        self, session_id: str, npc_dicts: List[Dict[str, Any]]
-    ) -> None:
+    def save_npc_runtime(self, session_id: str, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет ТОЛЬКО runtime-состояние NPC в сессию (отдельно от статического профиля)."""
         ...
 

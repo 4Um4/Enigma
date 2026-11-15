@@ -6,6 +6,7 @@ free_rect-геометрия, safe-area, живой dialog_journal в game-ко�
 Зависимости: pygame, ui_workbench.*
 Основные сущности: WorkbenchScreen
 """
+
 import colorsys
 import json
 from pathlib import Path
@@ -64,64 +65,112 @@ _PATTERN_RU = {"grain": "Зерно", "wave": "Волны", "speck": "Крап"}
 # и прозрачную подложку — фон окон единообразен, см. S3.9-фикс).
 _COLOR_PRESETS = {
     "Полночь": {
-        "surface_panel": (26, 26, 36), "surface_title": (34, 34, 48),
-        "border": (70, 70, 90), "border_accent": (200, 160, 80),
-        "text_primary": (222, 222, 232), "text_muted": (150, 150, 165),
-        "accent": (200, 160, 80), "player_bubble": (35, 45, 70),
-        "player_name": (255, 200, 100), "backdrop_rgb": (10, 10, 18),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (26, 26, 36),
+        "surface_title": (34, 34, 48),
+        "border": (70, 70, 90),
+        "border_accent": (200, 160, 80),
+        "text_primary": (222, 222, 232),
+        "text_muted": (150, 150, 165),
+        "accent": (200, 160, 80),
+        "player_bubble": (35, 45, 70),
+        "player_name": (255, 200, 100),
+        "backdrop_rgb": (10, 10, 18),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
     "Грувбокс": {  # gruvbox dark: тёплый винтаж, золотой акцент
-        "surface_panel": (40, 40, 38), "surface_title": (60, 56, 54),
-        "border": (80, 73, 69), "border_accent": (215, 153, 33),
-        "text_primary": (235, 219, 178), "text_muted": (146, 131, 116),
-        "accent": (215, 153, 33), "player_bubble": (60, 56, 54),
-        "player_name": (250, 189, 47), "backdrop_rgb": (40, 40, 38),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (40, 40, 38),
+        "surface_title": (60, 56, 54),
+        "border": (80, 73, 69),
+        "border_accent": (215, 153, 33),
+        "text_primary": (235, 219, 178),
+        "text_muted": (146, 131, 116),
+        "accent": (215, 153, 33),
+        "player_bubble": (60, 56, 54),
+        "player_name": (250, 189, 47),
+        "backdrop_rgb": (40, 40, 38),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
     "Солариз": {  # solarized dark: CIELAB-контраст, глубокий сине-зелёный
-        "surface_panel": (0, 43, 54), "surface_title": (7, 54, 66),
-        "border": (88, 110, 117), "border_accent": (181, 137, 0),
-        "text_primary": (131, 148, 150), "text_muted": (88, 110, 117),
-        "accent": (181, 137, 0), "player_bubble": (7, 54, 66),
-        "player_name": (203, 161, 30), "backdrop_rgb": (0, 43, 54),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (0, 43, 54),
+        "surface_title": (7, 54, 66),
+        "border": (88, 110, 117),
+        "border_accent": (181, 137, 0),
+        "text_primary": (131, 148, 150),
+        "text_muted": (88, 110, 117),
+        "accent": (181, 137, 0),
+        "player_bubble": (7, 54, 66),
+        "player_name": (203, 161, 30),
+        "backdrop_rgb": (0, 43, 54),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
     "Норд": {  # nord: полярная ночь + тёплая «аврора»
-        "surface_panel": (46, 52, 64), "surface_title": (59, 66, 82),
-        "border": (76, 86, 106), "border_accent": (235, 203, 139),
-        "text_primary": (216, 222, 233), "text_muted": (129, 161, 193),
-        "accent": (136, 192, 208), "player_bubble": (59, 66, 82),
-        "player_name": (235, 203, 139), "backdrop_rgb": (46, 52, 64),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (46, 52, 64),
+        "surface_title": (59, 66, 82),
+        "border": (76, 86, 106),
+        "border_accent": (235, 203, 139),
+        "text_primary": (216, 222, 233),
+        "text_muted": (129, 161, 193),
+        "accent": (136, 192, 208),
+        "player_bubble": (59, 66, 82),
+        "player_name": (235, 203, 139),
+        "backdrop_rgb": (46, 52, 64),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
     "Обсидиан": {  # чёрный + золото
-        "surface_panel": (16, 15, 14), "surface_title": (24, 22, 19),
-        "border": (60, 52, 38), "border_accent": (197, 160, 74),
-        "text_primary": (224, 216, 196), "text_muted": (146, 136, 116),
-        "accent": (197, 160, 74), "player_bubble": (28, 25, 20),
-        "player_name": (232, 195, 105), "backdrop_rgb": (12, 11, 10),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (16, 15, 14),
+        "surface_title": (24, 22, 19),
+        "border": (60, 52, 38),
+        "border_accent": (197, 160, 74),
+        "text_primary": (224, 216, 196),
+        "text_muted": (146, 136, 116),
+        "accent": (197, 160, 74),
+        "player_bubble": (28, 25, 20),
+        "player_name": (232, 195, 105),
+        "backdrop_rgb": (12, 11, 10),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
     "Багрянец": {  # чёрный + багряная рамка + золотой текст
-        "surface_panel": (22, 12, 14), "surface_title": (32, 16, 18),
-        "border": (90, 32, 36), "border_accent": (176, 48, 48),
-        "text_primary": (232, 216, 206), "text_muted": (168, 130, 122),
-        "accent": (206, 160, 84), "player_bubble": (34, 16, 18),
-        "player_name": (226, 176, 92), "backdrop_rgb": (16, 8, 9),
-        "surface_panel_alpha": 255, "surface_title_alpha": 255,
-        "border_alpha": 255, "border_accent_alpha": 255,
-        "player_bubble_alpha": 255, "backdrop_alpha": 0,
+        "surface_panel": (22, 12, 14),
+        "surface_title": (32, 16, 18),
+        "border": (90, 32, 36),
+        "border_accent": (176, 48, 48),
+        "text_primary": (232, 216, 206),
+        "text_muted": (168, 130, 122),
+        "accent": (206, 160, 84),
+        "player_bubble": (34, 16, 18),
+        "player_name": (226, 176, 92),
+        "backdrop_rgb": (16, 8, 9),
+        "surface_panel_alpha": 255,
+        "surface_title_alpha": 255,
+        "border_alpha": 255,
+        "border_accent_alpha": 255,
+        "player_bubble_alpha": 255,
+        "backdrop_alpha": 0,
     },
 }
 
@@ -144,9 +193,16 @@ class _StyledFontProxy:
     (обводка/тень букв). Все точки рендера зовут .render() как раньше —
     прокси прозрачен для вызывающих. Эффекты per-role (title/text)."""
 
-    def __init__(self, font, wb, role: str, wid: Optional[str] = None,
-                 no_spacing: bool = False, spacing_override: Optional[int] = None,
-                 leading: int = 0):
+    def __init__(
+        self,
+        font,
+        wb,
+        role: str,
+        wid: Optional[str] = None,
+        no_spacing: bool = False,
+        spacing_override: Optional[int] = None,
+        leading: int = 0,
+    ):
         self._font = font
         self._wb = wb
         self._role = role
@@ -159,10 +215,12 @@ class _StyledFontProxy:
 
     def _pad(self) -> int:
         _ov = self._wb._ov(self._role, self._wid)
-        return (int(_ov.get("outline", 0)) * 2
-                + (3 if _ov.get("shadow") else 0)
-                + int(round(float(_ov.get("glow", 0)) * 8))
-                + (3 if _ov.get("underline") else 0))
+        return (
+            int(_ov.get("outline", 0)) * 2
+            + (3 if _ov.get("shadow") else 0)
+            + int(round(float(_ov.get("glow", 0)) * 8))
+            + (3 if _ov.get("underline") else 0)
+        )
 
     def _base(self, text, antialias, color, spacing):
         """S3.14: разрядка — посимвольный рендер с шагом spacing."""
@@ -171,9 +229,7 @@ class _StyledFontProxy:
         _parts = [self._font.render(ch, antialias, color) for ch in text]
         # S3.17: пробел — двойной шаг: межсловный интервал растёт вместе
         # с разрядкой букв («Разрядка пузырей»/журнальная разрядка)
-        _w = (sum(p.get_width() for p in _parts)
-              + spacing * max(0, len(_parts) - 1)
-              + spacing * text.count(" "))
+        _w = sum(p.get_width() for p in _parts) + spacing * max(0, len(_parts) - 1) + spacing * text.count(" ")
         _s = pygame.Surface((max(1, _w), self._font.get_height()), pygame.SRCALPHA)
         _x = 0
         for p, _ch in zip(_parts, text):
@@ -186,15 +242,17 @@ class _StyledFontProxy:
         _ol = int(_ov.get("outline", 0))
         _sh = bool(_ov.get("shadow", False))
         _gl = float(_ov.get("glow", 0))
-        _sp = (self._spacing_override if self._spacing_override is not None
-               else (0 if self._no_spacing else int(_ov.get("spacing", 0))))
+        _sp = (
+            self._spacing_override
+            if self._spacing_override is not None
+            else (0 if self._no_spacing else int(_ov.get("spacing", 0)))
+        )
         _ul = bool(_ov.get("underline", False))
         base = self._base(text, antialias, color, _sp)
         if _ol <= 0 and not _sh and _gl <= 0 and _sp <= 0 and not _ul:
             return base
         _p = self._pad()
-        surf = pygame.Surface((base.get_width() + _p * 2, base.get_height() + _p * 2),
-                              pygame.SRCALPHA)
+        surf = pygame.Surface((base.get_width() + _p * 2, base.get_height() + _p * 2), pygame.SRCALPHA)
         if _sh:
             # Тень: полупрозрачная копия со смещением вниз-вправо
             _shc = tuple(_ov.get("shadow_color", (0, 0, 0, 150)))
@@ -217,10 +275,8 @@ class _StyledFontProxy:
                 _b = pygame.transform.smoothscale(_b, (_bw, _bh))
             # 9 смещений (8 направлений + центр), накопление аддитивное
             _halo = pygame.Surface(surf.get_size(), pygame.SRCALPHA)
-            for _dx, _dy in ((3, 0), (2, 2), (0, 3), (-2, 2), (-3, 0),
-                             (-2, -2), (0, -3), (2, -2), (0, 0)):
-                _halo.blit(_b, (_p + _dx - 4, _p + _dy - 4),
-                           special_flags=pygame.BLEND_RGBA_ADD)
+            for _dx, _dy in ((3, 0), (2, 2), (0, 3), (-2, 2), (-3, 0), (-2, -2), (0, -3), (2, -2), (0, 0)):
+                _halo.blit(_b, (_p + _dx - 4, _p + _dy - 4), special_flags=pygame.BLEND_RGBA_ADD)
             # Интенсивность — множителем на ВЕСЬ ореол: полный диск копий
             # насыщал альфу у глифов добела («койма») — больше не насыщается
             _k = max(30, int(255 * _gpow))
@@ -238,9 +294,9 @@ class _StyledFontProxy:
         if _ul:
             # S3.14: подчёркивание — НИЖЕ глифов (включая выносные р/у/д),
             # иначе пересекает их и выглядит зачёркиванием
-            pygame.draw.line(surf, color,
-                             (_p, _p + base.get_height() + 1),
-                             (_p + base.get_width(), _p + base.get_height() + 1), 1)
+            pygame.draw.line(
+                surf, color, (_p, _p + base.get_height() + 1), (_p + base.get_width(), _p + base.get_height() + 1), 1
+            )
         return surf
 
     def get_linesize(self):
@@ -264,8 +320,11 @@ class _StyledFontProxy:
         w, h = self._font.size(text)
         _p = self._pad()
         _ov = self._wb._ov(self._role, self._wid)
-        _sp = (self._spacing_override if self._spacing_override is not None
-               else (0 if self._no_spacing else int(_ov.get("spacing", 0))))
+        _sp = (
+            self._spacing_override
+            if self._spacing_override is not None
+            else (0 if self._no_spacing else int(_ov.get("spacing", 0)))
+        )
         return (max(1, w + _sp * max(0, len(text) - 1) + _p * 2), h + _p * 2)
 
 
@@ -281,9 +340,11 @@ class WorkbenchScreen:
         self.registry = WindowRegistry()
         self.registry.register(JOURNAL_MANIFEST)
         from ui_workbench.windows.mini_windows import TIME_SCALE_MANIFEST, WORLD_CLOCK_MANIFEST
+
         self.registry.register(WORLD_CLOCK_MANIFEST)
         self.registry.register(TIME_SCALE_MANIFEST)
         from ui_workbench.windows.mini_windows import INVENTORY_MANIFEST, OBSERVATIONS_MANIFEST
+
         self.registry.register(OBSERVATIONS_MANIFEST)
         self.registry.register(INVENTORY_MANIFEST)
         self.registry.register(BOARD_MANIFEST)
@@ -314,9 +375,7 @@ class WorkbenchScreen:
                 # Surface: [x, y, w, 34] от collapsed-сессии): меньше min_size
                 # манифеста = считаем битым, окно живёт по анкеру.
                 manifest = self.registry.manifest(wid)
-                if (fr and len(fr) == 4
-                        and fr[2] >= manifest.min_size[0]
-                        and fr[3] >= manifest.min_size[1]):
+                if fr and len(fr) == 4 and fr[2] >= manifest.min_size[0] and fr[3] >= manifest.min_size[1]:
                     self._free_rects[wid] = tuple(fr)
                 else:
                     self._free_rects[wid] = None
@@ -332,8 +391,8 @@ class WorkbenchScreen:
         self._resize: Optional[list] = None  # S3: [wid, [left,right,top,bottom], [x,y,w,h] старт]
         self._title_rects: Dict[str, pygame.Rect] = {}
         self._arrow_rects: Dict[str, pygame.Rect] = {}  # зоны ▸/▾ (toggle, OS-паттерн)
-        self._active_tab: Dict[str, str] = {}   # wid → tab_id (dialog по умолчанию)
-        self._tab_rects: Dict[str, list] = {}   # wid → [(hit_rect, tab_id)]
+        self._active_tab: Dict[str, str] = {}  # wid → tab_id (dialog по умолчанию)
+        self._tab_rects: Dict[str, list] = {}  # wid → [(hit_rect, tab_id)]
         self.hud_time_scale: str = "▶ 1x"  # M-HUD: канал мини-окна time_scale (пишет game_screen)
         self._journal_body_rects: Dict[str, pygame.Rect] = {}  # M19: зона wheel-скролла
         self._dialog_peer: Dict[str, Optional[str]] = {}  # Диалог-А: wid → спикер-фильтр (None = Все)
@@ -345,13 +404,13 @@ class WorkbenchScreen:
         # Phase 4: Investigation Board — интеракции (MVI)
         self._board_cache: Optional[dict] = None
         self._board_error: Optional[str] = None
-        self._board_selected: list = []       # до 2 card_id
+        self._board_selected: list = []  # до 2 card_id
         self._board_drag_id: Optional[str] = None
         self._board_drag_off = (0, 0)
         self._board_link_kind = "PLAYER_SUPPORTS"
         self._board_hover_tips: Dict[str, Optional[tuple]] = {}  # B3: cid → (speaker, полный текст)
         self._board_tip_since: Dict[str, int] = {}  # К3: cid → тик входа курсора (задержка tooltip 400мс)
-        self._board_input = None            # C1: inline-TextInput гипотезы (ленивый)
+        self._board_input = None  # C1: inline-TextInput гипотезы (ленивый)
         self._board_input_mode: Optional[tuple] = None  # None | ("create",) | ("edit", hyp_id)
         self._board_stub = EditorBoardStub()  # P: полигон редактора (in-memory)
         self._board_card_scroll: Dict[str, int] = {}  # №6: cid → скрытые строки сверху
@@ -364,25 +423,100 @@ class WorkbenchScreen:
         # превышение бюджета → индикатор "▲ N ниже"), пары NPC→NPC
         # (прообраз M17: подслушанное обращение = tentative-имя).
         self._demo_journal = [
-            {"speaker": "Рассказчик", "text": "Демо: таверна «Серебряный волк» открывается на закате. Сквозь щели ставень тянет дымом и запахом жареного лука.", "channel": "narrative"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: проходи, не стой в дверях. Вечер только начался.", "channel": "direct", "event_id": "demo-evt-001"},
-            {"speaker": "Кузнец Орм", "text": "Демо: сталь не соврёт, если её спросить.", "channel": "direct", "event_id": "demo-evt-002"},
+            {
+                "speaker": "Рассказчик",
+                "text": "Демо: таверна «Серебряный волк» открывается на закате. Сквозь щели ставень тянет дымом и запахом жареного лука.",
+                "channel": "narrative",
+            },
+            {
+                "speaker": "Торнин Серебряная Луна",
+                "text": "Демо: проходи, не стой в дверях. Вечер только начался.",
+                "channel": "direct",
+                "event_id": "demo-evt-001",
+            },
+            {
+                "speaker": "Кузнец Орм",
+                "text": "Демо: сталь не соврёт, если её спросить.",
+                "channel": "direct",
+                "event_id": "demo-evt-002",
+            },
             {"speaker": "Ты", "text": "Демо: *оглядываешь зал и присаживаешься у очага.*", "channel": "self"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: Эй, Борко! Ведро унеси от печи, пока не опрокинул.", "channel": "overheard", "event_id": "demo-evt-003"},
-            {"speaker": "Борко", "text": "Демо: Уже несу. Вчерашний козёл снова сбежал с двора, весь день ловлю.", "channel": "overheard", "event_id": "demo-evt-004"},
-            {"speaker": "Тень", "text": "Демо: ...тихо. Слишком тихо.", "channel": "direct", "event_id": "demo-evt-005"},
-            {"speaker": "Тень", "text": "Демо: за той дверью кто-то ходит всю ночь. Шаги лёгкие, почти без звука. Я считал — сорок два круга до рассвета.", "channel": "direct", "event_id": "demo-evt-006"},
-            {"speaker": "Тень", "text": "Демо: я никому не скажу, что ты спрашивал.", "channel": "direct", "event_id": "demo-evt-007"},
-            {"speaker": "Рассказчик", "text": "Демо: за стойкой Торнин протирает кружку одним и тем же движением — и смотрит не на кружку, а на дверь.", "channel": "narrative"},
-            {"speaker": "Служанка Люся", "text": "Демо: Орм, опять клинок принёс? Третий за неделю.", "channel": "overheard", "event_id": "demo-evt-008"},
-            {"speaker": "Кузнец Орм", "text": "Демо: люди платят, я кую. Спрашивать не положено — таков порядок в наших краях, и он старше любой стены этой таверны.", "channel": "overheard", "event_id": "demo-evt-009"},
-            {"speaker": "Ты", "text": "Демо: *делаешь глоток эля. Хмель горчит сильнее, чем ты привык.*", "channel": "self"},
-            {"speaker": "Торнин Серебряная Луна", "text": "Демо: про волка на вывеске спрашивают каждый прибывший. Отвечаю каждому: волк приходил сам, в метель, и мы его не выгнали. Кто-то из нас тогда умер, но вывеску не поменяешь — заказано при живом мастере, а мастер умер первым.", "channel": "direct", "event_id": "demo-evt-010"},
-            {"speaker": "Борко", "text": "Демо: Эй, кто-нибудь видел мою рукавицу? Левую!", "channel": "overheard", "event_id": "demo-evt-011"},
-            {"speaker": "Рассказчик", "text": "Демо: где-то наверху скрипнула половица. Шаги стихли у самой лестницы.", "channel": "narrative"},
+            {
+                "speaker": "Торнин Серебряная Луна",
+                "text": "Демо: Эй, Борко! Ведро унеси от печи, пока не опрокинул.",
+                "channel": "overheard",
+                "event_id": "demo-evt-003",
+            },
+            {
+                "speaker": "Борко",
+                "text": "Демо: Уже несу. Вчерашний козёл снова сбежал с двора, весь день ловлю.",
+                "channel": "overheard",
+                "event_id": "demo-evt-004",
+            },
+            {
+                "speaker": "Тень",
+                "text": "Демо: ...тихо. Слишком тихо.",
+                "channel": "direct",
+                "event_id": "demo-evt-005",
+            },
+            {
+                "speaker": "Тень",
+                "text": "Демо: за той дверью кто-то ходит всю ночь. Шаги лёгкие, почти без звука. Я считал — сорок два круга до рассвета.",
+                "channel": "direct",
+                "event_id": "demo-evt-006",
+            },
+            {
+                "speaker": "Тень",
+                "text": "Демо: я никому не скажу, что ты спрашивал.",
+                "channel": "direct",
+                "event_id": "demo-evt-007",
+            },
+            {
+                "speaker": "Рассказчик",
+                "text": "Демо: за стойкой Торнин протирает кружку одним и тем же движением — и смотрит не на кружку, а на дверь.",
+                "channel": "narrative",
+            },
+            {
+                "speaker": "Служанка Люся",
+                "text": "Демо: Орм, опять клинок принёс? Третий за неделю.",
+                "channel": "overheard",
+                "event_id": "demo-evt-008",
+            },
+            {
+                "speaker": "Кузнец Орм",
+                "text": "Демо: люди платят, я кую. Спрашивать не положено — таков порядок в наших краях, и он старше любой стены этой таверны.",
+                "channel": "overheard",
+                "event_id": "demo-evt-009",
+            },
+            {
+                "speaker": "Ты",
+                "text": "Демо: *делаешь глоток эля. Хмель горчит сильнее, чем ты привык.*",
+                "channel": "self",
+            },
+            {
+                "speaker": "Торнин Серебряная Луна",
+                "text": "Демо: про волка на вывеске спрашивают каждый прибывший. Отвечаю каждому: волк приходил сам, в метель, и мы его не выгнали. Кто-то из нас тогда умер, но вывеску не поменяешь — заказано при живом мастере, а мастер умер первым.",
+                "channel": "direct",
+                "event_id": "demo-evt-010",
+            },
+            {
+                "speaker": "Борко",
+                "text": "Демо: Эй, кто-нибудь видел мою рукавицу? Левую!",
+                "channel": "overheard",
+                "event_id": "demo-evt-011",
+            },
+            {
+                "speaker": "Рассказчик",
+                "text": "Демо: где-то наверху скрипнула половица. Шаги стихли у самой лестницы.",
+                "channel": "narrative",
+            },
             {"speaker": "Тень", "text": "Демо: сорок третий.", "channel": "direct", "event_id": "demo-evt-012"},
             {"speaker": "Ты", "text": "Демо: *кладёшь монету на стойку и киваешь Торнину.*", "channel": "self"},
-            {"speaker": "Рассказчик", "text": "Демо: Торнин кивает в ответ. Кружка в его руке перестаёт вращаться.", "channel": "narrative"},
+            {
+                "speaker": "Рассказчик",
+                "text": "Демо: Торнин кивает в ответ. Кружка в его руке перестаёт вращаться.",
+                "channel": "narrative",
+            },
         ]
         # M12 ч.2 (демо-ветка): display_name → recognition_confidence.
         # Тень/Борко/Люся = tentative («?»), Торнин/Орм = confirmed.
@@ -457,8 +591,7 @@ class WorkbenchScreen:
                     self._style_role = _d.get("role", "text")
                     if _d.get("_version") >= 2:
                         self._style_global = bool(_d.get("global", False))
-                        self._style_window_global = {
-                            k: bool(v) for k, v in _d.get("window_global", {}).items()}
+                        self._style_window_global = {k: bool(v) for k, v in _d.get("window_global", {}).items()}
                         self._my_style = _d.get("my_style", {}) or {}
                         self._style_texture = int(_d.get("texture", 0))
                         self._style_avatar_size = int(_d.get("avatar_size", _AVATAR))
@@ -481,25 +614,36 @@ class WorkbenchScreen:
         _w = wid or self._render_wid
         return getattr(self, "_style_overrides", {}).get(_w, {}).get(role, {}) if _w else {}
 
-
     @property
     def _font_title(self) -> "_StyledFontProxy":
         # B2: broadcast-модель; S3.7: обёртка добавляет обводку/тень букв
         ov = self._ov("title")
-        return _StyledFontProxy(self._font_provider.get(
-            "title", ov.get("font_file", ""),
-            int(ov.get("size_delta", 0)),
-            bool(ov.get("bold", False)),
-            bool(ov.get("italic", False))), self, "title")
+        return _StyledFontProxy(
+            self._font_provider.get(
+                "title",
+                ov.get("font_file", ""),
+                int(ov.get("size_delta", 0)),
+                bool(ov.get("bold", False)),
+                bool(ov.get("italic", False)),
+            ),
+            self,
+            "title",
+        )
 
     @property
     def _font_text(self) -> "_StyledFontProxy":
         ov = self._ov("text")
-        return _StyledFontProxy(self._font_provider.get(
-            "text", ov.get("font_file", ""),
-            int(ov.get("size_delta", 0)),
-            bool(ov.get("bold", False)),
-            bool(ov.get("italic", False))), self, "text")
+        return _StyledFontProxy(
+            self._font_provider.get(
+                "text",
+                ov.get("font_file", ""),
+                int(ov.get("size_delta", 0)),
+                bool(ov.get("bold", False)),
+                bool(ov.get("italic", False)),
+            ),
+            self,
+            "text",
+        )
 
     # ── S3: цветовой прокси (per-window _colors > токен темы) ────────
     def _ct(self, wid: Optional[str], token: str, default=None):
@@ -550,12 +694,12 @@ class WorkbenchScreen:
         модулём — тайл бесшовный. Кэш по (масштаб, зерно)."""
         _sc = max(4, min(48, int(getattr(self, "_style_noise_scale", 16))))
         _sd = int(getattr(self, "_style_noise_seed", 0))
-        _tint = tuple(int(c) for c in
-                      (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
+        _tint = tuple(int(c) for c in (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
         _key = (_sc, _sd, _tint)
         if _key in self._texture_tiles:
             return self._texture_tiles[_key]
         import random as _rnd
+
         _rng = _rnd.Random(31337 + _sd * 7919)
         _g1 = [[_rng.random() for _ in range(_sc)] for _ in range(_sc)]
         _g2 = [[_rng.random() for _ in range(_sc * 2)] for _ in range(_sc * 2)]
@@ -567,8 +711,7 @@ class WorkbenchScreen:
             _sy = _yf * _yf * (3 - 2 * _yf)
             _a, _b = g[_yi][_xi], g[_yi][(_xi + 1) % m]
             _c, _d = g[(_yi + 1) % m][_xi], g[(_yi + 1) % m][(_xi + 1) % m]
-            return (_a + (_b - _a) * _sx + (_c - _a) * _sy
-                    + (_a - _b - _c + _d) * _sx * _sy)
+            return _a + (_b - _a) * _sx + (_c - _a) * _sy + (_a - _b - _c + _d) * _sx * _sy
 
         _tm = pygame.Surface((128, 128))
         _ta = pygame.Surface((128, 128))
@@ -576,8 +719,7 @@ class WorkbenchScreen:
             for _xx in range(0, 128, 2):
                 _u = _xx / 128.0 * _sc
                 _v = _yy / 128.0 * _sc
-                _f = max(0.0, min(1.0, _n(_g1, _sc, _u, _v) * 0.7
-                                  + _n(_g2, _sc * 2, _u * 2.0, _v * 2.0) * 0.3))
+                _f = max(0.0, min(1.0, _n(_g1, _sc, _u, _v) * 0.7 + _n(_g2, _sc * 2, _u * 2.0, _v * 2.0) * 0.3))
                 # MULT-тайл: белый → подтон (тёмный рельеф цвета подтона)
                 _pm = tuple(int(255 + (c - 255) * _f) for c in _tint)
                 # ADD-тайл (минусовая глубина): светлый рельеф подтоном
@@ -610,13 +752,18 @@ class WorkbenchScreen:
         # СВОИ (ползунки «Кегль пузырей» / «Разрядка пузырей»)
         return _StyledFontProxy(
             self._font_provider.get(
-                "text", ov.get("font_file", ""),
+                "text",
+                ov.get("font_file", ""),
                 int(getattr(self, "_style_bubble_size", 0)),
                 bool(ov.get("bold", False)),
-                bool(ov.get("italic", False))),
-            self, "text", "journal",
+                bool(ov.get("italic", False)),
+            ),
+            self,
+            "text",
+            "journal",
             spacing_override=int(getattr(self, "_style_bubble_spacing", 0)),
-            leading=int(getattr(self, "_style_bubble_leading", 0)))
+            leading=int(getattr(self, "_style_bubble_leading", 0)),
+        )
 
     def world_cta(self, token: str, default=None) -> tuple:
         """S3.8: (RGB, alpha) мирового стиля для нестандартных токенов."""
@@ -715,21 +862,24 @@ class WorkbenchScreen:
         self._picker_drag = None
         # S4: персист стилей шрифтов (переживают перезапуск игры/редактора)
         try:
-            _styles = {"_version": 2, "overrides": self._style_overrides,
-                       "target": self._style_target, "role": self._style_role,
-                       "global": bool(getattr(self, "_style_global", False)),
-                       "window_global": dict(getattr(self, "_style_window_global", {})),
-                       "my_style": dict(getattr(self, "_my_style", {})),
-                       "texture": int(getattr(self, "_style_texture", 0)),
-                       "avatar_size": int(getattr(self, "_style_avatar_size", _AVATAR)),
-                       "bubble_size": int(getattr(self, "_style_bubble_size", 0)),
-                       "bubble_spacing": int(getattr(self, "_style_bubble_spacing", 0)),
-                       "bubble_leading": int(getattr(self, "_style_bubble_leading", 0)),
-                       "noise_scale": int(getattr(self, "_style_noise_scale", 16)),
-                       "noise_seed": int(getattr(self, "_style_noise_seed", 0)),
-                       "noise_tint": list(getattr(self, "_style_noise_tint", (255, 255, 255)))}
-            _STYLES_PATH.write_text(json.dumps(_styles, ensure_ascii=False, indent=2),
-                                    encoding="utf-8")
+            _styles = {
+                "_version": 2,
+                "overrides": self._style_overrides,
+                "target": self._style_target,
+                "role": self._style_role,
+                "global": bool(getattr(self, "_style_global", False)),
+                "window_global": dict(getattr(self, "_style_window_global", {})),
+                "my_style": dict(getattr(self, "_my_style", {})),
+                "texture": int(getattr(self, "_style_texture", 0)),
+                "avatar_size": int(getattr(self, "_style_avatar_size", _AVATAR)),
+                "bubble_size": int(getattr(self, "_style_bubble_size", 0)),
+                "bubble_spacing": int(getattr(self, "_style_bubble_spacing", 0)),
+                "bubble_leading": int(getattr(self, "_style_bubble_leading", 0)),
+                "noise_scale": int(getattr(self, "_style_noise_scale", 16)),
+                "noise_seed": int(getattr(self, "_style_noise_seed", 0)),
+                "noise_tint": list(getattr(self, "_style_noise_tint", (255, 255, 255))),
+            }
+            _STYLES_PATH.write_text(json.dumps(_styles, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as _e:
             print(f"[STYLE_SAVE] failed: {_e}")
         self._drag = None
@@ -787,8 +937,9 @@ class WorkbenchScreen:
         if loc:
             for npc in loc.get("npcs", []):
                 _name_by_ref[npc.get("ref_id", "")] = next(
-                    (n["name"] for n in getattr(core, "_npc_list", [])
-                     if n["id"] == npc.get("ref_id")), npc.get("ref_id", ""))
+                    (n["name"] for n in getattr(core, "_npc_list", []) if n["id"] == npc.get("ref_id")),
+                    npc.get("ref_id", ""),
+                )
         if not _name_by_ref and core:
             # Фоллбэк: локация не нашлась (editor dm) — прямой id→name
             for n in getattr(core, "_npc_list", []):
@@ -833,8 +984,7 @@ class WorkbenchScreen:
                 # 250 (почти глухо): сквозь 215 просвечивало имя сцены
                 # ПОД пузырём — выглядело как дублирование имён
                 _br, _ba = (18, 18, 28), 250
-            pygame.draw.rect(surf, (*_br, int(alpha * _ba / 255)),
-                             pygame.Rect(0, 0, bw, bh), border_radius=6)
+            pygame.draw.rect(surf, (*_br, int(alpha * _ba / 255)), pygame.Rect(0, 0, bw, bh), border_radius=6)
             # S3.14: штукатурка демо-пузыря (все подложки под текстом)
             self.apply_texture(surf, bw, bh)
             pygame.draw.rect(surf, self._ct("journal", "border"), pygame.Rect(0, 0, bw, bh), 1, border_radius=6)
@@ -847,8 +997,9 @@ class WorkbenchScreen:
                 surf.blit(ts, ((bw - ts.get_width()) // 2, ty))
                 ty += lh
             # Хвостик вниз к NPC
-            pygame.draw.polygon(surf, (18, 18, 28, alpha),
-                                [(bw // 2 - 5, bh - 1), (bw // 2 + 5, bh - 1), (bw // 2, bh + 6)])
+            pygame.draw.polygon(
+                surf, (18, 18, 28, alpha), [(bw // 2 - 5, bh - 1), (bw // 2 + 5, bh - 1), (bw // 2, bh + 6)]
+            )
             # S3.15: имя сцены подавлено в рендере (suppress_names) —
             # заплатка-стератель упразднена
             screen.blit(surf, (bx, by))
@@ -856,8 +1007,7 @@ class WorkbenchScreen:
             # рисуем заново стилем Журнала (цвет = канал реплики)
             _nc = self._ct("journal", "accent" if ch == "direct" else "text_muted")
             _nm = font.render(name, True, _nc)
-            screen.blit(_nm, (bx + (bw - _nm.get_width()) // 2,
-                              by - _nm.get_height() - 2))
+            screen.blit(_nm, (bx + (bw - _nm.get_width()) // 2, by - _nm.get_height() - 2))
 
     # ── Геометрия ────────────────────────────────────────────────────
 
@@ -867,8 +1017,7 @@ class WorkbenchScreen:
         Editor-контекст: зона = viewport (панели редактора — magnet-цели не идут,
         v3a упрощение: их границы добавит Шаг Inspector через avoid_zones)."""
         if self.game_context:
-            return pygame.Rect(viewport.left, viewport.top,
-                               viewport.width, viewport.height - 30)
+            return pygame.Rect(viewport.left, viewport.top, viewport.width, viewport.height - 30)
         return viewport
 
     def _resolve_rect(self, wid: str, manifest, viewport: pygame.Rect) -> pygame.Rect:
@@ -932,10 +1081,8 @@ class WorkbenchScreen:
         # C1: активный inline-ввод съедает клавиатуру целиком — буквы
         # N/L/U/X не дёргают операции доски во время набора. Enter/ESC —
         # commit/cancel (TextInput отдаёт Enter caller'у по контракту).
-        if (self._board_input is not None
-                and self._board_input.focused):
-            if event.type == pygame.KEYDOWN and event.key in (
-                    pygame.K_RETURN, pygame.K_KP_ENTER):
+        if self._board_input is not None and self._board_input.focused:
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                 self._board_commit_input()
                 return True
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -951,12 +1098,14 @@ class WorkbenchScreen:
         # P-меню перехватывает стрелки/Enter до L/U/E/X.
         _menu = getattr(self, "_board_link_menu", None)
         if _menu is not None:
-            _names = sorted({
-                e.get("speaker", "") for e in self._journal_entries("all")
-                if e.get("speaker") and e.get("speaker") != "Ты"
-                and e.get("channel") in ("direct", "overheard")})
-            if not _names or (event.type == pygame.KEYDOWN
-                              and event.key == pygame.K_ESCAPE):
+            _names = sorted(
+                {
+                    e.get("speaker", "")
+                    for e in self._journal_entries("all")
+                    if e.get("speaker") and e.get("speaker") != "Ты" and e.get("channel") in ("direct", "overheard")
+                }
+            )
+            if not _names or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 self._board_link_menu = None
                 return True
             if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
@@ -965,13 +1114,12 @@ class WorkbenchScreen:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
                 _menu["idx"] = (_menu["idx"] - 1) % len(_names)
                 return True
-            if (event.type == pygame.KEYDOWN
-                    and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER)):
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                 if self.game_context:
                     try:
                         self._core._gateway.player_link_name(
-                            self._board_campaign, _menu["npc_id"],
-                            _names[_menu["idx"]])
+                            self._board_campaign, _menu["npc_id"], _names[_menu["idx"]]
+                        )
                     except Exception as e:
                         self._board_error = str(e)
                 self._board_link_menu = None
@@ -985,21 +1133,18 @@ class WorkbenchScreen:
             _mp = pygame.mouse.get_pos()
             for _cid, _rect in getattr(self, "_board_card_rects", {}).items():
                 if _rect.collidepoint(_mp):
-                    self._board_card_scroll[_cid] = max(
-                        0, self._board_card_scroll.get(_cid, 0) - event.y)
+                    self._board_card_scroll[_cid] = max(0, self._board_card_scroll.get(_cid, 0) - event.y)
                     return True
             return False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for _cid, _rect in getattr(self, "_board_card_rects", {}).items():
                 if _rect.collidepoint(event.pos):
                     self._board_drag_id = _cid
-                    self._board_drag_off = (
-                        event.pos[0] - _rect.x, event.pos[1] - _rect.y)
+                    self._board_drag_off = (event.pos[0] - _rect.x, event.pos[1] - _rect.y)
                     return True
             self._board_selected = []  # клик мимо карточек — снять выбор
             return False
-        if (event.type == pygame.MOUSEBUTTONUP and event.button == 1
-                and self._board_drag_id):
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self._board_drag_id:
             _cid = self._board_drag_id
             _rect = self._board_card_rects.get(_cid)
             self._board_drag_id = None
@@ -1011,8 +1156,7 @@ class WorkbenchScreen:
             # (мина ТЗ §5, гейт: drag в угол → файл = экранная позиция).
             _brect = self._rects.get("board")
             if _brect is not None:
-                _body = pygame.Rect(_brect.x, _brect.y + _TITLE_H,
-                                    _brect.width, _brect.height - _TITLE_H)
+                _body = pygame.Rect(_brect.x, _brect.y + _TITLE_H, _brect.width, _brect.height - _TITLE_H)
                 if _rect.x + self._BOARD_CARD_W > _body.right - 4:
                     _rect.x = _body.right - 4 - self._BOARD_CARD_W
                 if _rect.y + self._BOARD_CARD_H > _body.bottom - 4:
@@ -1028,9 +1172,7 @@ class WorkbenchScreen:
                     _c["pos"] = [float(_rect.x), float(_rect.y)]
                     break
             try:
-                self._board_gateway.board_card_move(
-                    self._board_campaign, _cid,
-                    [float(_rect.x), float(_rect.y)])
+                self._board_gateway.board_card_move(self._board_campaign, _cid, [float(_rect.x), float(_rect.y)])
             except Exception as e:
                 self._board_error = str(e)
             # выбрать карточку кликом (toggle в пределах двух)
@@ -1039,24 +1181,20 @@ class WorkbenchScreen:
             else:
                 self._board_selected = (self._board_selected + [_cid])[-2:]
             return True
-        if (event.type == pygame.MOUSEMOTION and self._board_drag_id):
+        if event.type == pygame.MOUSEMOTION and self._board_drag_id:
             _rect = self._board_card_rects.get(self._board_drag_id)
             if _rect is not None:
-                _rect.topleft = (event.pos[0] - self._board_drag_off[0],
-                                 event.pos[1] - self._board_drag_off[1])
+                _rect.topleft = (event.pos[0] - self._board_drag_off[0], event.pos[1] - self._board_drag_off[1])
             return True
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_l and len(self._board_selected) == 2:
                 # повторное L — переключает kind (S ↔ C)
                 _a, _b = self._board_selected
                 try:
-                    self._board_gateway.board_link(
-                        self._board_campaign, _a, _b,
-                        self._board_link_kind)
+                    self._board_gateway.board_link(self._board_campaign, _a, _b, self._board_link_kind)
                     self._board_link_kind = (
-                        "PLAYER_CONTRADICTS"
-                        if self._board_link_kind == "PLAYER_SUPPORTS"
-                        else "PLAYER_SUPPORTS")
+                        "PLAYER_CONTRADICTS" if self._board_link_kind == "PLAYER_SUPPORTS" else "PLAYER_SUPPORTS"
+                    )
                 except Exception as e:
                     self._board_error = str(e)
                 self._refresh_board()
@@ -1069,39 +1207,39 @@ class WorkbenchScreen:
                     if _pair == {_a, _b}:
                         try:
                             self._board_gateway.board_link(
-                                self._board_campaign,
-                                _l.get("from"), _l.get("to"), _l.get("kind"),
-                                unlink_op=True)
+                                self._board_campaign, _l.get("from"), _l.get("to"), _l.get("kind"), unlink_op=True
+                            )
                             _removed = True
                         except Exception as e:
                             self._board_error = str(e)
                 self._refresh_board()
                 return True or _removed
-            if (event.key == pygame.K_p and len(self._board_selected) == 1):
+            if event.key == pygame.K_p and len(self._board_selected) == 1:
                 # ADR-O-409 PLAYER_LINK: P = связать имя (вердикт меню —
                 # только имена, встречавшиеся в журнале; доска не подсказывает)
-                _pc = next((_c for _c in self._board_cache.get("cards", [])
-                            if _c.get("id") == self._board_selected[0]), None)
+                _pc = next(
+                    (_c for _c in self._board_cache.get("cards", []) if _c.get("id") == self._board_selected[0]), None
+                )
                 _pnid = self._board_card_npc.get(self._board_selected[0])
                 if _pnid:
                     self._board_link_menu = {"npc_id": _pnid, "idx": 0}
                 return True
-            if (event.key == pygame.K_e and len(self._board_selected) == 1):
+            if event.key == pygame.K_e and len(self._board_selected) == 1:
                 # C2 (вердикт М 7): E = edit — консистентный command
                 # surface N/L/U/X/E вместо double-click (temporal state).
                 # Редактируема только hypothesis-карточка — карточка-
                 # указатель журнала материалом не владеет (board не
                 # знает истину, править реплику с доски нельзя).
-                _c = next((_c for _c in self._board_cache.get("cards", [])
-                           if _c.get("id") == self._board_selected[0]), None)
+                _c = next(
+                    (_c for _c in self._board_cache.get("cards", []) if _c.get("id") == self._board_selected[0]), None
+                )
                 if _c is not None and _c.get("ref_type") == "hypothesis":
                     self._board_open_input(("edit", _c.get("ref_id", "")))
                 return True
             if event.key == pygame.K_x and self._board_selected:
                 for _cid in list(self._board_selected):
                     try:
-                        self._board_gateway.board_card_remove(
-                            self._board_campaign, _cid)
+                        self._board_gateway.board_card_remove(self._board_campaign, _cid)
                     except Exception as e:
                         self._board_error = str(e)
                 self._board_selected = []
@@ -1118,8 +1256,7 @@ class WorkbenchScreen:
         """№1: рабочая фокусировка — Доска развёрнута или верстак активен
         (F12). game_screen синхронизирует workbench_paused каждый кадр —
         все пути закрытия (B, стрелка, ESC, reset_layout) покрыты."""
-        return (self.registry.state("board") == WindowState.FULL
-                or self.active)
+        return self.registry.state("board") == WindowState.FULL or self.active
 
     def board_keydown(self, event) -> bool:
         """Phase 4: KEYDOWN-маршрут Доски для обычного режима (вне F12).
@@ -1149,10 +1286,14 @@ class WorkbenchScreen:
             if event.type == pygame.MOUSEMOTION and self._picker_drag:
                 if self._color_picker_motion(event.pos):
                     return
-            elif (event.type == pygame.MOUSEMOTION
-                    and getattr(self, "_panel_slider_drag", None)
-                    in ("avatar", "noise", "glow", "bubble", "bubblesp",
-                        "bubblelh")):
+            elif event.type == pygame.MOUSEMOTION and getattr(self, "_panel_slider_drag", None) in (
+                "avatar",
+                "noise",
+                "glow",
+                "bubble",
+                "bubblesp",
+                "bubblelh",
+            ):
                 # S3.14/S3.17: drag ползунков — аватар/узор/свечение/пузыри
                 _kind = self._panel_slider_drag
                 if _kind == "avatar":
@@ -1186,20 +1327,20 @@ class WorkbenchScreen:
                         _f = max(0.0, min(1.0, (event.pos[0] - _gsr2.x) / max(1, _gsr2.width)))
                         _new = round(_f * 100) / 100
                         for _w in self._style_targets():
-                            self._style_overrides.setdefault(_w, {}).setdefault(
-                                self._style_role, {})["glow"] = _new
+                            self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["glow"] = _new
                 return
-            elif (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
-                    and self._picker_token):
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self._picker_token:
                 if self._color_picker_click(event.pos):
                     return
             elif event.type == pygame.MOUSEBUTTONUP:
                 self._picker_drag = None
                 self._panel_slider_drag = None
-        if (event.type == pygame.KEYDOWN
-                and event.key == pygame.K_l
-                and (pygame.key.get_mods() & pygame.KMOD_CTRL)
-                and (pygame.key.get_mods() & pygame.KMOD_SHIFT)):
+        if (
+            event.type == pygame.KEYDOWN
+            and event.key == pygame.K_l
+            and (pygame.key.get_mods() & pygame.KMOD_CTRL)
+            and (pygame.key.get_mods() & pygame.KMOD_SHIFT)
+        ):
             self.reset_layout()
             return
         if event.type == pygame.KEYDOWN and event.key == pygame.K_F12:
@@ -1211,8 +1352,7 @@ class WorkbenchScreen:
         # Phase 4 Investigation Board: интеракции доски раньше диспетчера —
         # иначе клик по карточке проваливается в drag заголовка окна.
         # ESC/F12 выше — выход из верстака приоритетен.
-        if (self.registry.state("board") == WindowState.FULL
-                and self._board_handle_event(event)):
+        if self.registry.state("board") == WindowState.FULL and self._board_handle_event(event):
             return
 
         # Hotkeys (J и будущие) — всегда
@@ -1260,7 +1400,7 @@ class WorkbenchScreen:
                 if _kur and _kur.collidepoint(event.pos):
                     # «к началу»: большой скачок — clamp в _draw_journal
                     # опустит до K_max, лента встанет на старейшие записи
-                    self._journal_scroll[_kwid] = 10 ** 6
+                    self._journal_scroll[_kwid] = 10**6
                     return
                 if _kdr and _kdr.collidepoint(event.pos):
                     self._journal_scroll[_kwid] = 0  # «к последним»
@@ -1365,8 +1505,7 @@ class WorkbenchScreen:
         zone = self._zone(viewport)
 
         rect = self._rects[wid]
-        new_rect = pygame.Rect(mouse_pos[0] - grab[0], mouse_pos[1] - grab[1],
-                               rect.width, rect.height)
+        new_rect = pygame.Rect(mouse_pos[0] - grab[0], mouse_pos[1] - grab[1], rect.width, rect.height)
         # J-FIX: драг свёрнутой полосы НЕ должен записывать free_rect высотой 34
         # (иначе разворот рендерил полоску навсегда: state=FULL, геометрия — band).
         # Свёрнутую тянем, но в free_rect храним ПОЛНУЮ высоту разворота.
@@ -1416,7 +1555,8 @@ class WorkbenchScreen:
             hint_surf = self._font_title.render(
                 "UI WORKBENCH  [F12/ESC] выход  [заголовок] тянуть — магнит  [край/угол] ресайз  "
                 "[клик шапки] цель стиля  вкладки/чипы — клик  [Ctrl+Shift+L] сброс раскладки",
-                True, self.theme.token("accent"),
+                True,
+                self.theme.token("accent"),
             )
             screen.blit(hint_surf, (viewport.left + 10, viewport.bottom - 26))
             # S2: панель стилизации (справа, кликабельна)
@@ -1471,6 +1611,7 @@ class WorkbenchScreen:
                 _gts = int(_ls.get("game_time_seconds", 0) or 0)
             if self.game_context:
                 from constants import format_world_date
+
                 return format_world_date(_gts)
             return "Год 1, День 1, 12:01"
         return getattr(self, "hud_time_scale", "▶ 1x")
@@ -1501,13 +1642,12 @@ class WorkbenchScreen:
             # accent на surface_title, число — text_primary. Слева от стрелки.
             if wid == "journal" and self.journal_unread > 0:
                 _chip_r = 9
-                _chip = pygame.Rect(title_rect.right - 44, title_rect.y + (title_h - _chip_r * 2) // 2,
-                                    _chip_r * 2, _chip_r * 2)
+                _chip = pygame.Rect(
+                    title_rect.right - 44, title_rect.y + (title_h - _chip_r * 2) // 2, _chip_r * 2, _chip_r * 2
+                )
                 pygame.draw.circle(screen, self._ct(wid, "accent"), _chip.center, _chip_r)
-                _cs = self._font_title.render(str(min(self.journal_unread, 99)), True,
-                                              self._ct(wid, "surface_title"))
-                screen.blit(_cs, (_chip.centerx - _cs.get_width() // 2,
-                                  _chip.centery - _cs.get_height() // 2))
+                _cs = self._font_title.render(str(min(self.journal_unread, 99)), True, self._ct(wid, "surface_title"))
+                screen.blit(_cs, (_chip.centerx - _cs.get_width() // 2, _chip.centery - _cs.get_height() // 2))
             mark = "▸" if collapsed else "▾"
             mark_surf = self._font_title.render(mark, True, self._ct(wid, "accent"))
             _mx = title_rect.right - 24
@@ -1541,6 +1681,7 @@ class WorkbenchScreen:
                 _gts = int(_ls.get("game_time_seconds", 0) or 0)
             if self.game_context:
                 from constants import format_world_date
+
                 _t = format_world_date(_gts)
             else:
                 _t = "Год 1, День 1, 12:01"
@@ -1593,8 +1734,11 @@ class WorkbenchScreen:
             if self.game_context and getattr(self, "_live_scene_state", None):
                 lines = self._core.collect_observation_lines(self._live_scene_state)
             else:
-                lines = ["Тень (?): напряжённая поза", "Кузнец Орм: работает у наковальни",
-                         "Торнин Серебряная Луна: обслуживает столы"]
+                lines = [
+                    "Тень (?): напряжённая поза",
+                    "Кузнец Орм: работает у наковальни",
+                    "Торнин Серебряная Луна: обслуживает столы",
+                ]
             ty = body.y + 6
             lh = self._font_text.get_linesize() + 2
             for line in lines:
@@ -1605,11 +1749,13 @@ class WorkbenchScreen:
                 ty += lh
             return
         elif manifest.data_source == "player_body_topology":
-            topo = (self._live_scene_state or {}).get("player_body_topology", {}) \
-                if self.game_context else self._demo_topology()
+            topo = (
+                (self._live_scene_state or {}).get("player_body_topology", {})
+                if self.game_context
+                else self._demo_topology()
+            )
             if not topo:
-                ts = self._font_text.render("Топология тела недоступна.",
-                                            True, self._ct(wid, "text_muted"))
+                ts = self._font_text.render("Топология тела недоступна.", True, self._ct(wid, "text_muted"))
                 screen.blit(ts, (body.x + 8, body.y + 8))
                 return
             _contents = topo.get("contents", {})
@@ -1627,20 +1773,31 @@ class WorkbenchScreen:
             # Человекочитаемые имена слотов (id остаются — для будущего
             # клик-интерактива; перевод презентационный, данные не трогаем).
             _SLOT_RU = {
-                "hand_right": "правая рука", "hand_left": "левая рука",
-                "worn_torso": "торс", "worn_legs": "ноги", "worn_feet": "ступни",
-                "worn_cloak": "плащ", "belt_sheath": "ножны", "belt_pouch": "кошелёк",
-                "belt_potion": "пояс-флакон", "pocket_left": "левый карман",
-                "pocket_right": "правый карман", "pocket_inner": "внутренний карман",
-                "backpack_main": "основной", "backpack_side": "боковой",
-                "hidden_boot": "в сапоге", "hidden_lining": "подкладка",
+                "hand_right": "правая рука",
+                "hand_left": "левая рука",
+                "worn_torso": "торс",
+                "worn_legs": "ноги",
+                "worn_feet": "ступни",
+                "worn_cloak": "плащ",
+                "belt_sheath": "ножны",
+                "belt_pouch": "кошелёк",
+                "belt_potion": "пояс-флакон",
+                "pocket_left": "левый карман",
+                "pocket_right": "правый карман",
+                "pocket_inner": "внутренний карман",
+                "backpack_main": "основной",
+                "backpack_side": "боковой",
+                "hidden_boot": "в сапоге",
+                "hidden_lining": "подкладка",
             }
-            for _gname, _slots in [("Руки", topo.get("hands", {})),
-                                   ("Надето", topo.get("worn", {})),
-                                   ("Пояс", topo.get("belt", [])),
-                                   ("Карманы", topo.get("pockets", [])),
-                                   ("Рюкзак", topo.get("backpack", [])),
-                                   ("Скрытое", topo.get("hidden", []))]:
+            for _gname, _slots in [
+                ("Руки", topo.get("hands", {})),
+                ("Надето", topo.get("worn", {})),
+                ("Пояс", topo.get("belt", [])),
+                ("Карманы", topo.get("pockets", [])),
+                ("Рюкзак", topo.get("backpack", [])),
+                ("Скрытое", topo.get("hidden", [])),
+            ]:
                 _slot_list = list(_slots.values()) if isinstance(_slots, dict) else _slots
                 if not _slot_list:
                     continue
@@ -1651,15 +1808,19 @@ class WorkbenchScreen:
                     _bp_ru = _SLOT_RU.get(_bp, _bp)
                     _blit_line(f"  - {_bp_ru}", "text_muted")
                     for _item in _contents.get(_sid, []):
-                        _blit_line(f"    • {_item.get('name', 'Предмет')} "
-                                   f"(В:{_item.get('weight', 0.0)} кг, "
-                                   f"Г:{_item.get('bulk', 1)})", "text_primary")
+                        _blit_line(
+                            f"    • {_item.get('name', 'Предмет')} "
+                            f"(В:{_item.get('weight', 0.0)} кг, "
+                            f"Г:{_item.get('bulk', 1)})",
+                            "text_primary",
+                        )
             _total_w = sum(i.get("weight", 0.0) for items in _contents.values() for i in items)
             _carry = topo.get("strength_score", 10) * 15.0
             _wc = "text_primary" if _total_w <= _carry else "border_accent"
             _blit_line(f"Вес: {_total_w:.1f} / {_carry:.1f}", _wc)
-            _blit_line(f"Габаритность: {sum(i.get('bulk', 1) for items in _contents.values() for i in items)}",
-                       "text_primary")
+            _blit_line(
+                f"Габаритность: {sum(i.get('bulk', 1) for items in _contents.values() for i in items)}", "text_primary"
+            )
             return
         # точка роста: другие data_source по мере регистрации окон
 
@@ -1667,7 +1828,7 @@ class WorkbenchScreen:
     # Кэш организации доски. Мир на паузе при открытом workbench →
     # достаточно refresh при открытии (toggle_board) и после операций.
     _BOARD_CARD_W, _BOARD_CARD_H = 170, 96
-    _BOARD_TIP_W = 360                     # tooltip: лимит «не простынёй» (вердикт М)
+    _BOARD_TIP_W = 360  # tooltip: лимит «не простынёй» (вердикт М)
 
     def _board_add_journal_card(self, event_id: str) -> None:
         """A2: положить реплику на стол. Каскад — первая свободная клетка
@@ -1677,8 +1838,7 @@ class WorkbenchScreen:
         углу, clamp рендера ловит."""
         _pos = self._board_cascade_pos()
         try:
-            self._board_gateway.board_card_add(
-                self._board_campaign, "journal", event_id, _pos)
+            self._board_gateway.board_card_add(self._board_campaign, "journal", event_id, _pos)
         except Exception as e:  # BackendError/urllib — наблюдаемо (E3 сделает видимым)
             self._board_error = str(e)
         self._refresh_board()
@@ -1708,6 +1868,7 @@ class WorkbenchScreen:
         не трогаем). Rect пересчитывается каждый кадр в _draw_board."""
         if self._board_input is None:
             from text_input import TextInput  # лениво: паттерн constants-импорта
+
             self._board_input = TextInput(
                 rect=pygame.Rect(0, 0, 200, 28),
                 font=self._font_text,
@@ -1741,29 +1902,24 @@ class WorkbenchScreen:
         успех НЕ молчит: гипотеза уже в файле — ошибка карточки честно
         видна; падение create/edit — ввод не теряется."""
         _mode = self._board_input_mode
-        _text = (self._board_input.text.strip()
-                 if self._board_input is not None else "")
+        _text = self._board_input.text.strip() if self._board_input is not None else ""
         if _mode is None or not _text:
             self._board_close_input()
             return
         try:
             if _mode[0] == "create":
-                _resp = self._board_gateway.board_hypothesis(
-                    self._board_campaign, "create", text=_text)
+                _resp = self._board_gateway.board_hypothesis(self._board_campaign, "create", text=_text)
                 _hyp_id = str(_resp.get("hypothesis_id", ""))
                 try:
                     self._board_gateway.board_card_add(
-                        self._board_campaign, "hypothesis",
-                        _hyp_id, self._board_cascade_pos())
+                        self._board_campaign, "hypothesis", _hyp_id, self._board_cascade_pos()
+                    )
                 except Exception as e:
                     # Гипотеза сохранена, карточка — нет: не теряем
                     # первую половину и не притворяемся, что всё ок.
-                    self._board_error = (
-                        f"гипотеза сохранена, карточка не добавлена: {e}")
+                    self._board_error = f"гипотеза сохранена, карточка не добавлена: {e}"
             else:
-                self._board_gateway.board_hypothesis(
-                    self._board_campaign, "edit",
-                    hyp_id=_mode[1], text=_text)
+                self._board_gateway.board_hypothesis(self._board_campaign, "edit", hyp_id=_mode[1], text=_text)
             self._board_close_input()
         except Exception as e:  # create/edit упал — ввод сохраняем
             self._board_error = str(e)
@@ -1772,16 +1928,14 @@ class WorkbenchScreen:
     def board_input_active(self) -> bool:
         """Флаг для game_screen: Enter-отправка чата и WASD-движение
         обязаны уважать фокус инпута Доски."""
-        return (self._board_input is not None
-                and self._board_input.focused)
+        return self._board_input is not None and self._board_input.focused
 
     def board_input_event(self, event) -> bool:
         """Маршрут TEXTINPUT/TEXTEDITING/KEYUP в инпут Доски (кириллица
         идёт TEXTINPUT-событием, KEYDOWN её не несёт). True = съедено."""
         if self._board_input is None or not self._board_input.focused:
             return False
-        if event.type in (pygame.TEXTINPUT, pygame.TEXTEDITING,
-                          pygame.KEYUP):
+        if event.type in (pygame.TEXTINPUT, pygame.TEXTEDITING, pygame.KEYUP):
             self._board_input.handle_event(event)
             return True
         return False
@@ -1811,8 +1965,7 @@ class WorkbenchScreen:
         # P: editor-ветка удалена — роутер _board_gateway отдаёт stub,
         # единый путь для полигона и игры (stub не падает по построению).
         try:
-            self._board_cache = self._board_gateway.get_board(
-                self._board_campaign)
+            self._board_cache = self._board_gateway.get_board(self._board_campaign)
         except Exception as e:  # BackendError / urllib — наблюдаемо в UI
             self._board_cache = None
             self._board_error = str(e)
@@ -1839,11 +1992,7 @@ class WorkbenchScreen:
         адресоваться не могут (ADR-O-404: не выдумывать identity)."""
         # P: единый источник журнала (game → backend, editor → демо) —
         # джойн карточек работает и на полигоне
-        return {
-            e.get("event_id"): e
-            for e in self._journal_entries("all")
-            if e.get("event_id")
-        }
+        return {e.get("event_id"): e for e in self._journal_entries("all") if e.get("event_id")}
 
     def _draw_board(self, screen, body: pygame.Rect, wid: str) -> None:
         """Рендер организации: карточки по pos, гипотезы списком.
@@ -1856,13 +2005,11 @@ class WorkbenchScreen:
             self._refresh_board()
         if getattr(self, "_board_cache", None) is None:
             msg = f"Доска недоступна: {getattr(self, '_board_error', '?')}"
-            surf = self._font_text.render(msg[:90], True,
-                                          self.theme.token("text_muted"))
+            surf = self._font_text.render(msg[:90], True, self.theme.token("text_muted"))
             screen.blit(surf, (body.x + 10, body.y + 10))
             return
         _jmat = self._board_journal_index()
-        _hyp_texts = {h.get("id", ""): h.get("text", "")
-                      for h in self._board_cache.get("hypotheses", [])}
+        _hyp_texts = {h.get("id", ""): h.get("text", "") for h in self._board_cache.get("hypotheses", [])}
         # Хитбоксы карточек (интеракции — U3)
         self._board_card_rects = {}
         self._board_hover_tips = {}
@@ -1879,10 +2026,10 @@ class WorkbenchScreen:
             self._board_card_rects[_cid] = _rect
 
             _alive = True
-            _lines: list = []   # [(текст, цвет)] — материал карточки
+            _lines: list = []  # [(текст, цвет)] — материал карточки
             _body = ""
-            _hover_tip = None   # (заголовок, полный текст) для tooltip
-            _av_spk = ""        # К1: спикер для слота фото (джойн _journal_portrait)
+            _hover_tip = None  # (заголовок, полный текст) для tooltip
+            _av_spk = ""  # К1: спикер для слота фото (джойн _journal_portrait)
             if _c.get("ref_type") == "journal":
                 _entry = _jmat.get(_c.get("ref_id", ""))
                 _alive = _entry is not None
@@ -1894,17 +2041,14 @@ class WorkbenchScreen:
                     # _draw_journal): ● = сказано тебе, ◌ = подслушано.
                     _ch = _entry.get("channel", "")
                     _mk = "● " if _ch == "direct" else ("◌ " if _ch == "overheard" else "")
-                    _lines.append(
-                        (_mk + _entry.get("speaker", "???"),
-                         self.theme.token("accent")))
+                    _lines.append((_mk + _entry.get("speaker", "???"), self.theme.token("accent")))
                     _body = _entry.get("text", "")
-                    _hover_tip = (_mk + _entry.get("speaker", "???"),
-                                  _entry.get("text", ""))
+                    _hover_tip = (_mk + _entry.get("speaker", "???"), _entry.get("text", ""))
                     _av_spk = _entry.get("speaker", "???")
                     _pn = _entry.get("npc_id", "")
                     if _pn:
                         self._board_card_npc[_cid] = _pn
-                    _av_npc = _entry.get("npc_id", "")   # ADR-O-409 провенанс → PLAYER_LINK
+                    _av_npc = _entry.get("npc_id", "")  # ADR-O-409 провенанс → PLAYER_LINK
                 else:
                     # Мёртвая journal-карточка: FIFO cap-100 вытеснил
                     # запись из журнала — валидное состояние (ТЗ Phase 4
@@ -1913,10 +2057,8 @@ class WorkbenchScreen:
                     # К1: мёртвая = фото/инициал серым — «помню ЧЕЛОВЕКА,
                     # забыл слова» (детективная семантика, вердикт М)
                     _av_spk = _c.get("ref_id", "")[:12]
-                    _lines.append(("материал вытеснен из журнала",
-                                   self.theme.token("text_muted")))
-                    _lines.append((f"ref: {_c.get('ref_id', '')[:24]}",
-                                   self.theme.token("text_muted")))
+                    _lines.append(("материал вытеснен из журнала", self.theme.token("text_muted")))
+                    _lines.append((f"ref: {_c.get('ref_id', '')[:24]}", self.theme.token("text_muted")))
             elif _c.get("ref_type") == "hypothesis":
                 _lines.append(("гипотеза", self.theme.token("text_muted")))
                 _body = _hyp_texts.get(_c.get("ref_id", ""), "???")
@@ -1925,18 +2067,18 @@ class WorkbenchScreen:
                 # claim/belief: persisted opaque — рендер серым (вердикт М)
                 _alive = False
                 _lines.append(
-                    (f"{_c.get('ref_type', '?')}:{_c.get('ref_id', '')[:12]}",
-                     self.theme.token("text_muted")))
-            _color = (self.theme.token("surface_panel")
-                      if _alive else self.theme.token("text_muted"))
+                    (f"{_c.get('ref_type', '?')}:{_c.get('ref_id', '')[:12]}", self.theme.token("text_muted"))
+                )
+            _color = self.theme.token("surface_panel") if _alive else self.theme.token("text_muted")
             pygame.draw.rect(screen, _color, _rect, border_radius=6)
             _border_color = self.theme.token("accent")
             _border_w = 1
             if _cid in getattr(self, "_board_selected", []):
-                _border_color = self.theme.token("border_accent")  # выбранная: золотой контур (токен, не RGB-литерал — закон темы)
+                _border_color = self.theme.token(
+                    "border_accent"
+                )  # выбранная: золотой контур (токен, не RGB-литерал — закон темы)
                 _border_w = 2
-            pygame.draw.rect(screen, _border_color, _rect, _border_w,
-                             border_radius=6)
+            pygame.draw.rect(screen, _border_color, _rect, _border_w, border_radius=6)
             # Обрезка по высоте: сколько строк влезает в карточку;
             # усечение помечаем «…» — игрок видит, что текст длиннее
             _lh = self._font_text.get_linesize() + 1
@@ -1957,39 +2099,34 @@ class WorkbenchScreen:
                     _ph_s = pygame.transform.smoothscale(_ph, (_av, _av))
                     screen.blit(_ph_s, (_x + 6, _ay))
                     pygame.draw.circle(
-                        screen, self.theme.token("border_accent"),
-                        (_x + 6 + _av // 2, _ay + _av // 2), _av // 2, 2)
+                        screen, self.theme.token("border_accent"), (_x + 6 + _av // 2, _ay + _av // 2), _av // 2, 2
+                    )
                 else:
                     _h = (sum(ord(c) for c in _av_spk) % 360) / 360.0
                     import colorsys as _cs
+
                     _r, _g, _b = _cs.hsv_to_rgb(_h, 0.45, 0.72)
                     pygame.draw.circle(
                         screen,
                         (int(_r * 255), int(_g * 255), int(_b * 255)),
-                        (_x + 6 + _av // 2, _ay + _av // 2), _av // 2)
+                        (_x + 6 + _av // 2, _ay + _av // 2),
+                        _av // 2,
+                    )
                     _if = self._font_provider.get("text", "", _av - 14, False, False)
-                    _is = _if.render(_av_spk[:1].upper(), True,
-                                     self.theme.token("text_primary"))
-                    screen.blit(_is, (
-                        _x + 6 + _av // 2 - _is.get_width() // 2,
-                        _ay + _av // 2 - _is.get_height() // 2))
+                    _is = _if.render(_av_spk[:1].upper(), True, self.theme.token("text_primary"))
+                    screen.blit(_is, (_x + 6 + _av // 2 - _is.get_width() // 2, _ay + _av // 2 - _is.get_height() // 2))
                 _txt_x = _x + 6 + _av + 8
-            _wrapped = (self._wrap(
-                _body, self._BOARD_CARD_W - 12 - (_txt_x - _x - 6))
-                if _body else [])
+            _wrapped = self._wrap(_body, self._BOARD_CARD_W - 12 - (_txt_x - _x - 6)) if _body else []
             _budget = _max_lines - len(_lines)
             if _budget > 0:
                 # №6: прокрутка вместо обрезки — wheel листает текст,
                 # «…» остаётся маркером скрытых строк (снизу/сверху).
-                _sc = max(0, min(self._board_card_scroll.get(_cid, 0),
-                                 max(0, len(_wrapped) - _budget)))
+                _sc = max(0, min(self._board_card_scroll.get(_cid, 0), max(0, len(_wrapped) - _budget)))
                 self._board_card_scroll[_cid] = _sc
-                _lines += [(_ln, self.theme.token("text_primary"))
-                           for _ln in _wrapped[_sc:_sc + _budget]]
+                _lines += [(_ln, self.theme.token("text_primary")) for _ln in _wrapped[_sc : _sc + _budget]]
                 if _sc + _budget < len(_wrapped) and _lines:
                     _t, _col = _lines[-1]
-                    _lines[-1] = (
-                        (_t[:-1] if _t else _t) + "…", _col)
+                    _lines[-1] = ((_t[:-1] if _t else _t) + "…", _col)
                 if _sc > 0 and _lines:
                     _t, _col = _lines[0]
                     _lines[0] = ("…" + _t, _col)
@@ -1997,8 +2134,7 @@ class WorkbenchScreen:
                 self._board_hover_tips[_cid] = _hover_tip
             _ty = _y + 5
             for _lt, _lc in _lines:
-                screen.blit(self._font_text.render(
-                    _lt, True, _lc), (_txt_x, _ty))
+                screen.blit(self._font_text.render(_lt, True, _lc), (_txt_x, _ty))
                 _ty += _lh
         # D: рёбра — двумя проходами нельзя терять z-порядок дёшево; линии
         # после карточек читаются как связи ПОВЕРХ материала — осознанный
@@ -2010,24 +2146,20 @@ class WorkbenchScreen:
             _rb = self._board_card_rects.get(str(_l.get("to", "")))
             if _ra is None or _rb is None:
                 continue
-            _col = (self.theme.token("accent")
-                    if _l.get("kind") == "PLAYER_SUPPORTS"
-                    else self.theme.token("danger"))
-            pygame.draw.line(screen, _col,
-                             _ra.center, _rb.center, 2)
+            _col = self.theme.token("accent") if _l.get("kind") == "PLAYER_SUPPORTS" else self.theme.token("danger")
+            pygame.draw.line(screen, _col, _ra.center, _rb.center, 2)
         # E1: command surface — discoverability N/L/U/E/X/B (ТЗ §5) +
         # индикация текущего kind для L (гейт D ТЗ). Токены, не RGB.
-        _lk = ("подтверждает" if self._board_link_kind == "PLAYER_SUPPORTS"
-               else "опровергает")
+        _lk = "подтверждает" if self._board_link_kind == "PLAYER_SUPPORTS" else "опровергает"
         _hs = self._font_text.render(
             f"N гипотеза · L связь [{_lk}] · U развязать · E правка · X убрать · B закрыть",
-            True, self.theme.token("text_muted"))
+            True,
+            self.theme.token("text_muted"),
+        )
         screen.blit(_hs, (body.x + 8, body.bottom - 36))
         # E3: ошибка операции видима (danger-токен), не глотается
         if self._board_error:
-            _es = self._font_text.render(
-                f"⚠ {self._board_error[:90]}", True,
-                self.theme.token("danger"))
+            _es = self._font_text.render(f"⚠ {self._board_error[:90]}", True, self.theme.token("danger"))
             screen.blit(_es, (body.x + 8, body.bottom - 18))
         # Гипотезы — списком в подвале окна; при активном inline-вводе
         # уступают место инпуту (E2-геометрия: ввод на bottom-78)
@@ -2035,31 +2167,29 @@ class WorkbenchScreen:
             _yy = body.bottom - 56
             for _h in self._board_cache.get("hypotheses", [])[-3:]:
                 _t = f"· {_h.get('text', '')[:40]}"
-                screen.blit(self._font_text.render(
-                    _t, True, self.theme.token("text_primary")), (body.x + 8, _yy))
+                screen.blit(self._font_text.render(_t, True, self.theme.token("text_primary")), (body.x + 8, _yy))
                 _yy -= 18
         # C1: inline-ввод гипотезы (N) — поверх, над футером гипотез;
         # rect обновляется каждый кадр (окно двигается/ресайзится).
         # Гард по mode (не по инстансу): закрытый ввод не рисуется.
-        if (self._board_input_mode is not None
-                and self._board_input is not None):
-            _ir = pygame.Rect(body.x + 8, body.bottom - 78,
-                              body.width - 16, 28)
+        if self._board_input_mode is not None and self._board_input is not None:
+            _ir = pygame.Rect(body.x + 8, body.bottom - 78, body.width - 16, 28)
             self._board_input.rect = _ir
             self._board_input.draw(screen)
-            _hint = self._font_text.render(
-                "Enter — сохранить · Esc — отмена", True,
-                self.theme.token("text_muted"))
+            _hint = self._font_text.render("Enter — сохранить · Esc — отмена", True, self.theme.token("text_muted"))
             screen.blit(_hint, (body.x + 8, body.bottom - 94))
         # PLAYER_LINK-рендер (ADR-O-409): список имён из журнала —
         # только услышанное, доска не подсказывает. Курсор — рамка-
         # акцент (канон клавиатурных меню S3.18); Esc/Enter — в вводе.
         _menu = getattr(self, "_board_link_menu", None)
         if _menu is not None:
-            _names = sorted({
-                e.get("speaker", "") for e in self._journal_entries("all")
-                if e.get("speaker") and e.get("speaker") != "Ты"
-                and e.get("channel") in ("direct", "overheard")})
+            _names = sorted(
+                {
+                    e.get("speaker", "")
+                    for e in self._journal_entries("all")
+                    if e.get("speaker") and e.get("speaker") != "Ты" and e.get("channel") in ("direct", "overheard")
+                }
+            )
             if not _names:
                 _menu["idx"] = 0
                 _names = ["(имён в журнале нет)"]
@@ -2069,24 +2199,19 @@ class WorkbenchScreen:
             _mx = body.centerx - _mw // 2
             _my = body.centery - _mh // 2
             _mrect = pygame.Rect(_mx, _my, _mw, _mh)
-            self._fill_alpha(screen, _mrect,
-                             *self._cta(None, "surface_title"), 235)
-            self._stroke_alpha(screen, _mrect,
-                               *self._cta(None, "border_accent"), 2, 220)
+            self._fill_alpha(screen, _mrect, *self._cta(None, "surface_title"), 235)
+            self._stroke_alpha(screen, _mrect, *self._cta(None, "border_accent"), 2, 220)
             _hs = self._font_text.render(
-                "Связать имя (Enter — выбрать, Esc — отмена)", True,
-                self._ct(None, "text_primary"))
+                "Связать имя (Enter — выбрать, Esc — отмена)", True, self._ct(None, "text_primary")
+            )
             screen.blit(_hs, (_mx + 10, _my + 6))
             _ny = _my + 34
             for _i, _nm in enumerate(_names):
                 _sel = _i == _menu["idx"]
                 if _sel:
                     _rr = pygame.Rect(_mx + 6, _ny - 2, _mw - 12, 22)
-                    self._stroke_alpha(screen, _rr,
-                                       *self._cta(None, "accent"), 1, 200)
-                _ns = self._font_text.render(
-                    _nm, True,
-                    self._ct(None, "accent" if _sel else "text_muted"))
+                    self._stroke_alpha(screen, _rr, *self._cta(None, "accent"), 1, 200)
+                _ns = self._font_text.render(_nm, True, self._ct(None, "accent" if _sel else "text_muted"))
                 screen.blit(_ns, (_mx + 12, _ny))
                 _ny += 22
         # Tooltip (hover): полный материал карточки — чтение без
@@ -2128,23 +2253,31 @@ class WorkbenchScreen:
 
     def _demo_topology(self) -> dict:
         """Editor-F12: демо-топология для стилизации инвентаря без игры."""
+
         def _slot(sid, bp):
             return {"slot_id": sid, "body_part": bp}
-        _cont = {"hand_right": [{"name": "Короткий нож", "weight": 0.8, "bulk": 1}],
-                 "belt_pouch": [{"name": "Мешочек с монетами", "weight": 0.3, "bulk": 1}],
-                 "backpack_main": [{"name": "Буханка чёрного хлеба", "weight": 1.0, "bulk": 2},
-                                    {"name": "Фляга с водой", "weight": 0.5, "bulk": 1}]}
-        return {"strength_score": 10,
-                "hands": {"hand_right": _slot("hand_right", "правая рука"),
-                           "hand_left": _slot("hand_left", "левая рука")},
-                "worn": {"worn_torso": _slot("worn_torso", "торс"),
-                          "worn_feet": _slot("worn_feet", "ступни")},
-                "belt": {"belt_pouch": _slot("belt_pouch", "кошелёк")},
-                "pockets": {"pocket_left": _slot("pocket_left", "левый карман"),
-                             "pocket_right": _slot("pocket_right", "правый карман")},
-                "backpack": {"backpack_main": _slot("backpack_main", "основной")},
-                "hidden": {},
-                "contents": _cont}
+
+        _cont = {
+            "hand_right": [{"name": "Короткий нож", "weight": 0.8, "bulk": 1}],
+            "belt_pouch": [{"name": "Мешочек с монетами", "weight": 0.3, "bulk": 1}],
+            "backpack_main": [
+                {"name": "Буханка чёрного хлеба", "weight": 1.0, "bulk": 2},
+                {"name": "Фляга с водой", "weight": 0.5, "bulk": 1},
+            ],
+        }
+        return {
+            "strength_score": 10,
+            "hands": {"hand_right": _slot("hand_right", "правая рука"), "hand_left": _slot("hand_left", "левая рука")},
+            "worn": {"worn_torso": _slot("worn_torso", "торс"), "worn_feet": _slot("worn_feet", "ступни")},
+            "belt": {"belt_pouch": _slot("belt_pouch", "кошелёк")},
+            "pockets": {
+                "pocket_left": _slot("pocket_left", "левый карман"),
+                "pocket_right": _slot("pocket_right", "правый карман"),
+            },
+            "backpack": {"backpack_main": _slot("backpack_main", "основной")},
+            "hidden": {},
+            "contents": _cont,
+        }
 
     def _draw_style_panel(self, screen, viewport: pygame.Rect) -> None:
         """S2/S3.13: панель стилизации (только F12) — сворачиваемые секции
@@ -2163,8 +2296,12 @@ class WorkbenchScreen:
         _lh = _f.get_linesize() + 4
         _x, _y = panel.x + 10, panel.y + 8
         self._style_hits: list = []
-        _sec = getattr(self, "_style_sections", None) \
-            or {"font": True, "color": True, "presets": False, "windows": False}
+        _sec = getattr(self, "_style_sections", None) or {
+            "font": True,
+            "color": True,
+            "presets": False,
+            "windows": False,
+        }
 
         def _row(txt: str, col: str, act: str = "", val: str = "") -> None:
             nonlocal _y
@@ -2180,28 +2317,38 @@ class WorkbenchScreen:
             return _open
 
         _glob = getattr(self, "_style_global", False)
-        _row(f"[{'X' if _glob else ' '}] СТИЛЬ ДЛЯ ВСЕХ ОКОН"
-             f"{' — ВКЛЮЧЁН: правки идут во все [X] окна' if _glob else ' — выключен: правки только цели'}",
-             "accent" if _glob else "text_muted", "global_toggle")
-        _tgt_title = (self.registry.manifest(self._style_target).title
-                      if self._style_target else None)
-        _row(f"СТИЛЬ  цель: {_tgt_title or '— (клик по шапке окна)'}"
-             + ("  ← правка уйдёт во все [X] окна" if _glob
-                else "  (правка: только это окно)"),
-             "accent" if _glob else "text_primary")
+        _row(
+            f"[{'X' if _glob else ' '}] СТИЛЬ ДЛЯ ВСЕХ ОКОН"
+            f"{' — ВКЛЮЧЁН: правки идут во все [X] окна' if _glob else ' — выключен: правки только цели'}",
+            "accent" if _glob else "text_muted",
+            "global_toggle",
+        )
+        _tgt_title = self.registry.manifest(self._style_target).title if self._style_target else None
+        _row(
+            f"СТИЛЬ  цель: {_tgt_title or '— (клик по шапке окна)'}"
+            + ("  ← правка уйдёт во все [X] окна" if _glob else "  (правка: только это окно)"),
+            "accent" if _glob else "text_primary",
+        )
         _y += 6
         _ov = self._style_overrides.get(self._style_target, {}).get(self._style_role, {})
         _sov = self._style_overrides.get(self._style_target, {}).get("_colors", {})
 
         # ── Секция: Цвет и прозрачность ──
         if _sec_header("color", "Цвет и прозрачность (клик = пикер)"):
-            for _tok in ("surface_panel", "surface_title", "border", "border_accent",
-                         "text_primary", "text_muted", "accent", "player_bubble",
-                         "player_name"):
+            for _tok in (
+                "surface_panel",
+                "surface_title",
+                "border",
+                "border_accent",
+                "text_primary",
+                "text_muted",
+                "accent",
+                "player_bubble",
+                "player_name",
+            ):
                 _c = _sov.get(_tok) or _TOKEN_DEFAULTS.get(_tok) or list(self.theme.token(_tok))
                 _row(f"{_TOKEN_RU.get(_tok, _tok)}  {tuple(_c)}", "text_primary", "color_edit", _tok)
-            _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 0)}",
-                 "text_primary", "backdrop")
+            _row(f"Подложка журнала (цвет+альфа): a {_sov.get('backdrop_alpha', 0)}", "text_primary", "backdrop")
             _y += 4
 
         # ── Секция: Стили окон и штукатурка ──
@@ -2213,52 +2360,44 @@ class WorkbenchScreen:
                     _px = panel.x + 10  # перенос строки пресетов (6 штук)
                     _y += _lh
                 screen.blit(_s, (_px, _y))
-                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
-                                         "preset", _pname))
+                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh), "preset", _pname))
                 _px += _s.get_width() + 14
             if getattr(self, "_my_style", None):
                 _s = _f.render("·Мой стиль", True, self.theme.token("accent"))
                 screen.blit(_s, (_px, _y))
-                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh),
-                                         "preset", "__my__"))
+                self._style_hits.append((pygame.Rect(_px - 3, _y - 2, _s.get_width() + 6, _lh), "preset", "__my__"))
             _y += _lh
             _s = _f.render("[Сохранить мой стиль (с цели)]", True, self.theme.token("border_accent"))
             screen.blit(_s, (panel.x + 10, _y))
-            self._style_hits.append((pygame.Rect(panel.x + 6, _y - 2, _s.get_width() + 8, _lh),
-                                     "style_save", ""))
+            self._style_hits.append((pygame.Rect(panel.x + 6, _y - 2, _s.get_width() + 8, _lh), "style_save", ""))
             _y += _lh
-            _row(f"Глубина рельефа: {int(getattr(self, '_style_texture', 0))}"
-                 f"   (клик ±1; минус = светлый)",
-                 "text_primary", "texture")
-            _nt = tuple(int(c) for c in
-                        (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
-            _row(f"Подтон узора  {_nt}   (клик = пикер)", "text_primary",
-                 "color_edit", "noise_tint")
-            _row(f"Масштаб узора: {int(getattr(self, '_style_noise_scale', 16))}",
-                 "text_primary", "")
+            _row(
+                f"Глубина рельефа: {int(getattr(self, '_style_texture', 0))}   (клик ±1; минус = светлый)",
+                "text_primary",
+                "texture",
+            )
+            _nt = tuple(int(c) for c in (getattr(self, "_style_noise_tint", None) or (255, 255, 255)))
+            _row(f"Подтон узора  {_nt}   (клик = пикер)", "text_primary", "color_edit", "noise_tint")
+            _row(f"Масштаб узора: {int(getattr(self, '_style_noise_scale', 16))}", "text_primary", "")
             _nsr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
             _nf = (int(getattr(self, "_style_noise_scale", 16)) - 4) / (48 - 4)
             for _i in range(_nsr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_nsr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_nsr.x + _i * 4, _nsr.y, 4, _nsr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_nsr.x + _i * 4, _nsr.y, 4, _nsr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _nsr, 1)
             _hx = int(_nsr.x + _nf * _nsr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _nsr.y - 3, 4, _nsr.height + 6))
             self._style_hits.append((_nsr, "noise_slide", ""))
             self._noise_slider_rect = _nsr
             _y += 14
-            _row(f"Сменить узор  (шум #{int(getattr(self, '_style_noise_seed', 0))})",
-                 "border_accent", "noise_seed")
+            _row(f"Сменить узор  (шум #{int(getattr(self, '_style_noise_seed', 0))})", "border_accent", "noise_seed")
             # S3.17: кегль и разрядка мировых пузырей — два ползунка
-            _row(f"Кегль пузырей: {int(getattr(self, '_style_bubble_size', 0)):+d}",
-                 "text_primary", "")
+            _row(f"Кегль пузырей: {int(getattr(self, '_style_bubble_size', 0)):+d}", "text_primary", "")
             _bsr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
             _bf = (int(getattr(self, "_style_bubble_size", 0)) + 6) / 12
             for _i in range(_bsr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_bsr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_bsr.x + _i * 4, _bsr.y, 4, _bsr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_bsr.x + _i * 4, _bsr.y, 4, _bsr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _bsr, 1)
             _hx = int(_bsr.x + _bf * _bsr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _bsr.y - 3, 4, _bsr.height + 6))
@@ -2266,14 +2405,12 @@ class WorkbenchScreen:
             self._bubble_slider_rect = _bsr
             _y += 14
             # S3.17: разрядка пузырей (буквы + межсловный интервал)
-            _row(f"Разрядка пузырей: {int(getattr(self, '_style_bubble_spacing', 0)):+d}",
-                 "text_primary", "")
+            _row(f"Разрядка пузырей: {int(getattr(self, '_style_bubble_spacing', 0)):+d}", "text_primary", "")
             _psr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
             _pf = (int(getattr(self, "_style_bubble_spacing", 0)) + 3) / 11
             for _i in range(_psr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_psr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_psr.x + _i * 4, _psr.y, 4, _psr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_psr.x + _i * 4, _psr.y, 4, _psr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _psr, 1)
             _hx = int(_psr.x + _pf * _psr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _psr.y - 3, 4, _psr.height + 6))
@@ -2281,14 +2418,12 @@ class WorkbenchScreen:
             self._bubble_sp_rect = _psr
             _y += 14
             # S3.17: межстрочный интервал пузырей
-            _row(f"Межстрочный: {int(getattr(self, '_style_bubble_leading', 0)):+d}",
-                 "text_primary", "")
+            _row(f"Межстрочный: {int(getattr(self, '_style_bubble_leading', 0)):+d}", "text_primary", "")
             _lsr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
             _lf = (int(getattr(self, "_style_bubble_leading", 0)) + 10) / 22
             for _i in range(_lsr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_lsr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_lsr.x + _i * 4, _lsr.y, 4, _lsr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_lsr.x + _i * 4, _lsr.y, 4, _lsr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _lsr, 1)
             _hx = int(_lsr.x + _lf * _lsr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _lsr.y - 3, 4, _lsr.height + 6))
@@ -2306,30 +2441,31 @@ class WorkbenchScreen:
                 _st = self.registry.state(_wid)
                 _v = _st != WindowState.HIDDEN
                 _txt = f"[{'X' if _on else ' '}] {'▲' if _v else '▾'} {_wm.title}"
-                screen.blit(_f.render(_txt, True,
-                                     self.theme.token("accent" if _v else "text_muted")),
-                            (_x, _y))
-                self._style_hits.append((pygame.Rect(_x - 4, _y - 2, 30, _lh),
-                                         "win_global_toggle", _wid))
-                self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh),
-                                         "win_toggle", _wid))
+                screen.blit(_f.render(_txt, True, self.theme.token("accent" if _v else "text_muted")), (_x, _y))
+                self._style_hits.append((pygame.Rect(_x - 4, _y - 2, 30, _lh), "win_global_toggle", _wid))
+                self._style_hits.append((pygame.Rect(panel.x + 4, _y - 2, _pw - 8, _lh), "win_toggle", _wid))
                 _y += _lh
             _y += 4
 
         # ── Секция: Шрифт и типографика (ПОСЛЕДНЯЯ — список шрифтов
         # занимает весь остаток панели до низа) ──
         if _sec_header("font", "Шрифт и типографика"):
-            _row(f"Роль: {'заголовок' if self._style_role == 'title' else 'текст'}   (клик — переключить)",
-                 "text_primary", "role")
+            _row(
+                f"Роль: {'заголовок' if self._style_role == 'title' else 'текст'}   (клик — переключить)",
+                "text_primary",
+                "role",
+            )
             _cur = _ov.get("font_file") or "consolas (системный)"
             _row(f"Шрифт: {_cur[:34]}", "text_primary", "font_cycle")
-            _row(f"Размер: {16 if self._style_role == 'title' else 14}{_ov.get('size_delta', 0):+d}  (клик +1 / Shift −1)",
-                 "text_primary", "size_cycle")
+            _row(
+                f"Размер: {16 if self._style_role == 'title' else 14}{_ov.get('size_delta', 0):+d}  (клик +1 / Shift −1)",
+                "text_primary",
+                "size_cycle",
+            )
             _row(f"Жирный: {'ДА' if _ov.get('bold') else 'нет'}", "text_primary", "bold")
             _row(f"Курсив: {'ДА' if _ov.get('italic') else 'нет'}", "text_primary", "italic")
             # S3.7: типографика (per-role) — читаемость текста без фона
-            _row(f"Обводка букв: {_ov.get('outline', 0)}   (клик +1 / Shift −1)",
-                 "text_primary", "outline")
+            _row(f"Обводка букв: {_ov.get('outline', 0)}   (клик +1 / Shift −1)", "text_primary", "outline")
             _row(f"Тень букв: {'ДА' if _ov.get('shadow') else 'нет'}", "text_primary", "shadow")
             # S3.14: свечение — дробный ползунок 0-1 (per-role)
             _row(f"Свечение: {float(_ov.get('glow', 0)):.2f}", "text_primary", "")
@@ -2337,26 +2473,22 @@ class WorkbenchScreen:
             _gf = max(0.0, min(1.0, float(_ov.get("glow", 0))))
             for _i in range(_gsr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_gsr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_gsr.x + _i * 4, _gsr.y, 4, _gsr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_gsr.x + _i * 4, _gsr.y, 4, _gsr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _gsr, 1)
             _hx = int(_gsr.x + _gf * _gsr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _gsr.y - 3, 4, _gsr.height + 6))
             self._style_hits.append((_gsr, "glow_slide", ""))
             self._glow_slider_rect = _gsr
             _y += 14
-            _row(f"Разрядка букв: {_ov.get('spacing', 0)}   (клик +1 / Shift −1)",
-                 "text_primary", "spacing")
-            _row(f"Подчёркивание: {'ДА' if _ov.get('underline') else 'нет'}",
-                 "text_primary", "underline")
+            _row(f"Разрядка букв: {_ov.get('spacing', 0)}   (клик +1 / Shift −1)", "text_primary", "spacing")
+            _row(f"Подчёркивание: {'ДА' if _ov.get('underline') else 'нет'}", "text_primary", "underline")
             # S3.14: живой ползунок размера аватара (клик/перетаскивание)
             _row(f"Размер аватара: {self._avatar_size()}", "text_primary", "")
             _asr = pygame.Rect(panel.x + 10, _y, _pw - 20, 10)
             _af = (self._avatar_size() - 24) / (96 - 24)
             for _i in range(_asr.width // 4 + 1):
                 _g8 = int(110 + (_i / (_asr.width // 4)) * 100)
-                pygame.draw.rect(screen, (_g8, _g8, _g8),
-                                 (_asr.x + _i * 4, _asr.y, 4, _asr.height))
+                pygame.draw.rect(screen, (_g8, _g8, _g8), (_asr.x + _i * 4, _asr.y, 4, _asr.height))
             pygame.draw.rect(screen, self.theme.token("border"), _asr, 1)
             _hx = int(_asr.x + _af * _asr.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, _asr.y - 3, 4, _asr.height + 6))
@@ -2371,11 +2503,11 @@ class WorkbenchScreen:
             _vis = int(self._style_font_area.height // _lh)
             _scroll = max(0, min(_scroll, max(0, len(_names) - _vis)))
             self._style_scroll = _scroll
-            for _nm in _names[_scroll:_scroll + _vis]:
+            for _nm in _names[_scroll : _scroll + _vis]:
                 _on = _nm == _ov.get("font_file", "")
                 _cyr = self._font_provider.supports_cyrillic(_nm)
                 _mark = "" if _cyr else "  [нет кириллицы]"
-                _col = ("accent" if _on else ("text_primary" if _cyr else "text_muted"))
+                _col = "accent" if _on else ("text_primary" if _cyr else "text_muted")
                 _row((_nm or "consolas (системный)") + _mark, _col, "pick", _nm)
             if len(_names) > _vis:
                 _row(f"(колесо мыши над списком — ещё {len(_names) - _vis})", "text_muted")
@@ -2395,9 +2527,11 @@ class WorkbenchScreen:
             # B2: глобальный режим = broadcast — правка пишется в каждое окно
             # с флагом [X]; обычный — только выбранному. Новое значение
             # считается от ЦЕЛИ и разносится одинаковым всем.
-            _wids = ([w for w in self.registry.all_ids()
-                      if getattr(self, "_style_window_global", {}).get(w, True)]
-                     if getattr(self, "_style_global", False) else [self._style_target])
+            _wids = (
+                [w for w in self.registry.all_ids() if getattr(self, "_style_window_global", {}).get(w, True)]
+                if getattr(self, "_style_global", False)
+                else [self._style_target]
+            )
             _ov = self._style_overrides.setdefault(self._style_target, {}).setdefault(self._style_role, {})
             if act == "section":
                 # S3.13: сворачивание/разворачивание секции панели
@@ -2422,8 +2556,7 @@ class WorkbenchScreen:
                 # Shift+клик = назад (до −10); клик = вперёд, на 20 — wrap
                 _mods = pygame.key.get_mods()
                 _cur = int(_ov.get("size_delta", 0))
-                _new = max(-10, _cur - 1) if (_mods & pygame.KMOD_SHIFT) \
-                    else (-6 if _cur >= 20 else _cur + 1)
+                _new = max(-10, _cur - 1) if (_mods & pygame.KMOD_SHIFT) else (-6 if _cur >= 20 else _cur + 1)
                 for _w in _wids:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["size_delta"] = _new
             elif act == "bold":
@@ -2436,8 +2569,7 @@ class WorkbenchScreen:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["italic"] = _new
             elif act == "outline":
                 _mods = pygame.key.get_mods()
-                _new = max(0, min(4, int(_ov.get("outline", 0))
-                                  + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+                _new = max(0, min(4, int(_ov.get("outline", 0)) + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
                 for _w in _wids:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["outline"] = _new
             elif act == "shadow":
@@ -2448,14 +2580,12 @@ class WorkbenchScreen:
                 _f = max(0.0, min(1.0, (pos[0] - rect.x) / max(1, rect.width)))
                 _new = round(_f * 100) / 100
                 for _w in _wids:
-                    self._style_overrides.setdefault(_w, {}).setdefault(
-                        self._style_role, {})["glow"] = _new
+                    self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["glow"] = _new
                 self._glow_slider_rect = rect
                 self._panel_slider_drag = "glow"
             elif act == "spacing":
                 _mods = pygame.key.get_mods()
-                _new = max(-4, min(8, int(_ov.get("spacing", 0))
-                                   + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+                _new = max(-4, min(8, int(_ov.get("spacing", 0)) + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
                 for _w in _wids:
                     self._style_overrides.setdefault(_w, {}).setdefault(self._style_role, {})["spacing"] = _new
             elif act == "underline":
@@ -2470,26 +2600,22 @@ class WorkbenchScreen:
                 self._panel_slider_drag = "avatar"
             elif act == "color_edit":
                 # S3.5: клик по цветовой строке = открыть HSV-пикер (ползунки)
-                _base = self._style_overrides.get(self._style_target, {}) \
-                    .get("_colors", {}).get(val)
+                _base = self._style_overrides.get(self._style_target, {}).get("_colors", {}).get(val)
                 if _base is None:
                     # dict.get(k, expr) вычисляет expr ВСЕГДА — даже когда
                     # ключ найден; fail-fast theme поднимал KeyError
                     _d = _TOKEN_DEFAULTS.get(val)
                     _base = list(_d) if _d is not None else list(self.theme.token(val))
-                h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0,
-                                              _base[2] / 255.0)
+                h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0, _base[2] / 255.0)
                 self._picker_hsv = [h, s, v]
-                _a = self._style_overrides.get(self._style_target, {}) \
-                    .get("_colors", {}).get(val + "_alpha")
+                _a = self._style_overrides.get(self._style_target, {}).get("_colors", {}).get(val + "_alpha")
                 self._picker_alpha = int(_a) if _a is not None else 255
                 self._picker_token = val
             elif act == "backdrop":
                 # S3.5: подложка — цвет + прозрачность в том же пикере
                 _c = self._style_overrides.get(self._style_target, {}).get("_colors", {})
                 _base = list(_c.get("backdrop_rgb", (10, 10, 18)))
-                h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0,
-                                              _base[2] / 255.0)
+                h, s, v = colorsys.rgb_to_hsv(_base[0] / 255.0, _base[1] / 255.0, _base[2] / 255.0)
                 self._picker_hsv = [h, s, v]
                 self._picker_alpha = int(_c.get("backdrop_alpha", 0))
                 self._picker_token = "backdrop"
@@ -2498,8 +2624,7 @@ class WorkbenchScreen:
                     self._style_overrides.pop(_w, None)
             elif act == "preset":
                 # S3.10: пресет/«Мой стиль» — полный набор _colors всем адресатам
-                _p = dict(_COLOR_PRESETS[val]) if val != "__my__" \
-                    else dict(getattr(self, "_my_style", {}))
+                _p = dict(_COLOR_PRESETS[val]) if val != "__my__" else dict(getattr(self, "_my_style", {}))
                 if not _p:
                     return True
                 for _w in _wids:
@@ -2508,25 +2633,30 @@ class WorkbenchScreen:
                 # S3.10: снимок ЭФФЕКТИВНЫХ цветов+альф цели (включая
                 # унаследованные из темы дефолты — восстановимо целиком)
                 _snap: dict = {}
-                for _tok in ("surface_panel", "surface_title", "border", "border_accent",
-                             "text_primary", "text_muted", "accent", "player_bubble",
-                             "player_name"):
-                    _snap[_tok] = list(self._ct(self._style_target, _tok,
-                                                _TOKEN_DEFAULTS.get(_tok)))
+                for _tok in (
+                    "surface_panel",
+                    "surface_title",
+                    "border",
+                    "border_accent",
+                    "text_primary",
+                    "text_muted",
+                    "accent",
+                    "player_bubble",
+                    "player_name",
+                ):
+                    _snap[_tok] = list(self._ct(self._style_target, _tok, _TOKEN_DEFAULTS.get(_tok)))
                 _snap["backdrop_rgb"] = list(self._backdrop_rgb(self._style_target))
                 _snap["backdrop_alpha"] = self._backdrop_alpha(self._style_target)
-                for _tok in ("surface_panel", "surface_title", "border",
-                             "border_accent", "player_bubble"):
-                    _a = self._style_overrides.get(self._style_target, {}) \
-                        .get("_colors", {}).get(_tok + "_alpha")
+                for _tok in ("surface_panel", "surface_title", "border", "border_accent", "player_bubble"):
+                    _a = self._style_overrides.get(self._style_target, {}).get("_colors", {}).get(_tok + "_alpha")
                     if _a is not None:
                         _snap[_tok + "_alpha"] = int(_a)
                 self._my_style = _snap
             elif act == "texture":
                 _mods = pygame.key.get_mods()
                 self._style_texture = max(
-                    -6, min(6, int(getattr(self, "_style_texture", 0))
-                            + (-1 if (_mods & pygame.KMOD_SHIFT) else 1)))
+                    -6, min(6, int(getattr(self, "_style_texture", 0)) + (-1 if (_mods & pygame.KMOD_SHIFT) else 1))
+                )
             elif act == "noise_seed":
                 # S3.14: новое зерно шума — уникальный узор
                 self._style_noise_seed = int(getattr(self, "_style_noise_seed", 0)) + 1
@@ -2560,8 +2690,11 @@ class WorkbenchScreen:
                     _vp = self._screen.get_rect()
                     _zone = self._zone(_vp)
                     self._free_rects[val] = (
-                        _zone.x + 20, _zone.y + int(_zone.height * 0.3),
-                        int(_zone.width * 0.34), int(_zone.height * 0.5))
+                        _zone.x + 20,
+                        _zone.y + int(_zone.height * 0.3),
+                        int(_zone.width * 0.34),
+                        int(_zone.height * 0.5),
+                    )
                 elif _st == WindowState.COLLAPSED_TO_TITLE:
                     self.registry.transition(val, WindowState.FULL)
                 else:
@@ -2583,8 +2716,7 @@ class WorkbenchScreen:
     def _style_targets(self) -> list:
         """B2: адресаты стилевой правки — broadcast ([X]-окна) или цель."""
         if getattr(self, "_style_global", False):
-            return [w for w in self.registry.all_ids()
-                    if getattr(self, "_style_window_global", {}).get(w, True)]
+            return [w for w in self.registry.all_ids() if getattr(self, "_style_window_global", {}).get(w, True)]
         return [self._style_target] if self._style_target else []
 
     def _picker_apply(self) -> None:
@@ -2606,8 +2738,7 @@ class WorkbenchScreen:
                 _c["backdrop_alpha"] = int(self._picker_alpha)
         else:
             # S3.6: альфа пишется только поверхностям — текст непрозрачен
-            _with_a = _tok not in ("text_primary", "text_muted", "accent", "player_name",
-                                   "noise_tint")
+            _with_a = _tok not in ("text_primary", "text_muted", "accent", "player_name", "noise_tint")
             for _w in self._style_targets():
                 _c = self._style_overrides.setdefault(_w, {}).setdefault("_colors", {})
                 _c[_tok] = _rgb
@@ -2674,15 +2805,15 @@ class WorkbenchScreen:
         self._picker_sliders = []
         h, s, v = self._picker_hsv
 
-        _title = "Подложка журнала: цвет + прозрачность" if _tok == "backdrop" \
-            else f"Цвет: {_TOKEN_RU.get(_tok, _tok)}"
-        screen.blit(_f.render(_title[:36], True, self.theme.token("text_primary")),
-                    (panel.x + 10, panel.y + 8))
+        _title = "Подложка журнала: цвет + прозрачность" if _tok == "backdrop" else f"Цвет: {_TOKEN_RU.get(_tok, _tok)}"
+        screen.blit(_f.render(_title[:36], True, self.theme.token("text_primary")), (panel.x + 10, panel.y + 8))
         # Превью «стало» — живой текущий цвет
         r, g, b = colorsys.hsv_to_rgb(h, s, v)
-        pygame.draw.rect(screen, (int(round(r * 255)), int(round(g * 255)),
-                                  int(round(b * 255))),
-                         (panel.x + 10, panel.y + 28, _w - 20, 18))
+        pygame.draw.rect(
+            screen,
+            (int(round(r * 255)), int(round(g * 255)), int(round(b * 255))),
+            (panel.x + 10, panel.y + 28, _w - 20, 18),
+        )
 
         def _bar(kind: str, label: str, frac: float, y: int) -> None:
             bar = pygame.Rect(panel.x + 10, y, _w - 20, 14)
@@ -2697,16 +2828,16 @@ class WorkbenchScreen:
                     rr, gg, bb = colorsys.hsv_to_rgb(h, s, _fr)
                 else:  # a: шкала непрозрачности 0-1 (единый масштаб с rr/gg/bb)
                     rr = gg = bb = _fr
-                pygame.draw.rect(screen, (min(255, int(rr * 255)),
-                                          min(255, int(gg * 255)),
-                                          min(255, int(bb * 255))),
-                                 (bar.x + i * 4, bar.y, 4, bar.height))
+                pygame.draw.rect(
+                    screen,
+                    (min(255, int(rr * 255)), min(255, int(gg * 255)), min(255, int(bb * 255))),
+                    (bar.x + i * 4, bar.y, 4, bar.height),
+                )
             pygame.draw.rect(screen, self.theme.token("border"), bar, 1)
             _hx = int(bar.x + max(0.0, min(1.0, frac)) * bar.width)
             pygame.draw.rect(screen, (255, 255, 255), (_hx - 2, bar.y - 3, 4, bar.height + 6))
             pygame.draw.rect(screen, (0, 0, 0), (_hx - 2, bar.y - 3, 4, bar.height + 6), 1)
-            screen.blit(_f.render(label, True, self.theme.token("text_muted")),
-                        (panel.x + 10, y - 15))
+            screen.blit(_f.render(label, True, self.theme.token("text_muted")), (panel.x + 10, y - 15))
             self._picker_sliders.append((bar, kind))
 
         _y = panel.y + 66
@@ -2715,12 +2846,10 @@ class WorkbenchScreen:
         _bar("s", "Насыщенность", s, _y)
         _y += 34
         _bar("v", "Яркость", v, _y)
-        if _tok not in ("text_primary", "text_muted", "accent", "player_name",
-                        "noise_tint"):
+        if _tok not in ("text_primary", "text_muted", "accent", "player_name", "noise_tint"):
             # S3.6: прозрачность поверхностей (рамки/фоны/подложка)
             _y += 34
-            _bar("a", f"Прозрачность: {int(self._picker_alpha)}",
-                 self._picker_alpha / 255.0, _y)
+            _bar("a", f"Прозрачность: {int(self._picker_alpha)}", self._picker_alpha / 255.0, _y)
 
     def _draw_tabs(self, screen, body: pygame.Rect, wid: str) -> None:
         """Полоса вкладок под заголовком. Активная — акцентом, хитбоксы — в
@@ -2740,8 +2869,7 @@ class WorkbenchScreen:
                 # S3.14-фикс: линия под ФАКТИЧЕСКОЙ высотой метки — эффекты
                 # прокси растят surface, фиксированная y+22 прорезала буквы
                 _uy = y + 3 + surf.get_height() + 1
-                pygame.draw.line(screen, self._ct(wid, "accent"),
-                                 (x, _uy), (x + hit.width, _uy), 2)
+                pygame.draw.line(screen, self._ct(wid, "accent"), (x, _uy), (x + hit.width, _uy), 2)
             self._tab_rects[wid].append((hit, tab_id))
             x += hit.width + 8
 
@@ -2750,16 +2878,15 @@ class WorkbenchScreen:
         восприятия — эпистемически честна). Вкладки НЕ пересекаются:
         dialog = direct + self (беседа), npc = overheard, narrator = narrative.
         game_context → backend (уже с именами); editor → демо."""
-        entries = (getattr(self._core, "_dialog_journal_backend", [])
-                   if self.game_context else self._demo_journal) or []
+        entries = (
+            getattr(self._core, "_dialog_journal_backend", []) if self.game_context else self._demo_journal
+        ) or []
         if tab == "dialog":
             # Interim (DEBT-JOURNAL-CHANNEL): backend-эхо player-реплик
             # приходит с channel=overheard и сырым speaker="player" —
             # это заведомо self-реплики игрока (эпистемически честно:
             # игрок знает свои слова). Правильный канал починит backend.
-            base = [e for e in entries
-                    if e.get("channel") in ("direct", "self")
-                    or e.get("speaker") == "player"]
+            base = [e for e in entries if e.get("channel") in ("direct", "self") or e.get("speaker") == "player"]
             base = [{**e, "channel": "self"} if e.get("speaker") == "player" else e for e in base]
             # Диалог-А: peer-фильтр. Self-реплика прикрепляется к последнему
             # direct-спикеру (frontend-эвристика v1; DEBT-JOURNAL-PEER: честный
@@ -2787,6 +2914,7 @@ class WorkbenchScreen:
         if self._casting_repo_wb is None:
             try:
                 from visual_casting_repository import VisualCastingRepository
+
                 self._casting_repo_wb = VisualCastingRepository()
             except Exception as _e:
                 print(f"[AVATAR_CASTING] failed: {_e}")  # наблюдаемо, не тихо
@@ -2808,7 +2936,7 @@ class WorkbenchScreen:
                     _id = _d.get("id")
                     if not _id:
                         continue
-                    for _nm in ({_d.get("name", "") or "", *_d.get("name_forms", [])}):
+                    for _nm in {_d.get("name", "") or "", *_d.get("name_forms", [])}:
                         if _nm:
                             _m.setdefault(_nm.strip().lower(), _id)
             self._portrait_name_map = _m
@@ -2837,12 +2965,17 @@ class WorkbenchScreen:
             if _asset and _asset[0]:
                 try:
                     from sprite_registry import sprite_registry as _sr
+
                     if len(_asset) >= 5:
                         _src = _sr.get_rect(
-                            _asset[0], int(_asset[1]), int(_asset[2]),
-                            int(_asset[3]), int(_asset[4]),
+                            _asset[0],
+                            int(_asset[1]),
+                            int(_asset[2]),
+                            int(_asset[3]),
+                            int(_asset[4]),
                             int(_asset[5]) if len(_asset) > 5 else 220,
-                            int(_asset[6]) if len(_asset) > 6 else 1)
+                            int(_asset[6]) if len(_asset) > 6 else 1,
+                        )
                     else:
                         _src = _sr.get(_asset[0], _asset[1], _asset[2])
                     if _src:
@@ -2850,8 +2983,7 @@ class WorkbenchScreen:
                         # полный арт в 40px — нечитаемая каша (урок S3.12)
                         sw, sh = _src.get_size()
                         _side = min(sw, sh)
-                        _sub = _src.subsurface(
-                            pygame.Rect((sw - _side) // 2, 0, _side, _side))
+                        _sub = _src.subsurface(pygame.Rect((sw - _side) // 2, 0, _side, _side))
                         _surf = pygame.transform.smoothscale(_sub, (_sz, _sz))
                 except ImportError as _e:
                     print(f"[AVATAR_SPRITES] sprite_registry не найден: {_e}")
@@ -2860,25 +2992,21 @@ class WorkbenchScreen:
         self._avatar_cache[_key] = _surf
         return _surf
 
-    def _draw_avatar(self, screen, speaker: str, x: int, y: int, size: int,
-                     ring_color) -> None:
+    def _draw_avatar(self, screen, speaker: str, x: int, y: int, size: int, ring_color) -> None:
         """S3.11/S3.12: аватар журнала (Discord-стиль). Приоритет — фото NPC
         из visual_casting (круговой кроп), фоллбэк — круг с инициалом.
         Кольцо — из палитры (цвет канала/рамки)."""
         _ph = self._journal_portrait(speaker)
         _avs = pygame.Surface((size, size), pygame.SRCALPHA)
         if _ph is not None:
-            _avs.blit(_ph, ((size - _ph.get_width()) // 2,
-                            (size - _ph.get_height()) // 2))
+            _avs.blit(_ph, ((size - _ph.get_width()) // 2, (size - _ph.get_height()) // 2))
             _mask = pygame.Surface((size, size), pygame.SRCALPHA)
-            pygame.draw.circle(_mask, (255, 255, 255, 255),
-                               (size // 2, size // 2), size // 2 - 2)
+            pygame.draw.circle(_mask, (255, 255, 255, 255), (size // 2, size // 2), size // 2 - 2)
             _avs.blit(_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
         else:
             _h = (sum(ord(c) for c in (speaker or "?")) % 360) / 360.0
             r, g, b = colorsys.hsv_to_rgb(_h, 0.45, 0.72)
-            pygame.draw.circle(_avs, (int(r * 255), int(g * 255), int(b * 255)),
-                               (size // 2, size // 2), size // 2 - 2)
+            pygame.draw.circle(_avs, (int(r * 255), int(g * 255), int(b * 255)), (size // 2, size // 2), size // 2 - 2)
             # Идея-6: инициал наследует гарнитуру стиля журнала (font_file/
             # bold/italic из text-оверрайдов; FontProvider сам кэширует и
             # фолбэчится на consolas при пустом файле — встроенные шрифты
@@ -2888,15 +3016,14 @@ class WorkbenchScreen:
             # невидим на светлых палитрах автора).
             _ovt = self._ov("text")
             _f = self._font_provider.get(
-                "text", _ovt.get("font_file", ""),
+                "text",
+                _ovt.get("font_file", ""),
                 max(9, size - 10) - 14,  # 14 = база text-роли (fonts.py)
                 bool(_ovt.get("bold", False)),
-                bool(_ovt.get("italic", False)))
-            _ini = _f.render(
-                (speaker or "?")[:1].upper(), True,
-                self._ct(self._render_wid, "text_primary"))
-            _avs.blit(_ini, ((size - _ini.get_width()) // 2,
-                             (size - _ini.get_height()) // 2))
+                bool(_ovt.get("italic", False)),
+            )
+            _ini = _f.render((speaker or "?")[:1].upper(), True, self._ct(self._render_wid, "text_primary"))
+            _avs.blit(_ini, ((size - _ini.get_width()) // 2, (size - _ini.get_height()) // 2))
         pygame.draw.circle(_avs, ring_color, (size // 2, size // 2), size // 2 - 2, 2)
         screen.blit(_avs, (x, y))
 
@@ -2934,7 +3061,7 @@ class WorkbenchScreen:
                     _col = theme.token("accent") if _on else theme.token("text_muted")
                     _s = self._font_text.render(_lbl, True, _col)
                     if _cx + _s.get_width() + 10 > body.right - 8:
-                        _cx = body.x + 8        # перенос строки чипов
+                        _cx = body.x + 8  # перенос строки чипов
                         _cy += _chips_h
                         _rows += 1
                     _hit = pygame.Rect(_cx, _cy, _s.get_width() + 10, _chips_h - 4)
@@ -3039,10 +3166,10 @@ class WorkbenchScreen:
                 # S3.9: имя игрока — отдельный токен «Имя игрока» (был
                 # сцеплен с border_accent: затемнение рамки чернило имя)
                 name_s = self._font_text.render(
-                    speaker, True, self._ct(wid, "player_name", _TOKEN_DEFAULTS["player_name"]))
+                    speaker, True, self._ct(wid, "player_name", _TOKEN_DEFAULTS["player_name"])
+                )
                 screen.blit(name_s, (bx + 8, y + 2))
-                self._draw_avatar(screen, speaker, body.right - _av - 10, y + 2,
-                                  _av, self._ct(wid, "border_accent"))
+                self._draw_avatar(screen, speaker, body.right - _av - 10, y + 2, _av, self._ct(wid, "border_accent"))
                 ty = y + name_s.get_height() + 6
                 for line in lines:
                     ts = self._font_text.render(line, True, theme.token("text_primary"))
@@ -3050,8 +3177,7 @@ class WorkbenchScreen:
                     ty += lh
             elif ch == "narrative":
                 # Нарратив мира: без пузыря, левая акцент-линия, приглушённый
-                pygame.draw.line(screen, theme.token("border_accent"),
-                                 (body.x + 5, y + 2), (body.x + 5, y + h - 6), 3)
+                pygame.draw.line(screen, theme.token("border_accent"), (body.x + 5, y + 2), (body.x + 5, y + h - 6), 3)
                 ty = y + 4
                 for line in lines:
                     ts = self._font_text.render(line, True, theme.token("text_muted"))
@@ -3079,20 +3205,16 @@ class WorkbenchScreen:
                 # A1: маркер «+» — «положить на Доску». Только при открытой
                 # Доске ∧ непустом event_id (ADR-O-404: narrative/self не
                 # адресуются — маркер им не положен, граница видима).
-                if (ev_id
-                        and self.registry.state("board") == WindowState.FULL):
-                    _plus = self._font_text.render("+", True,
-                                                   theme.token("accent"))
-                    screen.blit(_plus, (bubble.right - _plus.get_width() - 6,
-                                        y + 1))
+                if ev_id and self.registry.state("board") == WindowState.FULL:
+                    _plus = self._font_text.render("+", True, theme.token("accent"))
+                    screen.blit(_plus, (bubble.right - _plus.get_width() - 6, y + 1))
                 ty = y + mark_s.get_height() + 3
                 for line in lines:
                     ts = self._font_text.render(line, True, theme.token("text_primary"))
                     screen.blit(ts, (bubble.x + 10, ty))
                     ty += lh
             # A1: hit-зона записи — пузырь либо полный блок narrative
-            _hit_r = (pygame.Rect(body.x + 4, y, body.width - 8, h)
-                      if ch == "narrative" else bubble)
+            _hit_r = pygame.Rect(body.x + 4, y, body.width - 8, h) if ch == "narrative" else bubble
             self._journal_entry_rects[wid or "__all__"].append((_hit_r, ev_id))
             y += h + 6
 
@@ -3109,17 +3231,21 @@ class WorkbenchScreen:
         # «▲ к началу» доступна ВСЕГДА, пока есть история (k_max > 0):
         # раньше при hidden_bottom=0 (мы у новых сообщений) стрелок не было
         if hidden_bottom > 0 or _k_max > 0:
-            hint = self._font_text.render("▲ к началу", True,
-                                          theme.token("accent" if _hov_up else "text_muted"))
-            up_rect = pygame.Rect(body.right - hint.get_width() - 12, body.y + 2,
-                                  hint.get_width() + 8, hint.get_height() + 4)
+            hint = self._font_text.render("▲ к началу", True, theme.token("accent" if _hov_up else "text_muted"))
+            up_rect = pygame.Rect(
+                body.right - hint.get_width() - 12, body.y + 2, hint.get_width() + 8, hint.get_height() + 4
+            )
             screen.blit(hint, (up_rect.x + 4, body.y + 4))
             if hidden_bottom > 0:
-                back = self._font_text.render("▼ к последним", True,
-                                              theme.token("text_primary" if _hov_dn else "accent"))
-                down_rect = pygame.Rect(body.right - back.get_width() - 12,
-                                        body.bottom - back.get_height() - 6,
-                                        back.get_width() + 8, back.get_height() + 4)
+                back = self._font_text.render(
+                    "▼ к последним", True, theme.token("text_primary" if _hov_dn else "accent")
+                )
+                down_rect = pygame.Rect(
+                    body.right - back.get_width() - 12,
+                    body.bottom - back.get_height() - 6,
+                    back.get_width() + 8,
+                    back.get_height() + 4,
+                )
                 screen.blit(back, (down_rect.x + 4, down_rect.y + 2))
         self._scroll_hint_rects[key] = (up_rect, down_rect)
         # A3: hover по неадресуемой записи при открытой Доске — граница
@@ -3127,21 +3253,16 @@ class WorkbenchScreen:
         # карточками быть не могут — выдумывать identity запрещено).
         if self.registry.state("board") == WindowState.FULL:
             _mp = pygame.mouse.get_pos()
-            for _hit, _ev in self._journal_entry_rects.get(
-                    wid or "__all__", []):
+            for _hit, _ev in self._journal_entry_rects.get(wid or "__all__", []):
                 if not _ev and _hit.collidepoint(_mp):
                     _msg = "нельзя адресовать — запись не привязана к событию"
-                    _ms = self._font_text.render(
-                        _msg, True, theme.token("text_primary"))
+                    _ms = self._font_text.render(_msg, True, theme.token("text_primary"))
                     _mw = _ms.get_width() + 12
                     _mrect = pygame.Rect(
-                        min(_mp[0] + 12, body.right - _mw - 4),
-                        min(_mp[1] + 12, body.bottom - 30),
-                        _mw, 26)
-                    pygame.draw.rect(screen, theme.token("surface_title"),
-                                     _mrect, border_radius=4)
-                    pygame.draw.rect(screen, theme.token("border"),
-                                     _mrect, 1, border_radius=4)
+                        min(_mp[0] + 12, body.right - _mw - 4), min(_mp[1] + 12, body.bottom - 30), _mw, 26
+                    )
+                    pygame.draw.rect(screen, theme.token("surface_title"), _mrect, border_radius=4)
+                    pygame.draw.rect(screen, theme.token("border"), _mrect, 1, border_radius=4)
                     screen.blit(_ms, (_mrect.x + 6, _mrect.y + 5))
                     break
 

@@ -12,6 +12,7 @@
 Не тестирует: LLM-вывод (недетерминированный), материализацию TRAIT_SEED в
 NPCState (системный долг, отдельная задача).
 """
+
 from __future__ import annotations
 
 import json
@@ -110,17 +111,17 @@ def test_qualifiers_only_preserved_in_both_traits(tmp_path):
         npc_ref=_NPC,
         entries=(
             _make_trait_entry(
-                200, "увлечён работой",
+                200,
+                "увлечён работой",
                 "Увлечён по-настоящему только своей работой",
                 qualifiers=["только"],
             ),
             _make_trait_entry(
-                201, "увлечён выпивкой",
+                201,
+                "увлечён выпивкой",
                 "и выпивкой",
                 qualifiers=["только"],
-                provenance_extra={
-                    "qualifier_basis": "Увлечён по-настоящему только своей работой и выпивкой"
-                },
+                provenance_extra={"qualifier_basis": "Увлечён по-настоящему только своей работой и выпивкой"},
             ),
         ),
         canonical=True,
@@ -142,9 +143,7 @@ def test_qualifiers_only_preserved_in_both_traits(tmp_path):
     # Второй имеет _provenance.qualifier_basis (основание qualifier'а)
     second = traits[1]
     prov = second.payload.get("_provenance", {})
-    assert "qualifier_basis" in prov, (
-        "второй элемент перечисления должен иметь _provenance.qualifier_basis"
-    )
+    assert "qualifier_basis" in prov, "второй элемент перечисления должен иметь _provenance.qualifier_basis"
     assert "только" in prov["qualifier_basis"]
 
 
@@ -155,7 +154,8 @@ def test_qualifier_exclusively_supported(tmp_path):
         npc_ref=_NPC,
         entries=(
             _make_trait_entry(
-                200, "сосредоточен на работе",
+                200,
+                "сосредоточен на работе",
                 "Исключительно на работе",
                 qualifiers=["исключительно"],
             ),
@@ -206,12 +206,16 @@ def test_mixed_qualifiers_and_no_qualifiers_in_same_doc(tmp_path):
         npc_ref=_NPC,
         entries=(
             _make_trait_entry(
-                200, "увлечён работой", "только работой",
+                200,
+                "увлечён работой",
+                "только работой",
                 qualifiers=["только"],
             ),
             _make_trait_entry(201, "упрямый", "Орм упрям"),  # без qualifiers
             _make_trait_entry(
-                202, "увлечён выпивкой", "и выпивкой",
+                202,
+                "увлечён выпивкой",
+                "и выпивкой",
                 qualifiers=["только"],
             ),
         ),
@@ -240,7 +244,7 @@ def test_unsupported_qualifiers_preserved_but_not_contractual(tmp_path):
     но если LLM их проставит — payload сохранит (Dict[str, Any] не валидирует
     содержимое qualifiers). Тест фиксирует: нормализатор/сериализация НЕ
     rejected, но контракт поддерживает только «только»/«исключительно».
-    
+
     Это не запрет на другие значения — это явное указание, что семантика
     других qualifiers не определена контрактом Point 2.
     """
@@ -249,7 +253,9 @@ def test_unsupported_qualifiers_preserved_but_not_contractual(tmp_path):
         npc_ref=_NPC,
         entries=(
             _make_trait_entry(
-                200, "старательный", "особенно старательный",
+                200,
+                "старательный",
+                "особенно старательный",
                 qualifiers=["особенно"],
             ),
         ),
@@ -277,11 +283,15 @@ def test_qualifiers_do_not_leak_to_unrelated_traits(tmp_path):
         entries=(
             # Пункт 2: перечисление с «только»
             _make_trait_entry(
-                200, "увлечён работой", "только работой",
+                200,
+                "увлечён работой",
+                "только работой",
                 qualifiers=["только"],
             ),
             _make_trait_entry(
-                201, "увлечён выпивкой", "и выпивкой",
+                201,
+                "увлечён выпивкой",
+                "и выпивкой",
                 qualifiers=["только"],
             ),
             # Пункт 3: несвязанный trait из другого пункта — БЕЗ qualifiers
@@ -300,6 +310,4 @@ def test_qualifiers_do_not_leak_to_unrelated_traits(tmp_path):
     assert traits[0].payload.get("qualifiers") == ["только"]
     assert traits[1].payload.get("qualifiers") == ["только"]
     # ord=300: qualifiers ОТСУТСТВУЕТ (несвязанный trait)
-    assert "qualifiers" not in traits[2].payload, (
-        "qualifiers из перечисления не должен утекать в несвязанные traits"
-    )
+    assert "qualifiers" not in traits[2].payload, "qualifiers из перечисления не должен утекать в несвязанные traits"

@@ -222,7 +222,10 @@ class TestUpdateRoutine:
                 "current": "working",
                 "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
             },
-            "psyche": {"stress": 0, "life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
+            "psyche": {
+                "stress": 0,
+                "life_project": "wealth_creator",
+            },  # P7-FIX: Без этого life_project=survival, и working заменяется на resting
             # ADR-049: Явная инициализация когнитивного слоя для детерминизма
             "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
             "activity_map": {
@@ -255,12 +258,15 @@ class TestUpdateRoutine:
         npc = {
             "id": "tavern_keeper_tornin",
             "location_id": "inn_rooms",
-            "position": "bed", # P7-FIX: Явная позиция для LifeEngine
+            "position": "bed",  # P7-FIX: Явная позиция для LifeEngine
             "routine": {
                 "current": "sleeping",
                 "schedule": {"06:00-22:00": "working", "22:00-06:00": "sleeping"},
             },
-            "psyche": {"stress": 0, "life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
+            "psyche": {
+                "stress": 0,
+                "life_project": "wealth_creator",
+            },  # P7-FIX: Без этого life_project=survival, и working заменяется на resting
             # ADR-049: Явная инициализация когнитивного слоя для детерминизма
             "perceptual_kernel": {"threat_gradient": 0.0, "uncertainty": 0.0, "anomaly_score": 0.0},
             "activity_map": {
@@ -326,7 +332,10 @@ class TestRecoverStress:
         npc = {
             "id": "test_npc",
             "routine": {"current": "working"},
-            "psyche": {"stress": 0, "life_project": "wealth_creator"}, # P7-FIX: Без этого life_project=survival, и working заменяется на resting
+            "psyche": {
+                "stress": 0,
+                "life_project": "wealth_creator",
+            },  # P7-FIX: Без этого life_project=survival, и working заменяется на resting
         }
         engine.recover_stress_tick(npc)
         assert npc["psyche"]["stress"] == 0

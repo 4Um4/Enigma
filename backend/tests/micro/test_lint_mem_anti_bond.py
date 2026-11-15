@@ -3,6 +3,7 @@
 All 42 test cases T01–T42.
 T17/T18 expect [] (no WARN) per decision A.
 """
+
 import sys
 from pathlib import Path
 
@@ -33,10 +34,19 @@ def _warn(result: list[str]) -> list[str]:
 # ============================================================
 # Class A — direct bond (CRIT)
 # ============================================================
-@pytest.mark.parametrize("store_name", [
-    "MemoryStore", "BeliefStore", "NarrativeStore", "BiographyStore",
-    "EpisodicMemoryStore", "PlayerBeliefStore", "NpcRelationshipStore", "MemoryCrystalStore",
-])
+@pytest.mark.parametrize(
+    "store_name",
+    [
+        "MemoryStore",
+        "BeliefStore",
+        "NarrativeStore",
+        "BiographyStore",
+        "EpisodicMemoryStore",
+        "PlayerBeliefStore",
+        "NpcRelationshipStore",
+        "MemoryCrystalStore",
+    ],
+)
 def test_t01_t08_class_a_direct_bond_crit(tmp_path, store_name):
     _write(tmp_path, "m.py", f"class {store_name}:\n    pass\n")
     r = run_lint(root=tmp_path)
@@ -46,9 +56,15 @@ def test_t01_t08_class_a_direct_bond_crit(tmp_path, store_name):
 # ============================================================
 # Class B — indirect (WARN)
 # ============================================================
-@pytest.mark.parametrize("store_name", [
-    "CacheStore", "ConfigStore", "SessionStore", "KitchenStore",
-])
+@pytest.mark.parametrize(
+    "store_name",
+    [
+        "CacheStore",
+        "ConfigStore",
+        "SessionStore",
+        "KitchenStore",
+    ],
+)
 def test_t09_t12_class_b_indirect_warn(tmp_path, store_name):
     _write(tmp_path, "m.py", f"class {store_name}:\n    pass\n")
     r = run_lint(root=tmp_path)
@@ -58,12 +74,15 @@ def test_t09_t12_class_b_indirect_warn(tmp_path, store_name):
 # ============================================================
 # Class C — dynamic registration
 # ============================================================
-@pytest.mark.parametrize("stmt", [
-    'setattr(module, "BeliefStore", cls)\n',
-    'module.__setattr__("BeliefStore", cls)\n',
-    '__setattr__(module, "BeliefStore", cls)\n',
-    'MemoryStore = type("MemoryStore", (BaseStore,), {})\n',
-])
+@pytest.mark.parametrize(
+    "stmt",
+    [
+        'setattr(module, "BeliefStore", cls)\n',
+        'module.__setattr__("BeliefStore", cls)\n',
+        '__setattr__(module, "BeliefStore", cls)\n',
+        'MemoryStore = type("MemoryStore", (BaseStore,), {})\n',
+    ],
+)
 def test_t13_t16_class_c_literal_crit(tmp_path, stmt):
     _write(tmp_path, "m.py", stmt)
     r = run_lint(root=tmp_path)
@@ -71,13 +90,13 @@ def test_t13_t16_class_c_literal_crit(tmp_path, stmt):
 
 
 def test_t17_class_c_non_literal_setattr_empty(tmp_path):
-    _write(tmp_path, "m.py", 'name = get_name()\nsetattr(module, name, cls)\n')
+    _write(tmp_path, "m.py", "name = get_name()\nsetattr(module, name, cls)\n")
     r = run_lint(root=tmp_path)
     assert r == [], f"non-literal setattr must be [] (no WARN): {r}"
 
 
 def test_t18_class_c_non_literal_type_empty(tmp_path):
-    _write(tmp_path, "m.py", 'name = get_name()\ntype(name, (BaseStore,), {})\n')
+    _write(tmp_path, "m.py", "name = get_name()\ntype(name, (BaseStore,), {})\n")
     r = run_lint(root=tmp_path)
     assert r == [], f"non-literal type() must be [] (no WARN): {r}"
 
@@ -97,70 +116,67 @@ def test_t19_t21_not_a_store_ignored(tmp_path, cls):
 # ============================================================
 def test_t22_allowlist_exact_match_passes(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "approved",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert r == [], f"exact allowlist match must pass: {r}"
 
 
 def test_t23_allowlist_missing_adr_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "rationale": "test"
-    }}
+    allow = {("m.py", "MemoryStore"): {"role": "memory_backend_primary", "status": "approved", "rationale": "test"}}
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"missing adr must CRIT: {r}"
 
 
 def test_t24_allowlist_legacy_missing_hist_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "legacy_baseline",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {"role": "memory_backend_primary", "status": "legacy_baseline", "rationale": "test"}
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"missing historical_basis must CRIT: {r}"
 
 
 def test_t25_allowlist_invalid_status_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "bogus",
-        "rationale": "test",
-        "adr": "ADR-O-TEST"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "bogus",
+            "rationale": "test",
+            "adr": "ADR-O-TEST",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"invalid status must CRIT: {r}"
 
 
 def test_t26_allowlist_orphan_crit(tmp_path):
     _write(tmp_path, "m.py", "class OtherStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "approved",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ORPHAN" in v for v in _crit(r)), f"orphan must CRIT: {r}"
 
 
 def test_t27_allowlist_invalid_role_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "bogus_role",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {"role": "bogus_role", "status": "approved", "adr": "ADR-O-TEST", "rationale": "test"}
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"invalid role must CRIT: {r}"
 
@@ -168,12 +184,14 @@ def test_t27_allowlist_invalid_role_crit(tmp_path):
 # T33-T36 (legacy/approved constraints)
 def test_t33_legacy_for_new_key_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "legacy_baseline",
-        "historical_basis": "new key",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "legacy_baseline",
+            "historical_basis": "new key",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"legacy for non-baseline must CRIT: {r}"
 
@@ -183,12 +201,7 @@ def test_t34_approved_on_legacy_crit(tmp_path, monkeypatch):
     key = ("services/memory/sqlite_store.py", "SqliteMemoryStore")
     _write(tmp_path, "m.py", f"class {key[1]}:\n    pass\n")
     # allowlist includes approved status for legacy key
-    allow = {key: {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {key: {"role": "memory_backend_primary", "status": "approved", "adr": "ADR-O-TEST", "rationale": "test"}}
     # Need to monkeypatch LEGACY_BASELINE_KEYS? No, key is in real LEGACY_BASELINE_KEYS,
     # so approved on legacy triggers ALLOWLIST_MALFORMED (B5.3).
     r = run_lint(root=tmp_path, allowlist=allow)
@@ -197,13 +210,15 @@ def test_t34_approved_on_legacy_crit(tmp_path, monkeypatch):
 
 def test_t35_approved_with_both_adr_and_hist_crit(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStore:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "historical_basis": "also present",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "approved",
+            "adr": "ADR-O-TEST",
+            "historical_basis": "also present",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"both adr+hist must CRIT: {r}"
 
@@ -212,12 +227,9 @@ def test_t36_legacy_with_adr_crit(tmp_path):
     # Use a real legacy key to pass first check
     key = ("services/memory/sqlite_store.py", "SqliteMemoryStore")
     _write(tmp_path, "m.py", f"class {key[1]}:\n    pass\n")
-    allow = {key: {
-        "role": "memory_backend_primary",
-        "status": "legacy_baseline",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        key: {"role": "memory_backend_primary", "status": "legacy_baseline", "adr": "ADR-O-TEST", "rationale": "test"}
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), f"legacy with adr must CRIT: {r}"
 
@@ -303,12 +315,14 @@ def test_t37_legacy_baseline_frozen_keys():
 # ============================================================
 def test_t38_orphan_memorystoreextra(tmp_path):
     _write(tmp_path, "m.py", "class MemoryStoreExtra:\n    pass\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "approved",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ORPHAN" in v for v in _crit(r)), f"MemoryStoreExtra must not satisfy MemoryStore: {r}"
 
@@ -316,12 +330,14 @@ def test_t38_orphan_memorystoreextra(tmp_path):
 def test_t39_orphan_comment_or_docstring(tmp_path):
     # comment
     _write(tmp_path, "m.py", "# class MemoryStore\n")
-    allow = {("m.py", "MemoryStore"): {
-        "role": "memory_backend_primary",
-        "status": "approved",
-        "adr": "ADR-O-TEST",
-        "rationale": "test"
-    }}
+    allow = {
+        ("m.py", "MemoryStore"): {
+            "role": "memory_backend_primary",
+            "status": "approved",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ORPHAN" in v for v in _crit(r)), f"comment must not satisfy: {r}"
     # docstring

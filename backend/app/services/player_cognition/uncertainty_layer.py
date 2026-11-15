@@ -62,9 +62,7 @@ def apply_uncertainty(entities: List[PerceivedEntity]) -> None:
 
         # Взвешенная сумма
         raw_confidence = (
-            clarity * _CLARITY_WEIGHT
-            + recognition * _RECOGNITION_WEIGHT
-            + memory * _MEMORY_WEIGHT
+            clarity * _CLARITY_WEIGHT + recognition * _RECOGNITION_WEIGHT + memory * _MEMORY_WEIGHT
         ) * distortion_factor
 
         # Audio-only — базовая неопределённость

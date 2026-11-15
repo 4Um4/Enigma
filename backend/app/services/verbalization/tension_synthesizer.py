@@ -11,6 +11,7 @@ ST и NE передаются как скаляры через параметр�
 
 
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -54,9 +55,7 @@ class TensionSynthesizer:
     GAMMA = 0.2  # NE: восприятие (шум)
 
     # Пороги
-    ST_ANCHOR_THRESHOLD = (
-        0.6  # Инвариант 1: ST выше этого → composite не может быть низким
-    )
+    ST_ANCHOR_THRESHOLD = 0.6  # Инвариант 1: ST выше этого → composite не может быть низким
     ST_ANCHOR_MIN_COMPOSITE = 0.3
     NE_CAP_WITHOUT_SUPPORT = 0.4  # Инвариант 2: потолок NE без ST/ET
 
@@ -87,15 +86,8 @@ class TensionSynthesizer:
         # --- Ось 2: Event Tension (производная) ---
         ET = 0.0
         if decisions:
-
-            raw_stress = sum(
-                abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta)
-                for d in decisions
-            )
-            raw_fear = sum(
-                abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta)
-                for d in decisions
-            )
+            raw_stress = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).stress_delta) for d in decisions)
+            raw_fear = sum(abs(LegacyStateDeltaAdapter.collapse(d.deltas).fear_delta) for d in decisions)
             ET = min(1.0, (raw_stress + raw_fear) / 0.5)
 
         # --- Ось 3: Narrative Entropy (шум восприятия) ---

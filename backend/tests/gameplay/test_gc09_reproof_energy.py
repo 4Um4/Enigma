@@ -23,10 +23,15 @@ _RAZOR_MARGIN_NOTE = (
 
 
 def run() -> None:
-    _res = run_probe(ProbeSpec(
-        field="body_state.energy", npc_id=_NPC, injection=-90.0,
-        write_kind="PHYSIOLOGY", horizon=6,
-    ))
+    _res = run_probe(
+        ProbeSpec(
+            field="body_state.energy",
+            npc_id=_NPC,
+            injection=-90.0,
+            write_kind="PHYSIOLOGY",
+            horizon=6,
+        )
+    )
     print(f"RE-PROOF energy → verdict={_res.verdict}")
     print(f"  checkpoints={_res.checkpoints}")
     print(f"  score_diffs: {len(_res.score_diffs)} осей")
@@ -43,12 +48,9 @@ def run() -> None:
     )
     for _t, _npc, _axis, _base, _pert in _capped:
         _expected = _base * 0.3 if _base is not None else None
-        assert _pert is not None and _expected is not None, (
-            f"ENERGY RE-PROOF: ось {_axis} без чисел"
-        )
+        assert _pert is not None and _expected is not None, f"ENERGY RE-PROOF: ось {_axis} без чисел"
         assert abs(_pert - _expected) <= _TOL_ABS, (
-            f"ENERGY RE-PROOF RED: cap-паттерн нарушен на {_axis}: "
-            f"pert={_pert}, expected~{_expected}(±{_TOL_ABS})"
+            f"ENERGY RE-PROOF RED: cap-паттерн нарушен на {_axis}: pert={_pert}, expected~{_expected}(±{_TOL_ABS})"
         )
     print(f"  argmax_flip={_res.argmax_flip} (annotation)")
     print(f"  razor-margin: {_RAZOR_MARGIN_NOTE}")

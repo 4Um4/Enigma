@@ -16,6 +16,7 @@ Gate assertions:
 
 If gate fails: S1 is NOT effective in real pipeline — abort scoring matrix.
 """
+
 import os
 
 import pytest

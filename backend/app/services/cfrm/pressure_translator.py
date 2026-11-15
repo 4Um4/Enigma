@@ -27,9 +27,7 @@ def translate_pressure_to_context(pressure: PsychologicalPressure) -> DecisionCo
     aggression_sup = min(1.0, (pressure.fear * 0.7) + pressure.dominance_shift)
     compliance_bias = pressure.directive_obedience + (pressure.dominance_shift * 0.5)
     escape_sal = pressure.fear * 0.6 + pressure.uncertainty * 0.2
-    initiative_sup = (
-        pressure.dominance_shift * 0.6
-    )  # Доминирование подавляет инициативу
+    initiative_sup = pressure.dominance_shift * 0.6  # Доминирование подавляет инициативу
 
     # 2. Экстремальное сжатие (10% случаев - паралич воли)
     constraints = {}
@@ -78,7 +76,17 @@ def translate_kernel_to_context(
         # по прибытии. TRADE к конкретному объекту/персоне легален в пути
         # (человек может дойти и предложить сделку) — коллизия S189×ADR-O-412
         # (f1_trade) разрешена в пользу экономической петли.
-        for action in ["AMBUSH", "BLOCK_PATH", "OFFER_JOB", "REQUEST_SERVICE", "SPREAD_RUMOR", "CALL_FOR_HELP", "WARN", "TALK", "APPROACH"]:
+        for action in [
+            "AMBUSH",
+            "BLOCK_PATH",
+            "OFFER_JOB",
+            "REQUEST_SERVICE",
+            "SPREAD_RUMOR",
+            "CALL_FOR_HELP",
+            "WARN",
+            "TALK",
+            "APPROACH",
+        ]:
             constraints[action] = 0.0
 
     # GAP3 FIX & NPIC: Соматическое Вето. Физиология vetoирует решения мозга.

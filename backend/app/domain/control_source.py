@@ -9,18 +9,20 @@ path: /project/backend/app/domain/control_source.py
 Зависимости: нет (domain purity — только stdlib).
 Основные сущности: ControlSource, resolve_control_source
 """
+
 from enum import Enum
 
 
 class ControlSource(Enum):
     """Источник агентности актора. Расширение (мультиплеер, звери-актёры) —
     только через реестр ниже, не через новые строковые сравнения."""
-    PLAYER_INPUT = "player_input"            # решение производится player-input pipeline
-    NPC_DECISION = "npc_decision"            # автономный decision loop
-    SCRIPTED_SYSTEM = "scripted_system"      # системные/скриптовые механизмы
+
+    PLAYER_INPUT = "player_input"  # решение производится player-input pipeline
+    NPC_DECISION = "npc_decision"  # автономный decision loop
+    SCRIPTED_SYSTEM = "scripted_system"  # системные/скриптовые механизмы
     COMBAT_CONTROLLER = "combat_controller"  # зарезервировано: пошаговый бой (будущий ADR)
     AVATAR_INITIATIVE = "avatar_initiative"  # Avatar действует автономно (не команда игрока)
-    UNKNOWN = "unknown"                      #неидентифицированный источник контроля
+    UNKNOWN = "unknown"  # неидентифицированный источник контроля
 
 
 _PLAYER_ACTORS = frozenset({"player"})

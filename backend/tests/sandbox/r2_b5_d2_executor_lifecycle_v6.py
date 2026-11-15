@@ -27,6 +27,7 @@ which function called logger.debug("[DIALOGUE_EXEC]...").
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -126,7 +127,8 @@ _TARGET_LOGGERS = [
     "app.services.game_loop.game_loop",
     "app.services.world.world_tick_engine",
     "app.services.npc.state_applicator",
-    "app", "",
+    "app",
+    "",
 ]
 
 
@@ -336,6 +338,7 @@ def _install_class_spies() -> bool:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         _orig_execute = DialogueExecutor.execute
         DialogueExecutor.execute = _spy_execute
         _orig_gen = DialogueExecutor._generate_with_router
@@ -346,12 +349,14 @@ def _install_class_spies() -> bool:
         return False
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         _orig_materialize = DialogueMaterializer.materialize
         DialogueMaterializer.materialize = _spy_materialize
     except Exception as e:
         print(f"  [DialogueMaterializer spy install failed: {e}]")
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         _orig_to_event = IntentEventAdapter.to_event
         IntentEventAdapter.to_event = staticmethod(_spy_to_event)
     except Exception as e:
@@ -363,6 +368,7 @@ def _restore_class_spies() -> None:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         if _orig_execute is not None:
             DialogueExecutor.execute = _orig_execute
         if _orig_gen is not None:
@@ -371,12 +377,14 @@ def _restore_class_spies() -> None:
         pass
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         if _orig_materialize is not None:
             DialogueMaterializer.materialize = _orig_materialize
     except Exception:
         pass
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         if _orig_to_event is not None:
             IntentEventAdapter.to_event = _orig_to_event
     except Exception:
@@ -437,18 +445,22 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 1: install spies BEFORE build_game_loop")
         if _install_class_spies():
-            print(f"  Class spies installed (plain functions)")
+            print("  Class spies installed (plain functions)")
 
         from app.services.execution.dialogue_executor import DialogueExecutor
         from app.services.execution.dialogue_materializer import DialogueMaterializer
         from app.services.events.intent_event_adapter import IntentEventAdapter
 
-        print(f"\n  Verify spy installation:")
+        print("\n  Verify spy installation:")
         print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute is _spy_execute}")
-        print(f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
-              f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}")
-        print(f"    DialogueMaterializer.materialize is _spy_materialize: "
-              f"{DialogueMaterializer.materialize is _spy_materialize}")
+        print(
+            f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
+            f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}"
+        )
+        print(
+            f"    DialogueMaterializer.materialize is _spy_materialize: "
+            f"{DialogueMaterializer.materialize is _spy_materialize}"
+        )
 
         # Clear spy state
         _clear_spy_calls()
@@ -459,6 +471,7 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 2: build_game_loop")
         from app.services.game_loop_builder import build_game_loop
+
         settings.saves_dir = str(temp_dir)
         settings.environment = "development"
         loop = build_game_loop(data_dir=Path(settings.data_dir))
@@ -466,13 +479,13 @@ def main() -> int:
         # Checkpoint 1
         cp1 = _checkpoint("after build_game_loop")
         checkpoints.append(cp1)
-        print(f"\n  Checkpoint 1 (after build_game_loop):")
+        print("\n  Checkpoint 1 (after build_game_loop):")
         print(f"    execute_calls: {cp1['execute_calls']}")
         print(f"    materialize_calls: {cp1['materialize_calls']}")
         print(f"    to_event_calls: {cp1['to_event_calls']}")
         print(f"    [DIALOGUE_EXEC] logs: {cp1['dialogue_exec_logs']}")
         if cp1["dialogue_exec_logs_sample"]:
-            print(f"    Sample logs:")
+            print("    Sample logs:")
             for l in cp1["dialogue_exec_logs_sample"]:
                 print(f"      {l[:200]}")
 
@@ -489,13 +502,13 @@ def main() -> int:
         # Checkpoint 2
         cp2 = _checkpoint("after _load_npcs_with_runtime")
         checkpoints.append(cp2)
-        print(f"\n  Checkpoint 2 (after _load_npcs_with_runtime):")
+        print("\n  Checkpoint 2 (after _load_npcs_with_runtime):")
         print(f"    execute_calls: {cp2['execute_calls']}")
         print(f"    materialize_calls: {cp2['materialize_calls']}")
         print(f"    to_event_calls: {cp2['to_event_calls']}")
         print(f"    [DIALOGUE_EXEC] logs: {cp2['dialogue_exec_logs']}")
         if cp2["dialogue_exec_logs_sample"]:
-            print(f"    Sample logs:")
+            print("    Sample logs:")
             for l in cp2["dialogue_exec_logs_sample"]:
                 print(f"      {l[:200]}")
 
@@ -540,7 +553,7 @@ def main() -> int:
         print(f"  store: {store}")
 
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # Capture pre-existing Tornin beliefs
         if store:
@@ -566,18 +579,18 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  PLAYER_INSULTS published")
+        print("  PLAYER_INSULTS published")
 
         # Checkpoint 3
         cp3 = _checkpoint("after publish PLAYER_INSULTS")
         checkpoints.append(cp3)
-        print(f"\n  Checkpoint 3 (after publish):")
+        print("\n  Checkpoint 3 (after publish):")
         print(f"    execute_calls: {cp3['execute_calls']}")
         print(f"    materialize_calls: {cp3['materialize_calls']}")
         print(f"    to_event_calls: {cp3['to_event_calls']}")
         print(f"    [DIALOGUE_EXEC] logs: {cp3['dialogue_exec_logs']}")
         if cp3["dialogue_exec_logs_sample"]:
-            print(f"    Sample logs:")
+            print("    Sample logs:")
             for l in cp3["dialogue_exec_logs_sample"]:
                 print(f"      {l[:200]}")
 
@@ -591,12 +604,13 @@ def main() -> int:
 
         # CRITICAL: re-install spies in case build_game_loop reset them
         # Re-verify
-        print(f"  Re-verify spies before idle_tick:")
+        print("  Re-verify spies before idle_tick:")
         from app.services.execution.dialogue_executor import DialogueExecutor as DE2
+
         print(f"    DialogueExecutor.execute is _spy_execute: {DE2.execute is _spy_execute}")
         # If spies were reset, reinstall
         if DE2.execute is not _spy_execute:
-            print(f"  >>> Spies were reset! Reinstalling...")
+            print("  >>> Spies were reset! Reinstalling...")
             _install_class_spies()
             print(f"    After reinstall: DialogueExecutor.execute is _spy_execute: {DE2.execute is _spy_execute}")
 
@@ -612,13 +626,13 @@ def main() -> int:
         # Checkpoint 4
         cp4 = _checkpoint("after idle_tick")
         checkpoints.append(cp4)
-        print(f"\n  Checkpoint 4 (after idle_tick):")
+        print("\n  Checkpoint 4 (after idle_tick):")
         print(f"    execute_calls: {cp4['execute_calls']}")
         print(f"    materialize_calls: {cp4['materialize_calls']}")
         print(f"    to_event_calls: {cp4['to_event_calls']}")
         print(f"    [DIALOGUE_EXEC] logs: {cp4['dialogue_exec_logs']}")
         if cp4["dialogue_exec_logs_sample"]:
-            print(f"    Sample logs:")
+            print("    Sample logs:")
             for l in cp4["dialogue_exec_logs_sample"]:
                 print(f"      {l[:200]}")
 
@@ -628,7 +642,7 @@ def main() -> int:
         _print_section("STEP 6: spy details")
 
         if _executor_calls:
-            print(f"\n  === DialogueExecutor.execute() calls ===")
+            print("\n  === DialogueExecutor.execute() calls ===")
             for i, call in enumerate(_executor_calls):
                 print(f"\n  Call [{i}]:")
                 print(f"    instance_id: {call.get('instance_id')}")
@@ -643,12 +657,12 @@ def main() -> int:
                 if call.get("exception"):
                     print(f"    EXCEPTION: {call['exception']}")
                     if "exception_traceback" in call:
-                        print(f"    TRACEBACK:")
+                        print("    TRACEBACK:")
                         print(call["exception_traceback"][:1500])
                 else:
                     print(f"    return: {call.get('return_value', 'N/A')[:200]}")
                     if call.get("yielded_artifacts"):
-                        print(f"    yielded artifacts:")
+                        print("    yielded artifacts:")
                         for art in call["yielded_artifacts"]:
                             print(f"      success={art.get('success')} result_type={art.get('result_type')}")
                             if art.get("error_message"):
@@ -656,19 +670,19 @@ def main() -> int:
                             if art.get("data_text"):
                                 print(f"        text: {art['data_text'][:200]}")
         else:
-            print(f"  No execute() calls captured")
+            print("  No execute() calls captured")
 
         if _materializer_calls:
-            print(f"\n  === DialogueMaterializer.materialize() calls ===")
+            print("\n  === DialogueMaterializer.materialize() calls ===")
             for i, call in enumerate(_materializer_calls):
                 print(f"  [{i}] artifact.success={call.get('artifact_success')}")
                 if call.get("exception"):
                     print(f"      EXCEPTION: {call['exception']}")
         else:
-            print(f"  No materialize() calls captured")
+            print("  No materialize() calls captured")
 
         # EventBus events
-        print(f"\n  === EventBus events after reset ===")
+        print("\n  === EventBus events after reset ===")
         print(f"  Total: {len(_event_bus_spy.published_events)}")
         ev_type_counter: Dict[str, int] = {}
         for ev_type, _ in _event_bus_spy.published_events:
@@ -685,13 +699,14 @@ def main() -> int:
             print(f"  Tornin total records: {len(tornin_after)}")
             for r in tornin_after:
                 print(f"    prop={str(getattr(r, 'proposition', None))[:80]}")
-                print(f"      conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -701,43 +716,45 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 8: Summary + VERDICT")
 
-        print(f"\n  === Checkpoint summary ===")
+        print("\n  === Checkpoint summary ===")
         print(f"  {'Checkpoint':<35} {'exec':>6} {'mat':>6} {'adapter':>8} {'DE_logs':>8}")
         for cp in checkpoints:
-            print(f"  {cp['label']:<35} {cp['execute_calls']:>6} {cp['materialize_calls']:>6} "
-                  f"{cp['to_event_calls']:>8} {cp['dialogue_exec_logs']:>8}")
+            print(
+                f"  {cp['label']:<35} {cp['execute_calls']:>6} {cp['materialize_calls']:>6} "
+                f"{cp['to_event_calls']:>8} {cp['dialogue_exec_logs']:>8}"
+            )
 
         # Analysis
-        print(f"\n  === Analysis ===")
+        print("\n  === Analysis ===")
         if checkpoints[0]["execute_calls"] > 0:
-            print(f"  >>> execute() called DURING build_game_loop")
-            print(f"  >>> This means build_game_loop runs its own tick internally")
-            print(f"  >>> Our idle_tick happens AFTER this initial tick")
+            print("  >>> execute() called DURING build_game_loop")
+            print("  >>> This means build_game_loop runs its own tick internally")
+            print("  >>> Our idle_tick happens AFTER this initial tick")
         if checkpoints[1]["dialogue_exec_logs"] > checkpoints[0]["dialogue_exec_logs"]:
-            print(f"  >>> [DIALOGUE_EXEC] logs appeared during _load_npcs_with_runtime")
+            print("  >>> [DIALOGUE_EXEC] logs appeared during _load_npcs_with_runtime")
         if checkpoints[2]["dialogue_exec_logs"] > checkpoints[1]["dialogue_exec_logs"]:
-            print(f"  >>> [DIALOGUE_EXEC] logs appeared during publish PLAYER_INSULTS")
+            print("  >>> [DIALOGUE_EXEC] logs appeared during publish PLAYER_INSULTS")
         if checkpoints[3]["dialogue_exec_logs"] > checkpoints[2]["dialogue_exec_logs"]:
-            print(f"  >>> [DIALOGUE_EXEC] logs appeared during idle_tick")
+            print("  >>> [DIALOGUE_EXEC] logs appeared during idle_tick")
             print(f"  >>> But spy calls = {checkpoints[3]['execute_calls']}")
-            print(f"  >>> This means execute() called but spy NOT triggered")
-            print(f"  >>> Hypothesis: spy was reset by build_game_loop or _load_npcs_with_runtime")
+            print("  >>> This means execute() called but spy NOT triggered")
+            print("  >>> Hypothesis: spy was reset by build_game_loop or _load_npcs_with_runtime")
         else:
-            print(f"  >>> No new [DIALOGUE_EXEC] logs during idle_tick")
-            print(f"  >>> All [DIALOGUE_EXEC] logs came from build_game_loop/init")
+            print("  >>> No new [DIALOGUE_EXEC] logs during idle_tick")
+            print("  >>> All [DIALOGUE_EXEC] logs came from build_game_loop/init")
 
         # Final verdict
         if new_borko_belief:
-            print(f"\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif checkpoints[3]["execute_calls"] == 0 and checkpoints[3]["dialogue_exec_logs"] == 0:
-            print(f"\n  >>> VERDICT: idle_tick does NOT call DialogueExecutor.execute()")
-            print(f"  >>> Task scheduler is not dispatching tasks during idle_tick")
-            print(f"  >>> Need to investigate: why does idle_tick not enqueue dialogue tasks?")
+            print("\n  >>> VERDICT: idle_tick does NOT call DialogueExecutor.execute()")
+            print("  >>> Task scheduler is not dispatching tasks during idle_tick")
+            print("  >>> Need to investigate: why does idle_tick not enqueue dialogue tasks?")
         elif checkpoints[3]["execute_calls"] == 0 and checkpoints[3]["dialogue_exec_logs"] > 0:
-            print(f"\n  >>> VERDICT: execute() called but spy NOT triggered")
-            print(f"  >>> Spy is bypassed — possibly via _orig_execute direct reference")
+            print("\n  >>> VERDICT: execute() called but spy NOT triggered")
+            print("  >>> Spy is bypassed — possibly via _orig_execute direct reference")
         else:
-            print(f"\n  >>> VERDICT: needs manual inspection of checkpoints above")
+            print("\n  >>> VERDICT: needs manual inspection of checkpoints above")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()

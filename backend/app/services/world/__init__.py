@@ -5,6 +5,7 @@ path: backend/app/services/world/__init__.py
 Зависимости: app.services.world.world_object_store
 Основные сущности: WorldObjectStore (реэкспорт)
 """
+
 from app.services.world.world_object_store import WorldObjectStore
 
 __all__ = ["WorldObjectStore"]

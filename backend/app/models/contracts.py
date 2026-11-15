@@ -2,6 +2,7 @@
 """
 Нейтральные контракты, общие для models и domain (N-03 FIX).
 """
+
 from dataclasses import dataclass
 
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/cognition/router_adapter.py
 Назначение: P5-B Step 3 — adapter из production ModelRouter в LLMClientProtocol.
 
@@ -15,6 +15,7 @@ Adapter переводит один интерфейс в другой, сохр
 Зависимости: app.services.llm.router (ModelRouter, GenerationParams)
 Основные сущности: RouterAdapter
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,6 +51,7 @@ class RouterAdapter:
         params: Any = None
         try:
             from app.services.llm.router import GenerationParams
+
             try:
                 params = GenerationParams(max_tokens=max_tokens)
             except TypeError:

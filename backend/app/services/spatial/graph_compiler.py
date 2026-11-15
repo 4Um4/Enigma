@@ -68,9 +68,7 @@ def compile_graph(
         alias_map: dict[legacy_id, canonical_id]
     """
     if not editor_data:
-        logger.error(
-            f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф."
-        )
+        logger.error(f"[GRAPH_COMPILER] editor_data is None для {location_id}. Возвращаем пустой граф.")
         return {}, {}, {}, {}, {}, [], [], []
 
     graph: Dict[str, NodeRef] = {}
@@ -117,7 +115,7 @@ def compile_graph(
                     editor_type=node_data.get("type"),
                     editor_tags=node_data.get("tags", []),
                     node_id=node_id,
-                    manifest_override=_manifest
+                    manifest_override=_manifest,
                 ),
                 tags=node_data.get("tags", []),
                 zone_id=location_id,
@@ -182,9 +180,7 @@ def compile_graph(
                             f"'{room_ids[j]}'. Это внешняя граница — исключена."
                         )
             if container_ids:
-                rooms = {
-                    rid: data for rid, data in rooms.items() if rid not in container_ids
-                }
+                rooms = {rid: data for rid, data in rooms.items() if rid not in container_ids}
 
     if not _has_nav and not rooms:
         logger.warning(f"[GRAPH_COMPILER] Нет узлов (rooms/nodes) в {location_id}")
@@ -272,9 +268,7 @@ def compile_graph(
             # Если есть nodes, orphan rooms (без навигационного узла) — это физические контейнеры (LOS/коллизии),
             # а не точки пути. Добавление их в graph создаёт изолированные компоненты.
             if _has_nav:
-                logger.debug(
-                    f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active)."
-                )
+                logger.debug(f"[GRAPH_COMPILER] Orphan room '{room_id}' пропущена (nav layer active).")
                 continue
 
             # Orphan room — нет навигационного представления (fallback mode: graph = rooms)
@@ -301,11 +295,7 @@ def compile_graph(
             graph[canonical_id] = node_ref
             alias_map[room_id] = canonical_id
 
-            if (
-                room_name
-                and room_name != room_id
-                and room_name.lower() not in alias_map
-            ):
+            if room_name and room_name != room_id and room_name.lower() not in alias_map:
                 alias_map[room_name.lower()] = canonical_id
 
             for alias in room_data.get("aliases", []):
@@ -329,10 +319,7 @@ def compile_graph(
                     connections.setdefault(from_canonical, set()).add(to_canonical)
                     connections.setdefault(to_canonical, set()).add(from_canonical)
                 else:
-                    logger.warning(
-                        f"[GRAPH_COMPILER] Пропуск связи {node_id}→{target_id}: "
-                        f"узел не найден в графе"
-                    )
+                    logger.warning(f"[GRAPH_COMPILER] Пропуск связи {node_id}→{target_id}: узел не найден в графе")
     else:
         # Обратная совместимость: passages/connections из editor JSON
         # IPT-CLEANUP FIX: Не автогенерировать рёбра между комнатами, если в карте уже есть явные node connections.
@@ -353,10 +340,7 @@ def compile_graph(
                 if not passage.get("one_way", False):
                     connections.setdefault(to_canonical, set()).add(from_canonical)
             else:
-                logger.warning(
-                    f"[GRAPH_COMPILER] Пропуск связи {from_legacy}→{to_legacy}: "
-                    f"узел не найден в графе"
-                )
+                logger.warning(f"[GRAPH_COMPILER] Пропуск связи {from_legacy}→{to_legacy}: узел не найден в графе")
 
     # ── Layer 3: Boundary Nodes (ДОЛГ 6.2) ──────────────────────────
     # Читаем adjacency и создаём виртуальные узлы выхода из чанка.
@@ -394,7 +378,17 @@ def compile_graph(
 
     # ADR-O-330: Извлекаем физические объекты с аффордансами (кровати, палатки, верстаки)
     affordance_objects = _extract_affordance_objects(editor_data)
-    return graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects
+    return (
+        graph,
+        connections,
+        alias_map,
+        boundary_map,
+        rooms_geometry,
+        spatial_walls,
+        spatial_obstacles,
+        affordance_objects,
+    )
+
 
 def _validate_navigation_geometry(
     graph: Dict[str, Any],
@@ -426,8 +420,7 @@ def _validate_navigation_geometry(
             # 1. Проверка стен
             for wall in spatial_walls:
                 if _segments_intersect(
-                    from_node.x, from_node.y, to_node.x, to_node.y,
-                    wall["x1"], wall["y1"], wall["x2"], wall["y2"]
+                    from_node.x, from_node.y, to_node.x, to_node.y, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
                 ):
                     is_blocked = True
                     _is_wall_block = True
@@ -439,8 +432,7 @@ def _validate_navigation_geometry(
                 for obs in spatial_obstacles:
                     if not obs.get("passability", {}).get("walk", True):
                         if _line_rect_intersect(
-                            from_node.x, from_node.y, to_node.x, to_node.y,
-                            obs["x"], obs["y"], obs["w"], obs["h"]
+                            from_node.x, from_node.y, to_node.x, to_node.y, obs["x"], obs["y"], obs["w"], obs["h"]
                         ):
                             # S140: Не блокируем ребро, если препятствие можно перепрыгнуть.
                             # LocalTraversalPlanner построит маршрут с JUMP-сегментом.
@@ -466,7 +458,9 @@ def _validate_navigation_geometry(
                     if to_id in connections:
                         connections[to_id].discard(from_id)
                 else:
-                    logger.debug(f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}")
+                    logger.debug(
+                        f"[DEBUG_GEO_BLOCK] {from_id} ({from_node.x},{from_node.y}) -> {to_id} ({to_node.x},{to_node.y}) blocked by {_blocker}"
+                    )
                     logger.warning(
                         f"[SPATIAL_VALIDATION] {location_id}: edge {from_id} -> {to_id} "
                         f"is geometrically blocked! Edge removed from graph.\n"
@@ -480,20 +474,29 @@ def _validate_navigation_geometry(
             if _src in connections and _tgt in connections[_src]:
                 connections[_src].remove(_tgt)
 
-def _segments_intersect(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float, eps: float=1e-6) -> bool:
+
+def _segments_intersect(
+    x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float, eps: float = 1e-6
+) -> bool:
     """Определение пересечения отрезков с ε-толерантностью (V8-SP-2 FIX)."""
+
     def _cross(ox: float, oy: float, ax: float, ay: float, bx: float, by: float) -> float:
         return (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
+
     d1 = _cross(x3, y3, x4, y4, x1, y1)
     d2 = _cross(x3, y3, x4, y4, x2, y2)
     d3 = _cross(x1, y1, x2, y2, x3, y3)
     d4 = _cross(x1, y1, x2, y2, x4, y4)
-    if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and \
-       ((d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)):
+    if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and (
+        (d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)
+    ):
         return True
     return False
 
-def _line_rect_intersect(x1: float, y1: float, x2: float, y2: float, rx: float, ry: float, rw: float, rh: float) -> bool:
+
+def _line_rect_intersect(
+    x1: float, y1: float, x2: float, y2: float, rx: float, ry: float, rw: float, rh: float
+) -> bool:
     """Проверка пересечения отрезка с прямоугольником (AABB)."""
     # Если одна из точек внутри — уже пересечение
     if (rx <= x1 <= rx + rw and ry <= y1 <= ry + rh) or (rx <= x2 <= rx + rw and ry <= y2 <= ry + rh):
@@ -539,15 +542,17 @@ def _extract_affordance_objects(editor_data: Dict[str, Any]) -> List[Dict[str, A
         if not pos:
             continue
 
-        affordance_objects.append({
-            "object_id": obj.get("id", obj_type),
-            "source_type": obj_type,
-            "affordances": affordances,
-            "x": float(pos.get("x", 0.0)),
-            "y": float(pos.get("y", 0.0)),
-            "tags": obj.get("tags", []),
-            "destroyed": obj.get("destroyed", False),
-        })
+        affordance_objects.append(
+            {
+                "object_id": obj.get("id", obj_type),
+                "source_type": obj_type,
+                "affordances": affordances,
+                "x": float(pos.get("x", 0.0)),
+                "y": float(pos.get("y", 0.0)),
+                "tags": obj.get("tags", []),
+                "destroyed": obj.get("destroyed", False),
+            }
+        )
     return affordance_objects
 
 
@@ -560,7 +565,7 @@ def _find_walls_for_door(editor_data: Dict[str, Any], door: Dict[str, Any]) -> L
     px, py = door_pos.get("x", 0), door_pos.get("y", 0)
 
     found_walls: List[str] = []
-    threshold = 0.5 # Порог дистанции
+    threshold = 0.5  # Порог дистанции
 
     for wall in editor_data.get("walls", []):
         wid = wall.get("id")
@@ -601,7 +606,7 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
     # 1. Читаем проёмы из objects (двери-переходы между локациями)
     for obj in editor_data.get("objects", []):
         if not obj.get("passability", {}).get("walk", True):
-            continue # Непроходимые объекты не могут быть дверными проёмами
+            continue  # Непроходимые объекты не могут быть дверными проёмами
         if obj.get("type") not in ("door", "door_transition"):
             continue
 
@@ -629,7 +634,9 @@ def _build_spatial_data(editor_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any
         for _wall in editor_data.get("walls", []):
             _wid = _wall.get("id")
             if _wid and _wid not in walls_for_door:
-                if _line_rect_intersect(_wall["x1"], _wall["y1"], _wall["x2"], _wall["y2"], _dx - _dw/2, _dy - _dh/2, _dw, _dh):
+                if _line_rect_intersect(
+                    _wall["x1"], _wall["y1"], _wall["x2"], _wall["y2"], _dx - _dw / 2, _dy - _dh / 2, _dw, _dh
+                ):
                     walls_for_door.append(_wid)
 
         for wid in walls_for_door:
@@ -756,29 +763,31 @@ def _split_wall_by_openings(wall: Dict[str, Any], openings: List[Dict[str, Any]]
     current = 0.0
     for start, end in merged:
         if start > current:
-            segments.append({
-                "x1": x1 + ux * current,
-                "y1": y1 + uy * current,
-                "x2": x1 + ux * start,
-                "y2": y1 + uy * start,
-            })
+            segments.append(
+                {
+                    "x1": x1 + ux * current,
+                    "y1": y1 + uy * current,
+                    "x2": x1 + ux * start,
+                    "y2": y1 + uy * start,
+                }
+            )
         current = end
 
     if current < wall_len:
-        segments.append({
-            "x1": x1 + ux * current,
-            "y1": y1 + uy * current,
-            "x2": x2,
-            "y2": y2,
-        })
+        segments.append(
+            {
+                "x1": x1 + ux * current,
+                "y1": y1 + uy * current,
+                "x2": x2,
+                "y2": y2,
+            }
+        )
 
     return segments
 
 
 def load_editor_json(
-    campaign_id: str,
-    location_id: str,
-    search_dirs: Optional[List[Path]] = None
+    campaign_id: str, location_id: str, search_dirs: Optional[List[Path]] = None
 ) -> Optional[Dict[str, Any]]:
     """Загружает JSON-файл локации.
 
@@ -835,13 +844,15 @@ def load_editor_json(
     if campaign_file.exists():
         try:
             with open(campaign_file, "r", encoding="utf-8-sig") as f:
-                    _data = json.load(f)
+                _data = json.load(f)
             if not isinstance(_data, dict):
                 pass
             else:
                 if "locations" in _data:
                     for loc in _data["locations"]:
-                        if isinstance(loc, dict) and (loc.get("id") == location_id or loc.get("location_id") == location_id):
+                        if isinstance(loc, dict) and (
+                            loc.get("id") == location_id or loc.get("location_id") == location_id
+                        ):
                             return loc
                 if _data.get("id") == location_id or _data.get("location_id") == location_id:
                     return _data
@@ -850,6 +861,7 @@ def load_editor_json(
 
     logger.warning(f"[GRAPH_COMPILER] No map file found for {campaign_id}/{location_id}")
     return None
+
 
 def _validate_connectivity(graph: Dict[str, NodeRef], connections: Dict[str, Set[str]], location_id: str) -> None:
     """Проверяет связность графа. Логирует предупреждения об изолированных узлах."""
@@ -897,8 +909,8 @@ def _create_boundary_nodes(
     # авторских узлов и стен → SpatialValidator удалял валидные рёбра.
     # Теперь: ЛОКАЛЬНЫЕ coords, согласованные с авторскими узлами и стенами.
     _DIR_OFFSETS_LOCAL = {
-        "east":  (_w - 1.0,  _h / 2.0),
-        "west":  (1.0,       _h / 2.0),
+        "east": (_w - 1.0, _h / 2.0),
+        "west": (1.0, _h / 2.0),
         "north": (_w / 2.0, _h - 1.0),
         "south": (_w / 2.0, 1.0),
     }
@@ -928,7 +940,7 @@ def _create_boundary_nodes(
 
         # P4-01A FIX: Ищем ближайший навигационный узел к границе (исключая другие boundary nodes)
         _nearest_node = None
-        _min_dist_sq = float('inf')
+        _min_dist_sq = float("inf")
         for node in graph.values():
             if node.role == NodeRole.BOUNDARY:
                 continue
@@ -986,7 +998,7 @@ def _create_boundary_nodes(
                     continue
                 _dx = node.x - _final_x
                 _dy = node.y - _final_y
-                if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS ** 2):
+                if (_dx * _dx + _dy * _dy) <= (_CONNECTION_RADIUS**2):
                     connections.setdefault(node.node_id, set()).add(boundary_id)
                     connections.setdefault(boundary_id, set()).add(node.node_id)
                     _connected_count += 1
@@ -1005,17 +1017,15 @@ def _create_boundary_nodes(
         boundary_map[boundary_id] = {
             "neighbor_chunk": neighbor_loc_id,
             "node_id": boundary_id,
-            "x": _final_x,    # V8-SP-28 FIX: используем actual boundary node coords
+            "x": _final_x,  # V8-SP-28 FIX: используем actual boundary node coords
             "y": _final_y,
             "direction": direction,
             "entry_direction": _entry_dir,
-            "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}"
+            "entry_node_hint": f"{neighbor_loc_id}:exit_{_entry_dir}",
         }
 
 
-def _infer_connections_from_adjacency(
-        rooms: Dict[str, Dict[str, Any]], tolerance: float = 0.5
-) -> List[Dict[str, Any]]:
+def _infer_connections_from_adjacency(rooms: Dict[str, Dict[str, Any]], tolerance: float = 0.5) -> List[Dict[str, Any]]:
     """Выводит связи между комнатами на основе смежности их bounding box.
     Если две комнаты имеют общую стену (пересечение по оси > tolerance),
     между ними создаётся passage."""

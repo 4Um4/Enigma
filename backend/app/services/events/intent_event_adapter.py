@@ -63,6 +63,7 @@ class IntentEventAdapter:
         _event_type = IntentEventAdapter._INTENT_EVENT_MAP.get(_intent_val, EventType.NPC_SPOKE).value
         if _intent_val and _intent_val not in IntentEventAdapter._INTENT_EVENT_MAP:
             import logging
+
             logging.getLogger(__name__).warning(
                 f"[INTENT_EVENT_ADAPTER] Unmapped intent_type '{_intent_val}' defaulted to npc_spoke."
             )

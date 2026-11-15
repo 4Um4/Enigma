@@ -11,6 +11,7 @@ H1b-mini3 проверка фактического вызова инструм�
 Запуск:
     python backend/tests/sandbox/SUPERBOX/scenarios/_h1b_mini3_capture_test.py
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -46,6 +47,7 @@ def main() -> int:
     # 2. Импортировать MemoryManager ПОСЛЕ патча
     print("--- Step 2: import MemoryManager (after patch) ---")
     from app.services.memory.memory_manager import MemoryManager
+
     print()
 
     # 3. Проверить co_consts
@@ -76,6 +78,7 @@ def main() -> int:
     class MockWorkingMemory:
         def __init__(self, events):
             self._events = events
+
         def get(self, key):
             return self._events.get(key, [])
 
@@ -109,7 +112,9 @@ def main() -> int:
             return 1
         print(f"  _h1b3_pressure_events count: {len(pe)}")
         for i, e in enumerate(pe):
-            print(f"    [{i}] type={e.get('type')} actor={e.get('actor')} target={e.get('target')} importance={e.get('importance')}")
+            print(
+                f"    [{i}] type={e.get('type')} actor={e.get('actor')} target={e.get('target')} importance={e.get('importance')}"
+            )
 
         # Ожидание: 2 события (npc_moved с target=player, player_interacts с actor=player)
         # npc_proximity_close не проходит фильтр (actor=guard_borko, target=merchant_goran, ни один != player)
@@ -132,6 +137,7 @@ def main() -> int:
     except Exception as e:
         print(f"  FAIL: {type(e).__name__}: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

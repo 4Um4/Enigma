@@ -142,10 +142,15 @@ def test_stale_entries_are_red(tmp_path):
     app, tests, scripts = _make_tree(tmp_path)
     ghost = (app / "ghost.py").as_posix()
     outside = "C:/definitely/outside.py"
-    res = lsr.run_census(app, tests, scripts, {
-        ghost: ("RUNNER-OWNED", "t", ""),
-        outside: ("RUNNER-OWNED", "t", ""),
-    })
+    res = lsr.run_census(
+        app,
+        tests,
+        scripts,
+        {
+            ghost: ("RUNNER-OWNED", "t", ""),
+            outside: ("RUNNER-OWNED", "t", ""),
+        },
+    )
     assert not res.ok
     assert any("файла нет" in s for s in res.stale_registry)
     assert any("вне областей скана" in s for s in res.stale_registry)

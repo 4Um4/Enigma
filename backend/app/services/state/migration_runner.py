@@ -359,8 +359,7 @@ _REPLAY_V1_STATEMENTS: tuple[str, ...] = (
 
 def _user_tables(conn: sqlite3.Connection) -> set[str]:
     rows = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type = 'table' "
-        "AND name NOT LIKE 'sqlite_%' AND name != ?",
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != ?",
         (_SCHEMA_MIGRATIONS_TABLE,),
     ).fetchall()
     return {str(r[0]) for r in rows}
@@ -373,10 +372,7 @@ def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
 
 
 def _table_counts(conn: sqlite3.Connection) -> dict[str, int]:
-    return {
-        t: int(conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0])
-        for t in sorted(_user_tables(conn))
-    }
+    return {t: int(conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]) for t in sorted(_user_tables(conn))}
 
 
 # База стора (обязательна; миграции COV-1 управляют только ею)…
@@ -390,9 +386,7 @@ _ENIGMA_MEMORY_TABLES = frozenset(
 # НЕ создают и НЕ трогают; присутствие опционально (установка без
 # загрузки L1/L2.5), посторонних таблиц быть не может (поймано
 # классификатором Шага D — dry-run на копии, живой файл не тронут).
-_ENIGMA_MEMORY_EXTENSION_TABLES = frozenset(
-    {"l1_chronicle_events", "l1_chronicle_archive", "crystallized_beliefs"}
-)
+_ENIGMA_MEMORY_EXTENSION_TABLES = frozenset({"l1_chronicle_events", "l1_chronicle_archive", "crystallized_beliefs"})
 _ENIGMA_RUNTIME_TABLES = frozenset({"state_kv"})
 _REPLAY_TABLES = frozenset(
     {"sessions", "tick_snapshots", "interventions", "llm_calls", "causal_probes", "scene_changes"}
@@ -572,8 +566,7 @@ def _check_chain(store_id: str, specs: list[MigrationSpec]) -> int:
         raise MigrationError(f"{store_id}: пустая цепочка миграций")
     if specs[0].from_version != 0:
         raise MigrationError(
-            f"{store_id}: цепочка обязана начинаться с создания (from_version=0), "
-            f"начинается с {specs[0].from_version}"
+            f"{store_id}: цепочка обязана начинаться с создания (from_version=0), начинается с {specs[0].from_version}"
         )
     seen_from: set[int] = set()
     seen_to: set[int] = set()
@@ -632,10 +625,7 @@ def register_migrations(*specs: MigrationSpec) -> None:
             )
         for existing in _EXTERNAL_SPECS:
             if existing.store_id == spec.store_id and existing.from_version == spec.from_version:
-                raise MigrationError(
-                    f"register_migrations: дубль from_version={spec.from_version} "
-                    f"для {spec.store_id}"
-                )
+                raise MigrationError(f"register_migrations: дубль from_version={spec.from_version} для {spec.store_id}")
         _EXTERNAL_SPECS.append(spec)
     # Fail-fast: полный self-check мержа сразу (ловит дыру до старта).
     validate_registry()
@@ -729,7 +719,10 @@ def _apply_spec(conn: sqlite3.Connection, spec: MigrationSpec) -> None:
         raise
     logger.info(
         "[MIGRATION] %s: применена %d->%d (%s)",
-        spec.store_id, spec.from_version, spec.to_version, spec.owner,
+        spec.store_id,
+        spec.from_version,
+        spec.to_version,
+        spec.owner,
     )
 
 
@@ -762,9 +755,7 @@ def _stamp_baseline(conn: sqlite3.Connection, store_id: str, version: int) -> No
     logger.info("[MIGRATION] %s: базлайн-штамп v%d (без DDL)", store_id, version)
 
 
-def _run_store(
-    reg: StoreRegistration, *, dry_run: bool, make_backup: bool
-) -> MigrationOutcome:
+def _run_store(reg: StoreRegistration, *, dry_run: bool, make_backup: bool) -> MigrationOutcome:
     # Self-check цепочки ДО любого касания БД (II.4).
     specs = _merged_specs(reg.store_id)
     head = _check_chain(reg.store_id, specs)
@@ -808,19 +799,26 @@ def _run_store(
         if not writes_planned:
             # Идемпотентность (II.3): повторный запуск = no-op без записей.
             return MigrationOutcome(
-                store_id=reg.store_id, path=str(db_path), status="ok-noop",
-                detected_version=detected, head_version=head,
+                store_id=reg.store_id,
+                path=str(db_path),
+                status="ok-noop",
+                detected_version=detected,
+                head_version=head,
                 reason=f"уже на HEAD={head}; записей нет",
             )
 
-        plan_descr = tuple(
-            f"{s.from_version}->{s.to_version} ({s.owner})" for s in plan
-        ) or (f"базлайн-штамп v{detected} без DDL",)
+        plan_descr = tuple(f"{s.from_version}->{s.to_version} ({s.owner})" for s in plan) or (
+            f"базлайн-штамп v{detected} без DDL",
+        )
 
         if dry_run:
             return MigrationOutcome(
-                store_id=reg.store_id, path=str(db_path), status="dry-run",
-                detected_version=detected, head_version=head, plan=plan_descr,
+                store_id=reg.store_id,
+                path=str(db_path),
+                status="dry-run",
+                detected_version=detected,
+                head_version=head,
+                plan=plan_descr,
                 reason=f"таблицы={len(counts_before)}, строк={sum(counts_before.values())}; "
                 f"бэкап={'да' if make_backup else 'нет'}",
             )
@@ -837,9 +835,7 @@ def _run_store(
         # содержимое, открываемость.
         version_after = int(conn.execute("PRAGMA user_version").fetchone()[0])
         if version_after != head:
-            raise MigrationError(
-                f"{reg.store_id}: послепроверка — user_version={version_after} != HEAD={head}"
-            )
+            raise MigrationError(f"{reg.store_id}: послепроверка — user_version={version_after} != HEAD={head}")
         integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":
             raise MigrationError(f"{reg.store_id}: послепроверка — integrity_check={integrity!r}")
@@ -867,8 +863,11 @@ def _run_store(
                 )
 
         return MigrationOutcome(
-            store_id=reg.store_id, path=str(db_path), status="ok",
-            detected_version=detected, head_version=head,
+            store_id=reg.store_id,
+            path=str(db_path),
+            status="ok",
+            detected_version=detected,
+            head_version=head,
             applied=tuple((s.from_version, s.to_version) for s in plan),
             baseline_stamped=stamp_only,
             backup_path=str(backup_path) if backup_path else None,  # noqa: ENIGMA001

@@ -19,19 +19,33 @@ _LOCATION = "tavern_silver_wolf"
 
 # Критические поддеревья (anti-writer-критерий G3, аудит §4.3)
 _CRITICAL_KEYS = (
-    "world_objects", "relationship_state", "active_commitments",
-    "commitment_history", "commitment_ordinals",
+    "world_objects",
+    "relationship_state",
+    "active_commitments",
+    "commitment_history",
+    "commitment_ordinals",
 )
 # Protected-лист routes.py:1254-1257 (TIME-FREEZE)
 _PROTECTED_KEYS = (
-    "game_time_seconds", "tick", "player_recognition",
-    "active_traversals", "pending_tasks", "spatial_walls", "spatial_obstacles",
+    "game_time_seconds",
+    "tick",
+    "player_recognition",
+    "active_traversals",
+    "pending_tasks",
+    "spatial_walls",
+    "spatial_obstacles",
 )
 # FE-sync семейство B (game_screen:1154-1179, A4-2r)
 _FE_SYNC_KEYS = (
-    "game_time_seconds", "tick", "avatar_state", "player_perception",
-    "player_body_topology", "embodied_status", "visual_dto",
-    "audible_dto", "active_traversals",
+    "game_time_seconds",
+    "tick",
+    "avatar_state",
+    "player_perception",
+    "player_body_topology",
+    "embodied_status",
+    "visual_dto",
+    "audible_dto",
+    "active_traversals",
 )
 
 
@@ -89,8 +103,11 @@ def _dict_diff(before: Any, after: Any) -> Dict[str, Any]:
 
 def _diff_report(rail: str, before: dict, after: dict, fe: dict) -> dict:
     report: Dict[str, Any] = {
-        "rail": rail, "origin_keys": sorted(fe.keys()),
-        "critical": {}, "protected": {}, "npc_positions": {},
+        "rail": rail,
+        "origin_keys": sorted(fe.keys()),
+        "critical": {},
+        "protected": {},
+        "npc_positions": {},
     }
     # Direct-rail (полная замена) умеет УДАЛЯТЬ backend-only ключи,
     # отсутствующие в FE-дикте (_version, epistemic_records, pending_tasks,
@@ -132,9 +149,7 @@ def _diff_report(rail: str, before: dict, after: dict, fe: dict) -> dict:
     for _i in _np["changed"]:
         _eb, _ea = _npb.get(_i) or {}, _npa.get(_i) or {}
         _dir[_i] = {
-            _k: ("dropped" if _k in _eb and _k not in _ea
-                 else "added" if _k in _ea and _k not in _eb
-                 else "value")
+            _k: ("dropped" if _k in _eb and _k not in _ea else "added" if _k in _ea and _k not in _eb else "value")
             for _k in report["npc_positions_field_diff"][_i]
         }
     report["npc_positions_field_direction"] = _dir
@@ -189,9 +204,7 @@ def run_probe(rail: str, ticks: int = 3) -> dict:
             # HTTP-транспорт: handler routes.py:1243 (merge + protected)
             from app.api.routes import update_scene_state
 
-            update_scene_state(
-                campaign_id=_CAMPAIGN, scene_state=_payload, game_loop=_loop
-            )
+            update_scene_state(campaign_id=_CAMPAIGN, scene_state=_payload, game_loop=_loop)
         else:
             raise ValueError(f"unknown rail: {rail}")
         after = _canon_checkpoint(h, _loc)
@@ -215,12 +228,12 @@ def main() -> int:
             f"    npc_positions: changed={_r['npc_positions']['changed']} "
             f"(player_expected={_r['player_delta_expected']})"
         )
-        print(f"    top_level: removed={_r.get('top_level_removed') or '—'} "
-              f"added={_r.get('top_level_added') or '—'}")
-        print(f"    npc_fields: "
-              f"{json.dumps(_r.get('npc_positions_field_diff', {}), ensure_ascii=False, default=str)}")
-        print(f"    npc_field_dir: "
-              f"{json.dumps(_r.get('npc_positions_field_direction', {}), ensure_ascii=False, default=str)}")
+        print(f"    top_level: removed={_r.get('top_level_removed') or '—'} added={_r.get('top_level_added') or '—'}")
+        print(f"    npc_fields: {json.dumps(_r.get('npc_positions_field_diff', {}), ensure_ascii=False, default=str)}")
+        print(
+            f"    npc_field_dir: "
+            f"{json.dumps(_r.get('npc_positions_field_direction', {}), ensure_ascii=False, default=str)}"
+        )
     _out = Path(__file__).resolve().parents[3] / "reports" / "b1_4_probe_report.json"
     _out.parent.mkdir(parents=True, exist_ok=True)
     _out.write_text(

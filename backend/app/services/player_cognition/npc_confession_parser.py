@@ -1,4 +1,4 @@
-﻿"""
+"""
 Файл: backend/app/services/player_cognition/npc_confession_parser.py
 Назначение: Парсинг LLM-ответов NPC на предмет признаний секретов. Использует PropositionMatcher (семантический матч, не keyword overlap).
 Зависимости: app.models.truth_state, app.services.player_cognition.observation_log, app.services.player_cognition.player_belief_model, app.services.player_cognition.legacy_bridge
@@ -32,13 +32,7 @@ class NpcConfessionParser:
         self._beliefs = belief_model
         self._matcher = PropositionMatcher(truth_state)
 
-    def parse_and_record(
-        self,
-        npc_id: str,
-        reply_text: str,
-        tick: int,
-        target_id: str = "player"
-    ) -> List[str]:
+    def parse_and_record(self, npc_id: str, reply_text: str, tick: int, target_id: str = "player") -> List[str]:
         """Возвращает list of secret_ids, обнаруженных в ответе NPC."""
         if not reply_text or not self._truth:
             return []

@@ -49,16 +49,12 @@ def _rail(flag: str) -> Dict[str, Any]:
 
             def _on_theft(event: Any) -> None:
                 _p = getattr(event, "payload", {}) or {}
-                if getattr(event, "source", "") == _ACTOR and _p.get(
-                    "target_id", ""
-                ) == _CHAIR_ID:
+                if getattr(event, "source", "") == _ACTOR and _p.get("target_id", "") == _CHAIR_ID:
                     _theft.append(_CHAIR_ID)
 
             get_event_bus().subscribe(EventType.THEFT, _on_theft)
             _h.advance_ticks(1)  # прогрев сцены (урок P11)
-            _report["spawned"] = _h.spawn_world_object(
-                _CHAIR_ID, "chair", (8.2, 12.8)
-            )
+            _report["spawned"] = _h.spawn_world_object(_CHAIR_ID, "chair", (8.2, 12.8))
             # Реальное давление (production-путь run_turn): угрозы игрока
             # могут перевести волю вора в deceptive/broken → R6.3-unlock
             # STEAL. Не инжект — живой контур (противоположность
@@ -83,9 +79,7 @@ def main() -> int:
     # диагностика воли слепа (в выводе харнесса только WARNING+).
     import logging
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
     _off = _rail("0")
     _on = _rail("1")
     for _r in (_off, _on):

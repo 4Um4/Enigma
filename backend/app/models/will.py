@@ -66,22 +66,14 @@ class WillResponseDTO:
     fear_delta: float = 0.0  # Прирост страха
     stress_delta: float = 0.0  # Стресс от морального конфликта (0-100 scale)
     identity_damage: float = 0.0  # Урон идентичности (травма)
-    generated_emotions: List[EmotionPayload] = field(
-        default_factory=list
-    )  # Эмоции конфликта
-    generated_memories: List[Dict[str, Any]] = field(
-        default_factory=list
-    )  # Следы в аффективной памяти
+    generated_emotions: List[EmotionPayload] = field(default_factory=list)  # Эмоции конфликта
+    generated_memories: List[Dict[str, Any]] = field(default_factory=list)  # Следы в аффективной памяти
     counter_offer: Optional[IntentDTO] = None  # Аватар предлагает альтернативу
     narration_hooks: List[str] = field(default_factory=list)  # Подсказки для LLM
     origin_layer: OriginLayer = OriginLayer.WILL_CONFLICT  # Источник давления
     embodied_vector: Optional[EmbodiedVector] = None  # Моторный импульс (для UI)
-    social_signal: Optional[str] = (
-        None  # The Fool Phase 2: Социальный сигнал (для CFRM)
-    )
-    crowd_threat_level: Optional[float] = (
-        None  # The Fool Phase 2: Уровень угрозы для толпы (0.0-1.0)
-    )
+    social_signal: Optional[str] = None  # The Fool Phase 2: Социальный сигнал (для CFRM)
+    crowd_threat_level: Optional[float] = None  # The Fool Phase 2: Уровень угрозы для толпы (0.0-1.0)
 
 
 @dataclass(frozen=True)
@@ -92,9 +84,7 @@ class IntentResolution:
     """
 
     original_intent: IntentDTO
-    pressure_profile: IntentPressureProfile = field(
-        default_factory=IntentPressureProfile
-    )
+    pressure_profile: IntentPressureProfile = field(default_factory=IntentPressureProfile)
     movement_request: Optional[Any] = (
         None  # ADR-O-315: Готовый контракт движения от Слоя 1 (TYPE_CHECKING не нужен, используем Any)
     )

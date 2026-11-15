@@ -5,6 +5,7 @@ path: /project/backend/tests/micro/test_intent_roundtrip.py
 v4 (fix2b): StateApplicator requires relationship_store (TypeError-fact);
 mock calibrated to disk names (get_pair). Section marker unified: [GC-I01-E1b-tests].
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -34,6 +35,7 @@ def _npc_dicts() -> list:
 
 
 # ── E1: projection / round-trip ─────────────────────────────────────────────
+
 
 def test_projection_writes_full_six_field_block():
     d: dict = {}
@@ -107,9 +109,9 @@ def _applicator() -> StateApplicator:
 def test_intent_delta_writes_state_via_applicator():
     dicts = _npc_dicts()
     _applicator().apply_batch(
-        [StateDeltas(npc_id="npc_test", intent=Intent.FLEE, target="player",
-                     intent_tick=41, source="decision_hub")],
-        dicts, "test",
+        [StateDeltas(npc_id="npc_test", intent=Intent.FLEE, target="player", intent_tick=41, source="decision_hub")],
+        dicts,
+        "test",
     )
     assert dicts[0]["intent"] == "flee"
     assert dicts[0]["intent_target"] == "player"
@@ -126,7 +128,9 @@ def test_intent_delta_merge_survives_aggregation():
 def test_intent_inertia_over_two_applications():
     dicts = _npc_dicts()
     app = _applicator()
-    app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=41)], dicts, "t")  # [GC-I01-E1b-fix4] TALK требует цель
+    app.apply_batch(
+        [StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=41)], dicts, "t"
+    )  # [GC-I01-E1b-fix4] TALK требует цель
     app.apply_batch([StateDeltas(npc_id="npc_test", intent=Intent.TALK, target="player", intent_tick=42)], dicts, "t")
     assert dicts[0]["intent"] == "talk"
     assert dicts[0]["intent_duration"] == 1
@@ -134,9 +138,18 @@ def test_intent_inertia_over_two_applications():
 
 def test_from_legacy_restores_intent_block():
     d = dict(_raw_dict())
-    d.update({"intent": "flee", "intent_target": "player", "intent_formed_at": 41,
-              "intent_duration": 7, "intent_progress_ticks": 5, "last_intent_change": 42})
+    d.update(
+        {
+            "intent": "flee",
+            "intent_target": "player",
+            "intent_formed_at": 41,
+            "intent_duration": 7,
+            "intent_progress_ticks": 5,
+            "last_intent_change": 42,
+        }
+    )
     from app.models.npc_state import NPCStateAdapter
+
     st = NPCStateAdapter.from_legacy(d)
     assert st.intent == Intent.FLEE
     assert st.intent_duration == 7

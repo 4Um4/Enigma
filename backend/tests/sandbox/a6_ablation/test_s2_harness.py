@@ -1,4 +1,5 @@
 """A6 S2 harness tests — patch/restore + probe + scope (variant C: 2 of 4)."""
+
 import hashlib
 import shutil
 from pathlib import Path
@@ -25,6 +26,7 @@ def _sha256(path: Path) -> str:
 
 # ── Scope tests (variant C) ──────────────────────────────────────────────
 
+
 def test_scope_two_producers_threat_and_grievance():
     markers = [tag for _, tag in _PROUDUCER_MARKERS]
     assert markers == ["threat", "grievance"], markers
@@ -40,6 +42,7 @@ def test_probe_scope_two_producers():
 
 # ── Probe tests ──────────────────────────────────────────────────────────
 
+
 def test_probe_captures_threat_and_grievance_calls():
     from app.services.npc.causal_slice_threat import ThreatDesiredChangeProducer
     from app.services.npc.causal_slice_grievance import GrievanceDesiredChangeProducer
@@ -50,11 +53,17 @@ def test_probe_captures_threat_and_grievance_calls():
 
     with probe_producer_calls() as captured:
         ThreatDesiredChangeProducer.resolve(
-            state=_State(), rel={}, disposition={},
-            allies=3, belief_source=None,
+            state=_State(),
+            rel={},
+            disposition={},
+            allies=3,
+            belief_source=None,
         )
         GrievanceDesiredChangeProducer.resolve(
-            who="test_npc2", state=_State(), rel={}, disposition={},
+            who="test_npc2",
+            state=_State(),
+            rel={},
+            disposition={},
             allies=2,
         )
 

@@ -52,8 +52,7 @@ def compute_object_target_facts(
     _candidates = tuple(
         _o
         for _o in project_world_objects(snapshot.world_objects, location_id)
-        if _o.archetype in TARGETABLE_ARCHETYPES
-        and _o.carrier_mode.value == "FREE"
+        if _o.archetype in TARGETABLE_ARCHETYPES and _o.carrier_mode.value == "FREE"
     )
     if not _candidates:
         return _facts

@@ -319,9 +319,7 @@ def test_loader_no_canon_legacy_intact(tmp_path):
         raw = {
             "id": "merchant_goran",
             "psyche": {},
-            "origin_events": [
-                {"summary": "старое событие", "day": -1000, "importance": 0.5, "tags": []}
-            ],
+            "origin_events": [{"summary": "старое событие", "day": -1000, "importance": 0.5, "tags": []}],
         }
         state = npc_loader.load_l2_state_from_runtime_dict(raw)
         assert len(state.narrative_cache) == 1  # legacy-путь жив (T-CCH-09 база)

@@ -24,7 +24,7 @@ class TestActionSemanticResolver:
         action = resolver.resolve("Я хочу помочь тебе с долгом", tick=2, target_id="tavern_keeper_tornin")
         assert action.action_type == ActionType.HELP
         assert action.secret_id == "tornin_debt"
-        
+
     def test_parses_dialogue_no_secret(self, resolver: ActionSemanticResolver):
         action = resolver.resolve("Привет, Люся", tick=3, target_id="maid_lusya")
         assert action.action_type == ActionType.DIALOGUE

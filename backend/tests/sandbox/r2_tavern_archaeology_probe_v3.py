@@ -23,8 +23,12 @@ R2-TAVERN-ARCHAEOLOGY v3 — финальная разведка.
 
 Read-only.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -96,8 +100,16 @@ def main() -> int:
             print(f"\n--- nodes.{node_name} ---")
             if isinstance(node_data, dict):
                 # Compact summary
-                x = node_data.get("x") or (node_data.get("position") or {}).get("x") if isinstance(node_data.get("position"), dict) else node_data.get("x")
-                y = node_data.get("y") or (node_data.get("position") or {}).get("y") if isinstance(node_data.get("position"), dict) else node_data.get("y")
+                x = (
+                    node_data.get("x") or (node_data.get("position") or {}).get("x")
+                    if isinstance(node_data.get("position"), dict)
+                    else node_data.get("x")
+                )
+                y = (
+                    node_data.get("y") or (node_data.get("position") or {}).get("y")
+                    if isinstance(node_data.get("position"), dict)
+                    else node_data.get("y")
+                )
                 pos = node_data.get("position") or node_data.get("pos")
                 px = py = None
                 if isinstance(pos, dict):
@@ -111,7 +123,7 @@ def main() -> int:
                 # Show ALL top-level fields
                 other_keys = set(node_data.keys()) - {"x", "y", "position", "pos", "connections", "exits", "neighbors"}
                 if other_keys:
-                    print(f"  other fields:")
+                    print("  other fields:")
                     for k in sorted(other_keys):
                         v = node_data[k]
                         v_str = _print_dict(v, max_chars=200)
@@ -139,7 +151,7 @@ def main() -> int:
 
     # === STEP C: Substring search for "exit_south" anywhere in raw file ===
     _print_section("STEP C: SUBSTRING SEARCH for 'exit_south' in raw tavern.json")
-    print(f"Searching for these variants:")
+    print("Searching for these variants:")
     for v in SEARCH_STRING_VARIANTS:
         count = raw_text.count(v)
         idx_list = []
@@ -162,7 +174,7 @@ def main() -> int:
     # === STEP D: Search for "exit_south" in OTHER files under project ===
     _print_section("STEP D: SUBSTRING SEARCH for 'exit_south' in OTHER project files")
     print(f"Searching under: {PROJECT_ROOT}")
-    print(f"(excluding .venv, node_modules, .git, __pycache__)")
+    print("(excluding .venv, node_modules, .git, __pycache__)")
     exclude_dirs = {".venv", "node_modules", ".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
     matches: List[Tuple[Path, int, str]] = []
     try:
@@ -222,7 +234,7 @@ def main() -> int:
 
     # === STEP F: SpatialValidator / SpatialTargetResolver source code ===
     _print_section("STEP F: SEARCH for SpatialValidator and SpatialTargetResolver source")
-    print(f"Looking for class definitions in backend/app/services/spatial/*")
+    print("Looking for class definitions in backend/app/services/spatial/*")
     spatial_dir = _BACKEND / "app/services/spatial"
     if spatial_dir.exists():
         print(f"Spatial services directory: {spatial_dir}")
@@ -235,7 +247,11 @@ def main() -> int:
             # Look for class definitions
             lines = src.split("\n")
             for i, line in enumerate(lines, 1):
-                if line.startswith("class ") or "class SpatialValidator" in line or "class SpatialTargetResolver" in line:
+                if (
+                    line.startswith("class ")
+                    or "class SpatialValidator" in line
+                    or "class SpatialTargetResolver" in line
+                ):
                     print(f"  L{i}: {line}")
             # Look for any reference to exit_south or "exit" pattern
             for i, line in enumerate(lines, 1):
@@ -247,7 +263,9 @@ def main() -> int:
                     print(f"  L{i} [furthest ref]: {line.rstrip()}")
             # Look for "edge removed" message (from SpatialValidator)
             for i, line in enumerate(lines, 1):
-                if "edge" in line.lower() and ("removed" in line.lower() or "crosses" in line.lower() or "wall_id" in line.lower()):
+                if "edge" in line.lower() and (
+                    "removed" in line.lower() or "crosses" in line.lower() or "wall_id" in line.lower()
+                ):
                     print(f"  L{i} [edge validation]: {line.rstrip()}")
     else:
         print(f"[WARN] Spatial services directory not found: {spatial_dir}")
@@ -276,9 +294,14 @@ def main() -> int:
             lines = src.split("\n")
             for i, line in enumerate(lines, 1):
                 # Look for code that builds edges from nodes.X.connections
-                if ("connections" in line and ("edge" in line.lower() or "graph" in line.lower() or "build" in line.lower())) or \
-                   ("from_nodes" in line or "build_graph" in line or "build_edges" in line) or \
-                   ("exit_" in line and "node" in line.lower()):
+                if (
+                    (
+                        "connections" in line
+                        and ("edge" in line.lower() or "graph" in line.lower() or "build" in line.lower())
+                    )
+                    or ("from_nodes" in line or "build_graph" in line or "build_edges" in line)
+                    or ("exit_" in line and "node" in line.lower())
+                ):
                     rel = py_file.relative_to(_BACKEND)
                     print(f"  {rel} L{i}: {line.rstrip()}")
 
@@ -286,7 +309,7 @@ def main() -> int:
     _print_section("STEP H: kitchen_bed_2 NODE — full definition + neighbors")
     if isinstance(nodes, dict) and "kitchen_bed_2" in nodes:
         kb2 = nodes["kitchen_bed_2"]
-        print(f"\nFull definition of nodes.kitchen_bed_2:")
+        print("\nFull definition of nodes.kitchen_bed_2:")
         print(_print_dict(kb2))
         # Extract coords
         pos = kb2.get("position") or kb2.get("pos")
@@ -297,7 +320,7 @@ def main() -> int:
         # Connections
         conns = kb2.get("connections") or []
         print(f"Connections: {conns}")
-        print(f"\nFor each connected node, find its coords:")
+        print("\nFor each connected node, find its coords:")
         for c in conns:
             if c in nodes:
                 cn = nodes[c]
@@ -311,7 +334,7 @@ def main() -> int:
 
     # === STEP I: Check if 'exit_south' could be a typo / hallucination ===
     _print_section("STEP I: CHECK — is 'exit_south' perhaps a resolver hallucination?")
-    print(f"\nSummary of evidence:")
+    print("\nSummary of evidence:")
     print(f"  1. nodes dict has {len(nodes) if isinstance(nodes, dict) else 'N/A'} keys")
     if isinstance(nodes, dict):
         has_exit_east = "exit_east" in nodes
@@ -322,24 +345,24 @@ def main() -> int:
     print(f"  5. passages list has {len(data.get('passages', []))} items")
     print(f"  6. raw file mentions 'exit_south': {raw_text.count('exit_south')} time(s)")
     print(f"  7. raw file mentions 'exit_east': {raw_text.count('exit_east')} time(s)")
-    print(f"\n  >>> CONCLUSION <<<")
+    print("\n  >>> CONCLUSION <<<")
     if isinstance(nodes, dict) and "exit_south" not in nodes and raw_text.count("exit_south") == 0:
-        print(f"  >>> 'exit_south' DOES NOT EXIST in tavern.json map file.")
-        print(f"  >>> SpatialValidator's complaint about edge 'exit_south <-> kitchen_bed_2'")
-        print(f"  >>> is itself suspicious — where does it get that edge from?")
-        print(f"  >>> SpatialTargetResolver returning anchor_node=tavern:exit_south")
-        print(f"  >>> is ALSO suspicious — it's selecting a non-existent node.")
-        print(f"  >>>")
-        print(f"  >>> Hypothesis: SpatialTargetResolver has a HARDCODED list of exit nodes")
-        print(f"  >>> (like ['exit_north', 'exit_east', 'exit_south', 'exit_west'])")
-        print(f"  >>> and picks 'furthest from threat' from that list REGARDLESS of map contents.")
-        print(f"  >>> SpatialValidator then sees the resolver's anchor_node, treats it as")
-        print(f"  >>> a real graph node, tries to validate edges to it, finds they cross walls,")
-        print(f"  >>> and removes them — but the edges shouldn't exist in the first place.")
+        print("  >>> 'exit_south' DOES NOT EXIST in tavern.json map file.")
+        print("  >>> SpatialValidator's complaint about edge 'exit_south <-> kitchen_bed_2'")
+        print("  >>> is itself suspicious — where does it get that edge from?")
+        print("  >>> SpatialTargetResolver returning anchor_node=tavern:exit_south")
+        print("  >>> is ALSO suspicious — it's selecting a non-existent node.")
+        print("  >>>")
+        print("  >>> Hypothesis: SpatialTargetResolver has a HARDCODED list of exit nodes")
+        print("  >>> (like ['exit_north', 'exit_east', 'exit_south', 'exit_west'])")
+        print("  >>> and picks 'furthest from threat' from that list REGARDLESS of map contents.")
+        print("  >>> SpatialValidator then sees the resolver's anchor_node, treats it as")
+        print("  >>> a real graph node, tries to validate edges to it, finds they cross walls,")
+        print("  >>> and removes them — but the edges shouldn't exist in the first place.")
     elif isinstance(nodes, dict) and "exit_south" in nodes:
-        print(f"  >>> 'exit_south' IS defined in nodes dict — investigate its definition.")
+        print("  >>> 'exit_south' IS defined in nodes dict — investigate its definition.")
     else:
-        print(f"  >>> Inconclusive — see Step D for cross-file search results.")
+        print("  >>> Inconclusive — see Step D for cross-file search results.")
 
     # === STEP J: Final summary ===
     _print_section("STEP J: SUMMARY v3")
@@ -348,7 +371,7 @@ def main() -> int:
     print(f"Total nodes in nodes dict: {len(nodes) if isinstance(nodes, dict) else 'N/A'}")
     if isinstance(nodes, dict):
         print(f"All node names: {sorted(nodes.keys())}")
-    print(f"\nKey findings:")
+    print("\nKey findings:")
     print(f"  - 'exit_south' string appears in tavern.json: {raw_text.count('exit_south')} time(s)")
     print(f"  - 'exit_east' string appears in tavern.json: {raw_text.count('exit_east')} time(s)")
     print(f"  - Files containing 'exit_south' elsewhere in project: {len(matches)}")

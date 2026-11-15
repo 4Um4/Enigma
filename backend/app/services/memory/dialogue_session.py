@@ -19,6 +19,7 @@ class Claim:
     шинного события-источника (NPC_SPOKE); "" для legacy/без события —
     ephemeral claim. Мост соединяет provenance, НЕ меняя lifecycle:
     STM Claim остаётся эфемерным RAM-материалом."""
+
     text: str
     speaker: str
     confidence: float
@@ -31,6 +32,7 @@ class Claim:
 @dataclass
 class OpenQuestion:
     """Вопрос, на который нет ответа."""
+
     text: str
     asked_by: str
     addressed_to: str
@@ -44,6 +46,7 @@ class OpenQuestion:
 @dataclass
 class DialogueTurn:
     """Расширенная реплика — с target/intent/tone/tick."""
+
     speaker: str
     text: str
     target_id: str = ""
@@ -55,6 +58,7 @@ class DialogueTurn:
 @dataclass
 class DialogueSession:
     """Сессия диалога с structured thread memory."""
+
     npc_id: str
     partner_id: str = "player"
     thread_id: str = ""
@@ -80,13 +84,13 @@ class DialogueSession:
     last_activity_tick: int = 0
     ended: bool = False
 
-    def add_turn(self, speaker: str, text: str, target_id: str = "",
-                 intent: str = "", tone: str = "", tick: int = 0) -> None:
+    def add_turn(
+        self, speaker: str, text: str, target_id: str = "", intent: str = "", tone: str = "", tick: int = 0
+    ) -> None:
         """Добавляет реплику в буфер. Старые вытесняются."""
-        self.buffer.append(DialogueTurn(
-            speaker=speaker, text=text, target_id=target_id,
-            intent=intent, tone=tone, tick=tick
-        ))
+        self.buffer.append(
+            DialogueTurn(speaker=speaker, text=text, target_id=target_id, intent=intent, tone=tone, tick=tick)
+        )
         if len(self.buffer) > self.max_size:
             self.buffer.pop(0)
         self.last_activity_tick = tick
@@ -100,21 +104,31 @@ class DialogueSession:
         """Детекция темы по ключевым словам (временная, до LLM-экстрактора)."""
         _lower = text.lower()
         _keywords = {
-            "подвал": "basement", "тайник": "basement", "ход": "basement",
-            "гильдия": "guild", "воры": "guild",
-            "торговля": "trade", "купить": "trade", "продать": "trade",
-            "метель": "weather", "погода": "weather", "снег": "weather",
-            "дождь": "weather", "ветер": "weather", "холод": "weather",
-            "борко": "guard_borko", "страж": "guard",
-            "торнин": "tavern_keeper", "кузнец": "blacksmith", "орм": "blacksmith",
+            "подвал": "basement",
+            "тайник": "basement",
+            "ход": "basement",
+            "гильдия": "guild",
+            "воры": "guild",
+            "торговля": "trade",
+            "купить": "trade",
+            "продать": "trade",
+            "метель": "weather",
+            "погода": "weather",
+            "снег": "weather",
+            "дождь": "weather",
+            "ветер": "weather",
+            "холод": "weather",
+            "борко": "guard_borko",
+            "страж": "guard",
+            "торнин": "tavern_keeper",
+            "кузнец": "blacksmith",
+            "орм": "blacksmith",
         }
         for _word, _topic in _keywords.items():
             if _word in _lower:
                 self.topic = _topic
                 self.topic_confidence = 0.6  # Базовая уверенность для keyword-match
-                self._pressure_by_topic[_topic] = (
-                    self._pressure_by_topic.get(_topic, 0) + 1
-                )
+                self._pressure_by_topic[_topic] = self._pressure_by_topic.get(_topic, 0) + 1
                 return
 
     def get_pressure(self, topic: str | None) -> int:
@@ -122,22 +136,19 @@ class DialogueSession:
             return 0
         return self._pressure_by_topic.get(topic, 0)
 
-    def add_claim(self, text: str, speaker: str, confidence: float, tick: int,
-                  event_id: str = "") -> None:
-        self.claims.append(Claim(
-            text=text, speaker=speaker, confidence=confidence,
-            timestamp_tick=tick, event_id=event_id
-        ))
+    def add_claim(self, text: str, speaker: str, confidence: float, tick: int, event_id: str = "") -> None:
+        self.claims.append(
+            Claim(text=text, speaker=speaker, confidence=confidence, timestamp_tick=tick, event_id=event_id)
+        )
         open_claims = [c for c in self.claims if c.status == "open"]
         if len(open_claims) > 10:
             for c in open_claims[:-10]:
                 c.status = "withdrawn"
 
     def add_open_question(self, text: str, asked_by: str, addressed_to: str, tick: int) -> None:
-        self.open_questions.append(OpenQuestion(
-            text=text, asked_by=asked_by, addressed_to=addressed_to,
-            timestamp_tick=tick
-        ))
+        self.open_questions.append(
+            OpenQuestion(text=text, asked_by=asked_by, addressed_to=addressed_to, timestamp_tick=tick)
+        )
 
     def answer_question(self, idx: int, answer_text: str, answered_by: str, tick: int) -> None:
         if 0 <= idx < len(self.open_questions):

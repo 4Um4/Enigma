@@ -178,12 +178,7 @@ class CharacterFilter:
         intensity_modifier = 0.5 + 0.5 * intensity
 
         # 5. Итоговое сопротивление
-        resistance = (
-            base_resistance
-            * integrity_modifier
-            * constraint_modifier
-            * intensity_modifier
-        )
+        resistance = base_resistance * integrity_modifier * constraint_modifier * intensity_modifier
         resistance = min(resistance, 1.0)  # hard cap
 
         # 6. Принятие решения
@@ -242,9 +237,7 @@ class CharacterFilter:
     def _build_modify_description(self, tags: List[str]) -> str:
         """Генерирует описание модифицированного действия для DM."""
         if "eroded_integrity" in tags:
-            return (
-                "персонаж выполняет действие неохотно, но уже не может сопротивляться"
-            )
+            return "персонаж выполняет действие неохотно, но уже не может сопротивляться"
         if any("strong_" in t for t in tags):
             return "персонаж колеблется, но преодолевает себя и действует"
         return "действие выполнено с лёгким замешательством"

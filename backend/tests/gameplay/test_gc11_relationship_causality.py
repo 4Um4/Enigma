@@ -32,10 +32,9 @@ def _llm_alive() -> bool:
     import urllib.request
 
     from app.core.config import settings
+
     try:
-        urllib.request.urlopen(
-            f"{settings.llama_cpp_server_url.rstrip('/')}/health", timeout=1
-        )
+        urllib.request.urlopen(f"{settings.llama_cpp_server_url.rstrip('/')}/health", timeout=1)
         return True
     except Exception:
         return False
@@ -53,8 +52,10 @@ def _ensure_llm() -> None:
         return
     try:
         from app.services.llm.runtime.client import ensure_llm
+
         ensure_llm(label="gc11")
         import time
+
         _waited = 0
         while not _llm_alive() and _waited < 30:
             time.sleep(1.0)
@@ -122,8 +123,7 @@ def test_gc11_compliment_writes_nonzero_ram(harness):
     else:
         _after = _after_immediate
 
-    print(f"[GC11-STEP1] trust player→maid_lusya: before={_before} "
-          f"after={_after}")
+    print(f"[GC11-STEP1] trust player→maid_lusya: before={_before} after={_after}")
 
     # Пакет 3: классификация только в кандидате на отказ (INFRA-D1).
     if (_after is None or _after <= 0.0) and not _llm_alive():
@@ -176,8 +176,7 @@ def test_gc11_event_shifts_decision_landscape(harness):
     # Пакет 3: классификация только в кандидате на отказ — как в СТУПЕНИ 1.
     if not _causal and not _llm_alive():
         pytest.skip(
-            "INFRA: LLM недоступен — событие не осело через NARRATIVE-цепь "
-            "(правило §9.13-4; Пакет 3 ТЗ АУДИТ-01)"
+            "INFRA: LLM недоступен — событие не осело через NARRATIVE-цепь (правило §9.13-4; Пакет 3 ТЗ АУДИТ-01)"
         )
     assert _causal, (
         f"GC11-STEP2 FAIL: идентичный мир, доверие и intent НЕ изменились "

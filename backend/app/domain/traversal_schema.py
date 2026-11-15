@@ -119,6 +119,7 @@ class TraversalProposal:
     validated data needed for materialization. Includes topology_version
     to detect stale proposals if spatial authority changed.
     """
+
     npc_id: str
     source_node: str
     target_node: str
@@ -152,6 +153,7 @@ class MovementPlanResult:
     If REJECTED, contains reason. REJECTED proposals must NOT
     reach materialization layer.
     """
+
     status: MovementPlanStatus
     proposal: Optional[TraversalProposal] = None
     reason: str = ""
@@ -175,14 +177,16 @@ class MovementPlanResult:
 # первой записи; между валидацией и записью детерминированный успех;
 # исключение между двумя записями — rollback первой (единственный остаточный
 # путь, покрытие тестом atomicity_rollback).
-_INTERRUPT_TRAVERSAL_REASONS = frozenset({
-    "CROSS_LOCATION_MATERIALIZE",   # Н-46a: ME:330 (был pop)
-    "CROSS_LOCATION_TRANSFER",      # Н-46c: ORCH:967 (был pop, BUG-SLEEP-013)
-    # S203.4 (ADR-O-365): арбитр-INTERRUPT — кандидат превысил приоритетный
-    # порог. Расширение реестра причин = мини-ADR (закон №16): ADR-O-365
-    # и есть эта запись.
-    "PRIORITY_SUPERSEDE",
-})
+_INTERRUPT_TRAVERSAL_REASONS = frozenset(
+    {
+        "CROSS_LOCATION_MATERIALIZE",  # Н-46a: ME:330 (был pop)
+        "CROSS_LOCATION_TRANSFER",  # Н-46c: ORCH:967 (был pop, BUG-SLEEP-013)
+        # S203.4 (ADR-O-365): арбитр-INTERRUPT — кандидат превысил приоритетный
+        # порог. Расширение реестра причин = мини-ADR (закон №16): ADR-O-365
+        # и есть эта запись.
+        "PRIORITY_SUPERSEDE",
+    }
+)
 
 
 def interrupt_traversal(
@@ -253,14 +257,12 @@ def interrupt_traversal(
 
     transition_traversal(trav, "CANCELLED")
     if cm is not None:
-        if not transition_commitment(cm, "INTERRUPTED", tick=tick,
-                                     interrupt_reason=reason):
+        if not transition_commitment(cm, "INTERRUPTED", tick=tick, interrupt_reason=reason):
             # Невозможно после preview: атомарность нарушена. Полный откат
             # недостижим (CANCELLED terminal) — падаем громко (L4):
             # падение лучше тихого рассинхрона рельсов.
             raise RuntimeError(
-                f"interrupt_traversal: commitment-interrupt failed after "
-                f"preview for npc={npc_id} — atomicity violated"
+                f"interrupt_traversal: commitment-interrupt failed after preview for npc={npc_id} — atomicity violated"
             )
         _commitments.pop(npc_id, None)
         _history = scene_state.setdefault("commitment_history", {})

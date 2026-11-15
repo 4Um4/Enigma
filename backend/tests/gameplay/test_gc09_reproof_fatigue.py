@@ -27,9 +27,7 @@ def _assert_capped_axes(res) -> None:
     """Капнутые оси обязаны показать cap-паттерн: pert ≈ base×0.3 (+track2-сдвиг).
     Число не-capped разошедшихся осей ≥ 1 = evidence тракта 2 (ADR-O-375)."""
     _diffs = res.score_diffs
-    assert _diffs, (
-        "FATIGUE RE-PROOF RED: score_diffs пуст — utility-проводимость не доказана"
-    )
+    assert _diffs, "FATIGUE RE-PROOF RED: score_diffs пуст — utility-проводимость не доказана"
     _capped = [d for d in _diffs if d[2] in _CAPPED_AXES]
     assert _capped, (
         f"FATIGUE RE-PROOF RED: ни одна capped-ось не деформирована — "
@@ -53,10 +51,15 @@ def _assert_capped_axes(res) -> None:
 
 
 def run() -> None:
-    _res = run_probe(ProbeSpec(
-        field="body_state.fatigue", npc_id=_NPC, injection=90.0,
-        write_kind="PHYSIOLOGY", horizon=6,
-    ))
+    _res = run_probe(
+        ProbeSpec(
+            field="body_state.fatigue",
+            npc_id=_NPC,
+            injection=90.0,
+            write_kind="PHYSIOLOGY",
+            horizon=6,
+        )
+    )
     print(f"RE-PROOF fatigue → verdict={_res.verdict}")
     print(f"  checkpoints={_res.checkpoints}")
     print(f"  score_diffs: {len(_res.score_diffs)} осей")

@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/tests/gameplay/test_p5b_l4_live_verifier.py
 Назначение: P5-B Step 5+6 — real-LLM live-тест семантической верификации.
 
@@ -17,6 +17,7 @@ Master directive: доказать живую семантическую пер�
 Запуск: P5B_LIVE_LLM=1 python -m pytest backend/tests/gameplay/test_p5b_l4_live_verifier.py -v
 Без P5B_LIVE_LLM=1 — skip (требует Hermes-3 server на localhost:8181).
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,9 +39,11 @@ pytestmark = pytest.mark.skipif(
 
 # ───────────────────────── Audit Trace ─────────────────────────
 
+
 @dataclass
 class ArtifactTrace:
     """Spy: захват 4 артефактов для аудита."""
+
     candidate_proposition: dict[str, Any] | None = None
     llm_text: str = ""
     verifier_verdict: str = ""
@@ -85,6 +88,7 @@ class _SpyVerifier:
 
 # ───────────────────────── Helpers ─────────────────────────
 
+
 def _live_llm_client():
     """Production LLM client via RouterAdapter (agent_name='verifier' ? DIALOGUE capability).
 
@@ -94,6 +98,7 @@ def _live_llm_client():
     """
     from app.services.llm.router import get_router, initialize_router
     from app.services.cognition.router_adapter import RouterAdapter
+
     initialize_router()  # ensures ModelPool registered
     router = get_router()
     return RouterAdapter(router, agent_name="verifier")
@@ -119,6 +124,7 @@ PROP_INSULT = {
 
 def _make_dialogue_artifact(text: str, proposition: dict | None = PROP_INSULT):
     from app.domain.execution import Artifact
+
     return Artifact(
         task_id="t-l4-live",
         success=True,
@@ -139,6 +145,7 @@ def _make_dialogue_artifact(text: str, proposition: dict | None = PROP_INSULT):
 def _capture_events(events: list, trace: ArtifactTrace):
     """Extract NPC_SPOKE + COMMUNICATION_CLAIM from events list."""
     from app.services.events.event_types import EventType
+
     for ev in events:
         if ev.type == EventType.NPC_SPOKE.value:
             trace.npc_spoke_published = True
@@ -150,6 +157,7 @@ def _capture_events(events: list, trace: ArtifactTrace):
 
 # ───────────────────────── Tests ─────────────────────────
 
+
 class TestL4LiveVerifier:
     """P5-B Step 5+6: real-LLM verifier tests."""
 
@@ -157,55 +165,39 @@ class TestL4LiveVerifier:
         """Step 5 positive: Люся сообщает слух → verifier YES."""
         from app.services.cognition.proposition_verifier import PropositionVerifier
 
-        text = (
-            "Торнин, я слышала, что Open_road оскорбил вас за спиной. "
-            "Говорил неприятные вещи."
-        )
+        text = "Торнин, я слышала, что Open_road оскорбил вас за спиной. Говорил неприятные вещи."
         verifier = PropositionVerifier(_live_llm_client(), timeout=30.0, max_tokens=3)
         confirmed = verifier.verify(PROP_INSULT, text)
 
         print(f"\n[POSITIVE] text={text[:80]!r}")
         print(f"[POSITIVE] confirmed={confirmed}")
         assert confirmed is True, (
-            f"Expected Hermes-3 to confirm proposition in rumor text, "
-            f"but verifier returned {confirmed}."
+            f"Expected Hermes-3 to confirm proposition in rumor text, but verifier returned {confirmed}."
         )
 
     def test_l4_negative_verifier_rejects_off_topic(self):
         """Step 6 negative: Люся off-topic → verifier NO."""
         from app.services.cognition.proposition_verifier import PropositionVerifier
 
-        text = (
-            "Сегодня славная погода, не правда ли? "
-            "Я слышала, лорд мэр устраивает бал на следующей неделе."
-        )
+        text = "Сегодня славная погода, не правда ли? Я слышала, лорд мэр устраивает бал на следующей неделе."
         verifier = PropositionVerifier(_live_llm_client(), timeout=30.0, max_tokens=3)
         confirmed = verifier.verify(PROP_INSULT, text)
 
         print(f"\n[NEGATIVE off-topic] text={text[:80]!r}")
         print(f"[NEGATIVE off-topic] confirmed={confirmed}")
-        assert confirmed is False, (
-            f"Expected Hermes-3 to REJECT off-topic text, "
-            f"but verifier returned {confirmed}."
-        )
+        assert confirmed is False, f"Expected Hermes-3 to REJECT off-topic text, but verifier returned {confirmed}."
 
     def test_l4_negative_verifier_rejects_negation(self):
         """Step 6 negative: Люся отрицает → verifier NO."""
         from app.services.cognition.proposition_verifier import PropositionVerifier
 
-        text = (
-            "Торнин, не верьте слухам. Ничего подобного не было — "
-            "Open_road вас не оскорблял."
-        )
+        text = "Торнин, не верьте слухам. Ничего подобного не было — Open_road вас не оскорблял."
         verifier = PropositionVerifier(_live_llm_client(), timeout=30.0, max_tokens=3)
         confirmed = verifier.verify(PROP_INSULT, text)
 
         print(f"\n[NEGATIVE negation] text={text[:80]!r}")
         print(f"[NEGATIVE negation] confirmed={confirmed}")
-        assert confirmed is False, (
-            f"Expected Hermes-3 to REJECT negation text, "
-            f"but verifier returned {confirmed}."
-        )
+        assert confirmed is False, f"Expected Hermes-3 to REJECT negation text, but verifier returned {confirmed}."
 
 
 class TestL4LiveMaterializer:
@@ -216,10 +208,7 @@ class TestL4LiveMaterializer:
         trace = ArtifactTrace()
         mat = _build_materializer_with_spy(trace)
 
-        text = (
-            "Торнин, я слышала, что Open_road оскорбил вас за спиной. "
-            "Говорил неприятные вещи."
-        )
+        text = "Торнин, я слышала, что Open_road оскорбил вас за спиной. Говорил неприятные вещи."
         artifact = _make_dialogue_artifact(text)
         events = list(mat.materialize(artifact))
         _capture_events(events, trace)
@@ -247,10 +236,7 @@ class TestL4LiveMaterializer:
         trace = ArtifactTrace()
         mat = _build_materializer_with_spy(trace)
 
-        text = (
-            "Сегодня славная погода, не правда ли? "
-            "Я слышала, лорд мэр устраивает бал на следующей неделе."
-        )
+        text = "Сегодня славная погода, не правда ли? Я слышала, лорд мэр устраивает бал на следующей неделе."
         artifact = _make_dialogue_artifact(text)
         events = list(mat.materialize(artifact))
         _capture_events(events, trace)
@@ -258,9 +244,7 @@ class TestL4LiveMaterializer:
         print(f"\n{trace.summary()}")
 
         # NPC_SPOKE published (speech happened)
-        assert trace.npc_spoke_published is True, (
-            "NPC_SPOKE must be published even when proposition rejected"
-        )
+        assert trace.npc_spoke_published is True, "NPC_SPOKE must be published even when proposition rejected"
 
         # COMMUNICATION_CLAIM suppressed
         assert trace.communication_claim_published is False, (
@@ -303,4 +287,6 @@ class TestL4LiveMaterializer:
         print(f"  1. candidate proposition: {trace.candidate_proposition}")
         print(f"  2. LLM text: {trace.llm_text[:100]!r}")
         print(f"  3. verifier verdict: {trace.verifier_verdict}")
-        print(f"  4. final events: NPC_SPOKE={trace.npc_spoke_published}, COMMUNICATION_CLAIM={trace.communication_claim_published}")
+        print(
+            f"  4. final events: NPC_SPOKE={trace.npc_spoke_published}, COMMUNICATION_CLAIM={trace.communication_claim_published}"
+        )

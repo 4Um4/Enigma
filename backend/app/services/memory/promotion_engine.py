@@ -31,9 +31,7 @@ _COMPRESS_MAX_IMPORTANCE: float = 0.6
 # ── Шаблоны сжатия: набор тегов → текст абстракции ──
 
 _COMPRESSION_TEMPLATES: Dict[frozenset, str] = {
-    frozenset(
-        {"positive", "dialogue"}
-    ): "Игрок был дружелюбен в разговорах (несколько раз)",
+    frozenset({"positive", "dialogue"}): "Игрок был дружелюбен в разговорах (несколько раз)",
     frozenset({"positive"}): "Игрок вёл себя хорошо (несколько раз)",
     frozenset({"negative", "dialogue"}): "Игрок был груб в разговорах (несколько раз)",
     frozenset({"negative"}): "Игрок вёл себя плохо (несколько раз)",
@@ -154,17 +152,13 @@ class MemoryPromotionEngine:
                 tags=batch[0].tags,
                 is_compressed=True,
                 actor_id=batch[0].actor_id,
-                compressed_from=tuple(
-                    getattr(e, "id", f"seq_{e.sequence_id}") for e in batch
-                ),
+                compressed_from=tuple(getattr(e, "id", f"seq_{e.sequence_id}") for e in batch),
             )
 
             results.append(
                 CompressionResult(
                     compressed=compressed,
-                    removed_ids=tuple(
-                        getattr(e, "id", f"seq_{e.sequence_id}") for e in batch
-                    ),
+                    removed_ids=tuple(getattr(e, "id", f"seq_{e.sequence_id}") for e in batch),
                 )
             )
 
@@ -187,9 +181,7 @@ class MemoryPromotionEngine:
 
         for conditions, (trait_name, delta) in _IDENTITY_RULES:
             # Проверяем что все условия выполнены
-            if all(
-                identity_traits.get(t, 0.0) >= min_w for t, min_w in conditions.items()
-            ):
+            if all(identity_traits.get(t, 0.0) >= min_w for t, min_w in conditions.items()):
                 # Не создаём дубликат — только если черты ещё нет
                 if trait_name not in identity_traits:
                     new_traits.append((trait_name, delta))

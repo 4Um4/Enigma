@@ -7,6 +7,7 @@
 Основные сущности: IntentReadiness, IntentSemanticField
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_block1_contract.py -q; cd ..
 """
+
 import pytest
 from app.domain.intent_profile import IntentReadiness, IntentSemanticField, ActionType
 
@@ -18,7 +19,8 @@ def test_readiness_enum_five_values():
 
 def test_field_accepts_comprehension_facts_and_frozen():
     f = IntentSemanticField(
-        action=ActionType.DIALOGUE, raw_text="x",
+        action=ActionType.DIALOGUE,
+        raw_text="x",
         comprehension_facts={"has_acts": False, "llm_status": "OK"},
     )
     assert f.comprehension_facts["llm_status"] == "OK"
@@ -35,7 +37,8 @@ def test_field_without_new_members_valid():
 
 def test_per_act_keys_pass_through_field():
     # Ключи per-act контракта проходят в поле (Dict-контракт; валидация — Блок 4)
-    acts = [{"type": "ORDER", "params": {}, "negated": True,
-             "modality": None, "quoted": False, "quoted_speaker_hint": None}]
+    acts = [
+        {"type": "ORDER", "params": {}, "negated": True, "modality": None, "quoted": False, "quoted_speaker_hint": None}
+    ]
     f = IntentSemanticField(action=ActionType.DIALOGUE, raw_text="не говори", semantic_acts=acts)
     assert f.semantic_acts[0]["negated"] is True

@@ -12,6 +12,7 @@ R4 (CCH-15 P4): WorldScheduler — независимый фоновый ини�
 
 Не создаётся второй исполнитель, второй SSOT, отдельная симуляция.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -82,6 +83,7 @@ def _make_scheduler(game_loop: Any = None) -> WorldScheduler:
 # Блок 1: set_game_loop + run_autonomous_tick
 # =========================================================================
 
+
 class TestSetGameLoopAndRunAutonomousTick:
     """R4: WorldScheduler делегирует в game_loop.idle_tick."""
 
@@ -125,6 +127,7 @@ class TestSetGameLoopAndRunAutonomousTick:
 # Блок 2: конкурентное исполнение — _running_ticks гвард
 # =========================================================================
 
+
 class TestConcurrencyGuard:
     """R4: _running_ticks защищает от двойного автономного тика одной кампании."""
 
@@ -166,6 +169,7 @@ class TestConcurrencyGuard:
 # =========================================================================
 # Блок 3: background loop — старт/стоп
 # =========================================================================
+
 
 class TestBackgroundLoop:
     """R4: start_background_loop / stop_background_loop."""
@@ -226,6 +230,7 @@ class TestBackgroundLoop:
 # Блок 4: сохранение состояния между тиками (последовательность)
 # =========================================================================
 
+
 class TestStatePersistenceBetweenTicks:
     """R4: автономные тики последовательны — каждый видит результат предыдущего."""
 
@@ -260,14 +265,13 @@ class TestStatePersistenceBetweenTicks:
         await sched.stop_background_loop()
 
         # Несколько тиков выполнено (последовательность сохранена в счётчике)
-        assert len(gl.idle_tick_calls) >= 2, (
-            f"background loop executed {len(gl.idle_tick_calls)} ticks, expected >= 2"
-        )
+        assert len(gl.idle_tick_calls) >= 2, f"background loop executed {len(gl.idle_tick_calls)} ticks, expected >= 2"
 
 
 # =========================================================================
 # Блок 5: maybe_tick legacy совместимость
 # =========================================================================
+
 
 class TestMaybeTickLegacy:
     """R4: maybe_tick сохранён (legacy shared_context), не вызывает idle_tick."""

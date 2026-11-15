@@ -31,7 +31,7 @@ def test_movement_lock_blocks_schedule_on_active_traversal():
         "routine": {"current": "sleeping", "schedule": {"08:00-18:00": "patrol"}},
         "location": "barracks",
         "location_id": "barracks",
-        "position": "barracks:bed", # Добавляем позицию, чтобы пройти проверку целостности
+        "position": "barracks:bed",  # Добавляем позицию, чтобы пройти проверку целостности
     }
 
     # scene_state с активным транзитом (reactive:approach к игроку)
@@ -62,7 +62,7 @@ def test_schedule_allowed_when_no_active_traversal():
         "routine": {"current": "sleeping", "schedule": {"08:00-18:00": "patrol"}},
         "location": "barracks",
         "location_id": "barracks",
-        "position": "barracks:bed", # Добавляем позицию, чтобы пройти проверку целостности
+        "position": "barracks:bed",  # Добавляем позицию, чтобы пройти проверку целостности
     }
 
     # scene_state БЕЗ активных транзитов

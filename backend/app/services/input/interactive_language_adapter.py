@@ -19,20 +19,20 @@ InteractiveLanguageAdapter — проектор IntentSemanticField → USLUnit 
 совместимые events/temporal и различные epistemics. Время в input — открытая
 задача USL-1.4 (Temporal Extractor), не угадывается.
 """
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from app.domain.epistemology import Predicate, Proposition, SpeechAct
+from app.domain.epistemology import Predicate, Proposition
 from app.domain.intent_profile import IntentSemanticField
 from app.domain.usl import (
-    USLAnchorKind,
     USLContext,
     USLEntityRef,
     USLEpistemics,
     USLEvent,
-    USLModality,
     USLModal,
+    USLModality,
     USLPredicate,
     USLSourceKind,
     USLSourceRef,
@@ -40,7 +40,6 @@ from app.domain.usl import (
     USLUnit,
     make_unit_id,
 )
-
 
 # ── 1. Mapping: Predicate → USLPredicate (общие 6 — тривиальный маппинг) ─────
 
@@ -117,6 +116,7 @@ def _act_to_modal(act: Dict) -> USLModal:
 
 # ── 4. Subject/object resolution → USLEntityRef ─────────────────────────────
 
+
 def _actor_to_usl(field: IntentSemanticField) -> USLEntityRef:
     """Actor: resolved NPC или player (если actor=None)."""
     if field.actor and field.actor != "player":
@@ -153,6 +153,7 @@ def _addressee_to_usl(field: IntentSemanticField) -> Optional[USLEntityRef]:
 
 # ── 5. Proposition → USLEvent (главный путь: если proposition есть) ─────────
 
+
 def _proposition_to_usl_event(prop: Proposition, field: IntentSemanticField) -> USLEvent:
     """Proposition → USLEvent (тривиальный маппинг для 6 общих предикатов)."""
     return USLEvent(
@@ -165,6 +166,7 @@ def _proposition_to_usl_event(prop: Proposition, field: IntentSemanticField) -> 
 
 
 # ── 6. semantic_acts → список USLEvent (когда proposition=None) ──────────────
+
 
 def _semantic_acts_to_usl_events(field: IntentSemanticField) -> Tuple[USLEvent, ...]:
     """Per-act контракт → USLEvent (для ASSERT/THREAT/COMPLIMENT без proposition).
@@ -185,16 +187,19 @@ def _semantic_acts_to_usl_events(field: IntentSemanticField) -> Tuple[USLEvent, 
         actor_ref = _actor_to_usl(field).ref_id
         # object — params.claim (для ASSERT) или params.target
         object_ref = params.get("claim") or params.get("target") or "unknown"
-        events.append(USLEvent(
-            predicate=_act_type_to_usl_predicate(act_type),
-            subject=actor_ref,
-            object=str(object_ref)[:300],
-            source_span=field.raw_text[:300],
-        ))
+        events.append(
+            USLEvent(
+                predicate=_act_type_to_usl_predicate(act_type),
+                subject=actor_ref,
+                object=str(object_ref)[:300],
+                source_span=field.raw_text[:300],
+            )
+        )
     return tuple(events)
 
 
 # ── 7. Главный проектор: IntentSemanticField → USLUnit ─────────────────────
+
 
 def intent_to_usl_unit(
     field: IntentSemanticField,
@@ -216,10 +221,7 @@ def intent_to_usl_unit(
     """
     # Источник (USL-5 span обязателен)
     text_span = field.raw_text[:300] if field.raw_text else ""
-    source_kind = (
-        USLSourceKind.PLAYER_ASSERTION if speaker_id == "player"
-        else USLSourceKind.NPC_SPEECH
-    )
+    source_kind = USLSourceKind.PLAYER_ASSERTION if speaker_id == "player" else USLSourceKind.NPC_SPEECH
     source_ref = USLSourceRef(
         source_kind=source_kind,
         document_ref=speaker_id,
@@ -294,6 +296,7 @@ def intent_to_usl_unit(
 
 
 # ── 8. Список полей → список USLUnit (для батча) ────────────────────────────
+
 
 def intents_to_usl(
     fields: List[IntentSemanticField],

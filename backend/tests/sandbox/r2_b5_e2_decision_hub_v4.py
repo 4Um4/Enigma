@@ -26,6 +26,7 @@ v4 strategy:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -103,10 +104,12 @@ root_logger = logging.getLogger()
 root_logger.addHandler(_dh_handler)
 root_logger.setLevel(logging.INFO)
 # Specific loggers
-for logger_name in ("app.services.npc.decision_hub",
-                    "app.services.world.world_tick_engine",
-                    "app.services.game_loop.game_loop",
-                    "app.services.npc.npc_tick_pipeline"):
+for logger_name in (
+    "app.services.npc.decision_hub",
+    "app.services.world.world_tick_engine",
+    "app.services.game_loop.game_loop",
+    "app.services.npc.npc_tick_pipeline",
+):
     lg = logging.getLogger(logger_name)
     lg.setLevel(logging.DEBUG)
 
@@ -188,8 +191,7 @@ def _find_lusya_state(loop) -> Tuple[Optional[Any], str]:
             if method is None:
                 continue
             # Try various arg patterns
-            for args in [("maid_lusya",), ("Open_road", "maid_lusya"),
-                         ("Open_road", "tavern", "maid_lusya")]:
+            for args in [("maid_lusya",), ("Open_road", "maid_lusya"), ("Open_road", "tavern", "maid_lusya")]:
                 try:
                     result = method(*args)
                     if result is not None:
@@ -311,10 +313,12 @@ def main() -> int:
             return 1
         try:
             loaded = load_method("Open_road")
-            print(f"  _load_npcs_with_runtime('Open_road') returned: type={type(loaded).__name__}, "
-                  f"len={len(loaded) if hasattr(loaded, '__len__') else '?'}")
+            print(
+                f"  _load_npcs_with_runtime('Open_road') returned: type={type(loaded).__name__}, "
+                f"len={len(loaded) if hasattr(loaded, '__len__') else '?'}"
+            )
             if isinstance(loaded, list):
-                print(f"  loaded NPC IDs:")
+                print("  loaded NPC IDs:")
                 for item in loaded[:20]:
                     nid = getattr(item, "npc_id", None) or (item.get("npc_id") if isinstance(item, dict) else None)
                     print(f"    {nid} (type={type(item).__name__})")
@@ -328,11 +332,12 @@ def main() -> int:
         _print_section("STEP 3: find maid_lusya NPC state (post-load)")
         lusya_state, lusya_source = _find_lusya_state(loop)
         if lusya_state is None:
-            print(f"  [STILL NOT FOUND via any strategy]")
+            print("  [STILL NOT FOUND via any strategy]")
             # Walk loop attributes to find anything holding npc state
-            print(f"  --- walk loop for NPCState objects ---")
+            print("  --- walk loop for NPCState objects ---")
             try:
                 visited = set()
+
                 def _walk(obj, path, depth=0):
                     if depth > 4 or id(obj) in visited:
                         return
@@ -348,6 +353,7 @@ def main() -> int:
                                 _walk(v, f"{path}.{k}", depth + 1)
                         except Exception:
                             pass
+
                 _walk(loop, "loop")
             except Exception as e:
                 print(f"  walk error: {e}")
@@ -368,7 +374,7 @@ def main() -> int:
                 print(f"  intent value: {intent_pre_str}")
 
             # Other relevant fields
-            print(f"\n  --- maid_lusya state top-level attrs (pre-tick) ---")
+            print("\n  --- maid_lusya state top-level attrs (pre-tick) ---")
             try:
                 for k, v in vars(lusya_state).items():
                     if not k.startswith("__"):
@@ -442,7 +448,7 @@ def main() -> int:
             except Exception:
                 pass
 
-            print(f"\n  Calling loop.idle_tick('Open_road', 'tavern')...")
+            print("\n  Calling loop.idle_tick('Open_road', 'tavern')...")
             tick_result: Any = None
             try:
                 tick_result = idle_tick_method("Open_road", "tavern")
@@ -465,7 +471,7 @@ def main() -> int:
                 err_str = str(e)
                 print(f"  ERROR: {type(e).__name__}: {err_str[:300]}")
                 if any(t in err_str.lower() for t in ("llm", "openai", "client", "api", "model")):
-                    print(f"  >>> LLM ERROR — idle_tick reached LLM (unexpected per comments)")
+                    print("  >>> LLM ERROR — idle_tick reached LLM (unexpected per comments)")
                 traceback.print_exc()
 
         # =====================================================================
@@ -476,7 +482,7 @@ def main() -> int:
         # Filter for relevant logs
         dh_logs = [l for l in _log_capture if "DECISION_HUB" in l or "decision_hub" in l.lower()]
         rumor_logs = [l for l in _log_capture if "spread_rumor" in l.lower() or "RUMOR" in l]
-        intent_logs = [l for l in _log_capture if "intent" in l.lower()]
+        [l for l in _log_capture if "intent" in l.lower()]
         npc_speak_logs = [l for l in _log_capture if "NPC_SPOKE" in l or "npc_spoke" in l.lower()]
         maid_logs = [l for l in _log_capture if "maid_lusya" in l or "maid" in l.lower()]
 
@@ -510,16 +516,16 @@ def main() -> int:
             print("  [maid_lusya state NOT FOUND post-tick]")
             # Try same object as pre-tick
             if lusya_state is not None:
-                print(f"  Using pre-tick state object (might be stale)")
+                print("  Using pre-tick state object (might be stale)")
                 lusya_state_post = lusya_state
                 lusya_post_source = "pre-tick_object"
         else:
             print(f"  maid_lusya state FOUND via {lusya_post_source}")
             print(f"  type: {type(lusya_state_post).__name__}, id: {id(lusya_state_post)}")
             if lusya_state is not None and id(lusya_state_post) == id(lusya_state):
-                print(f"  >>> SAME OBJECT as pre-tick (state was mutated in place)")
+                print("  >>> SAME OBJECT as pre-tick (state was mutated in place)")
             elif lusya_state is not None:
-                print(f"  >>> DIFFERENT OBJECT from pre-tick")
+                print("  >>> DIFFERENT OBJECT from pre-tick")
 
         if lusya_state_post is not None:
             intent_post = getattr(lusya_state_post, "intent", None)
@@ -536,7 +542,7 @@ def main() -> int:
                 print(f"  maid_lusya.intent_target (post-tick): {intent_target}")
 
             # Other relevant fields
-            print(f"\n  --- maid_lusya state top-level attrs (post-tick) ---")
+            print("\n  --- maid_lusya state top-level attrs (post-tick) ---")
             try:
                 for k, v in vars(lusya_state_post).items():
                     if not k.startswith("__"):
@@ -589,11 +595,11 @@ def main() -> int:
                 print("  >>> WANTS is proven")
                 print("  >>>")
                 print("  >>> Evidence:")
-                print(f"  >>>   - belief in store: confidence=0.5 (B5-D1)")
-                print(f"  >>>   - ctx.report_proposition: Proposition(player, INSULTED, tavern_keeper_tornin) (B5-E1)")
-                print(f"  >>>   - maid disposition: spread_rumor=1.3 (highest)")
-                print(f"  >>>   - DecisionHub.compute() called via npc_tick_pipeline L1058")
-                print(f"  >>>   - maid_lusya.intent = SPREAD_RUMOR")
+                print("  >>>   - belief in store: confidence=0.5 (B5-D1)")
+                print("  >>>   - ctx.report_proposition: Proposition(player, INSULTED, tavern_keeper_tornin) (B5-E1)")
+                print("  >>>   - maid disposition: spread_rumor=1.3 (highest)")
+                print("  >>>   - DecisionHub.compute() called via npc_tick_pipeline L1058")
+                print("  >>>   - maid_lusya.intent = SPREAD_RUMOR")
                 print("  >>>")
                 print("  >>> NEXT: B5-D2 — does SPREAD_RUMOR reach Tornin via NPC_SPOKE?")
             elif "talk" in str(intent_post_str).lower():
@@ -619,8 +625,10 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

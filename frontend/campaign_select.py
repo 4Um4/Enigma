@@ -100,6 +100,7 @@ class CampaignSelectScreen:
             import json as _json
             import time as _time
             import urllib.request as _ur
+
             # БАГ-4 (S292, фикс): launcher поднимает backend асинхронно —
             # первый запрос на холодном бэке падал (timeout=1) → fail-open
             # делал ВСЕ кампании кликабельными (флаг всегда мимо).
@@ -150,9 +151,7 @@ class CampaignSelectScreen:
         # Область списка
         list_top = 90
         list_bottom = h - 70
-        self._list_rect = pygame.Rect(
-            w // 2 - 320, list_top, 640, max(0, list_bottom - list_top)
-        )
+        self._list_rect = pygame.Rect(w // 2 - 320, list_top, 640, max(0, list_bottom - list_top))
 
         # Кнопки — под списком
         btn_y = h - 55
@@ -169,9 +168,7 @@ class CampaignSelectScreen:
                 if event.type == pygame.QUIT:
                     return None
                 elif event.type == pygame.VIDEORESIZE:
-                    self.screen = pygame.display.set_mode(
-                        (event.w, event.h), pygame.RESIZABLE
-                    )
+                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     self._layout()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     import time
@@ -179,9 +176,7 @@ class CampaignSelectScreen:
                     now = time.time()
                     dx = abs(event.pos[0] - self._last_click_pos[0])
                     dy = abs(event.pos[1] - self._last_click_pos[1])
-                    is_double = (now - self._last_click_time < 0.4) and (
-                        dx < 5 and dy < 5
-                    )
+                    is_double = (now - self._last_click_time < 0.4) and (dx < 5 and dy < 5)
                     self._last_click_time = now
                     self._last_click_pos = event.pos
 
@@ -222,9 +217,7 @@ class CampaignSelectScreen:
             return
 
         # Кнопка «Играть» (БАГ-4: finished — отказ)
-        if self._btn_play_rect.collidepoint(pos) and 0 <= self._selected_index < len(
-            self._campaigns
-        ):
+        if self._btn_play_rect.collidepoint(pos) and 0 <= self._selected_index < len(self._campaigns):
             _entry = self._campaigns[self._selected_index]
             if not self._is_finished(_entry.folder):
                 self._result = _entry.folder
@@ -243,21 +236,13 @@ class CampaignSelectScreen:
         w, _ = self.screen.get_size()
 
         # Заголовок
-        title_surf = self.font_title.render(
-            t("ui:campaign_select_title"), True, _COLORS["accent_amber"]
-        )
-        self.screen.blit(
-            title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y)
-        )
+        title_surf = self.font_title.render(t("ui:campaign_select_title"), True, _COLORS["accent_amber"])
+        self.screen.blit(title_surf, (w // 2 - title_surf.get_width() // 2, self._title_y))
 
         # Область списка — фон
         if self._campaigns:
-            pygame.draw.rect(
-                self.screen, _COLORS["bg_panel"], self._list_rect, border_radius=8
-            )
-            pygame.draw.rect(
-                self.screen, _COLORS["border"], self._list_rect, 1, border_radius=8
-            )
+            pygame.draw.rect(self.screen, _COLORS["bg_panel"], self._list_rect, border_radius=8)
+            pygame.draw.rect(self.screen, _COLORS["border"], self._list_rect, 1, border_radius=8)
 
             # Обрезаем отрисовку элементов по области списка
             clip = self.screen.get_clip()
@@ -295,20 +280,14 @@ class CampaignSelectScreen:
                 name_color = (
                     (110, 110, 115)
                     if _is_fin
-                    else (
-                        _COLORS["text_highlight"]
-                        if i == self._selected_index
-                        else _COLORS["text"]
-                    )
+                    else (_COLORS["text_highlight"] if i == self._selected_index else _COLORS["text"])
                 )
                 _name_text = entry.name + (" — ЗАВЕРШЕНА" if _is_fin else "")
                 name_surf = self.font_name.render(_name_text, True, name_color)
                 self.screen.blit(name_surf, (item_rect.x + 10, item_rect.y + 8))
 
                 # Описание
-                desc_surf = self.font_desc.render(
-                    entry.description, True, _COLORS["text_dim"]
-                )
+                desc_surf = self.font_desc.render(entry.description, True, _COLORS["text_dim"])
                 self.screen.blit(desc_surf, (item_rect.x + 10, item_rect.y + 30))
 
                 # Счётчик локаций — справа
@@ -337,32 +316,23 @@ class CampaignSelectScreen:
 
         # Кнопка «Назад»
         back_hovered = self._btn_back_rect.collidepoint(pygame.mouse.get_pos())
-        back_color = (
-            _COLORS["btn_secondary_hover"] if back_hovered else _COLORS["btn_secondary"]
-        )
+        back_color = _COLORS["btn_secondary_hover"] if back_hovered else _COLORS["btn_secondary"]
         pygame.draw.rect(self.screen, back_color, self._btn_back_rect, border_radius=6)
         back_surf = self.font_button.render(t("ui:btn_back"), True, _COLORS["text"])
-        self.screen.blit(
-            back_surf, back_surf.get_rect(center=self._btn_back_rect.center)
-        )
+        self.screen.blit(back_surf, back_surf.get_rect(center=self._btn_back_rect.center))
 
         # Кнопка «Играть» (БАГ-4: finished — серая)
-        _selected_fin = (
-            0 <= self._selected_index < len(self._campaigns)
-            and self._is_finished(self._campaigns[self._selected_index].folder)
+        _selected_fin = 0 <= self._selected_index < len(self._campaigns) and self._is_finished(
+            self._campaigns[self._selected_index].folder
         )
         can_play = (0 <= self._selected_index < len(self._campaigns)) and not _selected_fin
         if can_play:
             play_hovered = self._btn_play_rect.collidepoint(pygame.mouse.get_pos())
-            play_color = (
-                _COLORS["btn_primary_hover"] if play_hovered else _COLORS["btn_primary"]
-            )
+            play_color = _COLORS["btn_primary_hover"] if play_hovered else _COLORS["btn_primary"]
             play_text_color = _COLORS["text_highlight"]
         else:
             play_color = (50, 50, 55)
             play_text_color = _COLORS["text_dim"]
         pygame.draw.rect(self.screen, play_color, self._btn_play_rect, border_radius=6)
         play_surf = self.font_button.render(t("ui:btn_play"), True, play_text_color)
-        self.screen.blit(
-            play_surf, play_surf.get_rect(center=self._btn_play_rect.center)
-        )
+        self.screen.blit(play_surf, play_surf.get_rect(center=self._btn_play_rect.center))

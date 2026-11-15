@@ -23,6 +23,7 @@ R2-B5-D2 — B4-R9 Stage 5: Production-path scenario with idle_ticks (read-only)
 
 READ-ONLY diagnostic. Production-код не меняется.
 """
+
 from __future__ import annotations
 
 import os
@@ -66,17 +67,27 @@ class LogCapture:
     def install(self) -> None:
         root = logging.getLogger()
         root.addHandler(self.handler)
-        for name in ["app", "app.services", "app.services.game_loop",
-                     "app.services.events", "app.services.npc",
-                     "app.services.execution"]:
+        for name in [
+            "app",
+            "app.services",
+            "app.services.game_loop",
+            "app.services.events",
+            "app.services.npc",
+            "app.services.execution",
+        ]:
             logging.getLogger(name).addHandler(self.handler)
 
     def uninstall(self) -> None:
         root = logging.getLogger()
         root.removeHandler(self.handler)
-        for name in ["app", "app.services", "app.services.game_loop",
-                     "app.services.events", "app.services.npc",
-                     "app.services.execution"]:
+        for name in [
+            "app",
+            "app.services",
+            "app.services.game_loop",
+            "app.services.events",
+            "app.services.npc",
+            "app.services.execution",
+        ]:
             logging.getLogger(name).removeHandler(self.handler)
 
     def find(self, pattern: str) -> list[logging.LogRecord]:
@@ -86,14 +97,20 @@ class LogCapture:
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except Exception: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except Exception: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -174,18 +191,22 @@ def _has_tornin_insulted(records: list) -> tuple[bool, Optional[Any]]:
         try:
             if isinstance(r, dict):
                 prop = r.get("proposition", {})
-                if (prop.get("subject_id") == "player"
+                if (
+                    prop.get("subject_id") == "player"
                     and prop.get("predicate") == "insulted"
-                    and prop.get("object_id") == "tavern_keeper_tornin"):
+                    and prop.get("object_id") == "tavern_keeper_tornin"
+                ):
                     return True, r
             else:
                 prop = r.proposition
                 pred = getattr(prop, "predicate", None)
                 if hasattr(pred, "value"):
                     pred = pred.value
-                if (getattr(prop, "subject_id", None) == "player"
+                if (
+                    getattr(prop, "subject_id", None) == "player"
                     and pred == "insulted"
-                    and getattr(prop, "object_id", None) == "tavern_keeper_tornin"):
+                    and getattr(prop, "object_id", None) == "tavern_keeper_tornin"
+                ):
                     return True, r
         except Exception:
             continue
@@ -199,9 +220,9 @@ def _print_production_code_reference() -> None:
         return
     lines = de_path.read_text(encoding="utf-8", errors="replace").split("\n")
     print(f"  Source: {de_path}")
-    print(f"  Lines 599-611 (cognition block construction in _generate_with_router):")
+    print("  Lines 599-611 (cognition block construction in _generate_with_router):")
     for i in range(598, min(611, len(lines))):
-        print(f"  L{i+1:4d}: {lines[i]}")
+        print(f"  L{i + 1:4d}: {lines[i]}")
 
 
 def main() -> int:
@@ -248,6 +269,7 @@ def main() -> int:
 
     try:
         from app.services.game_loop_builder import build_game_loop
+
         settings.saves_dir = str(temp_dir)
         settings.environment = "development"
 
@@ -285,6 +307,7 @@ def main() -> int:
     executors = getattr(ts, "_executors", None)
     try:
         from app.domain.execution import TaskKind
+
         dialogue_executor = executors.get(TaskKind.DIALOGUE) if executors else None
     except Exception as e:
         print(f"  Failed to import TaskKind: {e}")
@@ -336,7 +359,9 @@ def main() -> int:
             print(f"  Loaded {loaded_npcs} NPCs")
             if loaded:
                 for npc in loaded[:10]:
-                    npc_id = npc.get("npc_id") or npc.get("id") if isinstance(npc, dict) else getattr(npc, "npc_id", "?")
+                    npc_id = (
+                        npc.get("npc_id") or npc.get("id") if isinstance(npc, dict) else getattr(npc, "npc_id", "?")
+                    )
                     name = npc.get("name") if isinstance(npc, dict) else getattr(npc, "name", "")
                     print(f"    {npc_id}: {name}")
         else:
@@ -386,7 +411,9 @@ def main() -> int:
 
         event = EventDTO(
             id=_uuid.uuid4(),
-            type=EventType.PLAYER_INSULTS.value if hasattr(EventType.PLAYER_INSULTS, "value") else EventType.PLAYER_INSULTS,
+            type=EventType.PLAYER_INSULTS.value
+            if hasattr(EventType.PLAYER_INSULTS, "value")
+            else EventType.PLAYER_INSULTS,
             source="player",
             timestamp=_time.time(),
             payload={
@@ -466,30 +493,31 @@ def main() -> int:
                 if de_store and de_mem and dialogue_executor:
                     try:
                         from app.services.npc.cognition_context import CognitionContextResolver
+
                         cog = CognitionContextResolver(
                             de_mem,
                             epistemic_store=de_store,
                             context_provider=lambda npc_id: dialogue_executor._get_context("Open_road", npc_id),
                         )
                         block = cog.resolve_block("tavern_keeper_tornin", "maid_lusya")
-                        print(f"    resolve_block returned:")
+                        print("    resolve_block returned:")
                         print(f"      type: {type(block).__name__}")
                         print(f"      length: {len(block) if isinstance(block, str) else 'N/A'}")
                         print(f"      is empty: {block == '' if isinstance(block, str) else 'N/A'}")
                         if isinstance(block, str) and block:
-                            print(f"      content:")
+                            print("      content:")
                             print("      " + "-" * 70)
                             for line in block.split("\n"):
                                 print(f"      {line}")
                             print("      " + "-" * 70)
                         else:
-                            print(f"      >>> BLOCK IS EMPTY — even with belief present!")
+                            print("      >>> BLOCK IS EMPTY — even with belief present!")
                     except Exception as e:
                         print(f"    EXCEPTION in resolve_block: {type(e).__name__}: {e}")
                         traceback.print_exc()
 
                     print()
-                    print(f"    --- Testing _format_beliefs (internal method) ---")
+                    print("    --- Testing _format_beliefs (internal method) ---")
                     try:
                         beliefs_lines = cog._format_beliefs("tavern_keeper_tornin")
                         print(f"    _format_beliefs returned: list of {len(beliefs_lines)} lines")
@@ -500,7 +528,7 @@ def main() -> int:
                         traceback.print_exc()
 
                     print()
-                    print(f"    --- Direct store query (bypass resolver) ---")
+                    print("    --- Direct store query (bypass resolver) ---")
                     direct_records = _get_store_records(tick_orch_store, "tavern_keeper_tornin")
                     print(f"    Direct query: {len(direct_records)} records")
                     for r in direct_records:
@@ -532,6 +560,7 @@ def main() -> int:
         print("  --- Final CognitionContextResolver.resolve_block check ---")
         try:
             from app.services.npc.cognition_context import CognitionContextResolver
+
             cog = CognitionContextResolver(
                 de_mem,
                 epistemic_store=de_store,
@@ -543,13 +572,13 @@ def main() -> int:
                 block = cog.resolve_block("tavern_keeper_tornin", partner)
                 print(f"    length: {len(block) if isinstance(block, str) else 'N/A'}")
                 if isinstance(block, str) and block:
-                    print(f"    content:")
+                    print("    content:")
                     print("    " + "-" * 70)
                     for line in block.split("\n"):
                         print(f"    {line}")
                     print("    " + "-" * 70)
                 else:
-                    print(f"    >>> EMPTY")
+                    print("    >>> EMPTY")
         except Exception as e:
             print(f"  EXCEPTION: {type(e).__name__}: {e}")
             traceback.print_exc()
@@ -568,35 +597,37 @@ def main() -> int:
 
   FINDINGS:
   - Wiring: tick_orch store id={id(tick_orch_store)} == DE store id={id(de_store)} (SAME INSTANCE: {tick_orch_store is de_store})
-  - publish(PLAYER_INSULTS): {'SUCCESS' if publish_success else 'FAILED'}
-  - Tornin belief appeared at tick: {target_belief_appeared_at_tick if target_belief_appeared_at_tick else 'NOT FOUND'}
+  - publish(PLAYER_INSULTS): {"SUCCESS" if publish_success else "FAILED"}
+  - Tornin belief appeared at tick: {target_belief_appeared_at_tick if target_belief_appeared_at_tick else "NOT FOUND"}
 """)
 
     if target_belief_appeared_at_tick is not None:
-        print(f"  - Belief record at appearance:")
+        print("  - Belief record at appearance:")
         _print_belief_record(target_belief_record, indent="    ")
         print()
         print(f"  - resolve_block at appearance tick #{target_belief_appeared_at_tick}:")
-        print(f"    (See Phase 7 output above)")
+        print("    (See Phase 7 output above)")
         print()
-        print(f"  - resolve_block on final state:")
-        print(f"    (See Phase 8 output above)")
+        print("  - resolve_block on final state:")
+        print("    (See Phase 8 output above)")
     else:
         print(f"  - Belief did NOT appear in {MAX_TICKS} idle_ticks")
-        print(f"  - Cannot answer main question — belief never reached Tornin")
-        print(f"  - Possible causes:")
-        print(f"    a) NPC not in hearing range when PLAYER_INSULTS published")
-        print(f"    b) NPC didn't choose spread_rumor in their decision")
-        print(f"    c) Hearing membrane (radius/LOS) blocked the spread")
-        print(f"    d) PLAYER_INSULTS event type doesn't trigger ClaimEventSubscriber")
+        print("  - Cannot answer main question — belief never reached Tornin")
+        print("  - Possible causes:")
+        print("    a) NPC not in hearing range when PLAYER_INSULTS published")
+        print("    b) NPC didn't choose spread_rumor in their decision")
+        print("    c) Hearing membrane (radius/LOS) blocked the spread")
+        print("    d) PLAYER_INSULTS event type doesn't trigger ClaimEventSubscriber")
         print(f"    e) {MAX_TICKS} ticks insufficient for full rumor propagation")
     print()
 
     print("  --- Log records during idle_ticks matching 'cognition' / 'epistemic' / 'DIALOGUE_EXEC' ---")
-    cog_logs = (capture.find("cognition block")
-                + capture.find("[dialogue_exec]")
-                + capture.find("cog_ctx")
-                + capture.find("epistemic read failed"))
+    cog_logs = (
+        capture.find("cognition block")
+        + capture.find("[dialogue_exec]")
+        + capture.find("cog_ctx")
+        + capture.find("epistemic read failed")
+    )
     if cog_logs:
         seen = set()
         unique = []
@@ -614,7 +645,7 @@ def main() -> int:
                     for line in tb_line.rstrip().split("\n"):
                         print(f"      {line}")
     else:
-        print(f"  No log records matching 'cognition block' / '[DIALOGUE_EXEC]' / 'cog_ctx' / 'epistemic read failed'")
+        print("  No log records matching 'cognition block' / '[DIALOGUE_EXEC]' / 'cog_ctx' / 'epistemic read failed'")
     print()
 
     _section("PHASE 11: Cleanup")
@@ -636,6 +667,7 @@ def main() -> int:
 
     del loop
     import gc
+
     gc.collect()
 
     settings.saves_dir = orig_saves_dir

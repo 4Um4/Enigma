@@ -11,7 +11,7 @@ from pathlib import Path
 
 _TESTS_DIR = Path(__file__).resolve().parent
 _ME_ROOT = _TESTS_DIR.parent  # frontend/map_editor
-_FE_ROOT = _ME_ROOT.parent    # frontend
+_FE_ROOT = _ME_ROOT.parent  # frontend
 for _path in (str(_ME_ROOT), str(_FE_ROOT)):
     if _path not in sys.path:
         sys.path.insert(0, _path)

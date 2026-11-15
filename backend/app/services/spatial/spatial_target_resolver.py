@@ -5,6 +5,7 @@
 Поскольку в старой системе Anchor ID часто совпадает с Node ID (или ролью узла), наш первый адаптер будет использовать существующие методы SpatialService (get_node и resolve_node), но возвращать уже новый,
 чистый DTO ResolvedSpatialTarget. Это позволит нам начать использовать новую онтологию без поломки старого движка.
 """
+
 import logging
 from typing import Dict, Optional, Tuple
 
@@ -21,27 +22,33 @@ from app.services.spatial.spatial_service import SpatialService
 
 def _extract_xy(entry: Optional[Dict]) -> Optional[Tuple[float, float]]:
     """Строгое и безопасное извлечение координат из разных форматов позиций."""
-    if not entry: return None
+    if not entry:
+        return None
     pos = entry.get("local_position", entry.get("position"))
     if isinstance(pos, dict):
         x, y = pos.get("x"), pos.get("y")
-        if x is None or y is None: return None
-        try: return float(x), float(y)
+        if x is None or y is None:
+            return None
+        try:
+            return float(x), float(y)
         except (TypeError, ValueError) as e:
             logger.debug(f"Coord parse error: {e}")
             return None
     if isinstance(pos, (list, tuple)) and len(pos) == 2:
-        try: return float(pos[0]), float(pos[1])
+        try:
+            return float(pos[0]), float(pos[1])
         except (TypeError, ValueError) as e:
             logger.debug(f"Coord parse error: {e}")
             return None
     return None
+
 
 class SpatialTargetResolver:
     """
     ADR-O-330: Адаптер, преобразующий SpatialTargetIntent в ResolvedSpatialTarget.
     Реализует SA-2 (Spatial Resolution Authority).
     """
+
     def __init__(self, spatial_service: SpatialService):
         self._spatial_service = spatial_service
 
@@ -50,7 +57,7 @@ class SpatialTargetResolver:
         intent: SpatialTargetIntent,
         npc_positions: Optional[Dict[str, Dict]] = None,
         actor_id: Optional[str] = None,
-        location_id: Optional[str] = None
+        location_id: Optional[str] = None,
     ) -> ResolvedSpatialTarget:
         """
         Разрешает намерение в физическую координату и точку входа в граф.
@@ -65,15 +72,19 @@ class SpatialTargetResolver:
             intent=intent,
             resolution_status=TargetResolutionStatus.UNAVAILABLE,
             mode=None,
-            resolution_reason=f"Unsupported target_type: {intent.target_type}"
+            resolution_reason=f"Unsupported target_type: {intent.target_type}",
         )
 
-    def _resolve_anchor_target(self, intent: SpatialTargetIntent, location_id: Optional[str] = None) -> ResolvedSpatialTarget:
+    def _resolve_anchor_target(
+        self, intent: SpatialTargetIntent, location_id: Optional[str] = None
+    ) -> ResolvedSpatialTarget:
         target_id = intent.target_id
         if not target_id:
             return ResolvedSpatialTarget(
-                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-                mode=None, resolution_reason="Anchor target_id is missing"
+                intent=intent,
+                resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None,
+                resolution_reason="Anchor target_id is missing",
             )
 
         # 1. Пытаемся найти узел по точному ID (если Anchor привязан к node_id)
@@ -82,17 +93,22 @@ class SpatialTargetResolver:
         # 2. Если нет, пытаемся найти по семантической роли (например, "bar")
         if not node:
             from app.models.spatial_contracts import NodeRole
+
             try:
                 # S143 FIX: Конвертируем строку в Enum, так как resolve_node ожидает NodeRole
                 role_enum = NodeRole(target_id)
                 node = self._spatial_service.resolve_node(role=role_enum, origin_zone=location_id)
             except ValueError as e:
-                logger.debug(f"NodeRole not found for target_id={target_id}: {e}")  # Строка не соответствует ни одной роли NodeRole
+                logger.debug(
+                    f"NodeRole not found for target_id={target_id}: {e}"
+                )  # Строка не соответствует ни одной роли NodeRole
 
         if not node:
             return ResolvedSpatialTarget(
-                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-                mode=None, resolution_reason=f"Anchor {target_id} not found in graph"
+                intent=intent,
+                resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None,
+                resolution_reason=f"Anchor {target_id} not found in graph",
             )
 
         return ResolvedSpatialTarget(
@@ -101,7 +117,7 @@ class SpatialTargetResolver:
             mode=SpatialResolutionMode.NAV_NODE,
             position=(node.x, node.y),
             anchor_node_id=node.node_id,
-            resolution_reason="Anchor resolved successfully"
+            resolution_reason="Anchor resolved successfully",
         )
 
     def _resolve_flee_target(
@@ -109,13 +125,15 @@ class SpatialTargetResolver:
         intent: SpatialTargetIntent,
         npc_positions: Optional[Dict[str, Dict]],
         actor_id: Optional[str],
-        location_id: Optional[str]
+        location_id: Optional[str],
     ) -> ResolvedSpatialTarget:
         threat_id = intent.context_ref
         if not threat_id or not npc_positions or threat_id not in npc_positions:
             return ResolvedSpatialTarget(
-                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-                mode=None, resolution_reason=f"FLEE threat {threat_id} not found"
+                intent=intent,
+                resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None,
+                resolution_reason=f"FLEE threat {threat_id} not found",
             )
 
         threat_xy = _extract_xy(npc_positions.get(threat_id))
@@ -123,20 +141,22 @@ class SpatialTargetResolver:
 
         if not threat_xy:
             return ResolvedSpatialTarget(
-                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-                mode=None, resolution_reason=f"FLEE threat {threat_id} has no position"
+                intent=intent,
+                resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None,
+                resolution_reason=f"FLEE threat {threat_id} has no position",
             )
 
         # LEGACY BRIDGE: get_furthest() пока остаётся стратегией выбора макро-цели.
         if not location_id:
             return ResolvedSpatialTarget(
-                intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-                mode=None, resolution_reason="FLEE threat has no location_id"
+                intent=intent,
+                resolution_status=TargetResolutionStatus.UNAVAILABLE,
+                mode=None,
+                resolution_reason="FLEE threat has no location_id",
             )
         furthest_ref = self._spatial_service.get_furthest(
-            zone_id=location_id,
-            origin_xy=threat_xy,
-            exclude_node_ids=set()
+            zone_id=location_id, origin_xy=threat_xy, exclude_node_ids=set()
         )
 
         if furthest_ref:
@@ -147,7 +167,7 @@ class SpatialTargetResolver:
                 mode=SpatialResolutionMode.NAV_NODE,
                 position=(furthest_ref.x, furthest_ref.y),
                 anchor_node_id=furthest_ref.node_id,
-                resolution_reason="FLEE resolved to furthest node"
+                resolution_reason="FLEE resolved to furthest node",
             )
 
         # Fallback: если графа нет или узел не найден — вычисляем микро-вектор (Micro-FLEE)
@@ -165,10 +185,12 @@ class SpatialTargetResolver:
                     resolution_status=TargetResolutionStatus.RESOLVED,
                     mode=SpatialResolutionMode.LOCAL_POSITION,
                     position=micro_pos,
-                    resolution_reason="FLEE resolved to micro-position"
+                    resolution_reason="FLEE resolved to micro-position",
                 )
 
         return ResolvedSpatialTarget(
-            intent=intent, resolution_status=TargetResolutionStatus.UNAVAILABLE,
-            mode=None, resolution_reason="FLEE failed: no macro node and no actor pos for micro"
+            intent=intent,
+            resolution_status=TargetResolutionStatus.UNAVAILABLE,
+            mode=None,
+            resolution_reason="FLEE failed: no macro node and no actor pos for micro",
         )

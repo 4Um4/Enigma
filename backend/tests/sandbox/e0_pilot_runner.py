@@ -3,7 +3,11 @@ Purpose: E0-PILOT-1 v2 - autonomous 30-tick Lusya <-> Tornin, semantic coherence
 Dependencies: tests/gameplay/harness.py, app.services.llm.runtime.client
 Output: reports/experiments/e0_pilot_1/{run_log.txt, summary.json, chain_report.md}
 """
-import json, sys, re, traceback
+
+import json
+import sys
+import re
+import traceback
 from pathlib import Path
 from datetime import datetime
 
@@ -25,6 +29,7 @@ class EventCapture:
         self.npc_spoke = []
         self.comm_claims = []
         self.all_events = []
+
     def on_event(self, event):
         try:
             etype = str(getattr(event, "event_type", "") or getattr(event, "type", "") or "")
@@ -67,12 +72,19 @@ def read_scene(gl, cid):
         return {
             "tick": scene.get("tick", 0),
             "game_time_seconds": scene.get("game_time_seconds", 0),
-            "npc_positions": {k: (v.get("position","") if isinstance(v,dict) else str(v))
-                              for k,v in scene.get("npc_positions",{}).items()},
-            "pending_tasks": [{"speaker": str(t.get("request",{}).get("speaker_id","")),
-                               "target": str(t.get("request",{}).get("target_id","")),
-                               "prepared_prompt": str(t.get("request",{}).get("prepared_prompt",""))[:200]}
-                              for t in scene.get("pending_tasks",[]) if isinstance(t, dict)],
+            "npc_positions": {
+                k: (v.get("position", "") if isinstance(v, dict) else str(v))
+                for k, v in scene.get("npc_positions", {}).items()
+            },
+            "pending_tasks": [
+                {
+                    "speaker": str(t.get("request", {}).get("speaker_id", "")),
+                    "target": str(t.get("request", {}).get("target_id", "")),
+                    "prepared_prompt": str(t.get("request", {}).get("prepared_prompt", ""))[:200],
+                }
+                for t in scene.get("pending_tasks", [])
+                if isinstance(t, dict)
+            ],
         }
     except Exception as e:
         return {"_error": str(e)}
@@ -88,9 +100,15 @@ def read_epistemic(gl, cid, npcs):
                 recs = ep.get_all_for_agent(nid)
                 result["_npcs"][nid] = {
                     "_count": len(recs),
-                    "_top3": [{"prop": str(r.proposition), "conf": r.confidence,
-                               "source": r.source_id, "stype": getattr(r,"source_type","")}
-                              for r in sorted(recs, key=lambda x: x.confidence, reverse=True)[:3]]
+                    "_top3": [
+                        {
+                            "prop": str(r.proposition),
+                            "conf": r.confidence,
+                            "source": r.source_id,
+                            "stype": getattr(r, "source_type", ""),
+                        }
+                        for r in sorted(recs, key=lambda x: x.confidence, reverse=True)[:3]
+                    ],
                 }
             except Exception as e:
                 result["_npcs"][nid] = {"_error": str(e)}
@@ -108,8 +126,9 @@ def read_epistemic(gl, cid, npcs):
 
 
 def read_cognition(gl, npcs):
-    resolver, attr = find_attr(gl, ["_cognition_resolver", "cognition_resolver",
-                                    "_cognition_context_resolver", "_cog_resolver"])
+    resolver, attr = find_attr(
+        gl, ["_cognition_resolver", "cognition_resolver", "_cognition_context_resolver", "_cog_resolver"]
+    )
     diag = {"resolver_found": resolver is not None}
     if not resolver:
         diag["note"] = "CognitionContextResolver not on game_loop"
@@ -142,7 +161,9 @@ def analyze_semantic_coherence(spoke_records):
         tick = sp.get("tick", 0)
         text = sp.get("text", "")
         entry = {
-            "tick": tick, "speaker": speaker, "target": target,
+            "tick": tick,
+            "speaker": speaker,
+            "target": target,
             "text_preview": text[:200],
         }
         # Find target's most recent replica to speaker before this one
@@ -162,8 +183,8 @@ def analyze_semantic_coherence(spoke_records):
         entry["prev_tick"] = prev.get("tick", 0)
         entry["prev_text_preview"] = prev_text[:200]
         # Lexical overlap: words >= 4 chars (content words proxy, avoids stop-word issue)
-        prev_content = {w for w in re.findall(r'[\w\u0400-\u04ff]+', prev_text.lower()) if len(w) >= 4}
-        curr_content = {w for w in re.findall(r'[\w\u0400-\u04ff]+', text.lower()) if len(w) >= 4}
+        prev_content = {w for w in re.findall(r"[\w\u0400-\u04ff]+", prev_text.lower()) if len(w) >= 4}
+        curr_content = {w for w in re.findall(r"[\w\u0400-\u04ff]+", text.lower()) if len(w) >= 4}
         overlap = prev_content & curr_content
         entry["lexical_overlap"] = len(overlap)
         entry["overlap_words"] = list(overlap)[:10]
@@ -180,12 +201,12 @@ def analyze_semantic_coherence(spoke_records):
 def parse_decision_traces(log_text):
     """Parse [TRACE][DECISION_SCORE] lines from run_log.txt"""
     traces = []
-    pattern = r'\[TRACE\]\[DECISION_SCORE\]\s*npc=(\S+)\s+winner=(\S+)\s+top3=(\[.*?\])'
+    pattern = r"\[TRACE\]\[DECISION_SCORE\]\s*npc=(\S+)\s+winner=(\S+)\s+top3=(\[.*?\])"
     for m in re.finditer(pattern, log_text):
         npc, winner, top3 = m.groups()
         traces.append({"npc": npc, "winner": winner, "top3": top3[:200]})
     # Also try [DIAG_COMPONENTS]
-    diag_pattern = r'\[DIAG_COMPONENTS\]\s*npc=(\S+)\s+intent=(\S+)\s+base=([\d.]+)'
+    diag_pattern = r"\[DIAG_COMPONENTS\]\s*npc=(\S+)\s+intent=(\S+)\s+base=([\d.]+)"
     for m in re.finditer(diag_pattern, log_text):
         npc, intent, base = m.groups()
         traces.append({"npc": npc, "intent": intent, "base": float(base), "_source": "DIAG_COMPONENTS"})
@@ -216,6 +237,7 @@ def main():
         print(f"[E0-PILOT-1 v2] LLM URL: {url}")
 
         from tests.gameplay.harness import TavernGameplayHarness
+
         h = TavernGameplayHarness()
         h.new_game()
 
@@ -227,26 +249,33 @@ def main():
 
         # Explore attrs
         gl_attrs = [a for a in dir(gl) if not a.startswith("__")]
-        interesting = [a for a in gl_attrs if any(k in a.lower() for k in
-            ["epistemic","scene","event","memory","cogn","npc","dialogue","tick"])]
+        interesting = [
+            a
+            for a in gl_attrs
+            if any(k in a.lower() for k in ["epistemic", "scene", "event", "memory", "cogn", "npc", "dialogue", "tick"])
+        ]
         print(f"[E0-PILOT-1 v2] GameLoop attrs: {interesting[:25]}")
 
         # Subscribe to events
         eb, eb_attr = find_attr(gl, ["_event_bus", "event_bus", "_event_bus_instance", "_bus"])
         if eb:
             for et in ["NPC_SPOKE", "COMMUNICATION_CLAIM", "npc_spoke", "comm_claim"]:
-                try: eb.subscribe(et, cap.on_event)
-                except: pass
+                try:
+                    eb.subscribe(et, cap.on_event)
+                except Exception:
+                    pass
             print(f"[E0-PILOT-1 v2] EventBus: attr={eb_attr}, npc_spoke_cap={len(cap.npc_spoke)}")
         else:
             print("[E0-PILOT-1 v2] WARNING: EventBus not found")
 
         # Initial snapshot
         snap_start = {"scene": read_scene(gl, cid), "epistemic": read_epistemic(gl, cid, PAIR)}
-        print(f"[E0-PILOT-1 v2] Initial: tick={snap_start['scene'].get('tick')}, "
-              f"game_time={snap_start['scene'].get('game_time_seconds')}")
+        print(
+            f"[E0-PILOT-1 v2] Initial: tick={snap_start['scene'].get('tick')}, "
+            f"game_time={snap_start['scene'].get('game_time_seconds')}"
+        )
         for nid in PAIR:
-            ec = snap_start['epistemic'].get('_npcs', {}).get(nid, {})
+            ec = snap_start["epistemic"].get("_npcs", {}).get(nid, {})
             print(f"[E0-PILOT-1 v2] {nid} initial beliefs: {ec.get('_count', '?')}")
 
         # Run ticks
@@ -263,22 +292,27 @@ def main():
                 for nid in PAIR:
                     ec = ep.get("_npcs", {}).get(nid, {})
                     ep_counts[nid] = ec.get("_count", -1)
-                ticks.append({
-                    "n": n,
-                    "status": res.get("status") if isinstance(res, dict) else str(res)[:50],
-                    "scene_tick": scene.get("tick"),
-                    "game_time": scene.get("game_time_seconds"),
-                    "npc_positions": {k: v for k, v in scene.get("npc_positions", {}).items()
-                                      if k in PAIR or k == "player"},
-                    "pending_tasks": scene.get("pending_tasks", []),
-                    "epistemic_counts": ep_counts,
-                    "spoke_this_tick": spoke_this,
-                    "claims_this_tick": claims_this,
-                })
-                print(f"  T{n}: status={ticks[-1]['status']}, "
-                      f"game_time={scene.get('game_time_seconds')}, "
-                      f"spoke={len(spoke_this)}, claims={len(claims_this)}, "
-                      f"ep={ep_counts}")
+                ticks.append(
+                    {
+                        "n": n,
+                        "status": res.get("status") if isinstance(res, dict) else str(res)[:50],
+                        "scene_tick": scene.get("tick"),
+                        "game_time": scene.get("game_time_seconds"),
+                        "npc_positions": {
+                            k: v for k, v in scene.get("npc_positions", {}).items() if k in PAIR or k == "player"
+                        },
+                        "pending_tasks": scene.get("pending_tasks", []),
+                        "epistemic_counts": ep_counts,
+                        "spoke_this_tick": spoke_this,
+                        "claims_this_tick": claims_this,
+                    }
+                )
+                print(
+                    f"  T{n}: status={ticks[-1]['status']}, "
+                    f"game_time={scene.get('game_time_seconds')}, "
+                    f"spoke={len(spoke_this)}, claims={len(claims_this)}, "
+                    f"ep={ep_counts}"
+                )
             except Exception as e:
                 print(f"  T{n} FAILED: {type(e).__name__}: {e}")
                 traceback.print_exc()
@@ -296,8 +330,10 @@ def main():
         sys.stderr = old_err
         log_file.close()
         print("[E0-PILOT-1 v2] Releasing LLM lease...")
-        try: release_lease()
-        except: pass
+        try:
+            release_lease()
+        except Exception:
+            pass
 
     # Post-run analysis (console + files restored)
     # Parse decision traces from log
@@ -325,11 +361,13 @@ def main():
             per_npc_winners[npc].append(dt.get("winner", dt.get("intent", "")))
 
     summary = {
-        "run_id": RUN_ID, "timestamp": datetime.now().isoformat(),
-        "campaign": cid if 'cid' in dir() else "unknown",
+        "run_id": RUN_ID,
+        "timestamp": datetime.now().isoformat(),
+        "campaign": cid if "cid" in dir() else "unknown",
         "n_ticks_completed": len([t for t in ticks if "error" not in t]),
         "n_ticks_failed": len([t for t in ticks if "error" in t]),
-        "pair": PAIR, "llm_url": url,
+        "pair": PAIR,
+        "llm_url": url,
         "error": error,
         "game_time": {
             "start": snap_start.get("scene", {}).get("game_time_seconds"),
@@ -364,45 +402,52 @@ def main():
         f.write(f"\n## Counts\n\n- NPC_SPOKE: {len(cap.npc_spoke)}\n")
         f.write(f"- COMMUNICATION_CLAIM: {len(cap.comm_claims)}\n")
         f.write(f"- Game time: {summary['game_time']['start']} -> {summary['game_time']['end']}\n\n")
-        f.write(f"## Semantic coherence (does each replica depend on the previous?)\n\n")
+        f.write("## Semantic coherence (does each replica depend on the previous?)\n\n")
         f.write(f"- linked (>=3 content words overlap): {coh_counts['linked']}\n")
         f.write(f"- weak (1-2 words): {coh_counts['weak']}\n")
         f.write(f"- no_link (0 overlap): {coh_counts['no_link']}\n")
         f.write(f"- monologue (no prior from target): {coh_counts['monologue']}\n\n")
-        f.write(f"### Per-replica analysis\n\n")
+        f.write("### Per-replica analysis\n\n")
         for c in coherence:
-            f.write(f"- T{c['tick']} {c['speaker']}->{c['target']}: **{c['classification']}** "
-                    f"(overlap={c.get('lexical_overlap',0)}, words={c.get('overlap_words',[])})\n")
-            f.write(f"  text: {c.get('text_preview','')[:120]}\n")
-            if 'prev_text_preview' in c:
-                f.write(f"  prev: {c.get('prev_text_preview','')[:120]}\n")
-        f.write(f"\n## Per-NPC cognitive position\n\n")
+            f.write(
+                f"- T{c['tick']} {c['speaker']}->{c['target']}: **{c['classification']}** "
+                f"(overlap={c.get('lexical_overlap', 0)}, words={c.get('overlap_words', [])})\n"
+            )
+            f.write(f"  text: {c.get('text_preview', '')[:120]}\n")
+            if "prev_text_preview" in c:
+                f.write(f"  prev: {c.get('prev_text_preview', '')[:120]}\n")
+        f.write("\n## Per-NPC cognitive position\n\n")
         for nid in PAIR:
             f.write(f"### {nid}\n")
             f.write(f"- EpistemicStore trajectory: {ep_trajectory[nid]}\n")
             winners = per_npc_winners.get(nid, [])
             f.write(f"- DecisionHub winners ({len(winners)} traces): {winners[:15]}\n\n")
-        f.write(f"## CognitionContextResolver\n\n```json\n{json.dumps(cog, ensure_ascii=False, indent=2, default=str)}\n```\n\n")
-        f.write(f"## NPC_SPOKE records\n\n")
+        f.write(
+            f"## CognitionContextResolver\n\n```json\n{json.dumps(cog, ensure_ascii=False, indent=2, default=str)}\n```\n\n"
+        )
+        f.write("## NPC_SPOKE records\n\n")
         for i, s in enumerate(cap.npc_spoke):
-            f.write(f"### {i+1}. T{s.get('tick')} {s.get('actor')}->{s.get('target')} [{s.get('intent')}]\n")
+            f.write(f"### {i + 1}. T{s.get('tick')} {s.get('actor')}->{s.get('target')} [{s.get('intent')}]\n")
             f.write(f"   text: {s.get('text', '')[:250]}\n\n")
-        f.write(f"## COMMUNICATION_CLAIM records\n\n")
+        f.write("## COMMUNICATION_CLAIM records\n\n")
         for i, c in enumerate(cap.comm_claims):
-            f.write(f"### {i+1}. T{c.get('tick')} {c.get('actor')}->{c.get('target')}\n")
+            f.write(f"### {i + 1}. T{c.get('tick')} {c.get('actor')}->{c.get('target')}\n")
             f.write(f"   proposition: {c.get('proposition')}\n\n")
 
     # CONSOLE OUTPUT (minimal)
-    print(f"[E0-PILOT-1 v2] DONE")
+    print("[E0-PILOT-1 v2] DONE")
     print(f"  Artifacts: {OUT}")
     print(f"  run_log.txt: {LOG_PATH} (raw stdout, includes CCH_SEED noise)")
     print(f"  summary.json: {sp}")
     print(f"  chain_report.md: {cp}")
     print(f"  NPC_SPOKE: {len(cap.npc_spoke)} | COMM_CLAIM: {len(cap.comm_claims)}")
-    print(f"  Semantic coherence: linked={coh_counts['linked']}, weak={coh_counts['weak']}, "
-          f"no_link={coh_counts['no_link']}, monologue={coh_counts['monologue']}")
-    print(f"  Cognition: resolver_found={cog.get('resolver_found')}, "
-          f"epistemic_wired={cog.get('epistemic_store_wired')}")
+    print(
+        f"  Semantic coherence: linked={coh_counts['linked']}, weak={coh_counts['weak']}, "
+        f"no_link={coh_counts['no_link']}, monologue={coh_counts['monologue']}"
+    )
+    print(
+        f"  Cognition: resolver_found={cog.get('resolver_found')}, epistemic_wired={cog.get('epistemic_store_wired')}"
+    )
     if error:
         print(f"  ERROR: {error}")
 

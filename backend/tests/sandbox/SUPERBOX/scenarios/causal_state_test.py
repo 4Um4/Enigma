@@ -52,14 +52,15 @@ class _GroupResult:
     argmax: str = "idle"
     scores: Dict[str, float] = field(default_factory=dict)
     movement: List[str] = field(default_factory=list)
-    pk_after_apply: Optional[float] = None   # debug/falsifier: сразу после записи
-    pk_at_measure: Optional[float] = None    # основной чекпойнт (на тике измерения)
+    pk_after_apply: Optional[float] = None  # debug/falsifier: сразу после записи
+    pk_at_measure: Optional[float] = None  # основной чекпойнт (на тике измерения)
     gate_trace: bool = False
     pass_: bool = False
     note: str = ""
 
 
 # ── Метрика: пассивный тап на TickOrchestrator.execute (S194-метрика без мутации потока) ──
+
 
 class _TapRegistry:
     """ObservabilityTap-паттерн: обёртка execute → stash TickResultDTO.
@@ -104,10 +105,7 @@ class _TapRegistry:
         """npc_contexts последнего тика (паттерн S194: get_npc_intent_and_scores)."""
         for _res in reversed(self.stash):
             if getattr(_res, "status", "ok") == "error":
-                raise RuntimeError(
-                    f"[CAUSAL_STATE_TEST] TICK_CRASH в прогоне: "
-                    f"{getattr(_res, 'error', 'unknown')}"
-                )
+                raise RuntimeError(f"[CAUSAL_STATE_TEST] TICK_CRASH в прогоне: {getattr(_res, 'error', 'unknown')}")
             for _ctx in getattr(_res, "npc_contexts", []) or []:
                 if _ctx.get("npc_id") == npc_id:
                     return _ctx
@@ -151,6 +149,7 @@ def _read_pk(game_loop: Any, npc_id: str) -> Optional[float]:
 
 
 # ── Общий конвейер групп ──
+
 
 def _bus_publish(game_loop: Any, event_type: str, payload: Dict[str, Any]) -> None:
     """Публикация события на прод-шину (канал A по AMENDMENT-2: конвейер после
@@ -199,11 +198,11 @@ def _run_group(
     with TavernGameplayHarness() as h:
         tap.attach(h.game_loop)
         try:
-            injection(h.game_loop, tap)   # тики 0..1 + инъекция по таймлайну группы
+            injection(h.game_loop, tap)  # тики 0..1 + инъекция по таймлайну группы
             if post_apply_pk_reader is not None:
                 res.pk_after_apply = post_apply_pk_reader(h.game_loop)
             _publish_calibration(h.game_loop)
-            h.advance_ticks(1)            # тик 2 = измерение
+            h.advance_ticks(1)  # тик 2 = измерение
             res.pk_at_measure = _read_pk(h.game_loop, NPC_TARGET)
             res.intent, res.scores = _collect_measure(tap)
             res.argmax = _argmax_intent(res.scores)
@@ -214,6 +213,7 @@ def _run_group(
 
 
 # ── Инъекции групп ──
+
 
 def _inject_A(game_loop: Any, tap: _TapRegistry) -> None:
     """A: PLAYER_THREATENS (prod-форма по phase_1_input: THREATEN→PLAYER_THREATENS)."""
@@ -310,6 +310,7 @@ def _inject_C(game_loop: Any, tap: _TapRegistry) -> None:
 
 # ── Группа D: негативный контроль WRITE-GUARD (вне тиков) ──
 
+
 def _run_group_D() -> Dict[str, str]:
     """Три атаки мимо гейта на NPCState, загруженном from_legacy (§12.3:
     фабрика, не конструктор-мечты). Ожидание по контракту: ArchitecturalViolationError.
@@ -363,6 +364,7 @@ def _run_group_D() -> Dict[str, str]:
 
 # ── Concordance (критерий C, вердикт владельца: Вариант-2) ──
 
+
 def _concordant(a: _GroupResult, b: _GroupResult, c: _GroupResult) -> bool:
     """C конкордантен A относительно B, если:
     (1) хотя бы один интент изменился между C и B;
@@ -415,17 +417,27 @@ def run_causal_state_test() -> Dict[str, Any]:
 
     # ── Вердикты ──
     res_a.pass_ = (res_a.argmax != res_b.argmax or res_a.intent != res_b.intent) and (res_a.pk_at_measure or 0.0) > 0.5
-    res_c.pass_ = (res_c.argmax != res_b.argmax or res_c.intent != res_b.intent) and (res_c.pk_at_measure or 0.0) > 0.5 and _concordant(res_a, res_b, res_c)
+    res_c.pass_ = (
+        (res_c.argmax != res_b.argmax or res_c.intent != res_b.intent)
+        and (res_c.pk_at_measure or 0.0) > 0.5
+        and _concordant(res_a, res_b, res_c)
+    )
     # A−C attribution (данные, не критерий):
-    _attr = {
-        k: (res_a.scores.get(k, 0.0) - res_c.scores.get(k, 0.0))
-        for k in res_a.scores
-    }
+    _attr = {k: (res_a.scores.get(k, 0.0) - res_c.scores.get(k, 0.0)) for k in res_a.scores}
 
-    print(f"[A] intent={res_a.intent} | argmax={res_a.argmax} | move={res_a.movement} | PK@tick2={res_a.pk_at_measure} | {_format_scores(res_a.scores)}")
-    print(f"[B] intent={res_b.intent} | argmax={res_b.argmax} | move={res_b.movement} | PK@tick2={res_b.pk_at_measure} | {_format_scores(res_b.scores)}")
-    print(f"[C] intent={res_c.intent} | argmax={res_c.argmax} | move={res_c.movement} | PK@tick2={res_c.pk_at_measure} | {_format_scores(res_c.scores)}")
-    print("[ATTRIBUTION A−C] " + ", ".join(f"{k}={v:+.3f}" for k, v in sorted(_attr.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6]))
+    print(
+        f"[A] intent={res_a.intent} | argmax={res_a.argmax} | move={res_a.movement} | PK@tick2={res_a.pk_at_measure} | {_format_scores(res_a.scores)}"
+    )
+    print(
+        f"[B] intent={res_b.intent} | argmax={res_b.argmax} | move={res_b.movement} | PK@tick2={res_b.pk_at_measure} | {_format_scores(res_b.scores)}"
+    )
+    print(
+        f"[C] intent={res_c.intent} | argmax={res_c.argmax} | move={res_c.movement} | PK@tick2={res_c.pk_at_measure} | {_format_scores(res_c.scores)}"
+    )
+    print(
+        "[ATTRIBUTION A−C] "
+        + ", ".join(f"{k}={v:+.3f}" for k, v in sorted(_attr.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6])
+    )
     print()
     for _k, _v in d_outcomes.items():
         print(f"[D] {_k}: {_v}")

@@ -7,6 +7,7 @@ path: /project/backend/tests/sandbox/iron_river_lusya.py
     сдвиг (urgency расходится раньше границы).
 Запуск: cd backend; python tests/sandbox/iron_river_lusya.py
 """
+
 import json
 import subprocess
 import sys
@@ -52,14 +53,16 @@ for t in range(1, 151):
 print("LUSYA " + json.dumps(out))
 """
 
+
 def main() -> int:
     seqs = []
     for i in range(2):
-        r = subprocess.run([sys.executable, "-c", _RUNNER],
-                           capture_output=True, text=True, cwd=".")
+        r = subprocess.run([sys.executable, "-c", _RUNNER], capture_output=True, text=True, cwd=".")
         line = next((l for l in r.stdout.splitlines() if l.startswith("LUSYA ")), None)
         if not line:
-            print(f"RUN{i+1}: ERR"); print(r.stderr[-300:]); return 2
+            print(f"RUN{i + 1}: ERR")
+            print(r.stderr[-300:])
+            return 2
         seqs.append(json.loads(line[6:]))
     a, b = seqs
     print(f"LEN a={len(a)} b={len(b)}")
@@ -80,6 +83,7 @@ def main() -> int:
             print(f"  CTX A={a[j]}")
             print(f"  CTX B={b[j]}")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

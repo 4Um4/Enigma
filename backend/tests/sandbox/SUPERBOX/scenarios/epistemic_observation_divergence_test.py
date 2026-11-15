@@ -19,7 +19,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_OBSERVATION_TEST")
 logger.setLevel(logging.INFO)
 
@@ -37,23 +37,23 @@ NPC_B = "merchant_goran"
 NPC_C = "guard_borko"
 NPC_D = "maid_lusya"
 
+
 def inject_lie(game_loop):
     """Публикует ложь в EventBus. Инициализирует SpatialQuery для подписчика."""
     from app.services.game_loop.scene_init import ensure_scene_initialized
     from app.services.spatial.spatial_query_service import SpatialQueryService
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     # S192 FIX: Явная инициализация SpatialQueryService перед публикацией события,
     # чтобы ClaimEventSubscriber мог вычислить дистанцию (между тиками _current_spatial_query сбрасывается).
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}),
-        scene_state=_scene
+        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
     )
-    
+
     event_bus = game_loop._tick_orch._get_event_bus()
     lie_event = EventDTO.create(
         event_type=EventType.COMMUNICATION_CLAIM.value,
@@ -61,33 +61,29 @@ def inject_lie(game_loop):
         payload={
             "target_id": NPC_B,
             "claim_id": "claim_301",
-            "proposition": {
-                "subject_id": NPC_C,
-                "predicate": "stole",
-                "object_id": "apple",
-                "polarity": True
-            },
+            "proposition": {"subject_id": NPC_C, "predicate": "stole", "object_id": "apple", "polarity": True},
             "speech_act": "assert",
-            "tick": 1
-        }
+            "tick": 1,
+        },
     )
     event_bus.publish(lie_event)
+
 
 def run_tick(game_loop):
     """Вызывает TickOrchestrator.execute напрямую."""
     from app.services.game_loop.scene_init import ensure_scene_initialized
     from app.services.spatial.spatial_factory import SpatialFactory
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=CAMPAIGN_ID, location_id=LOCATION_ID, scene_state=_scene
     )
     _all_npcs = game_loop._get_life_engine().get_npc_states(CAMPAIGN_ID)
-    
+
     result = game_loop._tick_orch.execute(
         campaign_id=CAMPAIGN_ID,
         scene_state=_scene,
@@ -99,56 +95,58 @@ def run_tick(game_loop):
     )
     return result
 
+
 def run_test():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("👁️ СУПЕРБОКС-007: Расхождение Наблюдений")
-    print("="*60)
+    print("=" * 60)
 
     print("\n[1/2] Запуск теста (инъекция лжи)...")
     game_loop = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    
-    _ = run_tick(game_loop) # Tick 0
-    
-    inject_lie(game_loop) # Инъекция лжи между тиками
-    _ = run_tick(game_loop) # Tick 1 (обработка лжи)
-    
+
+    _ = run_tick(game_loop)  # Tick 0
+
+    inject_lie(game_loop)  # Инъекция лжи между тиками
+    _ = run_tick(game_loop)  # Tick 1 (обработка лжи)
+
     # Проверяем сформированные убеждения
     store = game_loop._tick_orch._epistemic_store
     prop = Proposition(subject_id=NPC_C, predicate=Predicate.STOLE, object_id="apple")
-    
-    belief_B = store.get(NPC_B, prop) # Target
-    belief_C = store.get(NPC_C, prop) # Nearby
-    belief_D = store.get(NPC_D, prop) # Far away
+
+    belief_B = store.get(NPC_B, prop)  # Target
+    belief_C = store.get(NPC_C, prop)  # Nearby
+    belief_D = store.get(NPC_D, prop)  # Far away
 
     print("\n--- Анализ Наблюдений ---")
-    
+
     passed = True
-    
+
     if not belief_B:
         print(f"  ❌ {NPC_B} (Target): не услышал (убеждение отсутствует)")
         passed = False
     else:
         print(f"  ✅ {NPC_B} (Target): услышал (conf={belief_B.confidence:.2f})")
-        
+
     if not belief_C:
         print(f"  ❌ {NPC_C} (Nearby): не услышал (убеждение отсутствует)")
         passed = False
     else:
         print(f"  ✅ {NPC_C} (Nearby): услышал (conf={belief_C.confidence:.2f})")
-        
+
     if belief_D:
         print(f"  ❌ {NPC_D} (Far): услышал (телепатия! conf={belief_D.confidence:.2f})")
         passed = False
     else:
         print(f"  ✅ {NPC_D} (Far): не услышал (вне радиуса)")
-        
+
     if not passed:
         raise AssertionError("SUPERBOX-007 FAILED: Observation divergence mismatch")
-        
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("🎉 РАСХОЖДЕНИЕ НАБЛЮДЕНИЙ ДОКАЗАНО!")
     print("Агенты получают доступ к фактам только через физическое пространство.")
-    print("="*60)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     run_test()

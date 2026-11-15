@@ -2,6 +2,7 @@
 map_editor/tools/interaction.py
 Обработка взаимодействия (клики, удаление, выбор) с объектами на карте.
 """
+
 import math
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
@@ -43,6 +44,7 @@ from tools.constants import (
 
 SCALE = 20
 
+
 class InteractionManager:
     """Управляет логикой кликов и взаимодействия с сущностями на карте"""
 
@@ -60,17 +62,14 @@ class InteractionManager:
                 core.wall_start = (gx, gy)
             else:
                 # Второй клик — завершение стены
-                if (
-                    abs(gx - core.wall_start[0]) > 0.1
-                    or abs(gy - core.wall_start[1]) > 0.1
-                ):
+                if abs(gx - core.wall_start[0]) > 0.1 or abs(gy - core.wall_start[1]) > 0.1:
                     # Валидация наложения стен (§1: запрещаем пересечение отрезков)
                     if self.check_wall_overlap(core, core.wall_start[0], core.wall_start[1], gx, gy):
                         core._show_toast("Ошибка: Стены не могут накладываться друг на друга (кроме стыков в углах).")
                         core.wall_drawing = False
                         core.wall_start = None
                         return
-                    
+
                     wall_id = core.undo.push(
                         AddWallCommand(
                             core.dm,
@@ -109,24 +108,16 @@ class InteractionManager:
             if preset.get("requires_wall", False):
                 wall_id = self.find_wall_near(core, gx, gy, threshold=1.5) or ""
                 if not wall_id:
-                    core._show_toast(
-                        "Этот объект должен быть на стене — кликните ближе к стене"
-                    )
+                    core._show_toast("Этот объект должен быть на стене — кликните ближе к стене")
                     return
                 # Выравниваем объект по оси стены и проецируем на отрезок
                 wall: Optional[Dict[str, Any]] = next(
-                    (
-                        w
-                        for w in core.dm.locations[core.current_file]["walls"]
-                        if w["id"] == wall_id
-                    ),
+                    (w for w in core.dm.locations[core.current_file]["walls"] if w["id"] == wall_id),
                     None,
                 )
                 if wall:
                     # Снаппинг: проекция точки клика на отрезок стены
-                    gx, gy = Geometry.project_point_to_segment(
-                        gx, gy, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-                    )
+                    gx, gy = Geometry.project_point_to_segment(gx, gy, wall["x1"], wall["y1"], wall["x2"], wall["y2"])
                     dx = abs(wall["x2"] - wall["x1"])
                     dy = abs(wall["y2"] - wall["y1"])
                     if dy > dx:  # стена более вертикальная — меняем w/h местами
@@ -205,9 +196,7 @@ class InteractionManager:
                 return
             room_id = core.dm.find_room_at(core.current_file, wx, wy)
             npc_ref = core.undo.push(  # noqa: F841
-                AddNpcCommand(
-                    core.dm, core.current_file, core.selected_npc_id, gx, gy, room_id
-                )
+                AddNpcCommand(core.dm, core.current_file, core.selected_npc_id, gx, gy, room_id)
             )
             core.selected_object = ("npc", core.selected_npc_id)
             npc_name = next(
@@ -285,12 +274,8 @@ class InteractionManager:
             w = abs(gx - core.room_start[0])
             h = abs(gy - core.room_start[1])
             if w > 1 and h > 1:
-                room_name = (
-                    f"Комната {len(core.dm.locations[core.current_file]['rooms'])}"
-                )
-                room_cmd = AddRoomCommand(
-                    core.dm, core.current_file, room_name, x, y, w, h
-                )
+                room_name = f"Комната {len(core.dm.locations[core.current_file]['rooms'])}"
+                room_cmd = AddRoomCommand(core.dm, core.current_file, room_name, x, y, w, h)
                 # 4 стены коробки
                 wall_cmds = [
                     AddWallCommand(core.dm, core.current_file, x, y, x + w, y),
@@ -298,9 +283,7 @@ class InteractionManager:
                     AddWallCommand(core.dm, core.current_file, x + w, y + h, x, y + h),
                     AddWallCommand(core.dm, core.current_file, x, y + h, x, y),
                 ]
-                core.undo.push(
-                    CompoundCommand("Комната + стены", [room_cmd] + wall_cmds)
-                )
+                core.undo.push(CompoundCommand("Комната + стены", [room_cmd] + wall_cmds))
                 core._show_toast(f"Комната создана: {room_cmd.room_id}")
             core.room_drawing = False
             core.room_start = None
@@ -422,9 +405,7 @@ class InteractionManager:
         best_dist = threshold
         for wall in loc.get("walls", []):
             # Расстояние от точки до отрезка
-            dist = Geometry.point_to_segment_dist(
-                wx, wy, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-            )
+            dist = Geometry.point_to_segment_dist(wx, wy, wall["x1"], wall["y1"], wall["x2"], wall["y2"])
             if dist < best_dist:
                 best_dist = dist
                 best_id = wall["id"]
@@ -450,10 +431,7 @@ class InteractionManager:
         for wall in loc.get("walls", []):
             # Если отрезки имеют общую точку (стык в углу) — это не overlap
             # Проверяем пересечение с помощью скалярных произведений (Ориентация)
-            if Geometry.segments_intersect(
-                x1, y1, x2, y2,
-                wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-            ):
+            if Geometry.segments_intersect(x1, y1, x2, y2, wall["x1"], wall["y1"], wall["x2"], wall["y2"]):
                 # Допуск: если они просто касаются концами (расстояние между концами < tolerance)
                 d1 = math.hypot(x1 - wall["x1"], y1 - wall["y1"])
                 d2 = math.hypot(x1 - wall["x2"], y1 - wall["y2"])
@@ -491,9 +469,7 @@ class InteractionManager:
                 pos = obj.get("position", {})
                 if not pos:
                     continue
-                sx, sy = core.world_to_screen(
-                    pos.get("x", 0.0), pos.get("y", 0.0)
-                )
+                sx, sy = core.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
                 sz = obj.get("size", {})
                 w = float(sz.get("w", 1.0)) * SCALE * core.zoom
                 h = float(sz.get("h", 1.0)) * SCALE * core.zoom
@@ -506,9 +482,7 @@ class InteractionManager:
         for npc in loc.get("npcs", []):
             sx, sy = core.world_to_screen(npc["position"]["x"], npc["position"]["y"])
             hit_r = int(SCALE * core.zoom * 0.4)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
                 core.selected_object = ("npc", npc["ref_id"])
                 return True
 
@@ -517,9 +491,7 @@ class InteractionManager:
         if spawn:
             sx, sy = core.world_to_screen(spawn["x"], spawn["y"])
             hit_r = int(SCALE * core.zoom * 0.5)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
                 core.selected_object = ("spawn", "player_spawn")
                 return True
 
@@ -539,9 +511,7 @@ class InteractionManager:
             for room in loc.get("rooms", []):
                 poly = room.get("polygon")
                 if poly and len(poly) >= 3:
-                    if DataManager._point_in_polygon(
-                        wx, wy, [(p[0], p[1]) for p in poly]
-                    ):
+                    if DataManager._point_in_polygon(wx, wy, [(p[0], p[1]) for p in poly]):
                         matched_rooms.append(room["id"])
                 else:
                     rx, ry = core.world_to_screen(room["x"], room["y"])
@@ -579,9 +549,7 @@ class InteractionManager:
             ndata = loc["nodes"][nid]
             sx, sy = core.world_to_screen(ndata["x"], ndata["y"])
             if abs(sx - mx) < 15 and abs(sy - my) < 15:
-                core.undo.push(
-                    RemoveNodeCommand(core.dm, core.current_file, nid, deepcopy(ndata))
-                )
+                core.undo.push(RemoveNodeCommand(core.dm, core.current_file, nid, deepcopy(ndata)))
                 core._show_toast(f"Узел удалён: {nid}")
                 core.selected_object = None
                 return
@@ -607,11 +575,7 @@ class InteractionManager:
                 continue
             sx, sy = core.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
             if abs(sx - mx) < 20 and abs(sy - my) < 20:
-                core.undo.push(
-                    RemoveObjectCommand(
-                        core.dm, core.current_file, obj.get("id", ""), deepcopy(obj)
-                    )
-                )
+                core.undo.push(RemoveObjectCommand(core.dm, core.current_file, obj.get("id", ""), deepcopy(obj)))
                 core._show_toast("Объект удалён")
                 core.selected_object = None
                 return
@@ -620,12 +584,8 @@ class InteractionManager:
         for npc in loc.get("npcs", []):
             sx, sy = core.world_to_screen(npc["position"]["x"], npc["position"]["y"])
             hit_r = int(SCALE * core.zoom * 0.4)
-            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(
-                mx, my
-            ):
-                core.undo.push(
-                    RemoveNpcCommand(core.dm, core.current_file, deepcopy(npc))
-                )
+            if pygame.Rect(sx - hit_r, sy - hit_r, hit_r * 2, hit_r * 2).collidepoint(mx, my):
+                core.undo.push(RemoveNpcCommand(core.dm, core.current_file, deepcopy(npc)))
                 npc_name = next(
                     (n["name"] for n in core._npc_list if n["id"] == npc["ref_id"]),
                     npc["ref_id"],
@@ -637,14 +597,10 @@ class InteractionManager:
         # Надписи
         for lbl in loc.get("labels", []):
             sx, sy = core.world_to_screen(lbl["x"], lbl["y"])
-            text_surf = core.font_small.render(
-                lbl.get("text", ""), True, COLORS["text"]
-            )
+            text_surf = core.font_small.render(lbl.get("text", ""), True, COLORS["text"])
             tw, th = text_surf.get_size()
             if pygame.Rect(sx, sy, tw, th).collidepoint(mx, my):
-                core.undo.push(
-                    RemoveLabelCommand(core.dm, core.current_file, deepcopy(lbl))
-                )
+                core.undo.push(RemoveLabelCommand(core.dm, core.current_file, deepcopy(lbl)))
                 core._show_toast("Надпись удалена")
                 core.selected_object = None
                 return
@@ -699,16 +655,10 @@ class InteractionManager:
                             and abs(wall["y2"] - ey1) < 0.01
                         )
                         if direct or reverse:
-                            wall_cmds.append(
-                                RemoveWallCommand(
-                                    core.dm, core.current_file, deepcopy(wall)
-                                )
-                            )
+                            wall_cmds.append(RemoveWallCommand(core.dm, core.current_file, deepcopy(wall)))
                             break
                 room_cmd = RemoveRoomCommand(core.dm, core.current_file, deepcopy(room))
-                core.undo.push(
-                    CompoundCommand("Удалить комнату", [room_cmd] + wall_cmds)
-                )
+                core.undo.push(CompoundCommand("Удалить комнату", [room_cmd] + wall_cmds))
                 core._show_toast(f"Комната удалена: {room['name']}")
                 core.selected_object = None
                 return

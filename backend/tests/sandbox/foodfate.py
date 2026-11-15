@@ -1,4 +1,5 @@
 """S266-разведка: судьба порции wo_4eb400e3 (target_vanished при живом спавне)."""
+
 import logging
 import os
 import shutil
@@ -11,8 +12,7 @@ sys.path.insert(0, ".")
 from app.core.config import settings
 
 _d = Path(tempfile.mkdtemp(prefix="fate_"))
-shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("replay.db", "logs"))
+shutil.copytree(settings.data_dir, _d, dirs_exist_ok=True, ignore=shutil.ignore_patterns("replay.db", "logs"))
 settings.data_dir = str(_d)
 settings.saves_dir = tempfile.mkdtemp()
 os.environ["ACTIVITY_LIFECYCLE_ENABLED"] = "1"
@@ -20,10 +20,15 @@ os.environ["DESIRES_ENABLED"] = "1"
 
 logging.basicConfig(level=logging.CRITICAL)
 logging.getLogger("app.services.npc.activity_lifecycle_service").setLevel(logging.INFO)
-for _n in ("app.services.llm.router", "app.services.llm.provider_manager",
-           "app.services.llm.llama_cpp_provider", "app.services.memory",
-           "app.services.game_loop", "app.services.npc.npc_tick_pipeline",
-           "pymorphy3.opencorpora_dict.wrapper"):
+for _n in (
+    "app.services.llm.router",
+    "app.services.llm.provider_manager",
+    "app.services.llm.llama_cpp_provider",
+    "app.services.memory",
+    "app.services.game_loop",
+    "app.services.npc.npc_tick_pipeline",
+    "pymorphy3.opencorpora_dict.wrapper",
+):
     logging.getLogger(_n).setLevel(logging.CRITICAL)
 
 from app.services.game_loop_builder import build_game_loop
@@ -40,9 +45,11 @@ TARGET = "wo_4eb400e3f1cfa459"
 
 def _foods(scene):
     _sub = scene.get("world_objects") or {}
-    return {oid: (o.get("state"), o.get("holder"))
-            for oid, o in _sub.items()
-            if isinstance(o, dict) and o.get("archetype") == "food_portion"}
+    return {
+        oid: (o.get("state"), o.get("holder"))
+        for oid, o in _sub.items()
+        if isinstance(o, dict) and o.get("archetype") == "food_portion"
+    }
 
 
 gl.idle_tick("Open_road")
@@ -58,7 +65,9 @@ for _i in range(15):
     _tgt = _f.get(TARGET, ("ABSENT", None))
     _st = gl._get_life_engine().get_npc_states("Open_road")
     _t = next(n for n in _st if n.get("id") == TORNIN)
-    _a = (_t.get("activity_state") or {})
-    print(f"t{_i+2}: foods={len(_f)} TARGET={_tgt} "
-          f"act={_a.get('activity_type')} trg={str(_a.get('target_ref', ''))[:18]}")
+    _a = _t.get("activity_state") or {}
+    print(
+        f"t{_i + 2}: foods={len(_f)} TARGET={_tgt} "
+        f"act={_a.get('activity_type')} trg={str(_a.get('target_ref', ''))[:18]}"
+    )
 print("DONE")

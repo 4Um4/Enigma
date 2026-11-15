@@ -18,6 +18,7 @@ path: backend/app/services/npc/attention_reflex.py
     app.services.spatial.spatial_runtime, app.services.npc.attention_config.
 Основные сущности: compute_attention_pass.
 """
+
 import math
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -107,10 +108,7 @@ def _emit_orient(
     # Форма — зеркало heading_snap (movement_engine:755-762): NPC_POSITION +
     # field="body_heading" без target_location_id; generic-ветка SSM применит.
     if _DIAG:
-        print(
-            f"[ATT_DIAG] ORIENT obs={observer_id} subj={subject_id} "
-            f"val={heading_value:.4f} cause={cause_suffix}"
-        )
+        print(f"[ATT_DIAG] ORIENT obs={observer_id} subj={subject_id} val={heading_value:.4f} cause={cause_suffix}")
     orient_changes.append(
         SceneChange(
             type=ChangeType.NPC_POSITION,
@@ -139,7 +137,12 @@ def run_attention_pass(state: Any) -> "Any":
     class AttentionPassResult:
         __slots__ = ("attention_delta", "orient_changes", "cognition_snapshots")
 
-        def __init__(self, attention_delta: Dict[str, Any], orient_changes: List[SceneChange], cognition_snapshots: List[Dict[str, Any]]) -> None:
+        def __init__(
+            self,
+            attention_delta: Dict[str, Any],
+            orient_changes: List[SceneChange],
+            cognition_snapshots: List[Dict[str, Any]],
+        ) -> None:
             self.attention_delta = attention_delta
             self.orient_changes = orient_changes
             self.cognition_snapshots = cognition_snapshots
@@ -191,7 +194,9 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
         # владелец решения о сознании, ADR-123).
         if not is_conscious(obs_body):
             if _DIAG:
-                print(f"[ATT_DIAG] obs={observer_id} SKIP unconscious consciousness={obs_body.get('consciousness', 'ABSENT')}")
+                print(
+                    f"[ATT_DIAG] obs={observer_id} SKIP unconscious consciousness={obs_body.get('consciousness', 'ABSENT')}"
+                )
             continue
         coupling = obs_body.get("coupling_profile") or {}
         _mode_raw = coupling.get("coupling_mode", "FULL_WAKE")
@@ -212,9 +217,10 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
 
         # Актация поворота: владелец тела NPC_DECISION + стационарность.
         # Движущийся NPC: heading принадлежит движению (heading_snap).
-        can_orient = resolve_control_source(observer_id) is ControlSource.NPC_DECISION and (
-            traversals.get(observer_id) or {}
-        ).get("status") != "MOVING"
+        can_orient = (
+            resolve_control_source(observer_id) is ControlSource.NPC_DECISION
+            and (traversals.get(observer_id) or {}).get("status") != "MOVING"
+        )
 
         obs_heading = _heading(obs_entry)
         prev_subs: Dict[str, Any] = prev_all.get(observer_id) or {}
@@ -259,7 +265,10 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                 los_ok = line_of_sight(
                     distance=dist,
                     scene_state=state.scene_state,
-                    ax=obs_xy[0], ay=obs_xy[1], bx=subj_xy[0], by=subj_xy[1],
+                    ax=obs_xy[0],
+                    ay=obs_xy[1],
+                    bx=subj_xy[0],
+                    by=subj_xy[1],
                 )
                 visible = (in_fov or peripheral) and los_ok
                 if _DIAG and not visible:
@@ -298,8 +307,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     # пойман инвариант-защитой — инцидент закрыт этим патчем).
                     _reentry_evidence = (
                         round(
-                            prev_state.approach_evidence
-                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            prev_state.approach_evidence * ATTENTION_LOST_EVIDENCE_DECAY,
                             4,
                         )
                         if prev_state is not None
@@ -313,10 +321,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     # ветках (oriented/detected) — иначе сближение
                     # 5.1→1.41 терялось (v̂=0 → e_t=−0.15, p3d13).
                     if can_orient and not oriented_this_tick:
-                        needs_turn = (
-                            angular_diff(obs_heading, abs_bearing)
-                            >= ATTENTION_ORIENT_MIN_DELTA_RAD
-                        )
+                        needs_turn = angular_diff(obs_heading, abs_bearing) >= ATTENTION_ORIENT_MIN_DELTA_RAD
                         if needs_turn:
                             _emit_orient(
                                 orient_changes,
@@ -381,10 +386,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                     # Порог ниже = встроенный гистерезис: после восстановления
                     # diff≈0 → повторов нет; внешний сброс → diff ≥ порога
                     # → restore. Эмиссия ≤1/тик/наблюдатель.
-                    _misaligned = (
-                        angular_diff(obs_heading, abs_bearing)
-                        >= ATTENTION_ORIENT_MIN_DELTA_RAD
-                    )
+                    _misaligned = angular_diff(obs_heading, abs_bearing) >= ATTENTION_ORIENT_MIN_DELTA_RAD
                     upgraded = (
                         prev_state.phase
                         in (
@@ -401,11 +403,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                             orient_changes,
                             observer_id,
                             abs_bearing,
-                            (
-                                "upgrade"
-                                if prev_state.phase is AttentionPhase.DETECTED
-                                else "restore"
-                            ),
+                            ("upgrade" if prev_state.phase is AttentionPhase.DETECTED else "restore"),
                             tick,
                             subject_id=subject_id,
                         )
@@ -433,9 +431,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                         obs_record.rel_dy,
                         observer_velocity=_obs_vel,
                     )
-                    _turned = subject_turned_toward(
-                        _inf_window, min_rad=ATTENTION_EVIDENCE_TURN_MIN_RAD
-                    )
+                    _turned = subject_turned_toward(_inf_window, min_rad=ATTENTION_EVIDENCE_TURN_MIN_RAD)
                     _e_t = evidence_delta(
                         _inf,
                         _turned,
@@ -450,8 +446,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                         0.0,
                         min(
                             1.0,
-                            ATTENTION_EVIDENCE_LAMBDA * prev_state.approach_evidence
-                            + _e_t,
+                            ATTENTION_EVIDENCE_LAMBDA * prev_state.approach_evidence + _e_t,
                         ),
                     )
                     new_state = with_observation(
@@ -493,10 +488,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                             evidence=new_state.approach_evidence,
                             interpretation=InterpretedIntent(
                                 mode=None,  # S-ось недоступна (P3c-2A) — None ≠ 0
-                                probably_approaching_me=(
-                                    new_state.approach_evidence
-                                    >= ATTENTION_EVIDENCE_THRESHOLD
-                                ),
+                                probably_approaching_me=(new_state.approach_evidence >= ATTENTION_EVIDENCE_THRESHOLD),
                             ),
                             # S-ось v2 (вердикт Мастера): локальная prediction
                             # error per-pair. Прогноз по истории ДО текущего
@@ -524,8 +516,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                         delta_subs[subject_id] = None  # GC: субъект забыт
                     else:
                         _decayed = round(
-                            prev_state.approach_evidence
-                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            prev_state.approach_evidence * ATTENTION_LOST_EVIDENCE_DECAY,
                             4,
                         )
                         if _decayed < 1e-4:
@@ -548,8 +539,7 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
                         AttentionPhase.LOST,
                         tick,
                         approach_evidence=round(
-                            prev_state.approach_evidence
-                            * ATTENTION_LOST_EVIDENCE_DECAY,
+                            prev_state.approach_evidence * ATTENTION_LOST_EVIDENCE_DECAY,
                             4,
                         ),
                     )
@@ -563,16 +553,11 @@ def _compute_pass_core(state: Any) -> Tuple[Dict[str, Any], List[SceneChange], L
             )
         # Cap на новых субъектах: старые важнее (окно наблюдений уже накоплено).
         if delta_subs and len(prev_subs) >= ATTENTION_MAX_SUBJECTS:
-            delta_subs = {
-                k: v
-                for k, v in delta_subs.items()
-                if v is not None or k in prev_subs
-            }
+            delta_subs = {k: v for k, v in delta_subs.items() if v is not None or k in prev_subs}
         if delta_subs:
             attention_delta[observer_id] = delta_subs
 
     return attention_delta, orient_changes, cognition_snapshots
-
 
 
 def produce_cognition_modifiers(
@@ -599,9 +584,7 @@ def produce_cognition_modifiers(
         return {}
     if top_evidence >= ATTENTION_EVIDENCE_THRESHOLD:
         _ramp = 1.0
-    elif top_evidence >= (
-        ATTENTION_EVIDENCE_THRESHOLD - ATTENTION_EVIDENCE_HYSTERESIS
-    ):
+    elif top_evidence >= (ATTENTION_EVIDENCE_THRESHOLD - ATTENTION_EVIDENCE_HYSTERESIS):
         _ramp = 0.5  # зона удержания: реакция ещё жива, но ослаблена
     else:
         return {}
@@ -613,9 +596,6 @@ def produce_cognition_modifiers(
         _val = round(_base * _weight, 4)
         # Санкционная граница ±0.5 — громкий отказ (L4), не тихий зажим.
         if abs(_val) > ATTENTION_MODIFIER_MAX + 1e-9:
-            raise ValueError(
-                f"cognition modifier {_intent_key}={_val} вне санкции "
-                f"±{ATTENTION_MODIFIER_MAX}"
-            )
+            raise ValueError(f"cognition modifier {_intent_key}={_val} вне санкции ±{ATTENTION_MODIFIER_MAX}")
         _mods[_intent_key] = _val
     return _mods

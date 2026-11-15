@@ -13,6 +13,7 @@ the existing record (source_id=player)?
 
 This is a READ-ONLY investigation of BeliefRevisionEngine.revise() code.
 """
+
 from __future__ import annotations
 
 import os
@@ -53,13 +54,17 @@ class TeeStream:
 
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
 
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -99,9 +104,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -118,9 +121,9 @@ def _read_function_full(path: Path, func_name: str, max_lines: int = 300) -> Non
     if bounds:
         s, e = bounds
         actual_end = min(e, s + max_lines)
-        print(f"  {func_name}() at L{s+1}..L{e} (showing L{s+1}..L{actual_end}):")
+        print(f"  {func_name}() at L{s + 1}..L{e} (showing L{s + 1}..L{actual_end}):")
         for j in range(s, actual_end):
-            print(f"  L{j+1:4d}: {lines[j]}")
+            print(f"  L{j + 1:4d}: {lines[j]}")
         if actual_end < e:
             print(f"  ... ({e - actual_end} more lines)")
     else:
@@ -181,7 +184,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 6: Analysis — provenance handling in revise()")
 
-    print(f"""
+    print("""
   SCENARIO: Tornin has existing record (source_id=player, conf=0.5).
             Borko tells Tornin (new claim, speaker_id=guard_borko).
 
@@ -191,7 +194,7 @@ def main() -> int:
     _speaker_orig = _speaker_record.original_source_id      → "player"
     updated_record = self._engine.revise(
         tavern_keeper_tornin, claim, existing,
-        reliability_context={{"source_type": "testimony", "original_source_id": "player"}}
+        reliability_context={"source_type": "testimony", "original_source_id": "player"}
     )
     self._store.upsert(updated_record)
 
@@ -252,24 +255,32 @@ def main() -> int:
         scene = loop.scene_manager.get_scene_state("Open_road", "tavern")
         if scene is None:
             scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
-        loaded = loop._load_npcs_with_runtime("Open_road")
+        loop._load_npcs_with_runtime("Open_road")
 
         bus = get_event_bus()
         sub = None
         for attr in ("_subscribers", "_handlers", "_callbacks"):
-            if not hasattr(bus, attr): continue
+            if not hasattr(bus, attr):
+                continue
             container = getattr(bus, attr)
-            if not isinstance(container, dict): continue
+            if not isinstance(container, dict):
+                continue
             for ev_type, cbs in container.items():
-                if cbs is None: continue
-                try: iter_cbs = list(cbs)
-                except TypeError: iter_cbs = [cbs]
+                if cbs is None:
+                    continue
+                try:
+                    iter_cbs = list(cbs)
+                except TypeError:
+                    iter_cbs = [cbs]
                 for cb in iter_cbs:
                     target_obj = getattr(cb, "__self__", None)
                     if target_obj and isinstance(target_obj, ClaimEventSubscriber):
-                        sub = target_obj; break
-                if sub: break
-            if sub: break
+                        sub = target_obj
+                        break
+                if sub:
+                    break
+            if sub:
+                break
         store = getattr(sub, "_store", None) if sub else None
 
         expected_prop = Proposition(
@@ -303,7 +314,7 @@ def main() -> int:
         tornin_before = None
         if store:
             tornin_before = store.get("tavern_keeper_tornin", expected_prop)
-            print(f"  Tornin BEFORE ticks:")
+            print("  Tornin BEFORE ticks:")
             if tornin_before:
                 print(f"    source_id: {getattr(tornin_before, 'source_id', None)}")
                 print(f"    original_source_id: {getattr(tornin_before, 'original_source_id', None)}")
@@ -312,10 +323,10 @@ def main() -> int:
                 print(f"    last_updated_tick: {getattr(tornin_before, 'last_updated_tick', None)}")
                 print(f"    first_observed_tick: {getattr(tornin_before, 'first_observed_tick', None)}")
             else:
-                print(f"    None")
+                print("    None")
 
         # Run 3 idle_ticks
-        print(f"\n  Running 3 idle_ticks...")
+        print("\n  Running 3 idle_ticks...")
         for tick_num in range(1, 4):
             try:
                 loop.idle_tick("Open_road", "tavern")
@@ -323,7 +334,7 @@ def main() -> int:
                 print(f"    Tick {tick_num} ERROR: {e}")
 
         # Capture Tornin's record AFTER ticks
-        print(f"\n  Tornin AFTER 3 ticks:")
+        print("\n  Tornin AFTER 3 ticks:")
         if store:
             tornin_after = store.get("tavern_keeper_tornin", expected_prop)
             if tornin_after:
@@ -334,20 +345,22 @@ def main() -> int:
                 print(f"    last_updated_tick: {getattr(tornin_after, 'last_updated_tick', None)}")
                 print(f"    first_observed_tick: {getattr(tornin_after, 'first_observed_tick', None)}")
             else:
-                print(f"    None")
+                print("    None")
 
             # Also get ALL records for Tornin
             all_tornin = store.get_all_for_agent("tavern_keeper_tornin") or []
             print(f"\n  Tornin ALL records: {len(all_tornin)}")
             for i, r in enumerate(all_tornin):
-                print(f"    [{i}] source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)} "
-                      f"conf={getattr(r, 'confidence', None)} "
-                      f"tick={getattr(r, 'last_updated_tick', None)} "
-                      f"claim_id={getattr(r, 'source_claim_id', None)}")
+                print(
+                    f"    [{i}] source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)} "
+                    f"conf={getattr(r, 'confidence', None)} "
+                    f"tick={getattr(r, 'last_updated_tick', None)} "
+                    f"claim_id={getattr(r, 'source_claim_id', None)}"
+                )
 
             # Compare
-            print(f"\n  === Comparison ===")
+            print("\n  === Comparison ===")
             if tornin_before and tornin_after:
                 conf_before = getattr(tornin_before, "confidence", None)
                 conf_after = getattr(tornin_after, "confidence", None)
@@ -361,22 +374,25 @@ def main() -> int:
                 print(f"    source_id: {source_before} → {source_after} (changed: {source_before != source_after})")
 
                 if conf_before != conf_after:
-                    print(f"    >>> Confidence CHANGED — Borko's testimony was integrated")
-                    print(f"    >>> Even if source_id stayed as 'player', the confidence update")
-                    print(f"    >>> proves Tornin received information from Borko")
+                    print("    >>> Confidence CHANGED — Borko's testimony was integrated")
+                    print("    >>> Even if source_id stayed as 'player', the confidence update")
+                    print("    >>> proves Tornin received information from Borko")
                 elif tick_before != tick_after:
-                    print(f"    >>> Tick changed but confidence didn't — record was touched")
+                    print("    >>> Tick changed but confidence didn't — record was touched")
                 else:
-                    print(f"    >>> Record UNCHANGED — Borko's testimony did NOT reach Tornin")
+                    print("    >>> Record UNCHANGED — Borko's testimony did NOT reach Tornin")
 
         # Cleanup
         try:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except: pass
+        except Exception:
+            pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
 
     except Exception as e:
         print(f"[FATAL: {e}]")
@@ -391,7 +407,7 @@ def main() -> int:
     # =====================================================================
     _print_section("STEP 8: VERDICT")
 
-    print(f"""
+    print("""
   Based on Steps 1-7, the verdict depends on what revise() does:
 
   CASE A: revise() PRESERVES source_id (keeps original source)
@@ -434,10 +450,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    try: rc = main()
+    try:
+        rc = main()
     except Exception as e:
         print(f"\n[FATAL] {type(e).__name__}: {e}")
         traceback.print_exc()
         rc = 1
-    finally: sys.stdout = _orig_stdout
+    finally:
+        sys.stdout = _orig_stdout
     sys.exit(rc)

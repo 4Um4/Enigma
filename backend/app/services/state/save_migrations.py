@@ -58,10 +58,7 @@ _REFUSAL_TEXTS = {
     REASON_UNKNOWN_FORMAT: "формат сохранения не распознан",
     REASON_INVALID_V0: "структура сохранения не соответствует старому формату",
     REASON_INVALID_SCENES: "структура сцен сохранения повреждена",
-    REASON_INCONSISTENT_V1: (
-        "сохранение внутренне противоречиво: заявленная версия не совпадает "
-        "со структурой"
-    ),
+    REASON_INCONSISTENT_V1: ("сохранение внутренне противоречиво: заявленная версия не совпадает со структурой"),
     "BACKUP_CONFLICT": (
         "резервная копия .pre-migration.bak уже существует и отличается от "
         "исходника — автоматическая перезапись запрещена"
@@ -97,6 +94,7 @@ def _refuse(state_file: Path, reason: str) -> SaveMigrationOutcome:
 
 # ── Чистые миграторы (лестница: сегодня v0 → v1) ──────────────────────────
 
+
 def migrate_payload_to_v1(data: Dict[str, Any], source: str) -> Dict[str, Any]:
     """Чистая конвертация распознанного формата в v1 (без I/O).
 
@@ -114,9 +112,7 @@ def migrate_payload_to_v1(data: Dict[str, Any], source: str) -> Dict[str, Any]:
     return result
 
 
-def _verify_migration(
-    source_data: Dict[str, Any], source: str, migrated: Dict[str, Any]
-) -> None:
+def _verify_migration(source_data: Dict[str, Any], source: str, migrated: Dict[str, Any]) -> None:
     """Структурная + содержательная верификация (В6): результат = CURRENT;
     сцены сохранены дословно (deep-equal); прочие top-level ключи as-is (В2)."""
     if classify_parsed_save(migrated).status != CURRENT:
@@ -136,6 +132,7 @@ def _verify_migration(
 
 
 # ── Файловая процедура (В6) ───────────────────────────────────────────────
+
 
 def _backup_path(state_file: Path) -> Path:
     return state_file.with_name(state_file.name + _BACKUP_SUFFIX)
@@ -205,9 +202,7 @@ def migrate_save_file_if_needed(state_file: Path) -> SaveMigrationOutcome:
     # 6) tmp + round-trip верификация
     tmp = _tmp_path(state_file)
     try:
-        tmp.write_bytes(
-            json.dumps(migrated, ensure_ascii=False, indent=2).encode("utf-8")
-        )
+        tmp.write_bytes(json.dumps(migrated, ensure_ascii=False, indent=2).encode("utf-8"))
         if json.loads(tmp.read_bytes().decode("utf-8-sig")) != migrated:
             raise OSError(f"tmp-файл {tmp} не прошёл round-trip верификацию")
     except Exception:
@@ -221,19 +216,15 @@ def migrate_save_file_if_needed(state_file: Path) -> SaveMigrationOutcome:
     # 7) атомарная замена — единственное касание оригинала
     os.replace(tmp, state_file)
     logger.info(
-        f"[SAVE_MIGRATION] {state_file.name}: конвертирован в "
-        f"v{SAVE_SCHEMA_VERSION}, резервная копия: {backup.name}"
+        f"[SAVE_MIGRATION] {state_file.name}: конвертирован в v{SAVE_SCHEMA_VERSION}, резервная копия: {backup.name}"
     )
-    return SaveMigrationOutcome(
-        status=STATUS_MIGRATED, state_file=state_file, backup_file=backup
-    )
+    return SaveMigrationOutcome(status=STATUS_MIGRATED, state_file=state_file, backup_file=backup)
 
 
 # ── Version-aware читатели (В4: оба читателя, единое правило) ─────────────
 
-def extract_scene_payload(
-    data: Dict[str, Any], location_id: Optional[str] = None
-) -> Optional[Dict[str, Any]]:
+
+def extract_scene_payload(data: Dict[str, Any], location_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Сцена снапшота для локации. Единое правило (В4): scenes-layout
     (штампованный или нет — scenes есть истина формы) → выбор по location_id;
     без location_id — единственная сцена, при неоднозначности честный None

@@ -39,9 +39,11 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class BodyConstraint:
     """P5.3: Универсальное функциональное ограничение тела."""
-    region: str          # "LEG", "ARM", "TORSO", etc.
-    function: str        # "LOCOMOTION", "MANIPULATION", etc.
-    severity: float      # 0.0 - 1.0
+
+    region: str  # "LEG", "ARM", "TORSO", etc.
+    function: str  # "LOCOMOTION", "MANIPULATION", etc.
+    severity: float  # 0.0 - 1.0
+
 
 class BehaviorManifestationService:
     """
@@ -51,19 +53,9 @@ class BehaviorManifestationService:
     """
 
     # P5.3: Маппинг регионов и функций
-    _REGION_MAP = {
-        "leg": "LEG", "limb": "LEG", "foot": "LEG",
-        "arm": "ARM", "hand": "ARM", "shoulder": "ARM"
-    }
-    _FUNCTION_MAP = {
-        "LEG": "LOCOMOTION",
-        "ARM": "MANIPULATION"
-    }
-    _SEVERITY_MAP = {
-        "crippling": 0.8,
-        "severe": 0.5,
-        "moderate": 0.2
-    }
+    _REGION_MAP = {"leg": "LEG", "limb": "LEG", "foot": "LEG", "arm": "ARM", "hand": "ARM", "shoulder": "ARM"}
+    _FUNCTION_MAP = {"LEG": "LOCOMOTION", "ARM": "MANIPULATION"}
+    _SEVERITY_MAP = {"crippling": 0.8, "severe": 0.5, "moderate": 0.2}
 
     def _derive_constraints(self, wounds: list) -> list[BodyConstraint]:
         """P5.3: Вывод функциональных ограничений из ран."""
@@ -87,7 +79,12 @@ class BehaviorManifestationService:
         return constraints
 
     def _apply_constraints_to_motor(
-        self, constraints: list[BodyConstraint], instability: float, posture_rigidity: float, micro_pause: float, action_interrupt: float
+        self,
+        constraints: list[BodyConstraint],
+        instability: float,
+        posture_rigidity: float,
+        micro_pause: float,
+        action_interrupt: float,
     ) -> tuple:
         """P5.3: Применение ограничений к моторным проекциям."""
         gait_asymmetry = 0.0
@@ -105,14 +102,18 @@ class BehaviorManifestationService:
 
         return gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt
 
-    def produce_traces(self, scene_state: Dict[str, Any], all_npcs_raw: Optional[List[Dict[str, Any]]] = None) -> list[EmbodiedTraceDTO]:
+    def produce_traces(
+        self, scene_state: Dict[str, Any], all_npcs_raw: Optional[List[Dict[str, Any]]] = None
+    ) -> list[EmbodiedTraceDTO]:
         traces: list[EmbodiedTraceDTO] = []
         if not scene_state or not isinstance(scene_state, dict):
             return traces
 
         # Читаем из npc_positions (там лежат дельты и наблюдаемые состояния)
         npc_positions = scene_state.get("npc_positions", {})
-        logger.info(f"[ARCHAE_PRODUCE] npc_pos_count={len(npc_positions)} all_npcs_raw_count={len(all_npcs_raw) if all_npcs_raw else 0}")
+        logger.info(
+            f"[ARCHAE_PRODUCE] npc_pos_count={len(npc_positions)} all_npcs_raw_count={len(all_npcs_raw) if all_npcs_raw else 0}"
+        )
 
         # Правило X: строим маппинг npc_id → body_state из all_npcs_raw
         # StateApplicator пишет body_state в all_npcs_raw, НЕ в npc_positions
@@ -137,17 +138,19 @@ class BehaviorManifestationService:
             body_state = body_state_map.get(npc_id)
             psyche = psyche_map.get(npc_id, {})
             trace = self._manifest_npc(npc_id, npc_data, body_state, psyche)
-            logger.info(f"[ARCHAE_TRACE_GEN] npc={npc_id} rigid={trace.posture_rigidity:.2f} instab={trace.locomotion_instability:.2f} mpd={trace.micro_pause_density:.2f}")
-            if (
-                trace.locomotion_instability > 0.05
-                or trace.posture_rigidity > 0.05
-                or trace.micro_pause_density > 0.05
-            ):
+            logger.info(
+                f"[ARCHAE_TRACE_GEN] npc={npc_id} rigid={trace.posture_rigidity:.2f} instab={trace.locomotion_instability:.2f} mpd={trace.micro_pause_density:.2f}"
+            )
+            if trace.locomotion_instability > 0.05 or trace.posture_rigidity > 0.05 or trace.micro_pause_density > 0.05:
                 traces.append(trace)
         return traces
 
     def _manifest_npc(
-        self, npc_id: str, data: Dict[str, Any], body_state: Optional[Dict[str, Any]] = None, psyche: Optional[Dict[str, Any]] = None
+        self,
+        npc_id: str,
+        data: Dict[str, Any],
+        body_state: Optional[Dict[str, Any]] = None,
+        psyche: Optional[Dict[str, Any]] = None,
     ) -> EmbodiedTraceDTO:
         # Rule X (ADR-101/112): Моторика определяется строго физиологией и PerceptualKernel
         # НЕ телепатия: мы не читаем "NPC боится", мы наблюдаем дрожь рук и напряжённую позу
@@ -167,7 +170,9 @@ class BehaviorManifestationService:
         # S122: Читаем стресс и аффективную нагрузку (§ENIGMA-S72: Эмоция = энергия разрядки)
         stress = float(psyche.get("stress", 0.0)) if psyche else 0.0
         affective_load = float(psyche.get("affective_load", 0.0)) if psyche else 0.0
-        logger.info(f"[ARCHAE_BM] npc={npc_id} has_bs={bool(body_state)} fatigue={fatigue} stress={stress} affect={affective_load} pain={pain} shock={shock_impulse}")
+        logger.info(
+            f"[ARCHAE_BM] npc={npc_id} has_bs={bool(body_state)} fatigue={fatigue} stress={stress} affect={affective_load} pain={pain} shock={shock_impulse}"
+        )
 
         # Эмоциональные моторные проявления (наблюдаемые, не телепатия)
         # Страх → дрожь, напряжённая поза, застывание
@@ -235,8 +240,9 @@ class BehaviorManifestationService:
             _wounds = data.get("wounds", [])
 
         _constraints = self._derive_constraints(_wounds)
-        gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt = \
+        gait_asymmetry, arm_restriction, instability, posture_rigidity, micro_pause, action_interrupt = (
             self._apply_constraints_to_motor(_constraints, instability, posture_rigidity, micro_pause, action_interrupt)
+        )
 
         is_frozen = posture_rigidity > 0.7
         is_shaking = instability > 0.3

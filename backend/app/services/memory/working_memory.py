@@ -64,10 +64,7 @@ class WorkingMemory:
                 updated = event.decayed(game_days)
 
                 # R5.3: переход в ABSTRACT → событие уходит в L3 Identity
-                if (
-                    prev_stage != MemoryStage.ABSTRACT
-                    and updated.stage == MemoryStage.ABSTRACT
-                ):
+                if prev_stage != MemoryStage.ABSTRACT and updated.stage == MemoryStage.ABSTRACT:
                     weight = updated.to_identity_weight()
                     if weight is not None:
                         identity_weights.append(weight)

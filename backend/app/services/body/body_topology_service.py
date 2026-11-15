@@ -4,6 +4,7 @@ path: /project/backend/app/services/body/body_topology_service.py
 Зависимости: app.domain.body, app.services.persistence.yaml_loader
 Основные сущности: BodyTopologyService
 """
+
 import os
 from typing import Dict, List, Optional
 
@@ -20,6 +21,7 @@ _YAML_BACKPACK = "backpack"
 _YAML_WORN = "worn"
 _YAML_HIDDEN = "hidden"
 
+
 class BodyTopologyService:
     """Сервис управления физической топологией тела."""
 
@@ -29,9 +31,7 @@ class BodyTopologyService:
     # Фикс CWD-зависимости: путь к YAML резолвится от корня репозитория
     # (backend/app/services/body/ → 4 уровня вверх), а не от рабочего
     # каталога процесса лаунчера.
-    _REPO_ROOT = os.path.abspath(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..")
-    )
+    _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
 
     @classmethod
     def load_template(cls, yaml_path: Optional[str] = None) -> None:
@@ -121,7 +121,7 @@ class BodyTopologyService:
             lock_difficulty=data.get("lock_difficulty"),
             concealment=float(data.get("concealment", 0.0)),
             don_time_ticks=int(data.get("don_time_ticks", 0)),
-            doff_time_ticks=int(data.get("doff_time_ticks", 0))
+            doff_time_ticks=int(data.get("doff_time_ticks", 0)),
         )
 
     @staticmethod
@@ -162,18 +162,14 @@ class BodyTopologyService:
         for i, item in enumerate(current_items):
             if item.item_id == item_id:
                 # Удаляем элемент
-                new_items = current_items[:i] + current_items[i+1:]
+                new_items = current_items[:i] + current_items[i + 1 :]
                 topology.contents[slot_id] = new_items
                 return item
         return None
 
     @staticmethod
     def transfer_item(
-        source: BodyTopology,
-        source_slot_id: str,
-        target: BodyTopology,
-        target_slot_id: str,
-        item_id: str
+        source: BodyTopology, source_slot_id: str, target: BodyTopology, target_slot_id: str, item_id: str
     ) -> bool:
         """Перенос предмета между аватарами (торговля, кража)."""
         item = BodyTopologyService.remove_item(source, source_slot_id, item_id)
@@ -217,6 +213,7 @@ class BodyTopologyService:
     def serialize(topology: BodyTopology) -> dict:
         """Сериализует BodyTopology в JSON-совместимый dict для scene_state."""
         from dataclasses import asdict
+
         return asdict(topology)
 
     @staticmethod
@@ -226,14 +223,11 @@ class BodyTopologyService:
         contents = {}
         for slot_id, items_list in data.get("contents", {}).items():
             contents[slot_id] = tuple(
-                Item(**item_data) if isinstance(item_data, dict) else item_data
-                for item_data in items_list
+                Item(**item_data) if isinstance(item_data, dict) else item_data for item_data in items_list
             )
 
         topology = BodyTopology(
-            avatar_id=data.get("avatar_id", "player"),
-            strength_score=data.get("strength_score", 10),
-            contents=contents
+            avatar_id=data.get("avatar_id", "player"), strength_score=data.get("strength_score", 10), contents=contents
         )
 
         # Восстанавливаем слоты (они frozen dataclass)

@@ -4,6 +4,7 @@ path: /frontend/ui_workbench/input_router.py
 Зависимости: pygame, ui_workbench.registry
 Основные сущности: InputDispatcher, RouteResult
 """
+
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -30,9 +31,7 @@ class InputDispatcher:
             hk = registry.manifest(wid).binding.hotkey
             if hk is not None:
                 if hk in self._hotkeys:
-                    raise ValueError(
-                        f"InputDispatcher: hotkey-конфликт '{self._hotkeys[hk]}' и '{wid}'"
-                    )
+                    raise ValueError(f"InputDispatcher: hotkey-конфликт '{self._hotkeys[hk]}' и '{wid}'")
                 self._hotkeys[hk] = wid
 
     def route(self, event) -> RouteResult:

@@ -86,10 +86,7 @@ def _check_orphan_methods(tree: ast.AST, file: str) -> list[LintIssue]:
                             line=child.lineno,
                             severity="ERROR",
                             category="ORPHAN_METHOD",
-                            message=(
-                                f"def {child.name}() с self вложена в "
-                                f"{parent_path} — метод потерян из класса"
-                            ),
+                            message=(f"def {child.name}() с self вложена в {parent_path} — метод потерян из класса"),
                         )
                     )
                 _walk(child, child_path)
@@ -124,10 +121,7 @@ def _check_module_level_orphans(tree: ast.AST, file: str) -> list[LintIssue]:
                         line=node.lineno,
                         severity="ERROR",
                         category="ORPHAN_METHOD",
-                        message=(
-                            f"def {node.name}() с self на уровне модуля — "
-                            f"должна быть внутри класса"
-                        ),
+                        message=(f"def {node.name}() с self на уровне модуля — должна быть внутри класса"),
                     )
                 )
     return issues
@@ -148,10 +142,7 @@ def _check_dead_returns(tree: ast.AST, file: str) -> list[LintIssue]:
                         line=dead.lineno,
                         severity="WARNING",
                         category="DEAD_CODE",
-                        message=(
-                            f"Код после return в {func_name}() — "
-                            f"строка {dead.lineno} никогда не выполнится"
-                        ),
+                        message=(f"Код после return в {func_name}() — строка {dead.lineno} никогда не выполнится"),
                     )
                 )
                 return  # Один раз на блок достаточно
@@ -186,14 +177,8 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
         members = set()
         # Пропускаем классы тестов — self.assert* унаследованы от unittest.TestCase
         base_names = {b.id for b in class_node.bases if isinstance(b, ast.Name)}
-        if (
-            "TestCase" in base_names
-            or class_node.name.endswith("Tests")
-            or class_node.name.endswith("Test")
-        ):
-            return {
-                "*"
-            }  # Магическое значение: пропустить все проверки для этого класса
+        if "TestCase" in base_names or class_node.name.endswith("Tests") or class_node.name.endswith("Test"):
+            return {"*"}  # Магическое значение: пропустить все проверки для этого класса
 
         for child in class_node.body:
             if isinstance(child, ast.FunctionDef):
@@ -209,9 +194,7 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
                                     and target.value.id == "self"
                                 ):
                                     members.add(target.attr)
-            elif isinstance(child, ast.AnnAssign) and isinstance(
-                child.target, ast.Name
-            ):
+            elif isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
                 # self.x: int = ... (dataclass / Pydantic)
                 members.add(child.target.id)
             elif isinstance(child, ast.Assign):
@@ -247,10 +230,7 @@ def _check_class_method_calls(tree: ast.AST, file: str) -> list[LintIssue]:
                             line=child.lineno,
                             severity="WARNING",
                             category="MISSING_METHOD",
-                            message=(
-                                f"self.{child.attr}() вызывается, но не найден "
-                                f"в классе {node.name}"
-                            ),
+                            message=(f"self.{child.attr}() вызывается, но не найден в классе {node.name}"),
                         )
                     )
 
@@ -321,11 +301,7 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
     # Пропускаем блоки if TYPE_CHECKING: — типы импортируются специально для анализаторов
     type_checking_nodes: set[ast.AST] = set()
     for node in ast.iter_child_nodes(tree):
-        if (
-            isinstance(node, ast.If)
-            and isinstance(node.test, ast.Name)
-            and node.test.id == "TYPE_CHECKING"
-        ):
+        if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
             for tc_child in ast.walk(node):
                 type_checking_nodes.add(tc_child)
 
@@ -368,9 +344,7 @@ def _check_unused_imports(tree: ast.AST, file: str, filename: str) -> list[LintI
     # Строковые аннотации (forward references): "Condition" в типах
     # Проверяем только позиции аннотаций, чтобы не ловить докстринги
     def _extract_forward_ref(annotation_node: ast.AST | None) -> str | None:
-        if isinstance(annotation_node, ast.Constant) and isinstance(
-            annotation_node.value, str
-        ):
+        if isinstance(annotation_node, ast.Constant) and isinstance(annotation_node.value, str):
             return annotation_node.value
         return None
 
@@ -426,9 +400,7 @@ def _check_exception_handling(tree: ast.AST, file: str) -> list[LintIssue]:
             continue
 
         # Проверяем тело на наличие только pass / ... / строк-документаций
-        has_logic = (
-            len(node.body) > 0
-        )  # Если хоть что-то есть, считаем что обработка присутствует
+        has_logic = len(node.body) > 0  # Если хоть что-то есть, считаем что обработка присутствует
 
         if not has_logic:
             # Извлекаем человекочитаемое имя типа исключения
@@ -547,11 +519,7 @@ def _check_import_order(tree: ast.AST, file: str) -> list[LintIssue]:
 
     def _classify(node: ast.AST) -> int:
         """0=stdlib, 1=third-party, 2=local"""
-        if (
-            isinstance(node, ast.ImportFrom)
-            and node.module
-            and node.module.startswith(".")
-        ):
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("."):
             return 2
         if isinstance(node, ast.ImportFrom) and node.module:
             first_part = node.module.split(".")[0]
@@ -598,9 +566,7 @@ def _check_wildcard_imports(tree: ast.AST, file: str, filename: str) -> list[Lin
         return []
     issues = []
     for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.ImportFrom) and any(
-            alias.name == "*" for alias in node.names
-        ):
+        if isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names):
             module = node.module or "(unknown)"
             issues.append(
                 LintIssue(
@@ -655,11 +621,7 @@ def _check_circular_imports(root: Path, exclude_dirs: list[str]) -> list[LintIss
 
         deps = set()
         for node in ast.iter_child_nodes(tree):
-            if (
-                isinstance(node, ast.If)
-                and isinstance(node.test, ast.Name)
-                and node.test.id == "TYPE_CHECKING"
-            ):
+            if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
                 continue
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -757,9 +719,7 @@ def lint_file(filepath: Path) -> LintResult:
     return result
 
 
-def lint_project(
-    root: Path, exclude_dirs: Optional[list[str]] = None
-) -> list[LintResult]:
+def lint_project(root: Path, exclude_dirs: Optional[list[str]] = None) -> list[LintResult]:
     """Проверяет все .py файлы в проекте."""
     if exclude_dirs is None:
         exclude_dirs = [".venv", "__pycache__", "node_modules", ".git"]
@@ -792,11 +752,7 @@ def print_results(results: list[LintResult]) -> None:
 
         for issue in result.issues:
             # Короткий путь к файлу
-            short_path = (
-                issue.file.split("Enigma\\")[-1]
-                if "Enigma\\" in issue.file
-                else issue.file
-            )
+            short_path = issue.file.split("Enigma\\")[-1] if "Enigma\\" in issue.file else issue.file
 
             if issue.severity == "ERROR":
                 errors += 1

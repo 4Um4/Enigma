@@ -15,8 +15,15 @@ R2-FLEE-ENTRANCE-AS-BOUNDARY v4 — проверка гипотезы.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging, math
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -237,28 +244,28 @@ def check2_transition_semantics() -> None:
     src = me_path.read_text(encoding="utf-8", errors="replace")
     lines = src.split("\n")
 
-    print(f"""
+    print("""
 >>> Полный runtime-путь:
   NPC → entrance → boundary node → BOUNDARY_DWELL → соседняя локация
 """)
 
     # Find get_boundary_to_neighbor
-    print(f"--- get_boundary_to_neighbor implementation ---")
+    print("--- get_boundary_to_neighbor implementation ---")
     for i, line in enumerate(lines, 1):
         if "def get_boundary_to_neighbor" in line:
             for j in range(i - 1, min(i + 25, len(lines))):
-                print(f"  L{j+1}: {lines[j]}")
+                print(f"  L{j + 1}: {lines[j]}")
             break
 
     # Find where target_loc is determined
-    print(f"\n--- Где определяется target_loc? ---")
+    print("\n--- Где определяется target_loc? ---")
     for i, line in enumerate(lines, 1):
         if "target_loc" in line and ("=" in line or "get_boundary_to_neighbor" in line):
             if 400 < i < 600:  # focus on cross-loc area
                 print(f"  L{i}: {line.rstrip()}")
 
     # Find get_boundary_info
-    print(f"\n--- get_boundary_info implementation ---")
+    print("\n--- get_boundary_info implementation ---")
     ss_path = _BACKEND / "app/services/spatial/spatial_service.py"
     if ss_path.exists():
         ss_src = ss_path.read_text(encoding="utf-8", errors="replace")
@@ -266,11 +273,11 @@ def check2_transition_semantics() -> None:
         for i, line in enumerate(ss_lines, 1):
             if "def get_boundary_to_neighbor" in line or "def get_boundary_info" in line:
                 for j in range(i - 1, min(i + 20, len(ss_lines))):
-                    print(f"  L{j+1}: {ss_lines[j]}")
+                    print(f"  L{j + 1}: {ss_lines[j]}")
                 print()
                 break
 
-    print(f"""
+    print("""
 >>> Как выбирается target_loc:
 
   L434: boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
@@ -351,7 +358,7 @@ def check3_geometry_and_validator() -> None:
     if not tavern:
         return
 
-    print(f"""
+    print("""
 >>> 3.1: Маршрут из внутренних помещений до entrance остаётся достижимым?
 
   Из probe r2_flee_door0_route_audit ПРОВЕРКА 5 (BFS):
@@ -395,16 +402,16 @@ def check3_geometry_and_validator() -> None:
     if not result or not isinstance(result, tuple):
         return
 
-    graph = result[0]
-    connections = result[1]
+    result[0]
+    result[1]
 
     logs = _log_capture.getvalue()
-    print(f"\n  SpatialValidator logs:")
+    print("\n  SpatialValidator logs:")
     for line in logs.split("\n"):
         if "SPATIAL_VALIDATION" in line:
             print(f"    {line}")
 
-    print(f"""
+    print("""
   Рёбра exit_east→kitchen_bed_2 и exit_south→kitchen_bed_2 удалены.
   Это рёбра от phantom boundary (мировые coords) к авторскому узлу.
   После coord fix + route fix:
@@ -459,7 +466,7 @@ def check4_other_locations() -> None:
         print(f"[locations dir not found: {LOCATIONS_DIR}]")
         return
 
-    print(f"\n--- Все локации с их entrance count ---")
+    print("\n--- Все локации с их entrance count ---")
     print(f"{'location':<20} {'adjacency':<40} {'nodes':<8} {'entrances':<12} {'entrance_ids'}")
     print("-" * 110)
 
@@ -496,7 +503,7 @@ def check4_other_locations() -> None:
             ent_str += f"... +{len(entrance_nodes) - 3}"
         print(f"{loc_id:<20} {adj_str:<40} {len(nodes):<8} {len(entrance_nodes):<12} {ent_str}")
 
-    print(f"""
+    print("""
 >>> Анализ:
 
   Локации с ENTRANCE:""")
@@ -515,7 +522,7 @@ def check4_other_locations() -> None:
     for l in multi_entrance:
         print(f"    {l['location_id']}: {l['entrance_count']} entrance(s)")
 
-    print(f"""
+    print("""
 >>> ВЫВОД ПРОВЕРКИ 4:
 
   Если ВСЕ локации с adjacency имеют ровно один ENTRANCE →
@@ -551,14 +558,14 @@ def check5_comparative_test() -> None:
         print(f"[import error: {e}]")
         return
 
-    print(f"""
+    print("""
 >>> Сценарий A: Boundary nodes в локальных координатах по direction offsets
 >>> Сценарий B: Boundary nodes используют координаты ближайшего entrance
 >>> Сценарий C: Текущая реализация (мировые coords)
 """)
 
     # C: current (world coords)
-    print(f"--- Сценарий C: Текущая реализация (мировые coords) ---")
+    print("--- Сценарий C: Текущая реализация (мировые coords) ---")
     _log_capture.truncate(0)
     _log_capture.seek(0)
     result_c = compile_graph(tavern, location_id="tavern")
@@ -593,43 +600,45 @@ def check5_comparative_test() -> None:
     print(f"  exit_south reachable from fireplace: {es_reachable_c}")
 
     # A: local coords by direction offsets
-    print(f"\n--- Сценарий A: Локальные coords по direction offsets ---")
+    print("\n--- Сценарий A: Локальные coords по direction offsets ---")
     # Simulate by patching: we'll create a modified version of _create_boundary_nodes
     # For simplicity, just compute expected coords and check manually
     size = tavern.get("size", {})
     W = float(size.get("w", 0))
     H = float(size.get("h", 0))
     dir_offsets_local = {
-        "east":  (W - 1.0, H / 2.0),
+        "east": (W - 1.0, H / 2.0),
         "south": (W / 2.0, 1.0),
         "north": (W / 2.0, H - 1.0),
-        "west":  (1.0, H / 2.0),
+        "west": (1.0, H / 2.0),
     }
-    ee_a_coords = dir_offsets_local.get("east", (W/2, H/2))
-    es_a_coords = dir_offsets_local.get("south", (W/2, H/2))
+    ee_a_coords = dir_offsets_local.get("east", (W / 2, H / 2))
+    es_a_coords = dir_offsets_local.get("south", (W / 2, H / 2))
     print(f"  exit_east coords (expected): ({ee_a_coords[0]}, {ee_a_coords[1]})")
     print(f"  exit_south coords (expected): ({es_a_coords[0]}, {es_a_coords[1]})")
-    print(f"  → exit_east внутри кухни (room_1: x∈[14, 19.5], y∈[0.5, 8.0])")
+    print("  → exit_east внутри кухни (room_1: x∈[14, 19.5], y∈[0.5, 8.0])")
     print(f"    ee_a.x={ee_a_coords[0]} >= 14? {ee_a_coords[0] >= 14}")
     print(f"    ee_a.y={ee_a_coords[1]} <= 8.0? {ee_a_coords[1] <= 8.0}")
-    print(f"  → exit_east НЕ у door_0 (door_0 at (8.18, 13.0))")
-    print(f"  → NPC выходит через кухню, а не через door_0")
+    print("  → exit_east НЕ у door_0 (door_0 at (8.18, 13.0))")
+    print("  → NPC выходит через кухню, а не через door_0")
 
     # B: entrance coords
-    print(f"\n--- Сценарий B: Координаты entrance ---")
+    print("\n--- Сценарий B: Координаты entrance ---")
     entrance = tavern.get("nodes", {}).get("entrance", {})
     if entrance:
         ex_b = entrance.get("x")
         ey_b = entrance.get("y")
         print(f"  exit_east coords (expected): ({ex_b}, {ey_b}) — coords entrance")
         print(f"  exit_south coords (expected): ({ex_b}, {ey_b}) — coords entrance")
-        print(f"  → exit_east у door_0 (door_0 at (8.18, 13.0))")
-        print(f"    distance(entrance, door_0) = {math.sqrt((float(ex_b) - 8.183333333333334)**2 + (float(ey_b) - 13.0)**2):.4f}m")
-        print(f"  → NPC выходит через door_0 ✓")
+        print("  → exit_east у door_0 (door_0 at (8.18, 13.0))")
+        print(
+            f"    distance(entrance, door_0) = {math.sqrt((float(ex_b) - 8.183333333333334) ** 2 + (float(ey_b) - 13.0) ** 2):.4f}m"
+        )
+        print("  → NPC выходит через door_0 ✓")
 
         # Check if edges from entrance to neighbors pass through door_0
         # entrance connections in JSON: ['main_hall_west', 'corner_table', 'node_16']
-        print(f"\n  Рёбра от entrance (авторские connections):")
+        print("\n  Рёбра от entrance (авторские connections):")
         entrance_conns = entrance.get("connections", [])
         for conn in entrance_conns:
             conn_node = tavern.get("nodes", {}).get(conn, {})
@@ -640,12 +649,12 @@ def check5_comparative_test() -> None:
                 # Check if crosses y=13 (wall_2)
                 try:
                     if (float(ey_b) > 13.0 and float(cy) < 13.0) or (float(ey_b) < 13.0 and float(cy) > 13.0):
-                        print(f"      → пересекает y=13 (wall_2) — проходит через door_0 gap")
+                        print("      → пересекает y=13 (wall_2) — проходит через door_0 gap")
                 except (TypeError, ValueError):
                     pass
 
     # Summary
-    print(f"""
+    print("""
 --- СВОДНАЯ ТАБЛИЦА ---
 
   Сценарий | exit_east coords       | reachable | through door_0 | sv_warnings | author semantic
@@ -675,7 +684,7 @@ def check5_comparative_test() -> None:
 def final_diff_proposal() -> None:
     _print_section("ИТОГ: Минимальный безопасный diff")
 
-    print(f"""
+    print("""
 =============================================================================
 ПОДТВЕРЖДЁННАЯ СЕМАНТИКА entrance
 =============================================================================
@@ -735,24 +744,24 @@ def final_diff_proposal() -> None:
   _h = float(size.get("h", 10.0))
 
   # P4-01A: Геометрические центры границ локации
-  _DIR_TO_XY = {{
+  _DIR_TO_XY = {
       "north": (_ox + _w / 2.0, _oy + _h - 1.0),
       "south": (_ox + _w / 2.0, _oy + 1.0),
       "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
       "west":  (_ox + 1.0,      _oy + _h / 2.0),
-  }}
+  }
 
   for direction, neighbor_loc_id in adjacency.items():
       ...
-      _DIR_OFFSETS = {{
+      _DIR_OFFSETS = {
           "east":  (_ox + _w - 1.0, _oy + _h / 2.0),
           "west":  (_ox + 1.0,      _oy + _h / 2.0),
           "north": (_ox + _w / 2.0, _oy + _h - 1.0),
           "south": (_ox + _w / 2.0, _oy + 1.0),
-      }}
+      }
       _bx, _by = _DIR_OFFSETS.get(direction, (_ox + _w / 2.0, _oy + _h / 2.0))
 
-      boundary_id = f"{{location_id}}:exit_{{direction}}"
+      boundary_id = f"{location_id}:exit_{direction}"
       _existing_node = graph.get(boundary_id)
       _final_x = _existing_node.x if _existing_node else _bx
       _final_y = _existing_node.y if _existing_node else _by
@@ -764,12 +773,12 @@ def final_diff_proposal() -> None:
   # R2-FLEE-FIX: boundary nodes coords в ЛОКАЛЬНОЙ системе (без origin offset).
   # Раньше: МИРОВЫЕ coords (origin + offset) → смешение с локальными coords стен.
   # Теперь: ЛОКАЛЬНЫЕ coords, согласованные с авторскими узлами и стенами.
-  _DIR_OFFSETS_LOCAL = {{
+  _DIR_OFFSETS_LOCAL = {
       "east":  (_w - 1.0,  _h / 2.0),
       "west":  (1.0,       _h / 2.0),
       "north": (_w / 2.0, _h - 1.0),
       "south": (_w / 2.0, 1.0),
-  }}
+  }
 
   # R2-FLEE-ROUTE-FIX: предпочтение авторскому entrance (role=ENTRANCE).
   # entrance — это "внешнее пространство" за дверью (door_0).
@@ -785,7 +794,7 @@ def final_diff_proposal() -> None:
       ...
       _bx, _by = _DIR_OFFSETS_LOCAL.get(direction, (_w / 2.0, _h / 2.0))
 
-      boundary_id = f"{{location_id}}:exit_{{direction}}"
+      boundary_id = f"{location_id}:exit_{direction}"
       _existing_node = graph.get(boundary_id)
 
       # Приоритет coords: authored boundary > entrance > direction offset

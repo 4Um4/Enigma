@@ -48,9 +48,7 @@ class NarrativeRenderer:
                     mask.set_at((x, y), (0, 0, 0, 120))
         return mask
 
-    def _wrap_text(
-        self, text: str, font: pygame.font.Font, max_width: int
-    ) -> List[str]:
+    def _wrap_text(self, text: str, font: pygame.font.Font, max_width: int) -> List[str]:
         """Перенос слов, сохраняя пробелы и явные переносы строки (\n)"""
         if not text:
             return [""]
@@ -121,9 +119,7 @@ class NarrativeRenderer:
         display_text = beat.text
         if beat.certainty < 0.5:
             # Рваный текст
-            display_text = "".join(
-                c if random.random() < beat.certainty + 0.3 else " " for c in beat.text
-            )
+            display_text = "".join(c if random.random() < beat.certainty + 0.3 else " " for c in beat.text)
 
         # Обработка имени (ТЗ 1 + Пункт 3 Мастера тай)
         speaker_name = beat.speaker
@@ -157,12 +153,8 @@ class NarrativeRenderer:
             offset_y = random.randint(-1, 1)
 
         # Пузырь
-        bubble_rect = pygame.Rect(
-            x + offset_x, y + name_height + offset_y, max_width, bubble_height
-        )
-        bubble_surf = pygame.Surface(
-            (bubble_rect.width, bubble_rect.height), pygame.SRCALPHA
-        )
+        bubble_rect = pygame.Rect(x + offset_x, y + name_height + offset_y, max_width, bubble_height)
+        bubble_surf = pygame.Surface((bubble_rect.width, bubble_rect.height), pygame.SRCALPHA)
         pygame.draw.rect(bubble_surf, bg_color, bubble_surf.get_rect(), border_radius=4)
 
         # Рамка: толще для крика (3), тоньше для шепота/мыслей (1), стандарт (2)
@@ -199,16 +191,10 @@ class NarrativeRenderer:
 
         # Плашка имени (над пузырем)
         name_surf = self.font_bold.render(speaker_name, True, name_color)
-        name_bg_rect = pygame.Rect(
-            x + offset_x, y + offset_y, name_surf.get_width() + 12, name_height
-        )
+        name_bg_rect = pygame.Rect(x + offset_x, y + offset_y, name_surf.get_width() + 12, name_height)
 
-        name_bg_surf = pygame.Surface(
-            (name_bg_rect.width, name_bg_rect.height), pygame.SRCALPHA
-        )
-        pygame.draw.rect(
-            name_bg_surf, (*border_color, 180), name_bg_surf.get_rect(), border_radius=2
-        )
+        name_bg_surf = pygame.Surface((name_bg_rect.width, name_bg_rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(name_bg_surf, (*border_color, 180), name_bg_surf.get_rect(), border_radius=2)
 
         name_bg_surf.blit(name_surf, (6, 3))
 
@@ -219,25 +205,19 @@ class NarrativeRenderer:
             RecognitionLevel.STRANGE_FACE,
         ):
             # Накладываем маску шума на имя
-            name_bg_surf.blit(
-                self._dither_mask, (0, 0), special_flags=pygame.BLEND_RGBA_SUB
-            )
+            name_bg_surf.blit(self._dither_mask, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
 
         # Применяем альфа-канал к плашке имени (растворение)
         if beat.alpha < 255.0:
             fade_overlay = pygame.Surface(name_bg_surf.get_size(), pygame.SRCALPHA)
             fade_overlay.fill((255, 255, 255, int(beat.alpha)))
-            name_bg_surf.blit(
-                fade_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT
-            )
+            name_bg_surf.blit(fade_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
         surface.blit(name_bg_surf, name_bg_rect.topleft)
 
         # Маска внимания (Устав §10) — аддитивный свет для активного пузыря
         if beat.is_active and beat.lifetime != BeatLifetime.TRANSIENT:
-            glow_surf = pygame.Surface(
-                (bubble_rect.width + 40, bubble_rect.height + 40), pygame.SRCALPHA
-            )
+            glow_surf = pygame.Surface((bubble_rect.width + 40, bubble_rect.height + 40), pygame.SRCALPHA)
             pygame.draw.ellipse(
                 glow_surf,
                 (border_color[0], border_color[1], border_color[2], 30),
@@ -270,9 +250,7 @@ class NarrativeRenderer:
         text_color = (220, 220, 220) if text else (90, 90, 100)
 
         # Вычисляем размер текста с учетом переноса
-        lines = self._wrap_text(
-            display_text, self.font_normal, max_width - pad * 2 - accent_width
-        )
+        lines = self._wrap_text(display_text, self.font_normal, max_width - pad * 2 - accent_width)
         line_height = self.font_normal.get_linesize()
         text_height = len(lines) * line_height
 
@@ -307,9 +285,7 @@ class NarrativeRenderer:
 
         # --- 2. Рисуем пузырь ---
         bubble_rect = pygame.Rect(x, y + name_height, max_width, bubble_height)
-        bubble_surf = pygame.Surface(
-            (bubble_rect.width, bubble_rect.height), pygame.SRCALPHA
-        )
+        bubble_surf = pygame.Surface((bubble_rect.width, bubble_rect.height), pygame.SRCALPHA)
 
         # Фон пузыря (темный, полупрозрачный)
         pygame.draw.rect(
@@ -359,9 +335,7 @@ class NarrativeRenderer:
         # --- 4. Курсор (учитывает многострочность и мигает) ---
         if text and cursor_pos <= len(text):
             text_before_cursor = text[:cursor_pos]
-            cursor_lines = self._wrap_text(
-                text_before_cursor, self.font_normal, max_width - pad * 2 - accent_width
-            )
+            cursor_lines = self._wrap_text(text_before_cursor, self.font_normal, max_width - pad * 2 - accent_width)
             cy = pad + (len(cursor_lines) - 1) * line_height
             last_line = cursor_lines[-1]
             cx = pad + self.font_normal.size(last_line)[0]

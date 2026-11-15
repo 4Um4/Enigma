@@ -19,9 +19,7 @@ from app.domain.semantic_span import (
 )
 
 
-def ground_speaker_mention(
-    source_event_id: str, speaker: str, text: str
-) -> list[SemanticSpan]:
+def ground_speaker_mention(source_event_id: str, speaker: str, text: str) -> list[SemanticSpan]:
     """Ищет speaker-имя в тексте записи; возвращает 0 или 1 спан.
 
     Детерминизм: первое вхождение, точные границы. Пустое имя или имя,

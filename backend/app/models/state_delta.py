@@ -14,7 +14,7 @@ ProactiveDecision.deltas_dict → мигрировано в StateDeltas.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Union, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 from app.models.delta_payloads import (
     EconomicPayload,
@@ -152,9 +152,7 @@ class StateDeltas:
 
     # --- v2: Domain-Tagged Typed Payloads ---
     domain: Optional[DeltaDomain] = None  # Домен мутации (v2)
-    target: Optional[str] = (
-        None  # Универсальный таргет (v2): player, npc_id, faction_id
-    )
+    target: Optional[str] = None  # Универсальный таргет (v2): player, npc_id, faction_id
     payload: Optional[DeltaPayload] = None  # Типизированный payload (v2)
 
     def __post_init__(self) -> None:
@@ -180,11 +178,7 @@ class StateDeltas:
 
         # v1 валидация (обратная совместимость, пока миграция не завершена)
         if self.domain is None:
-            _targets = [
-                t
-                for t in (self.intent_target, self.social_target, self.faction_id)
-                if t is not None
-            ]
+            _targets = [t for t in (self.intent_target, self.social_target, self.faction_id) if t is not None]
             if len(_targets) > 1:
                 raise ValueError(
                     f"StateDeltas: только один тип таргета, "
@@ -195,12 +189,9 @@ class StateDeltas:
             if self.reputation_delta != 0.0 and self.faction_id is None:
                 raise ValueError("StateDeltas: reputation_delta требует faction_id")
             # trust_delta/fear_delta несовместимы с faction_id
-            if self.faction_id is not None and (
-                self.trust_delta != 0.0 or self.fear_delta != 0.0
-            ):
+            if self.faction_id is not None and (self.trust_delta != 0.0 or self.fear_delta != 0.0):
                 raise ValueError(
-                    "StateDeltas: faction_id несовместим с trust_delta/fear_delta "
-                    "(используйте reputation_delta)"
+                    "StateDeltas: faction_id несовместим с trust_delta/fear_delta (используйте reputation_delta)"
                 )
 
 

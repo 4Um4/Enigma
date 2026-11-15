@@ -9,6 +9,7 @@
 Зависимости: app.domain.chronicle
 Основные сущности: ChronicleDecompositionNormalizer, DecompositionError
 """
+
 from __future__ import annotations
 
 import json
@@ -30,9 +31,7 @@ logger = logging.getLogger(__name__)
 _MD_JSON: Final[re.Pattern] = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 _BARE_JSON: Final[re.Pattern] = re.compile(r"\{.*\}", re.DOTALL)
 
-_ALLOWED_KEYS: Final[frozenset] = frozenset(
-    {"items", "schema_version", "chronicle_id", "fragment_ord"}
-)
+_ALLOWED_KEYS: Final[frozenset] = frozenset({"items", "schema_version", "chronicle_id", "fragment_ord"})
 
 # Закрытый реестр маркеров неточной связи (ADR-O-420): модель, уверенная в
 # расплывчатой связи, переоценивает себя — мембрана требует решения автора.
@@ -71,6 +70,7 @@ def _load_alias_registry() -> Dict[str, str]:
         return _REGISTRY_CACHE
     try:
         from app.services.chronicle.registry_builder import build_canonical_registry
+
         reg = build_canonical_registry()
         _REGISTRY_CACHE = dict(reg.alias_to_npc)
     except Exception as e:
@@ -132,9 +132,7 @@ def _normalize_hint(hint: str) -> str:
     return hint.strip().lower().replace("_", " ").strip()
 
 
-def _matches_faction(
-    hint: Any, factions: Optional[Dict[str, str]] = None
-) -> bool:
+def _matches_faction(hint: Any, factions: Optional[Dict[str, str]] = None) -> bool:
     """COV-12 p.3a: True если hint — известная фракция (organization), не персона.
 
     Exact match (case-insensitive, _ normalized to space) против faction names и IDs.
@@ -169,22 +167,23 @@ def _matches_faction(
     if len(matches) == 1:
         return True
     if len(matches) > 1:
-        logger.info(
-            f"[NORMALIZER] faction match ambiguous: hint={h!r} matches={matches}"
-        )
+        logger.info(f"[NORMALIZER] faction match ambiguous: hint={h!r} matches={matches}")
         return False
     return False
+
 
 # S367: identity-resolution options. LEAVE_WHITE_SPOT присутствует в каждом
 # вопросе (инвариант ClarificationQuestion.__post_init__), поэтому подпроверка
 # identity-options сейчас вакуумно True — защитная на будущие типы вопросов с
 # другими опциями. Эффективная логика — exact target_span==hint.
-_IDENTITY_OPTIONS: Final[frozenset] = frozenset({
-    ClarificationOption.SELECT_EXISTING_NPC,
-    ClarificationOption.CREATE_NEW_NPC,
-    ClarificationOption.UNKNOWN_PERSON,
-    ClarificationOption.LEAVE_WHITE_SPOT,
-})
+_IDENTITY_OPTIONS: Final[frozenset] = frozenset(
+    {
+        ClarificationOption.SELECT_EXISTING_NPC,
+        ClarificationOption.CREATE_NEW_NPC,
+        ClarificationOption.UNKNOWN_PERSON,
+        ClarificationOption.LEAVE_WHITE_SPOT,
+    }
+)
 
 
 def _matches_roster_exact(hint: Any, roster: Mapping[str, str]) -> bool:
@@ -221,9 +220,7 @@ def _is_identity_question_for(question: Any, hint: Any) -> bool:
     return span.strip().lower() == hint.strip().lower()
 
 
-def resolve_object_ref_from_roster(
-    hint: Any, roster: Mapping[str, str]
-) -> Optional[EntityRef]:
+def resolve_object_ref_from_roster(hint: Any, roster: Mapping[str, str]) -> Optional[EntityRef]:
     """COV-10.4: Exact-match resolution of target_hint → EntityRef(RESOLVED, npc_id).
 
     Когда _matches_roster_exact возвращает True, normalizer не создаёт
@@ -331,9 +328,7 @@ class ChronicleDecompositionNormalizer:
             # Мембрана неточной связи (INV-LLM-NOT-SSOT): маркер в target_hint/
             # summary при model-confidence=1.0 → понижение до 0.4 + канонический
             # вопрос о связи (4 опции, П3), если модель его не задала.
-            blob = " ".join(
-                str(v) for v in (payload.get("target_hint"), payload.get("summary")) if v
-            ).lower()
+            blob = " ".join(str(v) for v in (payload.get("target_hint"), payload.get("summary")) if v).lower()
             if not question and any(m in blob for m in _VAGUE_RELATION_MARKERS):
                 conf = min(float(conf), 0.4)
                 question = ClarificationQuestion(
@@ -424,7 +419,8 @@ class ChronicleDecompositionNormalizer:
                         "normalize[%s]: KNOWLEDGE_LINK без event_ref — "
                         "отброшен (store валидатор требует event_ref); "
                         "payload: %r",
-                        idx, payload,
+                        idx,
+                        payload,
                     )
                     continue
             needs_conf = bool(it.get("needs_confirmation") or question is not None)
@@ -464,7 +460,8 @@ class ChronicleDecompositionNormalizer:
                 # L4: деградация видима — мусорная опция LLM не глотается молча
                 logger.warning(
                     "normalize[%s]: мусорная опция вопроса отброшена: %r",
-                    idx, o,
+                    idx,
+                    o,
                 )
                 continue
             options.append(opt)
@@ -502,21 +499,19 @@ class ChronicleDecompositionNormalizer:
             repaired = ChronicleDecompositionNormalizer._repair_truncated_json(text)
             if repaired == text:
                 # Восстановление не изменило строку — повторная ошибка
-                raise DecompositionError(
-                    f"JSON-парсинг: не восстановимо; фрагмент: {text[:120]!r}"
-                ) from None
+                raise DecompositionError(f"JSON-парсинг: не восстановимо; фрагмент: {text[:120]!r}") from None
             try:
                 data = json.loads(repaired)
                 logger.warning(
                     "[NORMALIZER] JSON восстановлен после truncation: "
                     "original=%d chars, repaired=%d chars; фрагмент: %r",
-                    len(text), len(repaired), text[:120],
+                    len(text),
+                    len(repaired),
+                    text[:120],
                 )
                 return data
             except json.JSONDecodeError as e2:
-                raise DecompositionError(
-                    f"JSON-парсинг: {e2}; фрагмент: {text[:120]!r}"
-                ) from e2
+                raise DecompositionError(f"JSON-парсинг: {e2}; фрагмент: {text[:120]!r}") from e2
 
     @staticmethod
     def _repair_truncated_json(text: str) -> str:

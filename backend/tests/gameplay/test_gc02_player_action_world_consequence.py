@@ -28,6 +28,7 @@ GC-02: player action → world consequence.
 LLM-free: InterventionEvent с готовым payload.semantic_action обходит
 DM-классификатор (в отличие от harness.player_action который требует LLM).
 """
+
 import logging
 
 import pytest
@@ -115,23 +116,17 @@ class TestGC02PlayerActionWorldConsequence:
         # 1. Baseline: trust maid_lusya→player (None/Vacuum или 0.0)
         _trust_before = _v2_trust(harness, _TARGET_NPC, "player")
         _fear_before = _v2_fear(harness, _TARGET_NPC, "player")
-        print(
-            f"[GC02-STEP1] baseline: trust={_trust_before}, fear={_fear_before}"
-        )
+        print(f"[GC02-STEP1] baseline: trust={_trust_before}, fear={_fear_before}")
 
         # 2. Inject HELP InterventionEvent через idle_tick (LLM-free path)
         _tick = harness.counters.ticks
         _intervention = _make_help_intervention(tick=_tick, target_id=_TARGET_NPC)
-        _ = harness.game_loop.idle_tick(
-            harness.campaign_id, interventions=[_intervention]
-        )
+        _ = harness.game_loop.idle_tick(harness.campaign_id, interventions=[_intervention])
 
         # 3. Assert: trust maid_lusya→player вырос (+20.0 per HELP ветка)
         _trust_after = _v2_trust(harness, _TARGET_NPC, "player")
         _fear_after = _v2_fear(harness, _TARGET_NPC, "player")
-        print(
-            f"[GC02-STEP1] after HELP: trust={_trust_after}, fear={_fear_after}"
-        )
+        print(f"[GC02-STEP1] after HELP: trust={_trust_after}, fear={_fear_after}")
 
         # Фактический refusal — если mvp_controller/action_compiler не был
         # инициализирован, HELP-действие дропнулось (лог "[INPUT_MERGE]
@@ -140,10 +135,7 @@ class TestGC02PlayerActionWorldConsequence:
             # Диагностика: проверим, что action_compiler жив
             _mvp = getattr(harness.game_loop, "mvp_controller", None)
             _compiler = getattr(_mvp, "action_compiler", None) if _mvp else None
-            _diagnosis = (
-                f"mvp_controller={_mvp is not None}, "
-                f"action_compiler={_compiler is not None}"
-            )
+            _diagnosis = f"mvp_controller={_mvp is not None}, action_compiler={_compiler is not None}"
             pytest.fail(
                 f"GC02-STEP1 FAIL: HELP-действие не изменило trust "
                 f"(before={_trust_before}, after={_trust_after}). "
@@ -176,9 +168,7 @@ class TestGC02PlayerActionWorldConsequence:
         _tick = harness.counters.ticks
         _intervention = _make_help_intervention(tick=_tick, target_id=_TARGET_NPC)
         # Один HELP через production-path (capture action_id)
-        harness.game_loop.idle_tick(
-            harness.campaign_id, interventions=[_intervention]
-        )
+        harness.game_loop.idle_tick(harness.campaign_id, interventions=[_intervention])
 
         _ac = harness.game_loop.mvp_controller.action_compiler
         _processed = _ac._processed_actions
@@ -186,10 +176,7 @@ class TestGC02PlayerActionWorldConsequence:
         # После первого HELP в _processed_actions должна быть запись
         # action_id формата "interv:{tick}:HELP:{target}"
         _expected_substrings = ("HELP", _TARGET_NPC)
-        _has_help = any(
-            all(_sub in _aid for _sub in _expected_substrings)
-            for _aid in _processed
-        )
+        _has_help = any(all(_sub in _aid for _sub in _expected_substrings) for _aid in _processed)
         assert _has_help, (
             f"GC02-STEP2 FAIL: action_id HELP:{_TARGET_NPC} не записан в "
             f"_processed_actions (set={_processed}). Идемпотентность "
@@ -204,10 +191,7 @@ class TestGC02PlayerActionWorldConsequence:
 
         _trust_before_dup = _v2_trust(harness, _TARGET_NPC, "player")
         # Берём первый (любой) action_id из _processed_actions
-        _first_action_id = next(
-            _aid for _aid in _processed
-            if all(_sub in _aid for _sub in _expected_substrings)
-        )
+        _first_action_id = next(_aid for _aid in _processed if all(_sub in _aid for _sub in _expected_substrings))
         _dup_action = PlayerAction(
             action_id=_first_action_id,  # тот же action_id → no-op
             tick=_tick,
@@ -227,9 +211,7 @@ class TestGC02PlayerActionWorldConsequence:
         # process_action возвращает None при успехе; при дубликате — также None
         # (просто игнорирует — return None в самом начале, _processed_actions
         # уже содержит id). Trust не должен удвоиться.
-        assert _trust_after_dup is not None, (
-            "GC02-STEP2 FAIL: trust потерян после duplicate HELP"
-        )
+        assert _trust_after_dup is not None, "GC02-STEP2 FAIL: trust потерян после duplicate HELP"
         _drift_tolerance = 1.0  # нет decay между двумя мгновенными вызовами
         assert abs(_trust_after_dup - _trust_before_dup) < _drift_tolerance, (
             f"GC02-STEP2 FAIL: идемпотентность нарушена — повторный HELP с "
@@ -247,14 +229,11 @@ class TestGC02PlayerActionWorldConsequence:
         # 1. HELP action
         _tick = harness.counters.ticks
         _intervention = _make_help_intervention(tick=_tick, target_id=_TARGET_NPC)
-        harness.game_loop.idle_tick(
-            harness.campaign_id, interventions=[_intervention]
-        )
+        harness.game_loop.idle_tick(harness.campaign_id, interventions=[_intervention])
         _trust_after_help = _v2_trust(harness, _TARGET_NPC, "player")
 
         assert _trust_after_help is not None and _trust_after_help > 0.0, (
-            f"GC02-STEP3 pre-condition FAIL: HELP не записал trust "
-            f"({ _trust_after_help })"
+            f"GC02-STEP3 pre-condition FAIL: HELP не записал trust ({_trust_after_help})"
         )
 
         # 2. idle_tick без intervention (decay-контур работает; trust
@@ -263,14 +242,9 @@ class TestGC02PlayerActionWorldConsequence:
 
         # 3. Assert: trust сохранён (persisted via atomic_commit_all → disk)
         _trust_after_idle = _v2_trust(harness, _TARGET_NPC, "player")
-        print(
-            f"[GC02-STEP3] trust: after_help={_trust_after_help}, "
-            f"after_2_idle_ticks={_trust_after_idle}"
-        )
+        print(f"[GC02-STEP3] trust: after_help={_trust_after_help}, after_2_idle_ticks={_trust_after_idle}")
 
-        assert _trust_after_idle is not None, (
-            "GC02-STEP3 FAIL: trust потерян после idle_tick (persistence broken)"
-        )
+        assert _trust_after_idle is not None, "GC02-STEP3 FAIL: trust потерян после idle_tick (persistence broken)"
         # Trust может слегка упасть от relationship decay (если включён),
         # но обязан остаться существенно выше нуля (HELP = +20.0 baseline)
         _persistence_threshold = 1.0

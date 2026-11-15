@@ -27,6 +27,7 @@
 #
 # Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.gc_dialogue_test; cd ..
 """
+
 import logging
 import sys
 import time
@@ -74,6 +75,7 @@ def _npc_pos(scene, npc_id):
 
 def _dist(ax, ay, bx, by):
     import math
+
     return math.hypot(ax - bx, ay - by)
 
 
@@ -116,15 +118,24 @@ def _task_dict_fixture(owner: str, target: str = "maid_lusya") -> dict:
     from app.domain.execution import TaskKind, TaskPriority, TaskState
 
     return {
-        "task_id": f"task-d2-{owner}", "tick": 1, "counter": 0,
-        "kind": TaskKind.DIALOGUE.value, "priority": TaskPriority.NORMAL.value,
-        "state": TaskState.PENDING.value, "creator_system": "DecisionHub",
-        "owner_id": owner, "target_ids": [target],
+        "task_id": f"task-d2-{owner}",
+        "tick": 1,
+        "counter": 0,
+        "kind": TaskKind.DIALOGUE.value,
+        "priority": TaskPriority.NORMAL.value,
+        "state": TaskState.PENDING.value,
+        "creator_system": "DecisionHub",
+        "owner_id": owner,
+        "target_ids": [target],
         "payload": {
-            "topic": "золото", "target_id": target,
-            "exposure_semantic": "normal", "intent_type": "talk",
-            "emotional_state": "NEUTRAL", "npc_npc_context": "",
-            "thread_id": "thread-d2", "prepared_prompt": "",
+            "topic": "золото",
+            "target_id": target,
+            "exposure_semantic": "normal",
+            "intent_type": "talk",
+            "emotional_state": "NEUTRAL",
+            "npc_npc_context": "",
+            "thread_id": "thread-d2",
+            "prepared_prompt": "",
             "proposition": None,
         },
         "created_tick": 1,
@@ -170,12 +181,8 @@ def main() -> int:
             if _np_fallback:
                 scene = dict(scene)
                 scene["npc_positions"] = _np_fallback
-                print(f"[D1-FALLBACK] сцена собрана из LifeEngine-кэша: "
-                      f"{len(_np_fallback)} NPC")
-        _ids = sorted(
-            n for n in (scene.get("npc_positions", {}) or {})
-            if n != "player"
-        )
+                print(f"[D1-FALLBACK] сцена собрана из LifeEngine-кэша: {len(_np_fallback)} NPC")
+        _ids = sorted(n for n in (scene.get("npc_positions", {}) or {}) if n != "player")
         if not _ids:
             print("[D1] ❌ сцена без NPC — фикстура не собрана")
             return 1
@@ -187,8 +194,7 @@ def main() -> int:
         _addressee = min(_ids, key=lambda n: _dist(*_npc_pos(scene, n), _cx, _cy))
         _victim = max(_ids, key=lambda n: _dist(*_npc_pos(scene, n), _cx, _cy))
         _ax, _ay = _npc_pos(scene, _addressee)
-        print(f"[D1-SETUP] addressee={_addressee} victim={_victim} "
-              f"addressee_pos=({_ax:.1f},{_ay:.1f})")
+        print(f"[D1-SETUP] addressee={_addressee} victim={_victim} addressee_pos=({_ax:.1f},{_ay:.1f})")
 
         # П. 0.5 (размещение игрока): production B1.4-приёмник (S244) —
         # единственный легальный канал player-position; игрок в 1.2 м.
@@ -199,21 +205,24 @@ def main() -> int:
         _loc = h.location
         if not h.game_loop.scene_manager.get_scene_state(CAMPAIGN, _loc):
             _loc = "tavern"
-        h.game_loop.save_scene_state(CAMPAIGN, {
-            "location_id": _loc,
-            "npc_positions": {"player": {
-                "local_position": {"x": _ax + 1.2, "y": _ay}
-            }},
-        })
+        h.game_loop.save_scene_state(
+            CAMPAIGN,
+            {
+                "location_id": _loc,
+                "npc_positions": {"player": {"local_position": {"x": _ax + 1.2, "y": _ay}}},
+            },
+        )
         # C-fix3 (№144): писали в сцену '_loc' — её и читаем; get_scene_fresh
         # возвращает harness-копию 'tavern_silver_wolf' со спавном (живой
         # контур при этом видел игрока рядом с адресатом: SPATIAL_DATA 3.49).
         _scene_chk = h.game_loop.scene_manager.get_scene_state(CAMPAIGN, _loc) or {}
         _px, _py = _npc_pos(_scene_chk, "player")
         _pd = _dist(_px, _py, _ax, _ay)
-        print(f"[D1-SETUP] player=({_px:.1f},{_py:.1f}) в сцене '{_loc}' "
-              f"dist(player,addressee)={_pd:.2f} (цель <= 6.0; "
-              f"{'OK' if _pd <= 6.0 else 'НЕ ПРОШЛО — см. B14-RECV/SC-3'})")
+        print(
+            f"[D1-SETUP] player=({_px:.1f},{_py:.1f}) в сцене '{_loc}' "
+            f"dist(player,addressee)={_pd:.2f} (цель <= 6.0; "
+            f"{'OK' if _pd <= 6.0 else 'НЕ ПРОШЛО — см. B14-RECV/SC-3'})"
+        )
 
         _topic_a = "новости"
         _text_a = f"{_addressee}, привет! Расскажи последние {_topic_a} таверны."
@@ -231,9 +240,11 @@ def main() -> int:
             _at = (_e.payload or {}).get("action_type", "dialogue")
             _want_r = action_perception_radius(_at)
             d1b = float(_e.radius) == float(_want_r)
-            print(f"[D1] PLAYER_SPOKE на шине — ✅ (action_type={_at}, "
-                  f"radius={_e.radius} == SSOT {_want_r})" if d1b else
-                  f"[D1] radius={_e.radius} != SSOT({_at})={_want_r} — ❌")
+            print(
+                f"[D1] PLAYER_SPOKE на шине — ✅ (action_type={_at}, radius={_e.radius} == SSOT {_want_r})"
+                if d1b
+                else f"[D1] radius={_e.radius} != SSOT({_at})={_want_r} — ❌"
+            )
         else:
             d1b = False
             print("[D1] PLAYER_SPOKE на шине — ❌ (dm_result невалиден? смотри DIAG)")
@@ -241,9 +252,11 @@ def main() -> int:
 
         _block_a = _stm_block(h, _addressee)
         d1c = _topic_a in _block_a
-        print(f"[D1] pair-STM адресата несёт речь игрока — "
-              f"{'✅' if d1c else '❌'} (блок {len(_block_a)} симв., "
-              f"тема '{_topic_a}' {'есть' if d1c else 'НЕТ'})")
+        print(
+            f"[D1] pair-STM адресата несёт речь игрока — "
+            f"{'✅' if d1c else '❌'} (блок {len(_block_a)} симв., "
+            f"тема '{_topic_a}' {'есть' if d1c else 'НЕТ'})"
+        )
         ok = ok and d1c
 
         # Ответ NPC: тики копят canonical-задачи → execute_pending (API раунда,
@@ -261,7 +274,8 @@ def main() -> int:
             # в чужую сторону не считается ответом (№144: resolver вёл
             # merchant→blacksmith — ближайший; игрок в 1.2 м — шанс честный).
             _addr_reply = [
-                e for e in SPY["events"][_mark_d1:]
+                e
+                for e in SPY["events"][_mark_d1:]
                 if getattr(e, "type", "") == EventType.NPC_SPOKE.value
                 and getattr(e, "source", "") == _addressee
                 and (getattr(e, "payload", {}) or {}).get("target_id") == "player"
@@ -269,19 +283,22 @@ def main() -> int:
             if _addr_reply:
                 break
         _addr_any = [
-            (getattr(e, "source", ""),
-             (getattr(e, "payload", {}) or {}).get("target_id"))
+            (getattr(e, "source", ""), (getattr(e, "payload", {}) or {}).get("target_id"))
             for e in SPY["events"][_mark_d1:]
             if getattr(e, "type", "") == EventType.NPC_SPOKE.value
         ]
-        print(f"[D1] адресат ответил игроку (NPC_SPOKE→player, после речи) — "
-              f"{'✅' if _addr_reply else '❌'}; реплики после речи (src→tgt): {_addr_any}")
+        print(
+            f"[D1] адресат ответил игроку (NPC_SPOKE→player, после речи) — "
+            f"{'✅' if _addr_reply else '❌'}; реплики после речи (src→tgt): {_addr_any}"
+        )
         ok = ok and bool(_addr_reply)
 
         _c = h.counters
         d1d = (_c.ticks > 0) and (_c.npc_moved > 0 or _c.traversals_created > 0)
-        print(f"[D1] мир живёт — {'✅' if d1d else '❌'} "
-              f"(ticks={_c.ticks}, moved={_c.npc_moved}, traversals={_c.traversals_created})")
+        print(
+            f"[D1] мир живёт — {'✅' if d1d else '❌'} "
+            f"(ticks={_c.ticks}, moved={_c.npc_moved}, traversals={_c.traversals_created})"
+        )
         ok = ok and d1d
 
         # (C-fix3: старый D2-блок удалён — дублировал player_action; единая
@@ -307,8 +324,10 @@ def main() -> int:
         _text_v = f"{_victim}, ты слышал про {_topic_v}?"
         h.player_action(_text_v)
         _block_v_pre = _stm_block(h, _victim)
-        print(f"[D2-SETUP] жертве адресована речь; STM-блок жертвы "
-              f"{len(_block_v_pre)} симв. (тема {'есть' if _topic_v in _block_v_pre else 'НЕТ'})")
+        print(
+            f"[D2-SETUP] жертве адресована речь; STM-блок жертвы "
+            f"{len(_block_v_pre)} симв. (тема {'есть' if _topic_v in _block_v_pre else 'НЕТ'})"
+        )
 
         # C-fix3 (№144): задача жертвы рождается тиком (Фаза 5→6) ПОКА ОНА
         # ЖИВА — «без тиков» лишил D2 входа (queue_owners=[] всегда). Тики
@@ -321,18 +340,25 @@ def main() -> int:
             if _victim in _queue_owners(_sched):
                 _vic_in_queue = True
                 break
-        print(f"[D2-SETUP] задача жертвы в DialogueQueue — "
-              f"{'✅' if _vic_in_queue else '❌ (зонд: DecisionHub не выбрал разговор)'}")
+        print(
+            f"[D2-SETUP] задача жертвы в DialogueQueue — "
+            f"{'✅' if _vic_in_queue else '❌ (зонд: DecisionHub не выбрал разговор)'}"
+        )
         ok = ok and _vic_in_queue
 
         # Хирургическая изоляция: в очереди остаётся ТОЛЬКО задача жертвы —
         # ambient-задник не конкурирует за dequeue (прецедент: очистка выше).
         try:
             import heapq as _hq
+
             _keep = [
-                _it for _it in list(_sched._dialogue_queue._heap)
-                if ((_it.payload or {}).get("speaker_id")
-                    or ((_it.payload or {}).get("task_dict", {}) or {}).get("owner_id")) == _victim
+                _it
+                for _it in list(_sched._dialogue_queue._heap)
+                if (
+                    (_it.payload or {}).get("speaker_id")
+                    or ((_it.payload or {}).get("task_dict", {}) or {}).get("owner_id")
+                )
+                == _victim
             ]
             _sched._dialogue_queue._heap = _keep
             _hq.heapify(_sched._dialogue_queue._heap)
@@ -393,8 +419,7 @@ def main() -> int:
         # game_time (копия сцены) форсирует minute-reset и cooldown; пустой
         # heap → единственный dequeue = задача жертвы → B5-гейт (провайдер
         # зафиксирован: DEAD) → EXPIRED + маркер за один вызов.
-        print(f"[D2-DIAG] sched-инстанс единый: "
-              f"{_sched is h.game_loop._get_task_scheduler()}")
+        print(f"[D2-DIAG] sched-инстанс единый: {_sched is h.game_loop._get_task_scheduler()}")
         time.sleep(4.5)
         _task_v = None
         for _it in list(_sched._dialogue_queue._heap):
@@ -415,11 +440,12 @@ def main() -> int:
         time.sleep(0.5)
         _gate_hit = any("liveness-gate" in m and _victim in m for m in _cap.records)
         if not _gate_hit:
-            print(f"[D2-DIAG] маркер не пойман; queue_owners="
-                  f"{sorted(_queue_owners(_sched))}; последние записи: "
-                  f"{[m for m in _cap.records[-5:]]}")
-        print(f"[D2] задача жертвы → EXPIRED (гейт, mid-generation interrupt) — "
-              f"{'✅' if _gate_hit else '❌'}")
+            print(
+                f"[D2-DIAG] маркер не пойман; queue_owners="
+                f"{sorted(_queue_owners(_sched))}; последние записи: "
+                f"{[m for m in _cap.records[-5:]]}"
+            )
+        print(f"[D2] задача жертвы → EXPIRED (гейт, mid-generation interrupt) — {'✅' if _gate_hit else '❌'}")
         ok = ok and _gate_hit and _death_ok
 
         # Окно ПОСЛЕ гейта: settle 3с (in-flight straggler пула завершается —
@@ -431,12 +457,13 @@ def main() -> int:
         for _ in range(2):
             h.advance_ticks(1)
             time.sleep(0.8)
-        _post = [e for e in SPY["events"][_mark_post:]
-                 if getattr(e, "type", "") == EventType.NPC_SPOKE.value
-                 and getattr(e, "source", "") == _victim]
+        _post = [
+            e
+            for e in SPY["events"][_mark_post:]
+            if getattr(e, "type", "") == EventType.NPC_SPOKE.value and getattr(e, "source", "") == _victim
+        ]
         d2b = not _post
-        print(f"[D2] посмертных реплик жертвы ПОСЛЕ гейта (чистое окно) — "
-              f"{'0 ✅' if d2b else str(len(_post)) + ' ❌'}")
+        print(f"[D2] посмертных реплик жертвы ПОСЛЕ гейта (чистое окно) — {'0 ✅' if d2b else str(len(_post)) + ' ❌'}")
         ok = ok and d2b
 
         _sc = h.get_scene_fresh() or {}
@@ -445,18 +472,18 @@ def main() -> int:
         # ADR-O-365 (D-8): ambient-задачи — non-ownership слой, зеркала в
         # commitment_history нет by design; канонический свидетель EXPIRED —
         # INFO-маркер гейта + отсутствие посмертной реплики.
-        print(f"[D2-DIAG] EXPIRED-свидетель: маркер гейта "
-              f"{'✅' if _gate_hit else '❌'}; commitment_history для ambient "
-              f"{'запись есть' if 'EXPIRED' in _hist and _victim in _hist else 'отсутствует (ожидаемо, D-8)'}")
+        print(
+            f"[D2-DIAG] EXPIRED-свидетель: маркер гейта "
+            f"{'✅' if _gate_hit else '❌'}; commitment_history для ambient "
+            f"{'запись есть' if 'EXPIRED' in _hist and _victim in _hist else 'отсутствует (ожидаемо, D-8)'}"
+        )
 
         # ── D3: разговор выживает через STM (пп. 12-13) ─────────────
         _block_v_post = _stm_block(h, _victim)
         d3a = _topic_v in _block_v_post
-        print(f"[D3] pair-STM жертвы пережила смерть (тема '{_topic_v}') — "
-              f"{'✅' if d3a else '❌'}")
+        print(f"[D3] pair-STM жертвы пережила смерть (тема '{_topic_v}') — {'✅' if d3a else '❌'}")
         d3b = _topic_a in _stm_block(h, _addressee)
-        print(f"[D3] адресат помнит тему разговора ('{_topic_a}') — "
-              f"{'✅' if d3b else '❌'}")
+        print(f"[D3] адресат помнит тему разговора ('{_topic_a}') — {'✅' if d3b else '❌'}")
         ok = ok and d3a and d3b
 
     print("=" * 64)

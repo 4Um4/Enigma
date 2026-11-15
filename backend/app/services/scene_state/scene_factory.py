@@ -75,9 +75,7 @@ def build_initial_scene(
             objects[obj_id] = {
                 "name": obj.get("name", obj.get("type", "объект")),
                 "type": obj.get("type", ""),
-                "state": obj.get("properties", {}).get("open", True)
-                and "intact"
-                or "closed",
+                "state": obj.get("properties", {}).get("open", True) and "intact" or "closed",
                 "position": obj.get("position", {}),
                 "size": obj.get("size", {}),
                 "interactable": True,
@@ -102,9 +100,7 @@ def build_initial_scene(
 
         # --- Точка спавна игрока ---
         if spawn := editor_data.get("player_spawn"):
-            player_spawn_node = _nearest_node_to_xy(
-                editor_data, spawn.get("x", 0), spawn.get("y", 0)
-            )
+            player_spawn_node = _nearest_node_to_xy(editor_data, spawn.get("x", 0), spawn.get("y", 0))
             # S144 FIX: Игрок добавляется в npc_positions как полноправный агент (ADR-O-315).
             # Без этого SpatialService и MovementEngine не могут разрешить цели, и все coords=None.
             npc_positions["player"] = {
@@ -146,8 +142,7 @@ def build_initial_scene(
         spatial_walls, spatial_obstacles = build_spatial_data(editor_data)
 
         logger.info(
-            f"[SCENE] Editor JSON: {len(objects)} объектов, "
-            f"{len(npc_positions)} NPC, spawn_node={player_spawn_node}"
+            f"[SCENE] Editor JSON: {len(objects)} объектов, {len(npc_positions)} NPC, spawn_node={player_spawn_node}"
         )
     else:
         # --- Fallback: старая логика из location_templates.json ---
@@ -235,9 +230,7 @@ def build_initial_scene(
         "player_target_npc_name": None,  # читаемое имя (для промпта)
         "player_target_object": None,  # id объекта взаимодействия
         "player_distances": {},  # {npc_id: float} метры
-        "environment_modifiers": _derive_environment_modifiers(
-            time_variant, template.get("type", "")
-        ),
+        "environment_modifiers": _derive_environment_modifiers(time_variant, template.get("type", "")),
         # ── Пространственные данные для коллизий (из editor JSON) ─────
         "spatial_walls": spatial_walls,
         "spatial_obstacles": spatial_obstacles,
@@ -292,8 +285,8 @@ def build_initial_scene(
     # спавна — сейв выигрывает. Локальный импорт — прецедент
     # _build_spatial_data (нулевое влияние на import-граф SSM).
     from app.services.world.world_object_spawner import WorldObjectSpawner
-    _spawn_report = WorldObjectSpawner.spawn_from_editor(
-        scene_state, campaign_id, location_id, editor_data)
+
+    _spawn_report = WorldObjectSpawner.spawn_from_editor(scene_state, campaign_id, location_id, editor_data)
     if _spawn_report.spawned or _spawn_report.faults:
         logger.info(f"[W3_SPAWN] {_spawn_report.summary()}")
 

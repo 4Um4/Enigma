@@ -26,8 +26,15 @@ from tests.gameplay.harness import TavernGameplayHarness
 _C = "Open_road"
 _LOCS = ("tavern", "city_gate", "market_square")
 _MAX_TICKS = 2880
-_MARK_KEYS = ("SCHED_TRACE", "INTENT_DEGRADE", "ARBITER_REJECT",
-              "S186", "BOUNDARY_DWELL", "OFFSCREEN", "SPATIAL_KNOWLEDGE")
+_MARK_KEYS = (
+    "SCHED_TRACE",
+    "INTENT_DEGRADE",
+    "ARBITER_REJECT",
+    "S186",
+    "BOUNDARY_DWELL",
+    "OFFSCREEN",
+    "SPATIAL_KNOWLEDGE",
+)
 
 _trace: dict[str, list] = defaultdict(list)
 
@@ -78,10 +85,15 @@ def main() -> int:
                 if nid == "player":
                     continue
                 ever_in_tavern.add(nid)
-                _trace[nid].append({
-                    "tick": tick, "present": True, "loc": "tavern",
-                    "visible": e.get("visible"), "act": e.get("activity"),
-                })
+                _trace[nid].append(
+                    {
+                        "tick": tick,
+                        "present": True,
+                        "loc": "tavern",
+                        "visible": e.get("visible"),
+                        "act": e.get("activity"),
+                    }
+                )
 
         # ── Gap-анализ ────────────────────────────────────────────────
         presence_gaps: dict[str, list] = defaultdict(list)
@@ -122,9 +134,13 @@ def main() -> int:
                 v = r.get("visible")
                 if v is False and act is not None and not is_sleeping(act):
                     inv_violations.append((nid, r["tick"], act))
-                if (prev_act is not None and act is not None
-                        and is_sleeping(prev_act) and not is_sleeping(act)
-                        and v is True):
+                if (
+                    prev_act is not None
+                    and act is not None
+                    and is_sleeping(prev_act)
+                    and not is_sleeping(act)
+                    and v is True
+                ):
                     wake_edges += 1
                 prev_act = act
         _log(f"INV-VIS-SLEEP-ONLY: нарушений={len(inv_violations)} wake_edges={wake_edges}")
@@ -138,7 +154,7 @@ def main() -> int:
         for nid, gs in presence_gaps.items():
             for g0, g1 in gs:
                 any_p = True
-                print(f"[SDF] PRESENCE_GAP npc={nid} ticks {g0}..{g1} ({g1-g0+1})")
+                print(f"[SDF] PRESENCE_GAP npc={nid} ticks {g0}..{g1} ({g1 - g0 + 1})")
         if not any_p:
             print("[SDF] PRESENCE_GAP: ни одного — authoritative state стабилен")
 
@@ -163,11 +179,17 @@ def main() -> int:
 
         out = Path(__file__).resolve().parents[3] / "reports"
         out.mkdir(parents=True, exist_ok=True)
-        (out / "sdf_summary.json").write_text(json.dumps({
-            "presence": {k: v for k, v in presence_gaps.items()},
-            "visibility": {k: list(map(list, v)) for k, v in visibility_gaps.items()},
-        }, ensure_ascii=False), encoding="utf-8")
-        print(f"[SDF] summary -> {out/'sdf_summary.json'}")
+        (out / "sdf_summary.json").write_text(
+            json.dumps(
+                {
+                    "presence": {k: v for k, v in presence_gaps.items()},
+                    "visibility": {k: list(map(list, v)) for k, v in visibility_gaps.items()},
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        print(f"[SDF] summary -> {out / 'sdf_summary.json'}")
     return 1 if inv_violations else 0
 
 

@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_gc05_production_path_testimony.py
+# path: /project/backend/tests/gameplay/test_gc05_production_path_testimony.py
 # Назначение: GC-05 — production-path testimony. Автономный выбор NPC A →
 #   testimony → belief NPC B → поведение. L3-сквозной тест через
 #   production-path без LLM (router=None) и без тайминга (sync-pool).
@@ -54,6 +54,7 @@ Production-путь (НЕ подменён):
   - влияние trust(listener->source) на confidence — доказано
   - влияние belief B на поведение — ДОЛЖНО быть доказано для закрытия
 """
+
 import logging
 import types
 from typing import Any, List, Optional
@@ -78,24 +79,28 @@ SPY_CLAIM: List[tuple] = []
 
 def _spy_npc_spoke(event: Any) -> None:
     _pl = getattr(event, "payload", {}) or {}
-    SPY_SPOKE.append((
-        getattr(event, "source", "?"),
-        _pl.get("target_id"),
-        _pl.get("intent_type"),
-        bool(_pl.get("proposition")),
-    ))
+    SPY_SPOKE.append(
+        (
+            getattr(event, "source", "?"),
+            _pl.get("target_id"),
+            _pl.get("intent_type"),
+            bool(_pl.get("proposition")),
+        )
+    )
 
 
 def _spy_comm_claim(event: Any) -> None:
     _pl = getattr(event, "payload", {}) or {}
     _prop = _pl.get("proposition") or {}
-    SPY_CLAIM.append((
-        getattr(event, "source", "?"),
-        _pl.get("target_id"),
-        _prop.get("predicate"),
-        _prop.get("subject_id"),
-        _prop.get("object_id"),
-    ))
+    SPY_CLAIM.append(
+        (
+            getattr(event, "source", "?"),
+            _pl.get("target_id"),
+            _prop.get("predicate"),
+            _prop.get("subject_id"),
+            _prop.get("object_id"),
+        )
+    )
 
 
 class _SyncPool:
@@ -114,6 +119,7 @@ class _SyncPool:
 
 def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     from app.domain.execution import TaskKind
+
     _sched = getattr(harness.game_loop, "_task_scheduler", None)
     if _sched is None:
         _sched = harness.game_loop._get_task_scheduler()
@@ -138,15 +144,15 @@ def _install_sync_pool(harness: TavernGameplayHarness) -> None:
     # (structural propagation без семантической проверки).
     from app.services.cognition.proposition_verifier import PassthroughVerifier
     from app.services.execution.dialogue_materializer import DialogueMaterializer
-    _sched._materializers["dialogue_line"] = DialogueMaterializer(
-        proposition_verifier=PassthroughVerifier()
-    )
+
+    _sched._materializers["dialogue_line"] = DialogueMaterializer(proposition_verifier=PassthroughVerifier())
     print("[WIRING] _materializers['dialogue_line'] = PassthroughVerifier (structural test)")
 
 
 def _install_spies(harness: TavernGameplayHarness) -> None:
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
+
     _bus = get_event_bus()
     _bus.subscribe(EventType.NPC_SPOKE, _spy_npc_spoke)
     _bus.subscribe(EventType.COMMUNICATION_CLAIM, _spy_comm_claim)
@@ -165,7 +171,14 @@ def _seed_trust_aggressive(harness: TavernGameplayHarness, source: str, target: 
     print(f"[SEED] {source}->{target}: final trust={_final.get('trust')} (target={target_trust})")
 
 
-def _seed_belief(harness: TavernGameplayHarness, agent_id: str, subject_id: str, predicate: str, object_id: str, confidence: float = 0.7) -> None:
+def _seed_belief(
+    harness: TavernGameplayHarness,
+    agent_id: str,
+    subject_id: str,
+    predicate: str,
+    object_id: str,
+    confidence: float = 0.7,
+) -> None:
     """Test fixture: прямая upsert EpistemicRecord в EpistemicStore.
 
     НЕ production-path обход — seeding начального условия, аналогичный
@@ -173,6 +186,7 @@ def _seed_belief(harness: TavernGameplayHarness, agent_id: str, subject_id: str,
     Production-path от автономного решения A до belief B НЕ тронут.
     """
     from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
+
     _pred = Predicate(predicate)
     _prop = Proposition(
         subject_id=subject_id,
@@ -211,12 +225,17 @@ def _override_guard_disposition() -> None:
     Вызывается ОДИН раз за сессию (модуль-level константа).
     """
     from app.domain import epistemic_dispositions as _ed
+
     _orig_guard = dict(_ed.EPISTEMIC_DISPOSITIONS.get("guard", {}))
     _ed.EPISTEMIC_DISPOSITIONS["guard"] = {
-        "report": 0.0, "warn": 0.5, "attack": 0.4,
-        "spread_rumor": 0.0, "talk": 0.2, "intimidate": 1.4,
+        "report": 0.0,
+        "warn": 0.5,
+        "attack": 0.4,
+        "spread_rumor": 0.0,
+        "talk": 0.2,
+        "intimidate": 1.4,
     }
-    print(f"[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)")
+    print("[OVERRIDE] guard disposition: report=0.0, intimidate=1.4 (test fixture)")
 
 
 def _read_epistemic_records(harness: TavernGameplayHarness, agent_id: str) -> List[dict]:
@@ -238,9 +257,11 @@ def _diag_probe(harness: TavernGameplayHarness, npc_id: str) -> None:
     print(f"\n[DIAG] {npc_id} beliefs: {len(_beliefs)}")
     for r in _beliefs:
         _p = r.get("proposition", {})
-        print(f"  prop={_p.get('predicate')} subj={_p.get('subject_id')} "
-              f"obj={_p.get('object_id')} conf={r.get('confidence')} "
-              f"source={r.get('source_id')}")
+        print(
+            f"  prop={_p.get('predicate')} subj={_p.get('subject_id')} "
+            f"obj={_p.get('object_id')} conf={r.get('confidence')} "
+            f"source={r.get('source_id')}"
+        )
     _rel = _gl.memory_manager._relationships
     _all_rel = _rel.get_all(_CAMPAIGN) or {}
     print(f"[DIAG] {npc_id} relationships:")
@@ -253,8 +274,10 @@ def _diag_probe(harness: TavernGameplayHarness, npc_id: str) -> None:
     if _ns:
         _kernel = _ns.get("perceptual_kernel", {}) or {}
         _drives = _ns.get("drives", {}) or {}
-        print(f"[DIAG] {npc_id} state: threat_gradient={_kernel.get('threat_gradient')} "
-              f"drives={_drives} hp={_ns.get('effective_hp')}")
+        print(
+            f"[DIAG] {npc_id} state: threat_gradient={_kernel.get('threat_gradient')} "
+            f"drives={_drives} hp={_ns.get('effective_hp')}"
+        )
     _intents = _scene.get("npc_intents", {}) or {}
     _npc_intent = _intents.get(npc_id)
     print(f"[DIAG] {npc_id} last intent: {_npc_intent}")
@@ -298,15 +321,14 @@ def _clear_spies() -> Any:
 
 
 class TestGC05ProductionPathTestimony:
-
     def test_K1_control_no_belief_about_harmer(self) -> None:
         _h = _run_scenario(seed_witness_belief=False, ticks=8)
         try:
             _b_beliefs = _read_epistemic_records(_h, _LISTENER)
             _belief_from_witness = [
-                r for r in _b_beliefs
-                if r.get("proposition", {}).get("subject_id") == _HARMER
-                and r.get("source_id") == _WITNESS
+                r
+                for r in _b_beliefs
+                if r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
             ]
             print(f"[K1] maid_lusya beliefs: {len(_b_beliefs)} total")
             print(f"[K1] maid_lusya belief about {_HARMER} from {_WITNESS}: {len(_belief_from_witness)}")
@@ -321,9 +343,11 @@ class TestGC05ProductionPathTestimony:
             _claims_from_w = [c for c in SPY_CLAIM if c[0] == _WITNESS]
             _b_beliefs = _read_epistemic_records(_h, _LISTENER)
             _b_belief = next(
-                (r for r in _b_beliefs
-                 if r.get("proposition", {}).get("subject_id") == _HARMER
-                 and r.get("source_id") == _WITNESS),
+                (
+                    r
+                    for r in _b_beliefs
+                    if r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
+                ),
                 None,
             )
 
@@ -337,9 +361,11 @@ class TestGC05ProductionPathTestimony:
                 print(f"  pred={c[2]} subj={c[3]} obj={c[4]} target={c[1]}")
             print(f"[K2] maid_lusya beliefs: {len(_b_beliefs)} total")
             if _b_belief:
-                print(f"[K2] target belief: conf={_b_belief.get('confidence')} "
-                      f"source={_b_belief.get('source_id')} "
-                      f"prop={_b_belief.get('proposition')}")
+                print(
+                    f"[K2] target belief: conf={_b_belief.get('confidence')} "
+                    f"source={_b_belief.get('source_id')} "
+                    f"prop={_b_belief.get('proposition')}"
+                )
 
             if len(_w_spoke) == 0:
                 pytest.skip(
@@ -370,10 +396,7 @@ class TestGC05ProductionPathTestimony:
             )
 
             _conf = _b_belief.get("confidence", 0.0)
-            assert _conf > 0.0, (
-                f"K2 FAIL: belief сформирован, но confidence=0.0. "
-                f"Record: {_b_belief}"
-            )
+            assert _conf > 0.0, f"K2 FAIL: belief сформирован, но confidence=0.0. Record: {_b_belief}"
             print(f"[K2] PASS: testimony delivered, belief formed, confidence={_conf:.3f}")
         finally:
             _h.dispose()
@@ -383,22 +406,24 @@ class TestGC05ProductionPathTestimony:
         try:
             _b_beliefs = _read_epistemic_records(_h, _LISTENER)
             _b_belief_K3 = next(
-                (r for r in _b_beliefs
-                 if r.get("proposition", {}).get("subject_id") == _HARMER
-                 and r.get("source_id") == _WITNESS),
+                (
+                    r
+                    for r in _b_beliefs
+                    if r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
+                ),
                 None,
             )
             print(f"[K3] maid_lusya beliefs: {len(_b_beliefs)} total")
             if _b_belief_K3:
-                print(f"[K3] target belief: conf={_b_belief_K3.get('confidence')} "
-                      f"source={_b_belief_K3.get('source_id')}")
+                print(
+                    f"[K3] target belief: conf={_b_belief_K3.get('confidence')} source={_b_belief_K3.get('source_id')}"
+                )
             else:
                 print("[K3] no target belief formed (reliability<0)")
             if _b_belief_K3:
                 _conf_K3 = _b_belief_K3.get("confidence", 0.0)
                 assert _conf_K3 < 0.5, (
-                    f"K3 FAIL: при trust=-50 confidence={_conf_K3} "
-                    f"должна быть ниже 0.5. Record: {_b_belief_K3}"
+                    f"K3 FAIL: при trust=-50 confidence={_conf_K3} должна быть ниже 0.5. Record: {_b_belief_K3}"
                 )
                 print(f"[K3] PASS: hostile listener -> confidence={_conf_K3:.3f}")
             else:
@@ -411,9 +436,11 @@ class TestGC05ProductionPathTestimony:
         try:
             _b_K2 = _read_epistemic_records(_h_K2, _LISTENER)
             _belief_K2 = next(
-                (r for r in _b_K2
-                 if r.get("proposition", {}).get("subject_id") == _HARMER
-                 and r.get("source_id") == _WITNESS),
+                (
+                    r
+                    for r in _b_K2
+                    if r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
+                ),
                 None,
             )
         finally:
@@ -423,9 +450,11 @@ class TestGC05ProductionPathTestimony:
         try:
             _b_K3 = _read_epistemic_records(_h_K3, _LISTENER)
             _belief_K3 = next(
-                (r for r in _b_K3
-                 if r.get("proposition", {}).get("subject_id") == _HARMER
-                 and r.get("source_id") == _WITNESS),
+                (
+                    r
+                    for r in _b_K3
+                    if r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
+                ),
                 None,
             )
         finally:
@@ -436,8 +465,7 @@ class TestGC05ProductionPathTestimony:
 
         if _belief_K2 is None:
             pytest.skip(
-                "K2 не сформировал belief у maid_lusya — "
-                "testimony не дошёл. Сравнение trust-влияния невозможно."
+                "K2 не сформировал belief у maid_lusya — testimony не дошёл. Сравнение trust-влияния невозможно."
             )
 
         _conf_K2 = _belief_K2.get("confidence", 0.0) if _belief_K2 else 0.0
@@ -448,8 +476,10 @@ class TestGC05ProductionPathTestimony:
             f"ниже, чем при враждебном ({_conf_K3}). "
             f"Trust-based reliability нарушена."
         )
-        print(f"[CMP] PASS: trust(listener->source) влияет на confidence: "
-              f"K2(neutral)={_conf_K2:.3f} >= K3(hostile)={_conf_K3:.3f}")
+        print(
+            f"[CMP] PASS: trust(listener->source) влияет на confidence: "
+            f"K2(neutral)={_conf_K2:.3f} >= K3(hostile)={_conf_K3:.3f}"
+        )
 
     def test_belief_influences_behavior_K2_vs_K1(self) -> None:
         _h_K1 = _run_scenario(seed_witness_belief=False, ticks=8)
@@ -464,8 +494,7 @@ class TestGC05ProductionPathTestimony:
             _intent_K2 = _read_npc_intent(_h_K2, _LISTENER)
             _b_beliefs_K2 = _read_epistemic_records(_h_K2, _LISTENER)
             _has_belief = any(
-                r.get("proposition", {}).get("subject_id") == _HARMER
-                and r.get("source_id") == _WITNESS
+                r.get("proposition", {}).get("subject_id") == _HARMER and r.get("source_id") == _WITNESS
                 for r in _b_beliefs_K2
             )
         finally:
@@ -476,18 +505,16 @@ class TestGC05ProductionPathTestimony:
         print(f"[BEH] K2 maid_lusya has belief from guard_borko: {_has_belief}")
 
         if not _has_belief:
-            pytest.skip(
-                "K2 не сформировал belief у maid_lusya — "
-                "поведенческий контраст не применим."
-            )
+            pytest.skip("K2 не сформировал belief у maid_lusya — поведенческий контраст не применим.")
 
         if _intent_K1 == _intent_K2:
-            print("[BEH] INFO: belief присутствует, но intent не изменился. "
-                  "Допустимый результат, но критерий «belief -> behavior» "
-                  "НЕ доказан.")
+            print(
+                "[BEH] INFO: belief присутствует, но intent не изменился. "
+                "Допустимый результат, но критерий «belief -> behavior» "
+                "НЕ доказан."
+            )
         else:
-            print(f"[BEH] PASS: belief повлиял на intent maid_lusya: "
-                  f"K1={_intent_K1} -> K2={_intent_K2}")
+            print(f"[BEH] PASS: belief повлиял на intent maid_lusya: K1={_intent_K1} -> K2={_intent_K2}")
 
 
 if __name__ == "__main__":

@@ -242,16 +242,22 @@ class TestRelationshipCalibration:
         _v2.bind("test_calib")
         _v2.update("test_calib", "control_npc", "player", {"trust": 80.0})
         result_trusted = hub.compute(
-            state_trusted, control_personality, event,
+            state_trusted,
+            control_personality,
+            event,
             effective_drives=_MOCK_DRIVES,
-            relationship_store=_v2, campaign_id="test_calib",
+            relationship_store=_v2,
+            campaign_id="test_calib",
         )
         # neutral-прогон: Vacuum (запись удалена — reset-семантика)
         _v2.reset_campaign("test_calib")
         result_neutral = hub.compute(
-            state_neutral, control_personality, event,
+            state_neutral,
+            control_personality,
+            event,
             effective_drives=_MOCK_DRIVES,
-            relationship_store=_v2, campaign_id="test_calib",
+            relationship_store=_v2,
+            campaign_id="test_calib",
         )
 
         trusted_help = result_trusted.scores_trace.get(Intent.HELP.value, 0.0)
@@ -310,7 +316,9 @@ class TestTraitCalibration:
         state_suspicious = NPCState(npc_id="desire_npc")
         state_clean = NPCState(npc_id="desire_npc")
 
-        r_suspicious = hub.compute(state_suspicious, desire_personality, event, identity=identity_suspicious, effective_drives=_MOCK_DRIVES)
+        r_suspicious = hub.compute(
+            state_suspicious, desire_personality, event, identity=identity_suspicious, effective_drives=_MOCK_DRIVES
+        )
         r_clean = hub.compute(state_clean, desire_personality, event, effective_drives=_MOCK_DRIVES)
 
         obs_suspicious = r_suspicious.scores_trace.get(Intent.OBSERVE.value, 0.0)
@@ -331,7 +339,13 @@ class TestTraitCalibration:
         state_grateful = NPCState(npc_id="control_npc")
         state_neutral = NPCState(npc_id="control_npc")
 
-        r_grateful = hub.compute(state_grateful, control_personality, close_combat_event, identity=identity_grateful, effective_drives=_MOCK_DRIVES)
+        r_grateful = hub.compute(
+            state_grateful,
+            control_personality,
+            close_combat_event,
+            identity=identity_grateful,
+            effective_drives=_MOCK_DRIVES,
+        )
         r_neutral = hub.compute(state_neutral, control_personality, close_combat_event, effective_drives=_MOCK_DRIVES)
 
         atk_grateful = r_grateful.scores_trace.get(Intent.ATTACK.value, -1.0)

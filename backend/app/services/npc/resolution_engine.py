@@ -149,6 +149,7 @@ class ResolutionEngine:
         # ── Бросок d20 ────────────────────────────────────────────────────────
         # BUG-CORE-012 FIX: Используем KernelRNG для детерминированности (ADR-O-301).
         from app.services.npc.kernel_rng import KernelRNG
+
         _rng = KernelRNG(tick=tick, npc_id=state.npc_id, salt="resolution_engine")
         raw_roll = _rng.randint(1, D20_SIDES)
         normalized = (raw_roll - 1) / (D20_SIDES - 1)  # → [0..1]
@@ -160,9 +161,7 @@ class ResolutionEngine:
         _ed = None
         if hasattr(state, "drives_runtime") and state.drives_runtime:
             _ed = EffectiveDrives.from_dict(dict(state.drives_runtime))
-        bias = self._compute_bias(
-            state, personality, context_modifier, effective_drives=_ed
-        )
+        bias = self._compute_bias(state, personality, context_modifier, effective_drives=_ed)
 
         # ── Итоговое значение ─────────────────────────────────────────────────
         raw_final = normalized * DICE_WEIGHT + bias * BIAS_WEIGHT

@@ -11,6 +11,7 @@ path: backend/tests/sandbox/micro/test_prediction_error.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_prediction_error.py -v; cd ..
 """
+
 import math
 
 import pytest
@@ -22,8 +23,12 @@ _SCALE = 0.8
 
 def _obs(tick, dx, dy, heading=0.0):
     return AttentionObservation(
-        tick=tick, distance=math.hypot(dx, dy), bearing=0.0,
-        subject_heading=heading, rel_dx=dx, rel_dy=dy,
+        tick=tick,
+        distance=math.hypot(dx, dy),
+        bearing=0.0,
+        subject_heading=heading,
+        rel_dx=dx,
+        rel_dy=dy,
     )
 
 
@@ -101,9 +106,7 @@ def test_8_no_leak_of_current_into_prediction() -> None:
     cur = win[-1]
     s1 = prediction_error(win, cur.rel_dx, cur.rel_dy, scale_m=_SCALE)
     win_poisoned = win[:-1] + [_obs(104, 999.0, 999.0)]
-    s2 = prediction_error(
-        win_poisoned, cur.rel_dx, cur.rel_dy, scale_m=_SCALE
-    )
+    s2 = prediction_error(win_poisoned, cur.rel_dx, cur.rel_dy, scale_m=_SCALE)
     assert s1 is not None and s2 is not None
     assert s1 == pytest.approx(s2)  # выброс в «текущем» не влияет
 

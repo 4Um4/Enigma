@@ -29,6 +29,7 @@ for _p in (str(_BACKEND_DIR), str(_ROOT_DIR)):
 # LLM: реплики NPC генерирует llama-server; память действий игрока пишется и без него
 # Этап 4.1.8: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
 from app.services.llm.runtime.client import ensure_llm
+
 try:
     ensure_llm(label="phase_a_xray")
 except Exception as _e:
@@ -96,7 +97,6 @@ async def main() -> int:
             traceback.print_exc()
             failures.append(f"turn_{i}_crash")
 
-
     # ── PROBE 9.12: почему подписчик молчит — прямой пошаговый вызов ──
     _sc = getattr(game_loop._tick_orch, "_shared_context", None)
     print("[PROBE_9_12] _shared_context:", _sc is not None)
@@ -107,7 +107,6 @@ async def main() -> int:
         print("[PROBE_9_12] snapshot:", type(_snap).__name__, "len:", len(_snap) if _snap else 0)
         _names = [n.get("id") or n.get("npc_id") for n in (_anr or [])][:8]
         print("[PROBE_9_12] ids в all_npcs_raw:", _names)
-
 
     # ── PROBE 9.7: живой провод NPC_SPOKE → память (зонд VIII.5) ──────
     # Подписчик доказан автономно (репетиция-2). Публикуем NPC_SPOKE руками:
@@ -211,7 +210,9 @@ async def main() -> int:
         elif t1:
             print(f"  ✅ {npc_id}: identity_traits пережили рестарт: {t1}")
         else:
-            observations.append(f"{npc_id}: identity_traits пусты (резонанс не срабатывал — ожидаемо на короткой сессии)")
+            observations.append(
+                f"{npc_id}: identity_traits пусты (резонанс не срабатывал — ожидаемо на короткой сессии)"
+            )
         b1 = (first.get("json_state") or {}).get("beliefs") or {}
         b2 = (after.get("json_state") or {}).get("beliefs") or {}
         if b1 != b2:

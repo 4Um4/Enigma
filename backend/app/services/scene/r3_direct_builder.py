@@ -1,4 +1,4 @@
-﻿# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
+# path: C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene\r3_direct_builder.py
 """
 R3 Direct Mode: DecisionResult → SceneOutcome → DMFrame.
 
@@ -50,16 +50,9 @@ def build_r3_dm_frame(
     _distances = {}
     _spatial_query = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
     if _spatial_query is not None:
-        _npc_ids = [
-            n.get("npc_id", n.get("id", ""))
-            for n in _scene_state.get("npc_positions", {}).values()
-        ]
+        _npc_ids = [n.get("npc_id", n.get("id", "")) for n in _scene_state.get("npc_positions", {}).values()]
         _distances = _spatial_query.player_distances(_npc_ids)
-    _visible = {
-        npc_id
-        for npc_id, is_visible in _scene_state.get("line_of_sight", {}).items()
-        if is_visible
-    }
+    _visible = {npc_id for npc_id, is_visible in _scene_state.get("line_of_sight", {}).items() if is_visible}
     # Epistemic Boundary: DM не читает внутренние уровни NPC (tier) из контекстов,
     # только локальную физическую видимость.
     _tiers: Dict[str, Any] = {}
@@ -79,9 +72,7 @@ def build_r3_dm_frame(
             if _first_check.get("needs_roll", False):
                 _result_str = _first_check.get("result", "").lower()
                 _player_success = "успех" in _result_str or "крит" in _result_str
-                logger.warning(
-                    f"[R5] Physical action: success={_player_success} result={_result_str}"
-                )
+                logger.warning(f"[R5] Physical action: success={_player_success} result={_result_str}")
 
     _scene_ctx = SceneContext(
         distances=_distances,
@@ -94,30 +85,16 @@ def build_r3_dm_frame(
 
     # Epistemic Boundary (ADR-TZ08-4): Читаем только наблюдаемый слепок (observed_state).
     # Ментальные объекты (real_state, distortion_bias) больше не генерируются ядром.
-    _state_snapshots = {
-        ctx["npc_id"]: ctx["observed_state"]
-        for ctx in _filtered_ctxs
-        if ctx.get("observed_state")
-    }
+    _state_snapshots = {ctx["npc_id"]: ctx["observed_state"] for ctx in _filtered_ctxs if ctx.get("observed_state")}
 
     # ФАЗА 0: профили NPC для voice_profile, backstory, author_notes
-    _npc_profiles = {
-        ctx["npc_id"]: ctx["profile_l0"]
-        for ctx in _filtered_ctxs
-        if ctx.get("profile_l0")
-    }
+    _npc_profiles = {ctx["npc_id"]: ctx["profile_l0"] for ctx in _filtered_ctxs if ctx.get("profile_l0")}
     # ФАЗА 4: темы NPC из TopicExtractor (Устав 3.2)
-    _npc_topics = {
-        ctx["npc_id"]: ctx["topic"] for ctx in _filtered_ctxs if ctx.get("topic")
-    }
+    _npc_topics = {ctx["npc_id"]: ctx["topic"] for ctx in _filtered_ctxs if ctx.get("topic")}
     # Step 5 (вердикт Мастера): cognition-блок «что NPC слышал» из
     # npc_contexts (CognitionContextResolver в pipeline_runner) — прокид
     # в builder тем же паттерном, что topics/profiles.
-    _npc_cognition = {
-        ctx["npc_id"]: ctx["cognition"]
-        for ctx in _filtered_ctxs
-        if ctx.get("cognition")
-    }
+    _npc_cognition = {ctx["npc_id"]: ctx["cognition"] for ctx in _filtered_ctxs if ctx.get("cognition")}
 
     # Epistemic Boundary: affective_load скрыт от DM-агента.
 
@@ -159,9 +136,7 @@ def build_r3_dm_frame(
     for actor in _scene.actors:
         if actor.psychological:
             p = actor.psychological
-            logger.warning(
-                f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})"
-            )
+            logger.warning(f"[PROJECTION] {actor.npc_id}: {p.regime.value} (int={p.intensity}, stab={p.stability})")
     # Дельты от DecisionHub
     # Epistemic Boundary: Внутренние дельты (stress/trust) скрыты от DM.
     # DM судит по проявлениям (manifestations), а не по скрытым математическим сдвигам.
@@ -216,9 +191,7 @@ def build_r3_dm_frame(
             _speaker_name = _id_to_name.get(_pd.npc_id, _pd.npc_id)
             _cont.add_event(f"{_speaker_name}: {_label}{_target_str}")
             _cont.add_flag(f"proactive_{_pd.intent.value}_{_pd.npc_id}")
-        logger.warning(
-            f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context"
-        )
+        logger.warning(f"[WORLD_TICK→CONTINUITY] {len(_tick_result.decisions)} proactive → DM context")
 
     # Living Activity (шаг 6): наблюдаемая занятость → SceneContinuity (DM).
     # Канал: npc_positions[nid]["activity"] — проекция ФАКТА деятельности
@@ -228,6 +201,7 @@ def build_r3_dm_frame(
         from app.services.npc.activity_lifecycle_service import (
             living_activity_owns_needs,
         )
+
         _la_on = living_activity_owns_needs()
     except ImportError as exc:
         logger.debug(f"[R3] activity module unavailable: {exc}")

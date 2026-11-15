@@ -6,6 +6,7 @@ path: backend/tests/sandbox/terminal_cockpit.py
 Основные сущности: GameLoop
 Запуск: python backend/tests/sandbox/terminal_cockpit.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,10 +21,12 @@ for _p in (str(_BACKEND_DIR / "app"), str(_BACKEND_DIR), str(_ROOT_DIR)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+
 # E1.4: заглушки по умолчанию — если менеджер не импортируется,
 # ссылки на start/kill остаются определёнными (Pylance/NameError)
 def _llm_noop() -> bool:
     return False
+
 
 kill_llama_server: Callable[[], Any] = _llm_noop
 start_llama_server: Callable[[], Any] = _llm_noop
@@ -58,15 +61,11 @@ from app.services.game_loop_builder import build_game_loop
 
 CAMPAIGN = "Open_road"
 LOCATION = "tavern"
-PLAYER = (
-    next((a.split("=", 1)[1] for a in _sys.argv[1:] if a.startswith("--player=")), "XRayProbe")
-)
+PLAYER = next((a.split("=", 1)[1] for a in _sys.argv[1:] if a.startswith("--player=")), "XRayProbe")
 DEFAULT_POS = (6.5, 5.5)
 
 # Адресация: префикс «имя:» или «сказать <имя>» — из карты имён сцены
-ADDR_PREFIX_HINT = (
-    "горан: | люся: | орм: | борко: | тень: | торнин: — сказать конкретному NPC"
-)
+ADDR_PREFIX_HINT = "горан: | люся: | орм: | борко: | тень: | торнин: — сказать конкретному NPC"
 
 HELP = """
 ── КОМАНДЫ ──────────────────────────────────────────────
@@ -135,9 +134,7 @@ class Cockpit:
             print(f"  NPC: {_short(r, 110)}")
         # позиция игрока из снапшота — как в run_terminal_mvp
         snap = resp.world_snapshot or {}
-        pp = snap.get("player_position") or (resp.npc_positions or {}).get(
-            "player", {}
-        ).get("local_position")
+        pp = snap.get("player_position") or (resp.npc_positions or {}).get("player", {}).get("local_position")
         if pp:
             self.pos = (float(pp[0]), float(pp[1]))
 
@@ -189,6 +186,7 @@ class Cockpit:
         # R1-ось: wall-clock печатается в finally независимо от исхода тиков.
         import os as _os
         import time as _wc_time
+
         _no_detach = bool(_os.environ.get("D8P_BASELINE_NO_DETACH"))
         _wc_t0 = _wc_time.monotonic()
         _orig_extract = None
@@ -228,10 +226,7 @@ class Cockpit:
         finally:
             # AG1-D8p Шаг 2 (R1): wall-clock печатается ВСЕГДА — даже при раннем
             # return упавшего тика (метрика = числа, НЕ впечатление).
-            print(
-                f"  [wait] wall-clock: {_wc_time.monotonic() - _wc_t0:.2f}s"
-                f" | no_detach={_no_detach}"
-            )
+            print(f"  [wait] wall-clock: {_wc_time.monotonic() - _wc_t0:.2f}s | no_detach={_no_detach}")
             if _orig_extract is not None:
                 from app.services.memory import dialogue_update_extractor as _due_mod
 
@@ -245,6 +240,7 @@ class Cockpit:
         # E1.4: пул LLM глобален, backoff 300с может жить в нём после
         # падения — health-чек и переподъём (урок прогона с 10061)
         import urllib.request as _ur
+
         try:
             _ur.urlopen("http://localhost:8181/health", timeout=2).read()
         except Exception:
@@ -320,9 +316,7 @@ async def main() -> None:
 
                     for _ in range(15):
                         try:
-                            _ur.urlopen(
-                                "http://localhost:8181/health", timeout=2
-                            ).read()
+                            _ur.urlopen("http://localhost:8181/health", timeout=2).read()
                             print("  LLM поднят и здоров")
                             break
                         except Exception:

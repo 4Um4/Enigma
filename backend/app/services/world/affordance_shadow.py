@@ -16,6 +16,7 @@ path: backend/app/services/world/affordance_shadow.py
     app.services.world.affordance_resolver, world_objects_projection
 Основные сущности: run_affordance_shadow, ShadowMetrics
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,13 +37,13 @@ _W3_SHADOW_ENV = "W3_SHADOW_ENABLED"
 
 def _shadow_enabled() -> bool:
     """env-флаг (default OFF). Тройная верификация прецедента S216."""
-    return os.environ.get(_W3_SHADOW_ENV, "").strip().lower() in (
-        "1", "true", "yes", "on")
+    return os.environ.get(_W3_SHADOW_ENV, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 @dataclass
 class ShadowMetrics:
     """Метрики G1-discovery-тени (наблюдаемость, не каузал)."""
+
     npcs_seen: int = 0
     objects_seen: int = 0
     resolve_calls: int = 0
@@ -56,7 +57,8 @@ class ShadowMetrics:
             f"resolves={self.resolve_calls} "
             f"available={self.available_actions} "
             f"blocked={self.blocked_actions} "
-            f"failed_predicates={self.failed_predicates}")
+            f"failed_predicates={self.failed_predicates}"
+        )
 
 
 def run_affordance_shadow(
@@ -76,8 +78,7 @@ def run_affordance_shadow(
     if snapshot is None or not getattr(snapshot, "world_objects", None):  # noqa: ENIGMA002
         return 0, _metrics
 
-    _objects = project_world_objects(
-        snapshot.world_objects, location_id)
+    _objects = project_world_objects(snapshot.world_objects, location_id)
     _metrics.objects_seen = len(_objects)
     if not _objects:
         return 0, _metrics
@@ -86,13 +87,11 @@ def run_affordance_shadow(
     for _nid, _pos_d in (snapshot.npc_positions or {}).items():
         _lp = _pos_d.get("local_position") or {}
         try:
-            _npc_pos[_nid] = (
-                float(_lp.get("x", 0.0)), float(_lp.get("y", 0.0)))
+            _npc_pos[_nid] = (float(_lp.get("x", 0.0)), float(_lp.get("y", 0.0)))
         except (TypeError, ValueError) as _e:
             # Повреждённая позиция снапшота: наблюдаемость (L4/§11) +
             # пропуск одной записи — наблюдатель не роняет тик.
-            logger.warning(
-                f"[W3_SHADOW] damaged npc_position '{_nid}': {_e}")
+            logger.warning(f"[W3_SHADOW] damaged npc_position '{_nid}': {_e}")
             continue
 
     _total_available = 0
@@ -105,13 +104,11 @@ def run_affordance_shadow(
         # его; falsy/отсутствие → ValueError всплывает в guarded
         # (warning, §11) — наблюдатель не роняет тик и не «оживляет»
         # NPC на дефолтах (диагностическая честность метрик тени).
-        _view = build_body_state_view(
-            _npc_raw.get("body_state") or {}, _nid)
+        _view = build_body_state_view(_npc_raw.get("body_state") or {}, _nid)
         _metrics.npcs_seen += 1
         for _obj in _objects:
             _metrics.resolve_calls += 1
-            _actions = AffordanceResolver.resolve(
-                _obj, _view, _npc_pos[_nid])
+            _actions = AffordanceResolver.resolve(_obj, _view, _npc_pos[_nid])
             if _actions:
                 _total_available += len(_actions)
                 _metrics.available_actions += len(_actions)
@@ -133,19 +130,14 @@ def run_affordance_shadow_guarded(
     if not _shadow_enabled():
         return 0, ShadowMetrics()
     try:
-        _count, _metrics = run_affordance_shadow(
-            tick, snapshot, all_npcs_raw, location_id)
-        logger.info(
-            f"[W3_SHADOW] tick={tick} available_actions={_count} "
-            f"{_metrics.summary()}")
+        _count, _metrics = run_affordance_shadow(tick, snapshot, all_npcs_raw, location_id)
+        logger.info(f"[W3_SHADOW] tick={tick} available_actions={_count} {_metrics.summary()}")
         return _count, _metrics
     except ValueError as _e:
         # Per-NPC body-view reject (L2.2): фабрика честно отказала —
         # пересобрать метрики с reject-счётчиком, тик жив.
-        logger.warning(
-            f"[W3_SHADOW] body-view reject (tick={tick}): {_e}")
+        logger.warning(f"[W3_SHADOW] body-view reject (tick={tick}): {_e}")
         return 0, ShadowMetrics()
     except Exception as _e:  # noqa: BLE001 — §11 чистота наблюдателя
-        logger.warning(
-            f"[W3_SHADOW] тень отказала (наблюдатель, тик жив): {_e}")
+        logger.warning(f"[W3_SHADOW] тень отказала (наблюдатель, тик жив): {_e}")
         return 0, ShadowMetrics()

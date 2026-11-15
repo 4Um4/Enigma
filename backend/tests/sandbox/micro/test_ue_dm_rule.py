@@ -8,6 +8,7 @@
 Зависимости: app.agents.dm_agent
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_dm_rule.py -q; cd ..
 """
+
 import inspect
 
 import pytest
@@ -26,12 +27,15 @@ def _presentation():
 
 
 def _ctx(readiness: str, acts: list) -> dict:
-    return {"player_intent_projection": {
-        "action": "dialogue", "target": "",
-        "readiness": readiness,
-        "semantic_action": "DIALOGUE",
-        "semantic_acts": acts,
-    }}
+    return {
+        "player_intent_projection": {
+            "action": "dialogue",
+            "target": "",
+            "readiness": readiness,
+            "semantic_action": "DIALOGUE",
+            "semantic_acts": acts,
+        }
+    }
 
 
 @pytest.mark.xfail(strict=True, reason="UX-UE-01 ③: DM-правило не реализовано (Этап 2)")

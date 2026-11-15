@@ -17,13 +17,16 @@ from app.models.last_words import LastWord
 @dataclass(frozen=True)
 class NpcFateScreenData:
     """Данные о судьбе NPC для экрана результатов."""
+
     npc_id: str
     fate_outcome: str
     last_word: Optional[LastWord]
 
+
 @dataclass(frozen=True)
 class EndScreenData:
     """Полный набор данных для финального экрана (UI Layer)."""
+
     evaluation: EvaluationResult
     npc_fates: List[NpcFateScreenData]
     contradictions: List[Contradiction]

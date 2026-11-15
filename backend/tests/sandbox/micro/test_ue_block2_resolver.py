@@ -6,6 +6,7 @@
 Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_block2_resolver.py -q; cd ..
 """
+
 from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.services.game_loop.phase_1_input import resolve_target_with_candidates
 
@@ -26,9 +27,7 @@ def _field(target: str, raw: str) -> IntentSemanticField:
 def test_two_guards_no_silent_pick():
     # baseline REF-01: LLM вернула guard_market; родовой «стражник» в реплике
     # покрывает ОБОИХ — выбор отброшен, кандидаты перечислены
-    tid, cands = resolve_target_with_candidates(
-        _field("guard_market", "Проследи за стражником."), _SCENE_TWO_GUARDS
-    )
+    tid, cands = resolve_target_with_candidates(_field("guard_market", "Проследи за стражником."), _SCENE_TWO_GUARDS)
     assert tid == ""
     assert sorted(cands) == ["guard_gate", "guard_market"]
 
@@ -53,14 +52,10 @@ def test_unique_generic_term_picks():
 def test_anaphora_falls_back_to_legacy():
     # 0 упоминаний имён: анафора — прежние пути (R14 exact-id);
     # задокументированное ограничение Блока 2 (анафора — Блок 5)
-    tid, cands = resolve_target_with_candidates(
-        _field("guard_gate", "Не бей его."), _SCENE_TWO_GUARDS
-    )
+    tid, cands = resolve_target_with_candidates(_field("guard_gate", "Не бей его."), _SCENE_TWO_GUARDS)
     assert tid == "guard_gate" and cands == []
 
 
 def test_no_match_returns_empty():
-    tid, cands = resolve_target_with_candidates(
-        _field("", "Поговори с драконом."), _SCENE_TWO_GUARDS
-    )
+    tid, cands = resolve_target_with_candidates(_field("", "Поговори с драконом."), _SCENE_TWO_GUARDS)
     assert tid == "" and cands == []

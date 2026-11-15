@@ -41,25 +41,23 @@ class TestProducer:
     def test_t1_no_threat_no_desired_change(self):
         """T1 (ПИН, CS1-гейт): threat ниже порога → производитель
         молчит — срез аддитивен, мир без угроз не меняется."""
-        dc = ThreatDesiredChangeProducer.resolve(
-            _state(threat=0.1), rel={}, disposition={}, allies=0
-        )
+        dc = ThreatDesiredChangeProducer.resolve(_state(threat=0.1), rel={}, disposition={}, allies=0)
         assert dc is None
 
     def test_t2_threat_without_attribution_no_change(self):
         """T2 (ПИН): угроза есть, атрибуции нет (нет fear-пары, нет
         belief) → None: причина без «кого менять» не рождает цель."""
-        dc = ThreatDesiredChangeProducer.resolve(
-            _state(threat=0.8), rel={}, disposition={}, allies=0
-        )
+        dc = ThreatDesiredChangeProducer.resolve(_state(threat=0.8), rel={}, disposition={}, allies=0)
         assert dc is None
 
     def test_t3_desired_change_contract(self):
         """T3 (CS3): форма R4 — reason/state_type/target_of_change/
         addressee различены; desired_change существует ДО способа."""
         dc = ThreatDesiredChangeProducer.resolve(
-            _state(), rel={"guard_borko": {"fear": 65.0, "trust": 10.0}},
-            disposition={"warn": 0.3, "intimidate": 0.1}, allies=0,
+            _state(),
+            rel={"guard_borko": {"fear": 65.0, "trust": 10.0}},
+            disposition={"warn": 0.3, "intimidate": 0.1},
+            allies=0,
         )
         assert dc is not None
         assert dc.reason == "threat"
@@ -75,7 +73,11 @@ class TestProducer:
         prop.subject_id = "guard_borko"
         prop.predicate.value = "ATTACKED"
         dc = ThreatDesiredChangeProducer.resolve(
-            _state(), rel={}, disposition={}, allies=0, belief_source=prop,
+            _state(),
+            rel={},
+            disposition={},
+            allies=0,
+            belief_source=prop,
         )
         assert dc is not None and dc.target_of_change == "guard_borko"
 
@@ -85,7 +87,8 @@ class TestProducer:
         dc = ThreatDesiredChangeProducer.resolve(
             _state(threat=0.9, drives={"fear": 0.9, "control": 0.05}, hp=0.3),
             rel={"guard_borko": {"fear": 80.0, "trust": -20.0}},
-            disposition={"intimidate": 0.0}, allies=0,
+            disposition={"intimidate": 0.0},
+            allies=0,
         )
         assert dc.method_weights["flee"] > dc.method_weights.get("intimidate", 0.0)
         assert dc.method_weights["flee"] > dc.method_weights.get("attack", 0.0)
@@ -95,10 +98,10 @@ class TestProducer:
         союзниками и легитимностью → CALL_FOR_HELP/INTIMIDATE
         доминирует над FLEE. Один DesiredChange → разные способы."""
         dc = ThreatDesiredChangeProducer.resolve(
-            _state(npc_id="ally_guard", drives={"fear": 0.3, "control": 0.6,
-                                                "significance": 0.7}, hp=1.0),
+            _state(npc_id="ally_guard", drives={"fear": 0.3, "control": 0.6, "significance": 0.7}, hp=1.0),
             rel={"guard_borko": {"fear": 40.0, "trust": -30.0}},
-            disposition={"intimidate": 1.4, "warn": 0.5}, allies=2,
+            disposition={"intimidate": 1.4, "warn": 0.5},
+            allies=2,
         )
         assert dc.method_weights["call_for_help"] > dc.method_weights["flee"]
         assert dc.method_weights["intimidate"] > dc.method_weights["flee"]
@@ -106,8 +109,10 @@ class TestProducer:
     def test_t7_pure_function_determinism(self):
         """T7 (A/A): одинаковые входы → байт-идентичный результат."""
         args = dict(
-            state=_state(), rel={"guard_borko": {"fear": 65.0}},
-            disposition={"warn": 0.5}, allies=1,
+            state=_state(),
+            rel={"guard_borko": {"fear": 65.0}},
+            disposition={"warn": 0.5},
+            allies=1,
         )
         a = ThreatDesiredChangeProducer.resolve(**args)
         b = ThreatDesiredChangeProducer.resolve(**args)
@@ -119,7 +124,10 @@ class TestProducer:
         """T8 (CS2): to_modifiers — чистые числа по Modifier Contract;
         None → пустой dict (no-op для DecisionHub)."""
         dc = ThreatDesiredChangeProducer.resolve(
-            _state(), rel={"guard_borko": {"fear": 65.0}}, disposition={}, allies=0,
+            _state(),
+            rel={"guard_borko": {"fear": 65.0}},
+            disposition={},
+            allies=0,
         )
         mods = ThreatDesiredChangeProducer.to_modifiers(dc)
         assert isinstance(mods, dict)

@@ -25,7 +25,7 @@ def build_context(
     recent_memory: Optional[List[Any]] = None,
     reaction_order: Optional[List[Any]] = None,
     forced_first_speaker: Optional[str] = None,
-    relationship_store: Any = None, # Phase 8.2: Инъекция для SocialSubscriber
+    relationship_store: Any = None,  # Phase 8.2: Инъекция для SocialSubscriber
 ) -> "PipelineContext":
     """
     Собирает единый context dict для DM и NPC агентов.

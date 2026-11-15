@@ -14,6 +14,7 @@ from app.services.truth_state_loader import TruthStateLoader
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CANON_PATH = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
 
+
 class TestP701TruthState:
     """P7-01: Тесты канонической истины и загрузчика."""
 
@@ -59,9 +60,9 @@ class TestP701TruthState:
 
     def test_truth_state_immutable(self, truth_state: TruthState):
         """Инвариант: TruthState неизменяем после загрузки (MappingProxyType)."""
-        with pytest.raises(TypeError): # MappingProxyType бросает TypeError при попытке мутации
+        with pytest.raises(TypeError):  # MappingProxyType бросает TypeError при попытке мутации
             truth_state.secrets["new"] = Secret("new", "npc", ("npc",), "cat", "truth", 0.5, (), ())
-            
+
         with pytest.raises(AttributeError):
             truth_state.relations = ()
 
@@ -80,6 +81,7 @@ class TestP701TruthState:
     def test_schema_version_exists(self):
         """Инвариант: JSON содержит schema_version."""
         import json
+
         with open(CANON_PATH, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
         assert "schema_version" in data, "schema_version отсутствует в JSON"
@@ -93,7 +95,9 @@ class TestP701TruthState:
     def test_strength_in_valid_range(self, truth_state: TruthState):
         """Инвариант: strength связей находится в диапазоне 0.0..1.0."""
         for rel in truth_state.relations:
-            assert 0.0 <= rel.strength <= 1.0, f"Strength out of range for {rel.source_secret_id} -> {rel.target_secret_id}"
+            assert 0.0 <= rel.strength <= 1.0, (
+                f"Strength out of range for {rel.source_secret_id} -> {rel.target_secret_id}"
+            )
 
     def test_participants_not_empty(self, truth_state: TruthState):
         """Инвариант: Каждый секрет имеет хотя бы одного участника."""

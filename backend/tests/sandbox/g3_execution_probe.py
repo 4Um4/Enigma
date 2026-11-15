@@ -30,9 +30,7 @@ _WINDUP_KEY = f"{_CAMPAIGN}::{_ACTOR}"
 _STEAL_WINDUP_TICKS = 2
 
 
-def _inject_steal_windup(
-    scene: Dict[str, Any], tick: int
-) -> Optional[str]:
+def _inject_steal_windup(scene: Dict[str, Any], tick: int) -> Optional[str]:
     """Инжект PENDING-steal-windup + held-intent в scene_state (Э6-путь
     S203.4; commitment-зеркало обходим — гейтовано чужими env-флагами;
     для ядра достаточно windup+held). Возвращает held_intent_id."""
@@ -59,9 +57,7 @@ def _inject_steal_windup(
         status=WindupStatus.PENDING,
         held_intent_id=_intent_id,
     )
-    scene.setdefault("windup_registry", {}).setdefault(_WINDUP_KEY, []).append(
-        _windup.to_dict()
-    )
+    scene.setdefault("windup_registry", {}).setdefault(_WINDUP_KEY, []).append(_windup.to_dict())
     return _intent_id
 
 
@@ -106,13 +102,9 @@ def _run_rail(flag: str) -> Dict[str, Any]:
             # Фактический ключ сцены — из живого post-tick слепка
             # (S242-fix-прецедент: константа харнесса не является ключом).
             _loc_key = (
-                _h._last_tick_scene.get("location_id")
-                if isinstance(_h._last_tick_scene, dict)
-                else None
+                _h._last_tick_scene.get("location_id") if isinstance(_h._last_tick_scene, dict) else None
             ) or _LOCATION
-            _scene = _h.game_loop.scene_manager.get_scene_state(
-                _CAMPAIGN, _loc_key
-            )
+            _scene = _h.game_loop.scene_manager.get_scene_state(_CAMPAIGN, _loc_key)
             if not isinstance(_scene, dict):
                 # Честная диагностика вместо NPE (L4): сцена не поднялась.
                 _report["spawned"] = False
@@ -122,14 +114,10 @@ def _run_rail(flag: str) -> Dict[str, Any]:
                 _report["chair_exists"] = False
                 return _report
             _tick = int(_scene.get("tick", 0) or 0) + 1
-            _report["spawned"] = _h.spawn_world_object(
-                _CHAIR_ID, "chair", (8.2, 12.8)
-            )
+            _report["spawned"] = _h.spawn_world_object(_CHAIR_ID, "chair", (8.2, 12.8))
             # Спавн сохраняет сцену; пере-читаем канон (tick мог двинуться
             # при save-контуре — берём свежий dict).
-            _scene = _h.game_loop.scene_manager.get_scene_state(
-                _CAMPAIGN, _loc_key
-            ) or _scene
+            _scene = _h.game_loop.scene_manager.get_scene_state(_CAMPAIGN, _loc_key) or _scene
             _inject_steal_windup(_scene, _tick)
             _h.game_loop.scene_manager.save_scene_state(_CAMPAIGN, _scene)
             # Окно windup (2 тика) + релиз + commit.
@@ -137,9 +125,7 @@ def _run_rail(flag: str) -> Dict[str, Any]:
             _fresh = _h.get_scene_fresh() or _h.get_scene()
             _report["holder_after"] = _holder_of(_fresh)
             _report["theft_events"] = len(_theft)
-            _report["chair_exists"] = bool(
-                (_fresh or {}).get("world_objects", {}).get(_CHAIR_ID)
-            )
+            _report["chair_exists"] = bool((_fresh or {}).get("world_objects", {}).get(_CHAIR_ID))
     finally:
         os.environ.pop("W3_G3_ENABLED", None)
     return _report
@@ -158,10 +144,7 @@ def main() -> int:
     _ok_on = _on["holder_after"] == _ACTOR and _on["theft_events"] >= 1
     print(f"[G3-PROBE] OFF: {_off}")
     print(f"[G3-PROBE] ON:  {_on}")
-    print(
-        f"[G3-PROBE] verdict: "
-        f"{'GREEN' if (_ok_off and _ok_on) else 'RED'}"
-    )
+    print(f"[G3-PROBE] verdict: {'GREEN' if (_ok_off and _ok_on) else 'RED'}")
     return 0 if (_ok_off and _ok_on) else 1
 
 

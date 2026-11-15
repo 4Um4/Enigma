@@ -41,9 +41,7 @@ def test_empty_reaction_skipped():
     _seen = _subscribe_recorder()
     mem = _MemStub()
     npcs = [{"npc_id": "merchant_goran", "name": "Купец Горан"}]
-    write_npc_reactions_to_memory(
-        mem, ["Купец Горан:", "Купец Горан:   "], npcs, "test_ft3"
-    )
+    write_npc_reactions_to_memory(mem, ["Купец Горан:", "Купец Горан:   "], npcs, "test_ft3")
     assert _seen == [], "пустая реакция опубликована как NPC_SPOKE (FT-3 жив)"
     assert mem.turns == [], "пустой ход записан в STM-сессию (FT-3 жив)"
 

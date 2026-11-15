@@ -14,6 +14,7 @@ S369: WhiteSpot creation on /resolve LEAVE_WHITE_SPOT + EntityRef perelink.
 
 Регрессия S369: до фикса doc.white_spots всегда []; EntityRef не перелинковывался.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -42,6 +43,7 @@ from app.services.chronicle.chronicle_store import ChronicleStore
 
 # ── Fixture: сброс глобального store между тестами ──────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def _reset_store_global():
     """Изоляция тестов: сброс routes_chronicle._store до и после."""
@@ -52,6 +54,7 @@ def _reset_store_global():
 
 
 # ── Хелперы ─────────────────────────────────────────────────────────────────
+
 
 def _make_store(tmp_path: Path) -> ChronicleStore:
     canonical_dir = tmp_path / "canon"
@@ -109,6 +112,7 @@ async def _resolve(store: ChronicleStore, req: ResolveRequest) -> dict:
 
 # ── Тесты ────────────────────────────────────────────────────────────────────
 
+
 def test_s369_leave_white_spot_creates_white_spot_and_relinks(tmp_path):
     """LEAVE_WHITE_SPOT: WhiteSpot создан, EntityRef перелинкован на WHITE_SPOT."""
     store = _make_store(tmp_path)
@@ -157,8 +161,11 @@ def test_s369_leave_white_spot_idempotent(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="LEAVE_WHITE_SPOT", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="LEAVE_WHITE_SPOT",
+        selected_value=None,
     )
     asyncio.run(_resolve(store, req))
     # Второй вызов — вопрос уже убран, должен дать 404 (не дублировать)
@@ -176,8 +183,11 @@ def test_s369_select_existing_npc_relinks_to_resolved(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="SELECT_EXISTING_NPC", selected_value="maid_lusya",
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="SELECT_EXISTING_NPC",
+        selected_value="maid_lusya",
     )
     result = asyncio.run(_resolve(store, req))
     assert result["status"] == "OK"
@@ -196,8 +206,11 @@ def test_s369_select_existing_npc_requires_value(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="SELECT_EXISTING_NPC", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="SELECT_EXISTING_NPC",
+        selected_value=None,
     )
     with pytest.raises(Exception) as exc_info:
         asyncio.run(_resolve(store, req))
@@ -212,8 +225,11 @@ def test_s369_unknown_person_relinks(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="UNKNOWN_PERSON", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="UNKNOWN_PERSON",
+        selected_value=None,
     )
     asyncio.run(_resolve(store, req))
 
@@ -230,8 +246,11 @@ def test_s369_create_new_npc_relinks_to_unknown_person_placeholder(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="CREATE_NEW_NPC", selected_value="новый_старец",
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="CREATE_NEW_NPC",
+        selected_value="новый_старец",
     )
     asyncio.run(_resolve(store, req))
 
@@ -248,8 +267,11 @@ def test_s369_unknown_option_returns_422(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="INVALID_OPTION", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="INVALID_OPTION",
+        selected_value=None,
     )
     with pytest.raises(Exception):
         asyncio.run(_resolve(store, req))
@@ -262,8 +284,11 @@ def test_s369_question_not_found_returns_404(tmp_path):
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="nonexistent_q",
-        selected_option="LEAVE_WHITE_SPOT", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="nonexistent_q",
+        selected_option="LEAVE_WHITE_SPOT",
+        selected_value=None,
     )
     with pytest.raises(Exception):
         asyncio.run(_resolve(store, req))
@@ -287,19 +312,27 @@ def test_s369_object_id_relink_when_subject_does_not_match(tmp_path):
         kind=EntryKind.EVENT,
         subject_id=EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="actor_id", name_hint="агрессор"),
         object_id=EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="жертва"),
-        historical_age=20, payload={},
+        historical_age=20,
+        payload={},
         provenance=EntryProvenance.AUTHOR_AUTHORED,
         open_questions=(question,),
     )
     doc = ChronicleDocument(
-        chronicle_id="test_npc", npc_ref="test_npc", author_text="фрагмент",
-        entries=(entry,), white_spots=(), schema_version=SCHEMA_VERSION,
+        chronicle_id="test_npc",
+        npc_ref="test_npc",
+        author_text="фрагмент",
+        entries=(entry,),
+        white_spots=(),
+        schema_version=SCHEMA_VERSION,
     )
     store.save_draft(doc, "camp")
 
     req = ResolveRequest(
-        campaign_id="camp", npc_id="test_npc", question_id="q1",
-        selected_option="LEAVE_WHITE_SPOT", selected_value=None,
+        campaign_id="camp",
+        npc_id="test_npc",
+        question_id="q1",
+        selected_option="LEAVE_WHITE_SPOT",
+        selected_value=None,
     )
     asyncio.run(_resolve(store, req))
 

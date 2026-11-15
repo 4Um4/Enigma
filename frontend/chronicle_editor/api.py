@@ -3,6 +3,7 @@
 Назначение: клиент chronicle-эндпоинтов (поверх HttpClient; Закон 1.1 — только DTO).
 Зависимости: frontend.api_client
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -52,14 +53,11 @@ class ChronicleApi:
         except BackendError:
             return None
 
-    def understanding(self, campaign: str, format: str,
-                       source: str = "drafts") -> Optional[Dict[str, Any]]:
+    def understanding(self, campaign: str, format: str, source: str = "drafts") -> Optional[Dict[str, Any]]:
         """CCH-4.5: отчёт «поняла / не поняла» по каждому пункту автора
         (source=drafts — черновики; source=canon — что увидит сеялка)."""
         try:
-            return self._http.get(
-                f"/api/chronicle/{campaign}/understanding"
-                f"?format={format}&source={source}")
+            return self._http.get(f"/api/chronicle/{campaign}/understanding?format={format}&source={source}")
         except BackendError:
             return None
 
@@ -99,9 +97,7 @@ class ChronicleApi:
                 "selected_option": selected_option,
                 "selected_value": selected_value,
             }
-            resp = self._http.post(
-                f"/api/chronicle/{campaign}/{npc_id}/resolve", body
-            )
+            resp = self._http.post(f"/api/chronicle/{campaign}/{npc_id}/resolve", body)
             return resp.get("status") == "OK"
         except Exception:
             pass  # fallback на локальный путь
@@ -115,11 +111,13 @@ class ChronicleApi:
             for q in e.get("open_questions") or []:
                 if q.get("question_id") == question_id:
                     _resolved = e.setdefault("_resolved_questions", [])
-                    _resolved.append({
-                        "question_id": question_id,
-                        "selected_option": selected_option,
-                        "selected_value": selected_value,
-                    })
+                    _resolved.append(
+                        {
+                            "question_id": question_id,
+                            "selected_option": selected_option,
+                            "selected_value": selected_value,
+                        }
+                    )
                     changed = True
                 else:
                     _remaining.append(q)

@@ -8,6 +8,7 @@ path: backend/app/services/calibration/metrics/event_responsiveness.py
 Зависимости: .base, ..observability_tap.DECISION_EVENT_VALUES.
 Основные сущности: EventResponsiveness.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -51,10 +52,7 @@ class EventResponsiveness(CalibrationMetric):
             return None
         responsive = 0
         for i in event_ticks:
-            if (
-                self._ticks[i][1]
-                or (i + 1 < len(self._ticks) and self._ticks[i + 1][1])
-            ):
+            if self._ticks[i][1] or (i + 1 < len(self._ticks) and self._ticks[i + 1][1]):
                 responsive += 1
         return responsive / len(event_ticks)
 

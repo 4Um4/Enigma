@@ -9,6 +9,7 @@
     - Детерминизм (повторный прогон = та же proposition);
     - claim_id детерминирован от event.id.
 """
+
 import dataclasses
 import pytest
 from unittest.mock import MagicMock
@@ -19,9 +20,11 @@ from app.services.events.claim_event_subscriber import ClaimEventSubscriber
 
 # ── Mock Event (frozen dataclass — как настоящий EventDTO) ──────────────────
 
+
 @dataclasses.dataclass(frozen=True)
 class MockEvent:
     """Mock EventDTO для тестов. Frozen — dataclasses.replace работает."""
+
     id: str
     type: str = "PLAYER_SPOKE"
     source: str = "player"
@@ -46,6 +49,7 @@ def _make_subscriber():
 
 # ── 1. Free ASSERT path (главный тест USL-1.4) ──────────────────────────────
 
+
 def test_free_assert_builds_correct_proposition():
     """Free ASSERT (без DM-вектора) → proposition(player, ASSERTS, content)."""
     sub, engine, store = _make_subscriber()
@@ -53,10 +57,12 @@ def test_free_assert_builds_correct_proposition():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "content": "я украл хлеб вчера",
-        "action_type": "dialogue",
-    })
+    event = _make_event(
+        {
+            "content": "я украл хлеб вчера",
+            "action_type": "dialogue",
+        }
+    )
 
     sub.on_player_spoke(event)
 
@@ -75,16 +81,19 @@ def test_free_assert_creates_epistemic_record():
     sub, engine, store = _make_subscriber()
 
     call_count = [0]
-    original_on_claim = sub.on_claim_event
+
     def counting_on_claim(event):
         call_count[0] += 1
         # Не вызываем оригинал — он требует scene_state для spatial flow
+
     sub.on_claim_event = counting_on_claim
 
-    event = _make_event({
-        "content": "я работал на тебя пять лет",
-        "action_type": "dialogue",
-    })
+    event = _make_event(
+        {
+            "content": "я работал на тебя пять лет",
+            "action_type": "dialogue",
+        }
+    )
 
     sub.on_player_spoke(event)
 
@@ -99,10 +108,12 @@ def test_free_assert_empty_content_skipped():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "content": "",
-        "action_type": "dialogue",
-    })
+    event = _make_event(
+        {
+            "content": "",
+            "action_type": "dialogue",
+        }
+    )
 
     sub.on_player_spoke(event)
     assert len(captured) == 0
@@ -115,15 +126,18 @@ def test_free_assert_no_content_key_skipped():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "action_type": "dialogue",
-    })
+    event = _make_event(
+        {
+            "action_type": "dialogue",
+        }
+    )
 
     sub.on_player_spoke(event)
     assert len(captured) == 0
 
 
 # ── 2. DM-vector path не затронут (регрессия ADR-O-388) ─────────────────────
+
 
 def test_dm_vector_accuse_still_works():
     """DM-vector ACCUSE → Proposition(STOLE) — работает как прежде."""
@@ -132,12 +146,14 @@ def test_dm_vector_accuse_still_works():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "content": "ты украл!",
-        "action_type": "dialogue",
-        "semantic_action": "ACCUSE",
-        "target_reference": "orm",
-    })
+    event = _make_event(
+        {
+            "content": "ты украл!",
+            "action_type": "dialogue",
+            "semantic_action": "ACCUSE",
+            "target_reference": "orm",
+        }
+    )
 
     sub.on_player_spoke(event)
 
@@ -154,12 +170,14 @@ def test_dm_vector_threaten_still_works():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "content": "я тебя убью!",
-        "action_type": "dialogue",
-        "semantic_action": "THREATEN",
-        "target_reference": "orm",
-    })
+    event = _make_event(
+        {
+            "content": "я тебя убью!",
+            "action_type": "dialogue",
+            "semantic_action": "THREATEN",
+            "target_reference": "orm",
+        }
+    )
 
     sub.on_player_spoke(event)
 
@@ -176,12 +194,14 @@ def test_dm_vector_help_still_works():
     captured = []
     sub.on_claim_event = lambda e: captured.append(e)
 
-    event = _make_event({
-        "content": "я помогу тебе",
-        "action_type": "dialogue",
-        "semantic_action": "HELP",
-        "target_reference": "orm",
-    })
+    event = _make_event(
+        {
+            "content": "я помогу тебе",
+            "action_type": "dialogue",
+            "semantic_action": "HELP",
+            "target_reference": "orm",
+        }
+    )
 
     sub.on_player_spoke(event)
 
@@ -191,6 +211,7 @@ def test_dm_vector_help_still_works():
 
 
 # ── 3. USL-2: PLAYER_ASSERTION → CANON запрещён ────────────────────────────
+
 
 def test_free_assert_does_not_touch_canon():
     """Free ASSERT не пишет в TruthState/канон (USL-2).
@@ -205,6 +226,7 @@ def test_free_assert_does_not_touch_canon():
 
 
 # ── 4. Детерминизм (USL-6) ──────────────────────────────────────────────────
+
 
 def test_free_assert_deterministic_proposition():
     """Одинаковый event → одинаковая proposition (USL-6)."""
@@ -225,6 +247,7 @@ def test_free_assert_deterministic_proposition():
 
 
 # ── 5. claim_id уникален per event ─────────────────────────────────────────
+
 
 def test_claim_id_includes_event_id():
     """claim_id = 'player-claim-{event.id}' — детерминирован от event."""

@@ -2,6 +2,7 @@
 
 Спецификация: ADR-O-443, B1–B11 APPROVED (design v4 FINAL).
 """
+
 import sys
 from pathlib import Path
 
@@ -29,22 +30,41 @@ def _warn(result: list[str]) -> list[str]:
 
 
 # Class A — known forbidden prefixes (CRIT)
-@pytest.mark.parametrize("mod", [
-    "chromadb", "faiss", "pinecone", "weaviate", "qdrant_client", "qdrant",
-    "milvus", "pymilvus", "sentence_transformers", "gensim", "annoy",
-    "hnswlib", "lancedb", "marqo", "vespa", "pgvector",
-])
+@pytest.mark.parametrize(
+    "mod",
+    [
+        "chromadb",
+        "faiss",
+        "pinecone",
+        "weaviate",
+        "qdrant_client",
+        "qdrant",
+        "milvus",
+        "pymilvus",
+        "sentence_transformers",
+        "gensim",
+        "annoy",
+        "hnswlib",
+        "lancedb",
+        "marqo",
+        "vespa",
+        "pgvector",
+    ],
+)
 def test_class_a_top_level_import_is_crit(tmp_path, mod):
     _write(tmp_path, "m.py", f"import {mod}\n")
     r = run_lint(root=tmp_path)
     assert _crit(r), f"expected CRIT for import {mod}, got: {r}"
 
 
-@pytest.mark.parametrize("stmt", [
-    "import chromadb.client\n",
-    "import chromadb.client as cc\n",
-    "from chromadb.client import Client\n",
-])
+@pytest.mark.parametrize(
+    "stmt",
+    [
+        "import chromadb.client\n",
+        "import chromadb.client as cc\n",
+        "from chromadb.client import Client\n",
+    ],
+)
 def test_class_a_submodule_import_is_crit(tmp_path, stmt):
     _write(tmp_path, "m.py", stmt)
     r = run_lint(root=tmp_path)
@@ -52,11 +72,14 @@ def test_class_a_submodule_import_is_crit(tmp_path, stmt):
 
 
 # Class A: openai / cohere — только embeddings-контур (B9)
-@pytest.mark.parametrize("stmt", [
-    "import openai.embeddings\n",
-    "import openai.embeddings as oe\n",
-    "from openai.embeddings import create\n",
-])
+@pytest.mark.parametrize(
+    "stmt",
+    [
+        "import openai.embeddings\n",
+        "import openai.embeddings as oe\n",
+        "from openai.embeddings import create\n",
+    ],
+)
 def test_openai_embeddings_contour_is_crit(tmp_path, stmt):
     _write(tmp_path, "m.py", stmt)
     r = run_lint(root=tmp_path)
@@ -94,9 +117,16 @@ def test_b11_from_chromadb_import_client_uses_root(tmp_path):
 
 
 # Class B — heuristic (WARN, не CRIT) — B4
-@pytest.mark.parametrize("mod", [
-    "similarity_metrics", "my_embeddings_util", "vector_utils", "knn_lib", "chroma_helpers",
-])
+@pytest.mark.parametrize(
+    "mod",
+    [
+        "similarity_metrics",
+        "my_embeddings_util",
+        "vector_utils",
+        "knn_lib",
+        "chroma_helpers",
+    ],
+)
 def test_class_b_heuristic_is_warn_not_crit(tmp_path, mod):
     _write(tmp_path, "m.py", f"import {mod}\n")
     r = run_lint(root=tmp_path)
@@ -142,7 +172,7 @@ def test_dynamic_import_alias_from_importlib_lm(tmp_path):
 
 
 def test_dynamic_import_non_literal_is_warn(tmp_path):
-    _write(tmp_path, "m.py", 'import importlib\nname = get_name()\nimportlib.import_module(name)\n')
+    _write(tmp_path, "m.py", "import importlib\nname = get_name()\nimportlib.import_module(name)\n")
     r = run_lint(root=tmp_path)
     assert _crit(r) == [], f"non-literal должен быть WARN, не CRIT: {r}"
     assert _warn(r), f"non-literal должен дать WARN: {r}"
@@ -155,27 +185,43 @@ def test_dynamic_import_stdlib_literal_not_flagged(tmp_path):
 
 
 # Class D — artifacts (B1)
-@pytest.mark.parametrize("literal", [
-    '"vectors.faiss"', '"hnsw.index"', '"chroma.sqlite3"', '"embeddings.db"',
-])
+@pytest.mark.parametrize(
+    "literal",
+    [
+        '"vectors.faiss"',
+        '"hnsw.index"',
+        '"chroma.sqlite3"',
+        '"embeddings.db"',
+    ],
+)
 def test_artifact_vector_specific_is_crit(tmp_path, literal):
     _write(tmp_path, "m.py", f"p = {literal}\n")
     r = run_lint(root=tmp_path)
     assert _crit(r), f"expected CRIT for {literal}: {r}"
 
 
-@pytest.mark.parametrize("literal", [
-    '"npc_profile.pkl"', '"world_coordinates.npy"', '"my_ann_data.ann"',
-])
+@pytest.mark.parametrize(
+    "literal",
+    [
+        '"npc_profile.pkl"',
+        '"world_coordinates.npy"',
+        '"my_ann_data.ann"',
+    ],
+)
 def test_artifact_common_no_context_not_flagged(tmp_path, literal):
     _write(tmp_path, "m.py", f"p = {literal}\n")
     r = run_lint(root=tmp_path)
     assert r == [], f"{literal} без vector-context не должен ловиться: {r}"
 
 
-@pytest.mark.parametrize("literal", [
-    '"faiss_index.pkl"', '"embeddings.npy"', '"vector_data.ann"',
-])
+@pytest.mark.parametrize(
+    "literal",
+    [
+        '"faiss_index.pkl"',
+        '"embeddings.npy"',
+        '"vector_data.ann"',
+    ],
+)
 def test_artifact_common_with_context_is_crit(tmp_path, literal):
     _write(tmp_path, "m.py", f"p = {literal}\n")
     r = run_lint(root=tmp_path)

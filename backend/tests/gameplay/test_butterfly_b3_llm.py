@@ -65,6 +65,7 @@ Verdicts:
 через единственность пары + порядок публикации.
 PRODUCTION-FIX для 100% корреляции — отдельная архитектурная задача.
 """
+
 from __future__ import annotations
 
 import ast
@@ -120,11 +121,11 @@ def _verifier_msg(record: logging.LogRecord) -> str:
 
 def _extract_prop_from_verifier_msg(msg: str) -> dict:
     """Извлечь proposition dict из verifier log message.
-    
+
     PropositionVerifier.verify(proposition: dict[str, Any], text) — proposition это dict.
     Логирование (proposition_verifier.py L121,128,133,107,113):
       logger.info("verify -> YES (confirmed). prop=%s text_head=%r", proposition, ...)
-    
+
     Тип: dict[str, Any] (L89). Источник: post_decision.py L204-L208 — плоский dict, 4 поля.
     str(dict) -> Python repr -> ast.literal_eval.
     Сбалансированный поиск скобок — надежнее регекса, обрабатывает вложенные dict.
@@ -163,26 +164,25 @@ def _match_prop(verifier_prop: dict, expected: dict) -> bool:
     """Сопоставить key fields proposition (subject_id, predicate, object_id)."""
     if not verifier_prop or not expected:
         return False
-    return all(
-        verifier_prop.get(_f) == expected.get(_f)
-        for _f in _PROPOSITION_KEY_FIELDS
-    )
+    return all(verifier_prop.get(_f) == expected.get(_f) for _f in _PROPOSITION_KEY_FIELDS)
 
 
 def _spy_npc_spoke(event: Any) -> None:
     """Capture NPC_SPOKE. event.source = speaker_id (NPC ID)."""
     global _GLOBAL_CAPTURE_ORDER
     _pl = getattr(event, "payload", {}) or {}
-    SPY_SPOKE.append({
-        "_global_order": _GLOBAL_CAPTURE_ORDER,
-        "source": getattr(event, "source", "?"),
-        "target_id": _pl.get("target_id"),
-        "text": _pl.get("text", ""),
-        "intent_type": _pl.get("intent_type"),
-        "topic": _pl.get("topic"),
-        "exposure": _pl.get("exposure"),
-        "tone": _pl.get("tone"),
-    })
+    SPY_SPOKE.append(
+        {
+            "_global_order": _GLOBAL_CAPTURE_ORDER,
+            "source": getattr(event, "source", "?"),
+            "target_id": _pl.get("target_id"),
+            "text": _pl.get("text", ""),
+            "intent_type": _pl.get("intent_type"),
+            "topic": _pl.get("topic"),
+            "exposure": _pl.get("exposure"),
+            "tone": _pl.get("tone"),
+        }
+    )
     _GLOBAL_CAPTURE_ORDER += 1
 
 
@@ -191,19 +191,22 @@ def _spy_comm_claim(event: Any) -> None:
     global _GLOBAL_CAPTURE_ORDER
     _pl = getattr(event, "payload", {}) or {}
     _prop = _pl.get("proposition") or {}
-    SPY_CLAIM.append({
-        "_global_order": _GLOBAL_CAPTURE_ORDER,
-        "source": getattr(event, "source", "?"),
-        "target_id": _pl.get("target_id"),
-        "proposition": _prop,
-        "verified_by": _pl.get("verified_by", "?"),
-    })
+    SPY_CLAIM.append(
+        {
+            "_global_order": _GLOBAL_CAPTURE_ORDER,
+            "source": getattr(event, "source", "?"),
+            "target_id": _pl.get("target_id"),
+            "proposition": _prop,
+            "verified_by": _pl.get("verified_by", "?"),
+        }
+    )
     _GLOBAL_CAPTURE_ORDER += 1
 
 
 def _install_spies() -> None:
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
+
     _bus = get_event_bus()
     _bus.subscribe(EventType.NPC_SPOKE, _spy_npc_spoke)
     _bus.subscribe(EventType.COMMUNICATION_CLAIM, _spy_comm_claim)
@@ -216,6 +219,7 @@ def _uninstall_spies() -> None:
         return
     try:
         from app.services.events.event_bus import get_event_bus
+
         _bus = get_event_bus()
         for _et, _handler in _SUBSCRIBED_SPIES:
             try:
@@ -231,6 +235,7 @@ def _uninstall_spies() -> None:
 def _backup_dispositions() -> None:
     global _ORIG_DISPOSITIONS
     from app.domain import epistemic_dispositions as _ed
+
     _ORIG_DISPOSITIONS = copy.deepcopy(_ed.EPISTEMIC_DISPOSITIONS)
 
 
@@ -242,6 +247,7 @@ def _restore_dispositions() -> None:
         return
     try:
         from app.domain import epistemic_dispositions as _ed
+
         _ed.EPISTEMIC_DISPOSITIONS.clear()
         _ed.EPISTEMIC_DISPOSITIONS.update(copy.deepcopy(_ORIG_DISPOSITIONS))
     except Exception as _e:
@@ -252,13 +258,18 @@ def _restore_dispositions() -> None:
 
 def _override_witness_disposition() -> None:
     """TEST FIXTURE (Решение Мастера 1): maid disposition override.
-    
+
     НЕ proof автономности spread_rumor. Production НЕ меняется (restore в finally).
     """
     from app.domain import epistemic_dispositions as _ed
+
     _ed.EPISTEMIC_DISPOSITIONS["maid"] = {
-        "report": 0.0, "warn": 0.0, "attack": 0.0,
-        "spread_rumor": 1.4, "talk": 0.8, "intimidate": 0.0,
+        "report": 0.0,
+        "warn": 0.0,
+        "attack": 0.0,
+        "spread_rumor": 1.4,
+        "talk": 0.8,
+        "intimidate": 0.0,
     }
     print("[OVERRIDE] maid: spread_rumor=1.4 (TEST FIXTURE — не proof автономности)")
 
@@ -268,22 +279,25 @@ def _check_llm_health_http() -> bool:
     try:
         from app.services.llm.health import check_llm_health
         from app.core.config import settings
+
         _result = check_llm_health(use_cache=False)
         _status = _result.get("status", "")
         _url = _result.get("url", "")
         _model = _result.get("model", "unknown")
         print(f"[PRE-FLIGHT] LLM health: status={_status} url={_url} model={_model}")
-        
+
         if _status != "online":
             print(f"[PRE-FLIGHT] FAIL: status={_status}")
             return False
-        
+
         # Шаг 1: settings.llama_cpp_port ДОЛЖЕН быть 8181 (требование Мастера)
         if settings.llama_cpp_port != _B3_REQUIRED_PORT:
-            print(f"[PRE-FLIGHT] FAIL: settings.llama_cpp_port={settings.llama_cpp_port} "
-                  f"!= {_B3_REQUIRED_PORT} (B3 требует именно :{_B3_REQUIRED_PORT})")
+            print(
+                f"[PRE-FLIGHT] FAIL: settings.llama_cpp_port={settings.llama_cpp_port} "
+                f"!= {_B3_REQUIRED_PORT} (B3 требует именно :{_B3_REQUIRED_PORT})"
+            )
             return False
-        
+
         # Шаг 2: URL port должен совпадать с 8181
         _parsed = urlparse(_url)
         if _parsed.port != _B3_REQUIRED_PORT:
@@ -292,7 +306,7 @@ def _check_llm_health_http() -> bool:
         if _parsed.hostname != "localhost":
             print(f"[PRE-FLIGHT] FAIL: hostname={_parsed.hostname} != localhost")
             return False
-        
+
         return True
     except Exception as _e:
         print(f"[PRE-FLIGHT] LLM health check failed: {_e}")
@@ -306,6 +320,7 @@ def _check_b3_approved() -> bool:
 def _check_file_logs_enabled() -> bool:
     try:
         from app.core.log_gate import file_logs_enabled
+
         return file_logs_enabled()
     except Exception:
         return False
@@ -314,6 +329,7 @@ def _check_file_logs_enabled() -> bool:
 def _get_log_file_path() -> Optional[str]:
     try:
         from app.services.logging_tools import LOG_FILE
+
         return str(LOG_FILE)
     except Exception:
         return None
@@ -361,6 +377,7 @@ def _publish_player_insults(
     from app.domain.events import EventDTO
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
+
     _payload = {
         "target_id": target_id,
         "action_type": "player_insults",
@@ -399,7 +416,7 @@ def _clear_spies_and_state() -> Any:
 
 class TestButterflyB3LLM:
     """B3: production LLM integration — semantic chain verification."""
-    
+
     def test_pre_flight_all_conditions(self) -> None:
         """Pre-flight: все условия запуска."""
         if not _check_b3_approved():
@@ -409,10 +426,10 @@ class TestButterflyB3LLM:
         if not _check_llm_health_http():
             pytest.skip("LLM-server не отвечает на :8181/v1/models")
         print("[PRE-FLIGHT] Все условия выполнены")
-    
+
     def test_b3_semantic_chain_player_to_tornin(self, caplog: Any) -> None:
         """B3 — production LLM semantic chain.
-        
+
         VERDICT (по Мастеру):
           PASS: 6 условий + single_pair + precedes + verifier_yes_for_prop -> B3 закрыт
           PARTIAL: verifier_rejected_for_prop + partial_single_speech + claim suppressed
@@ -426,175 +443,166 @@ class TestButterflyB3LLM:
             pytest.skip("ENIGMA_DISABLE_FILE_LOGS=1 — JSONL отключён")
         if not _check_llm_health_http():
             pytest.skip("LLM-server не отвечает на :8181/v1/models")
-        
+
         # SETUP — _h = None изначально, весь setup в try/finally
         _h: Optional[TavernGameplayHarness] = None
         _log_offset = _snapshot_log_size()
-        
+
         try:
             _backup_dispositions()
             _h = TavernGameplayHarness(seed=42, location="tavern")
             _h.new_game()
             _install_spies()
             _override_witness_disposition()
-            
+
             # WARMUP + PUBLISH + ADVANCE
             _h.advance_ticks(2)
             _publish_player_insults(_h, _VICTIM, radius=15.0)
-            
+
             caplog.clear()
-            with caplog.at_level(
-                logging.DEBUG,
-                logger="app.services.cognition.proposition_verifier"
-            ):
+            with caplog.at_level(logging.DEBUG, logger="app.services.cognition.proposition_verifier"):
                 _t_start = time.monotonic()
                 _h.advance_ticks(8)
                 _elapsed = time.monotonic() - _t_start
             print(f"[B3] advance_ticks(8) с production LLM: {_elapsed:.1f}s")
-            
+
             # JSONL (isolation — бинарное чтение после offset)
             _jsonl_entries = _read_jsonl_log_after_offset(_log_offset)
             _dialogue_calls = [
-                e for e in _jsonl_entries
-                if e.get("agent") == "llm_output" and e.get("npc_id") != "verifier"
+                e for e in _jsonl_entries if e.get("agent") == "llm_output" and e.get("npc_id") != "verifier"
             ]
             _verifier_llm_calls = [
-                e for e in _jsonl_entries
-                if e.get("agent") == "llm_output" and e.get("npc_id") == "verifier"
+                e for e in _jsonl_entries if e.get("agent") == "llm_output" and e.get("npc_id") == "verifier"
             ]
-            print(f"[CHECK] JSONL (current run): {len(_dialogue_calls)} dialogue calls, "
-                  f"{len(_verifier_llm_calls)} verifier LLM calls")
+            print(
+                f"[CHECK] JSONL (current run): {len(_dialogue_calls)} dialogue calls, "
+                f"{len(_verifier_llm_calls)} verifier LLM calls"
+            )
             print(f"[CHECK] JSONL total entries: {len(_jsonl_entries)}")
             for _e in _jsonl_entries[:5]:
-                print(f"  JSONL entry: agent={_e.get('agent')} npc_id={_e.get('npc_id')} "
-                      f"latency={_e.get('latency')}")
-            
+                print(f"  JSONL entry: agent={_e.get('agent')} npc_id={_e.get('npc_id')} latency={_e.get('latency')}")
+
             # Ожидаемая Proposition из PLAYER_INSULTS (post_decision.py L204-L208)
             _expected_prop = {
                 "subject_id": _PLAYER,
                 "predicate": "insulted",
                 "object_id": _VICTIM,
             }
-            
+
             # CAPLOG verifier (getMessage() + точные префиксы startswith)
-            _verifier_records = [
-                r for r in caplog.records
-                if "proposition_verifier" in r.name
-            ]
+            _verifier_records = [r for r in caplog.records if "proposition_verifier" in r.name]
             _verifier_yes = [r for r in _verifier_records if _verifier_msg(r).startswith(_VERIFIER_YES_PREFIX)]
             _verifier_no = [r for r in _verifier_records if _verifier_msg(r).startswith(_VERIFIER_NO_PREFIX)]
             _verifier_amb = [r for r in _verifier_records if _verifier_msg(r).startswith(_VERIFIER_AMB_PREFIX)]
             _verifier_timeout = [r for r in _verifier_records if _verifier_msg(r).startswith(_VERIFIER_TIMEOUT_PREFIX)]
             _verifier_failed = [r for r in _verifier_records if _verifier_msg(r).startswith(_VERIFIER_FAILED_PREFIX)]
             _verifier_called = (
-                len(_verifier_yes) + len(_verifier_no) + len(_verifier_amb)
-                + len(_verifier_timeout) + len(_verifier_failed)
+                len(_verifier_yes)
+                + len(_verifier_no)
+                + len(_verifier_amb)
+                + len(_verifier_timeout)
+                + len(_verifier_failed)
             ) > 0
-            
+
             # Фильтрация verifier records по ожидаемой Proposition
             _verifier_yes_for_prop = [
-                r for r in _verifier_yes
+                r
+                for r in _verifier_yes
                 if _match_prop(_extract_prop_from_verifier_msg(_verifier_msg(r)), _expected_prop)
             ]
             _verifier_no_for_prop = [
-                r for r in _verifier_no
+                r
+                for r in _verifier_no
                 if _match_prop(_extract_prop_from_verifier_msg(_verifier_msg(r)), _expected_prop)
             ]
             _verifier_amb_for_prop = [
-                r for r in _verifier_amb
+                r
+                for r in _verifier_amb
                 if _match_prop(_extract_prop_from_verifier_msg(_verifier_msg(r)), _expected_prop)
             ]
             _verifier_timeout_for_prop = [
-                r for r in _verifier_timeout
+                r
+                for r in _verifier_timeout
                 if _match_prop(_extract_prop_from_verifier_msg(_verifier_msg(r)), _expected_prop)
             ]
             _verifier_failed_for_prop = [
-                r for r in _verifier_failed
+                r
+                for r in _verifier_failed
                 if _match_prop(_extract_prop_from_verifier_msg(_verifier_msg(r)), _expected_prop)
             ]
-            
+
             # PARTIAL classification (исправление Мастера — YES исключён)
             # Только отрицательные результаты (NO, AMBIGUOUS) — без YES
-            _verifier_rejected_for_prop = (
-                bool(_verifier_no_for_prop)
-                or bool(_verifier_amb_for_prop)
+            _verifier_rejected_for_prop = bool(_verifier_no_for_prop) or bool(_verifier_amb_for_prop)
+            _verifier_error_for_prop = bool(_verifier_timeout_for_prop) or bool(_verifier_failed_for_prop)
+            _verifier_partial_ready = _verifier_rejected_for_prop or _verifier_error_for_prop
+
+            print(f"[CHECK] Verifier caplog: total={len(_verifier_records)}, called={_verifier_called}")
+            print(
+                f"[CHECK] Verifier for expected prop ({_PLAYER}, INSULTED, {_VICTIM}): "
+                f"YES={len(_verifier_yes_for_prop)} (PASS path), "
+                f"NO={len(_verifier_no_for_prop)}, AMBIGUOUS={len(_verifier_amb_for_prop)}, "
+                f"timeout={len(_verifier_timeout_for_prop)}, "
+                f"failed={len(_verifier_failed_for_prop)}"
             )
-            _verifier_error_for_prop = (
-                bool(_verifier_timeout_for_prop)
-                or bool(_verifier_failed_for_prop)
+            print(
+                f"[CHECK] PARTIAL-ready: rejected={_verifier_rejected_for_prop}, "
+                f"error={_verifier_error_for_prop}, "
+                f"partial_ready={_verifier_partial_ready}"
             )
-            _verifier_partial_ready = (
-                _verifier_rejected_for_prop
-                or _verifier_error_for_prop
-            )
-            
-            print(f"[CHECK] Verifier caplog: total={len(_verifier_records)}, "
-                  f"called={_verifier_called}")
-            print(f"[CHECK] Verifier for expected prop ({_PLAYER}, INSULTED, {_VICTIM}): "
-                  f"YES={len(_verifier_yes_for_prop)} (PASS path), "
-                  f"NO={len(_verifier_no_for_prop)}, AMBIGUOUS={len(_verifier_amb_for_prop)}, "
-                  f"timeout={len(_verifier_timeout_for_prop)}, "
-                  f"failed={len(_verifier_failed_for_prop)}")
-            print(f"[CHECK] PARTIAL-ready: rejected={_verifier_rejected_for_prop}, "
-                  f"error={_verifier_error_for_prop}, "
-                  f"partial_ready={_verifier_partial_ready}")
             for _r in _verifier_records[:3]:
                 print(f"  verifier log: level={_r.levelname} msg={_verifier_msg(_r)[:120]!r}")
-            
+
             # SPY_SPOKE — все maid_lusya -> victim
             print(f"[CHECK] SPY_SPOKE total: {len(SPY_SPOKE)}")
             for s in SPY_SPOKE[:5]:
                 _text_head = (s["text"] or "")[:120]
-                print(f"  src={s['source']} tgt={s['target_id']} "
-                      f"intent={s['intent_type']} order={s['_global_order']} "
-                      f"text={_text_head!r}")
-            
+                print(
+                    f"  src={s['source']} tgt={s['target_id']} "
+                    f"intent={s['intent_type']} order={s['_global_order']} "
+                    f"text={_text_head!r}"
+                )
+
             _maid_speech_to_victim = [
-                s for s in SPY_SPOKE
-                if s["source"] == _WITNESS
-                and s["target_id"] == _VICTIM
-                and s["text"]
-                and s["text"].strip()
+                s
+                for s in SPY_SPOKE
+                if s["source"] == _WITNESS and s["target_id"] == _VICTIM and s["text"] and s["text"].strip()
             ]
             print(f"[CHECK] maid_lusya speech -> {_VICTIM}: {len(_maid_speech_to_victim)}")
-            
+
             # SPY_CLAIM — все maid_lusya -> victim
             print(f"[CHECK] SPY_CLAIM total: {len(SPY_CLAIM)}")
             for c in SPY_CLAIM[:5]:
                 _p = c["proposition"]
-                print(f"  src={c['source']} tgt={c['target_id']} "
-                      f"prop={_p.get('predicate')} verified_by={c['verified_by']} "
-                      f"order={c['_global_order']}")
-            
-            _maid_claim_to_victim = [
-                c for c in SPY_CLAIM
-                if c["source"] == _WITNESS
-                and c["target_id"] == _VICTIM
-            ]
+                print(
+                    f"  src={c['source']} tgt={c['target_id']} "
+                    f"prop={_p.get('predicate')} verified_by={c['verified_by']} "
+                    f"order={c['_global_order']}"
+                )
+
+            _maid_claim_to_victim = [c for c in SPY_CLAIM if c["source"] == _WITNESS and c["target_id"] == _VICTIM]
             print(f"[CHECK] maid_lusya claim -> {_VICTIM}: {len(_maid_claim_to_victim)}")
-            
+
             # Correlation checks
             _has_competing_speech = len(_maid_speech_to_victim) > 1
             _has_competing_claim = len(_maid_claim_to_victim) > 1
-            
+
             _precedes = False
             if _maid_speech_to_victim and _maid_claim_to_victim:
                 _speech_order = _maid_speech_to_victim[0]["_global_order"]
                 _claim_order = _maid_claim_to_victim[0]["_global_order"]
                 _precedes = _speech_order < _claim_order
-                print(f"[CHECK] Order: speech={_speech_order}, claim={_claim_order}, "
-                      f"precedes={_precedes}")
-            
-            _single_pair = (
-                len(_maid_speech_to_victim) == 1
-                and len(_maid_claim_to_victim) == 1
-            )
+                print(f"[CHECK] Order: speech={_speech_order}, claim={_claim_order}, precedes={_precedes}")
+
+            _single_pair = len(_maid_speech_to_victim) == 1 and len(_maid_claim_to_victim) == 1
             if _has_competing_speech or _has_competing_claim:
-                print(f"[CHECK] Competing replicas: "
-                      f"speech={len(_maid_speech_to_victim)}, "
-                      f"claim={len(_maid_claim_to_victim)} — "
-                      f"не можем доказать корреляцию")
-            
+                print(
+                    f"[CHECK] Competing replicas: "
+                    f"speech={len(_maid_speech_to_victim)}, "
+                    f"claim={len(_maid_claim_to_victim)} — "
+                    f"не можем доказать корреляцию"
+                )
+
             # 6 CONDITIONS FOR PASS
             _cond1_npc_spoke = len(_maid_speech_to_victim) > 0
             _cond2_comm_claim = len(_maid_claim_to_victim) > 0
@@ -609,77 +617,68 @@ class TestButterflyB3LLM:
                     and _p.get("subject_id") == _PLAYER
                     and _p.get("object_id") == _VICTIM
                 )
-            _cond6_correlated = (
-                _maid_speech_to_victim
-                and _maid_claim_to_victim
-                and _precedes
-                and _single_pair
-            )
-            
-            print(f"\n[VERDICT CHECK] 6 conditions:")
+            _cond6_correlated = _maid_speech_to_victim and _maid_claim_to_victim and _precedes and _single_pair
+
+            print("\n[VERDICT CHECK] 6 conditions:")
             print(f"  1. NPC_SPOKE maid->{_VICTIM}: {_cond1_npc_spoke}")
             print(f"  2. COMMUNICATION_CLAIM maid->{_VICTIM}: {_cond2_comm_claim}")
             print(f"  3. Verifier called (caplog): {_cond3_verifier_called}")
             print(f"  4. Verifier YES for prop: {_cond4_verifier_yes}")
             print(f"  5. Correct prop (player, INSULTED, {_VICTIM}): {_cond5_correct_prop}")
             print(f"  6. Correlated (precedes + single_pair): {_cond6_correlated}")
-            
+
             # VERDICT
-            if all([
-                _cond1_npc_spoke,
-                _cond2_comm_claim,
-                _cond3_verifier_called,
-                _cond4_verifier_yes,
-                _cond5_correct_prop,
-                _cond6_correlated,
-            ]):
+            if all(
+                [
+                    _cond1_npc_spoke,
+                    _cond2_comm_claim,
+                    _cond3_verifier_called,
+                    _cond4_verifier_yes,
+                    _cond5_correct_prop,
+                    _cond6_correlated,
+                ]
+            ):
                 # PASS: все 6 условий -> B3 закрыт
                 _c = _maid_claim_to_victim[0]
                 _p = _c["proposition"]
                 _text = _maid_speech_to_victim[0]["text"]
-                
-                print(f"\n[OK] B3 PASS: full semantic chain verified")
-                print(f"  Candidate Proposition: ({_p.get('subject_id')}, "
-                      f"{_p.get('predicate')}, {_p.get('object_id')})")
+
+                print("\n[OK] B3 PASS: full semantic chain verified")
+                print(
+                    f"  Candidate Proposition: ({_p.get('subject_id')}, {_p.get('predicate')}, {_p.get('object_id')})"
+                )
                 print(f"  -> LLM Dialogue: maid_lusya text_head={_text[:120]!r}")
-                print(f"  -> PropositionVerifier: YES (caplog confirmed, "
-                      f"{len(_verifier_yes_for_prop)} records)")
-                print(f"  -> COMMUNICATION_CLAIM: published, "
-                      f"verified_by={_c['verified_by']}")
-                print(f"  Correlation: single_pair + precedes (order "
-                      f"{_maid_speech_to_victim[0]['_global_order']} < "
-                      f"{_maid_claim_to_victim[0]['_global_order']})")
+                print(f"  -> PropositionVerifier: YES (caplog confirmed, {len(_verifier_yes_for_prop)} records)")
+                print(f"  -> COMMUNICATION_CLAIM: published, verified_by={_c['verified_by']}")
+                print(
+                    f"  Correlation: single_pair + precedes (order "
+                    f"{_maid_speech_to_victim[0]['_global_order']} < "
+                    f"{_maid_claim_to_victim[0]['_global_order']})"
+                )
                 print(f"  Latency: {_elapsed:.1f}s total")
-                print(f"  LLM calls: {len(_dialogue_calls)} dialogue, "
-                      f"{len(_verifier_llm_calls)} verifier")
-            
+                print(f"  LLM calls: {len(_dialogue_calls)} dialogue, {len(_verifier_llm_calls)} verifier")
+
             else:
                 # PARTIAL correlation: ровно одна речь, ноль claims
-                _partial_single_speech = (
-                    len(_maid_speech_to_victim) == 1
-                    and len(_maid_claim_to_victim) == 0
-                )
-                
-                if (
-                    _cond1_npc_spoke
-                    and _partial_single_speech
-                    and _verifier_partial_ready
-                    and not _cond2_comm_claim
-                ):
+                _partial_single_speech = len(_maid_speech_to_victim) == 1 and len(_maid_claim_to_victim) == 0
+
+                if _cond1_npc_spoke and _partial_single_speech and _verifier_partial_ready and not _cond2_comm_claim:
                     # PARTIAL: fail-closed confirmed для конкретной Proposition
                     _text = _maid_speech_to_victim[0]["text"]
-                    print(f"\n[B3 PARTIAL] fail-closed confirmed for expected Proposition:")
+                    print("\n[B3 PARTIAL] fail-closed confirmed for expected Proposition:")
                     print(f"  NPC_SPOKE published (maid_lusya text: {_text[:120]!r})")
-                    print(f"  Single speech (no competing): speech=1, claim=0")
-                    print(f"  Verifier for prop ({_PLAYER}, INSULTED, {_VICTIM}): "
-                          f"YES={len(_verifier_yes_for_prop)} (excluded), "
-                          f"NO={len(_verifier_no_for_prop)}, "
-                          f"AMBIGUOUS={len(_verifier_amb_for_prop)}, "
-                          f"timeout={len(_verifier_timeout_for_prop)}, "
-                          f"failed={len(_verifier_failed_for_prop)}")
-                    print(f"  COMMUNICATION_CLAIM suppressed (verifier rejected)")
-                    print(f"  Production fail-closed behaviour confirmed")
-                    print(f"  B3 НЕ закрыт — требуется PASS для закрытия")
+                    print("  Single speech (no competing): speech=1, claim=0")
+                    print(
+                        f"  Verifier for prop ({_PLAYER}, INSULTED, {_VICTIM}): "
+                        f"YES={len(_verifier_yes_for_prop)} (excluded), "
+                        f"NO={len(_verifier_no_for_prop)}, "
+                        f"AMBIGUOUS={len(_verifier_amb_for_prop)}, "
+                        f"timeout={len(_verifier_timeout_for_prop)}, "
+                        f"failed={len(_verifier_failed_for_prop)}"
+                    )
+                    print("  COMMUNICATION_CLAIM suppressed (verifier rejected)")
+                    print("  Production fail-closed behaviour confirmed")
+                    print("  B3 НЕ закрыт — требуется PASS для закрытия")
                     pytest.xfail(
                         "B3 PARTIAL: fail-closed confirmed for expected Proposition "
                         f"({_PLAYER}, INSULTED, {_VICTIM}). "
@@ -698,8 +697,7 @@ class TestButterflyB3LLM:
                     if _cond1_npc_spoke and _cond3_verifier_called and not _cond2_comm_claim:
                         if not _verifier_partial_ready:
                             _reasons.append(
-                                "verifier вызван, но нет отрицательного результата "
-                                "для ожидаемой Proposition"
+                                "verifier вызван, но нет отрицательного результата для ожидаемой Proposition"
                             )
                     if _has_competing_speech or _has_competing_claim:
                         _reasons.append(
@@ -707,10 +705,10 @@ class TestButterflyB3LLM:
                             f"claim={len(_maid_claim_to_victim)} — "
                             f"не можем доказать корреляцию"
                         )
-                    
+
                     pytest.fail(
-                        f"B3 FAIL: semantic chain broken.\n"
-                        f"  Reasons:\n    - " + "\n    - ".join(_reasons) + "\n"
+                        "B3 FAIL: semantic chain broken.\n"
+                        "  Reasons:\n    - " + "\n    - ".join(_reasons) + "\n"
                         f"  Diagnostics:\n"
                         f"    SPY_SPOKE total: {len(SPY_SPOKE)}\n"
                         f"    maid_lusya speech -> {_VICTIM}: {len(_maid_speech_to_victim)}\n"
@@ -733,13 +731,12 @@ class TestButterflyB3LLM:
                         f"correct_prop={_cond5_correct_prop}, "
                         f"correlated={_cond6_correlated}"
                     )
-            
+
             # LATENCY (единый timeout)
             assert _elapsed < 540.0, (
-                f"B3 FAIL: advance_ticks(8) took {_elapsed:.1f}s > 540s "
-                f"(10% запас от pytest --timeout=600)"
+                f"B3 FAIL: advance_ticks(8) took {_elapsed:.1f}s > 540s (10% запас от pytest --timeout=600)"
             )
-        
+
         finally:
             _uninstall_spies()
             _restore_dispositions()

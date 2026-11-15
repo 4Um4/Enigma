@@ -13,25 +13,29 @@ from typing import List, Mapping, Set, Tuple
 
 class RelationType(str, Enum):
     """Семантические типы связей между секретами."""
-    CAUSES = "CAUSES"           # A является причиной B
-    CONTRADICTS = "CONTRADICTS" # A противоречит B
-    DEPENDS_ON = "DEPENDS_ON"   # A зависит от B
-    REVEALS = "REVEALS"         # A раскрывает B
-    CONCEALS = "CONCEALS"       # A скрывает B
-    ENABLES = "ENABLES"         # A делает возможным B
-    EXPLAINS = "EXPLAINS"       # A объясняет B
+
+    CAUSES = "CAUSES"  # A является причиной B
+    CONTRADICTS = "CONTRADICTS"  # A противоречит B
+    DEPENDS_ON = "DEPENDS_ON"  # A зависит от B
+    REVEALS = "REVEALS"  # A раскрывает B
+    CONCEALS = "CONCEALS"  # A скрывает B
+    ENABLES = "ENABLES"  # A делает возможным B
+    EXPLAINS = "EXPLAINS"  # A объясняет B
+
 
 @dataclass(frozen=True)
 class Secret:
     secret_id: str
-    npc_id: str # Deprecated: использовать participants
+    npc_id: str  # Deprecated: использовать participants
     participants: Tuple[str, ...]
     category: str
     canonical_truth: str
     importance: float
     initial_holders: Tuple[str, ...]
-    discovery_surface: Tuple[str, ...] # Как это можно обнаружить
-    confession_keywords: Tuple[str, ...] = field(default_factory=tuple) # V8-MVP-CK1 FIX: Ключевые слова для парсинга признаний NPC
+    discovery_surface: Tuple[str, ...]  # Как это можно обнаружить
+    confession_keywords: Tuple[str, ...] = field(
+        default_factory=tuple
+    )  # V8-MVP-CK1 FIX: Ключевые слова для парсинга признаний NPC
     topics: Tuple[str, ...] = ()  # M1/P3: индекс предмета вопроса (НЕ discovery; закон ASKING != DISCOVERING)
 
 
@@ -42,9 +46,11 @@ class TruthRelation:
     relation_type: RelationType
     strength: float
 
+
 @dataclass(frozen=True)
 class TruthState:
     """Полная карта правды мира. Доступна ТОЛЬКО EvaluationEngine."""
+
     secrets: Mapping[str, Secret] = field(default_factory=dict)
     relations: Tuple[TruthRelation, ...] = field(default_factory=tuple)
     discovered_secrets: Set[str] = field(default_factory=set)  # M-02 FIX: Mutable set for discovered secrets

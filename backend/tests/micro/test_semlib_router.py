@@ -65,9 +65,7 @@ def test_router_empty_equals_golden_a_bytewise(monkeypatch, labels_file):
 
 def test_router_prov_equals_golden_b_bytewise(monkeypatch, labels_file):
     prompt = _build(monkeypatch, labels_file, "тест пров")
-    assert prompt == _GOLDEN_B.read_text(encoding="utf-8"), (
-        "ON+router(PROV) != golden B: шов роутера искажает сборку"
-    )
+    assert prompt == _GOLDEN_B.read_text(encoding="utf-8"), "ON+router(PROV) != golden B: шов роутера искажает сборку"
 
 
 def test_router_identity_is_neither_a_nor_b(monkeypatch, labels_file):

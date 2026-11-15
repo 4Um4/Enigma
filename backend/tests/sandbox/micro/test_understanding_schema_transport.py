@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/sandbox/micro/test_understanding_schema_transport.py
 Назначение: инвариант Schema — поля SemanticField (condition/tool/zone/proposition) доезжают до IntentParametersDTO; UNKNOWN остаётся None
 Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile, app.domain.epistemology
@@ -6,6 +6,7 @@ path: backend/tests/sandbox/micro/test_understanding_schema_transport.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_understanding_schema_transport.py -v --tb=short; cd ..
 """
+
 from app.domain.epistemology import Predicate, Proposition
 from app.domain.intent_profile import ActionType, IntentSemanticField, TargetZone
 from app.services.game_loop.phase_1_input import resolve_player_intent
@@ -20,13 +21,18 @@ def test_schema_fields_reach_dto():
         tool_reference="нож",
         target_zone=TargetZone.HEAD,
         proposition=Proposition(
-            subject_id="player", predicate=Predicate.ATTACKED,
-            object_id="maid_lusya", polarity=True,
+            subject_id="player",
+            predicate=Predicate.ATTACKED,
+            object_id="maid_lusya",
+            polarity=True,
         ),
     )
     resolution = resolve_player_intent(
-        raw_action="ткни ножом в глаз", action_type="player_attacks",
-        target="maid_lusya", player_dict=None, scene_context=None,
+        raw_action="ткни ножом в глаз",
+        action_type="player_attacks",
+        target="maid_lusya",
+        player_dict=None,
+        scene_context=None,
         semantic_field=sf,
     )
     p = resolution.original_intent.parameters
@@ -42,8 +48,12 @@ def test_schema_fields_reach_dto():
 def test_unknown_stays_none():
     sf = IntentSemanticField(action=ActionType.UNCERTAIN, raw_text="привет")
     resolution = resolve_player_intent(
-        raw_action="привет", action_type="player_interacts",
-        target="", player_dict=None, scene_context=None, semantic_field=sf,
+        raw_action="привет",
+        action_type="player_interacts",
+        target="",
+        player_dict=None,
+        scene_context=None,
+        semantic_field=sf,
     )
     p = resolution.original_intent.parameters
     assert p.condition is None
@@ -51,14 +61,23 @@ def test_unknown_stays_none():
     assert p.target_zone is None
     assert p.proposition_predicate is None
 
+
 def test_addressee_and_zone_raw_reach_dto():
     sf = IntentSemanticField(
-        action=ActionType.DIALOGUE, raw_text="Орм, стой", target="orm",
-        addressee="Орм", zone_raw="EAR_LEFT", target_zone=TargetZone.HEAD,
+        action=ActionType.DIALOGUE,
+        raw_text="Орм, стой",
+        target="orm",
+        addressee="Орм",
+        zone_raw="EAR_LEFT",
+        target_zone=TargetZone.HEAD,
     )
     resolution = resolve_player_intent(
-        raw_action="Орм, стой", action_type="player_interacts",
-        target="orm", player_dict=None, scene_context=None, semantic_field=sf,
+        raw_action="Орм, стой",
+        action_type="player_interacts",
+        target="orm",
+        player_dict=None,
+        scene_context=None,
+        semantic_field=sf,
     )
     p = resolution.original_intent.parameters
     assert p.addressee == "Орм"

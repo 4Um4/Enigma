@@ -132,9 +132,7 @@ class CommitmentArbiter:
         # флаг OFF → политика обойдена, путь ниже байтово идентичен S203.2.
         # Mutual-INTERRUPT невозможен конструктивно: приоритет скалярен (R8).
         if S203_4_ARBITER_INTERRUPT:
-            _is_dup = (
-                candidate_target is not None and candidate_target == incumbent_target
-            )
+            _is_dup = candidate_target is not None and candidate_target == incumbent_target
             _inc_executor = incumbent.get("executor") or ""
             _inc_priority = int(incumbent.get("priority") or 0)
             if not _is_dup:
@@ -147,13 +145,8 @@ class CommitmentArbiter:
                 # защита делала INTERRUPT недостижимым (коллизия с гейтом §5.3).
                 # POLICY, НЕ онтология: emergency-продюсер (смерть/травма/пожар/
                 # разрушение цели) расширит политику отдельным ADR.
-                _executing_protected = (
-                    incumbent_status == "EXECUTING" and _inc_executor != "traversal"
-                )
-                if (
-                    _inc_executor in _NON_INTERRUPTIBLE_EXECUTORS
-                    or _executing_protected
-                ):
+                _executing_protected = incumbent_status == "EXECUTING" and _inc_executor != "traversal"
+                if _inc_executor in _NON_INTERRUPTIBLE_EXECUTORS or _executing_protected:
                     # Два разных «нельзя» под одним reason (D-6): boundary
                     # (executor) и POLICY-защита EXECUTING не-traversal
                     # исполнителей.
@@ -200,10 +193,7 @@ class CommitmentArbiter:
                         incumbent_id=incumbent.get("commitment_id"),
                         incumbent_target=incumbent_target,
                     )
-                if (
-                    candidate_priority > 0
-                    and candidate_priority > _inc_priority + _threshold
-                ):
+                if candidate_priority > 0 and candidate_priority > _inc_priority + _threshold:
                     logger.info(
                         f"[ARBITER_INTERRUPT] tick={tick} npc={npc_id} "
                         f"candidate_target={candidate_target} "
@@ -263,9 +253,7 @@ class CommitmentArbiter:
         """
         # S203.2 финализация: диагностика вызовов гейта — удалена (print-зонд
         # выполнил миссию: 1006 calls / 359 rejects на 200 тиков, A/B доказан).
-        result = CommitmentArbiter.arbitrate(
-            scene_state, npc_id, candidate_target, candidate_source, tick
-        )
+        result = CommitmentArbiter.arbitrate(scene_state, npc_id, candidate_target, candidate_source, tick)
         if result.verdict == VERDICT_PASS:
             return True
         # REJECT: LOG_ONLY — всегда разрешить (замер частоты в логах);

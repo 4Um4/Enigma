@@ -8,6 +8,7 @@ path: /backend/app/services/llm/mock_provider.py
 Зависимости: app.services.llm.provider
 Основные сущности: MockProvider, MockConfig
 """
+
 from __future__ import annotations
 
 import time
@@ -155,6 +156,7 @@ class MockProvider(StreamingLlmProvider):
             # канон L0'-vs-L1' дрейфовал между сессиями (2f30fe2d / 59315285 /
             # 63a5dd4f / 7a28bf7c при неизменном коде).
             import hashlib as _hl
+
             _idx = int(_hl.md5(prompt_lower.encode("utf-8")).hexdigest(), 16) % len(options)
             return options[_idx]
 

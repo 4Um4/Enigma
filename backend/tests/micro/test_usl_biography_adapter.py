@@ -11,6 +11,7 @@
     - PLAYER_ASSERTION ≠ AUTHOR_CANON в проекции (USL-2);
     - адаптер не падает на пустом payload.
 """
+
 import json
 from pathlib import Path
 
@@ -40,18 +41,22 @@ from app.services.chronicle.biography_adapter import (
 
 # ── 1. Mapping table ─────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("entry_kind,expected", [
-    (EntryKind.EVENT, "asserts"),
-    (EntryKind.RELATIONSHIP, "asserts"),
-    (EntryKind.LOCATION, "lives_at"),
-    (EntryKind.EFFECT, "has_effect"),
-    (EntryKind.BELIEF_SEED, "believes"),
-    (EntryKind.KNOWLEDGE_LINK, "knows"),
-    (EntryKind.TRAIT_SEED, "has_trait"),
-    (EntryKind.PORTRET, "has_trait"),
-    (EntryKind.OBSERVATION, "asserts"),
-    (EntryKind.DESIRE_SEED, "desires"),
-])
+
+@pytest.mark.parametrize(
+    "entry_kind,expected",
+    [
+        (EntryKind.EVENT, "asserts"),
+        (EntryKind.RELATIONSHIP, "asserts"),
+        (EntryKind.LOCATION, "lives_at"),
+        (EntryKind.EFFECT, "has_effect"),
+        (EntryKind.BELIEF_SEED, "believes"),
+        (EntryKind.KNOWLEDGE_LINK, "knows"),
+        (EntryKind.TRAIT_SEED, "has_trait"),
+        (EntryKind.PORTRET, "has_trait"),
+        (EntryKind.OBSERVATION, "asserts"),
+        (EntryKind.DESIRE_SEED, "desires"),
+    ],
+)
 def test_entry_kind_to_usl_predicate_mapping(entry_kind, expected):
     """Все 10 EntryKind маппируются в USLPredicate (conservative mapping)."""
     pred = entry_kind_to_usl_predicate(entry_kind)
@@ -61,9 +66,11 @@ def test_entry_kind_to_usl_predicate_mapping(entry_kind, expected):
 
 # ── 2. EntityRef проекция ─────────────────────────────────────────────────────
 
+
 def test_entityref_resolved_to_usl():
     """RESOLVED → USLEntityRef(kind='resolved', ref_id=npc_id)."""
     from app.services.chronicle.biography_adapter import _entityref_to_usl
+
     ref = EntityRef(ref_kind=EntityRefKind.RESOLVED, npc_id="blacksmith_orm")
     usl = _entityref_to_usl(ref)
     assert usl.kind == "resolved"
@@ -72,6 +79,7 @@ def test_entityref_resolved_to_usl():
 
 def test_entityref_white_spot_to_usl():
     from app.services.chronicle.biography_adapter import _entityref_to_usl
+
     ref = EntityRef(ref_kind=EntityRefKind.WHITE_SPOT, white_spot_id="ws_001")
     usl = _entityref_to_usl(ref)
     assert usl.kind == "white_spot"
@@ -80,6 +88,7 @@ def test_entityref_white_spot_to_usl():
 
 def test_entityref_unknown_person_to_usl():
     from app.services.chronicle.biography_adapter import _entityref_to_usl
+
     ref = EntityRef(ref_kind=EntityRefKind.UNKNOWN_PERSON, name_hint="стражник")
     usl = _entityref_to_usl(ref)
     assert usl.kind == "unknown_person"
@@ -88,13 +97,16 @@ def test_entityref_unknown_person_to_usl():
 
 def test_entityref_none_returns_none():
     from app.services.chronicle.biography_adapter import _entityref_to_usl
+
     assert _entityref_to_usl(None) is None
 
 
 # ── 3. Provenance → USLSourceKind (USL-2: источник ≠ истина) ───────────────
 
+
 def test_provenance_author_confirmed_to_author_canon():
     from app.services.chronicle.biography_adapter import _provenance_to_usl_source
+
     assert _provenance_to_usl_source(EntryProvenance.AUTHOR_CONFIRMED) is USLSourceKind.AUTHOR_CANON
     assert _provenance_to_usl_source(EntryProvenance.AUTHOR_AUTHORED) is USLSourceKind.AUTHOR_CANON
 
@@ -102,13 +114,16 @@ def test_provenance_author_confirmed_to_author_canon():
 def test_provenance_llm_draft_to_hypothesis():
     """LLM_DRAFT → AUTHOR_HYPOTHESIS (не AUTHOR_CANON — инвариант USL-2)."""
     from app.services.chronicle.biography_adapter import _provenance_to_usl_source
+
     assert _provenance_to_usl_source(EntryProvenance.LLM_DRAFT) is USLSourceKind.AUTHOR_HYPOTHESIS
 
 
 # ── 4. Время из структурированных полей ────────────────────────────────────────
 
+
 def test_temporal_from_historical_age():
     from app.services.chronicle.biography_adapter import _extract_temporal
+
     entry = ChronicleEntry(
         entry_id="test1",
         kind=EntryKind.EVENT,
@@ -125,6 +140,7 @@ def test_temporal_from_historical_age():
 
 def test_temporal_from_duration_years_payload():
     from app.services.chronicle.biography_adapter import _extract_temporal
+
     entry = ChronicleEntry(
         entry_id="test2",
         kind=EntryKind.EVENT,
@@ -141,6 +157,7 @@ def test_temporal_from_duration_years_payload():
 def test_temporal_empty_when_no_fields():
     """§ENIGMA-003: отсутствие данных = честный empty, не UNKNOWN-галлюцинация."""
     from app.services.chronicle.biography_adapter import _extract_temporal
+
     entry = ChronicleEntry(
         entry_id="test3",
         kind=EntryKind.TRAIT_SEED,
@@ -152,6 +169,7 @@ def test_temporal_empty_when_no_fields():
 
 
 # ── 5. Реальный канон blacksmith_orm.json ─────────────────────────────────────
+
 
 def _load_orm_doc() -> ChronicleDocument:
     """Загружает реальный канон orm.json как ChronicleDocument."""
@@ -165,6 +183,7 @@ def _load_orm_doc() -> ChronicleDocument:
     data = json.loads(raw)
     # Конвертируем JSON dict в ChronicleDocument (через конструктор, не from_legacy)
     from app.domain.chronicle import ChronicleEntry, EntityRef
+
     entries = []
     for e in data.get("entries", []):
         subj = e["subject_id"]
@@ -183,18 +202,20 @@ def _load_orm_doc() -> ChronicleDocument:
                 white_spot_id=o.get("white_spot_id"),
                 name_hint=o.get("name_hint", ""),
             )
-        entries.append(ChronicleEntry(
-            entry_id=e["entry_id"],
-            kind=EntryKind(e["kind"]),
-            subject_id=subject_ref,
-            object_id=obj_ref,
-            payload=e.get("payload", {}),
-            provenance=EntryProvenance(e.get("provenance", "AUTHOR_CONFIRMED")),
-            confidence=e.get("confidence"),
-            ordinal=e.get("ordinal", 0),
-            historical_age=e.get("historical_age"),
-            historical_year=e.get("historical_year"),
-        ))
+        entries.append(
+            ChronicleEntry(
+                entry_id=e["entry_id"],
+                kind=EntryKind(e["kind"]),
+                subject_id=subject_ref,
+                object_id=obj_ref,
+                payload=e.get("payload", {}),
+                provenance=EntryProvenance(e.get("provenance", "AUTHOR_CONFIRMED")),
+                confidence=e.get("confidence"),
+                ordinal=e.get("ordinal", 0),
+                historical_age=e.get("historical_age"),
+                historical_year=e.get("historical_year"),
+            )
+        )
     return ChronicleDocument(
         chronicle_id=data["chronicle_id"],
         npc_ref=data["npc_ref"],
@@ -232,12 +253,14 @@ def test_orm_canon_units_are_frozen():
     doc = _load_orm_doc()
     units = biography_to_usl(doc)
     import dataclasses
+
     for u in units:
         with pytest.raises(dataclasses.FrozenInstanceError):
             u.text_span = "mutated"  # type: ignore
 
 
 # ── 6. Детерминизм (USL-6) ───────────────────────────────────────────────────
+
 
 def test_biography_to_usl_is_deterministic():
     """USL-6: повторный прогон того же doc = идентичный список USLUnit."""
@@ -261,6 +284,7 @@ def test_unit_id_stable_across_recomputations():
 
 # ── 7. Source kind в проекции ────────────────────────────────────────────────
 
+
 def test_orm_canon_units_have_author_canon_source():
     """Все entries orm.json имеют provenance=AUTHOR_CONFIRMED → USLSourceKind.AUTHOR_CANON."""
     doc = _load_orm_doc()
@@ -281,6 +305,7 @@ def test_player_assertion_never_in_biography():
 
 
 # ── 8. Edge cases ─────────────────────────────────────────────────────────────
+
 
 def test_empty_payload_does_not_crash():
     """Адаптер не падает на пустом payload (§13: Real Data First — но defensive)."""
@@ -324,6 +349,7 @@ def test_relationship_creates_uslrelation():
 
 
 # ── 9. origin_id трассировка к entry_id ───────────────────────────────────────
+
 
 def test_origin_id_points_to_entry_id():
     """USLUnit.origin_id == ChronicleEntry.entry_id (трассировка, не дублирование)."""

@@ -20,25 +20,22 @@ class LastWordsSystem:
             FateOutcome.ESCAPE: "Спасибо. Я никогда не забуду, что ты сделал. Если я когда-нибудь вернусь... нет. Я не вернусь.",
             FateOutcome.DEATH: "(Её нашли в подвале. Она не сопротивлялась.)",
             FateOutcome.BROKEN: "Я не могу. Я больше не могу. Подвал... он всегда будет здесь. И я всегда буду здесь.",
-            FateOutcome.LIBERATED: "Я свободна. Впервые за три года я дышу."
+            FateOutcome.LIBERATED: "Я свободна. Впервые за три года я дышу.",
         },
         "thief_shadow": {
             FateOutcome.DEATH: "Гильдия не прощает. Ни предателей, ни палачей.",
             FateOutcome.BROKEN: "Ты полезный инструмент. Инструменты ломаются.",
-            FateOutcome.LIBERATED: "Ты не полезный. Но ты честный. Это редкость."
+            FateOutcome.LIBERATED: "Ты не полезный. Но ты честный. Это редкость.",
         },
         "merchant_goran": {
             FateOutcome.DEATH: "(Его нашли в реке. У него осталась жена и двое детей.)",
             FateOutcome.LIBERATED: "Ты спас мне жизнь. Я не забуду. Если тебе когда-нибудь нужен шёлк... приходи.",
-            FateOutcome.BROKEN: "Всё кончено. Гильдия заберёт всё. Моя семья... что будет с ними?"
-        }
+            FateOutcome.BROKEN: "Всё кончено. Гильдия заберёт всё. Моя семья... что будет с ними?",
+        },
     }
 
     def get_last_word(
-        self,
-        npc_id: str,
-        fate: Optional[FateOutcome],
-        social_fabric: SocialFabricTracker
+        self, npc_id: str, fate: Optional[FateOutcome], social_fabric: SocialFabricTracker
     ) -> Optional[LastWord]:
         """Возвращает финальную цитату, если она есть для данной судьбы."""
         if not fate:

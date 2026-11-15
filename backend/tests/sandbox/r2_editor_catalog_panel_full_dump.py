@@ -14,8 +14,11 @@ R2-EDITOR-CATALOG-PANEL full dump — read-only.
 
 Запись в файл: r2_catalog_panel_full.txt
 """
+
 from __future__ import annotations
-import os, sys, traceback
+import os
+import sys
+import traceback
 from pathlib import Path
 from typing import List, Tuple
 import io
@@ -144,13 +147,14 @@ def main() -> int:
             # Show full method body
             print(f"\n--- Full method body (L{containing_def_line} onwards, ~30 lines) ---")
             for j in range(containing_def_line - 1, min(containing_def_line + 29, len(lines))):
-                print(f"L{j+1:4d}: {lines[j]}")
+                print(f"L{j + 1:4d}: {lines[j]}")
 
     # === STEP 3: Check if this method is called from __init__ ===
     _print_section("STEP 3: Is the load/activate method called from __init__?")
     if containing_def_text:
         # Extract method name
         import re
+
         match = re.search(r"def\s+(\w+)\s*\(", containing_def_text)
         if match:
             method_name = match.group(1)
@@ -163,7 +167,7 @@ def main() -> int:
             print()
             if not any(f"self.{method_name}(" in l for l in lines[:80]):
                 print(f"  >>> '{method_name}()' is NOT called from catalog_panel.py __init__ or first 80 lines")
-                print(f"  >>> This means: after CatalogPanel(...) constructor, _store is STILL None")
+                print("  >>> This means: after CatalogPanel(...) constructor, _store is STILL None")
                 print(f"  >>> Editor must explicitly call catalog_panel.{method_name}() to load store")
 
             # Search across all frontend/map_editor for callers
@@ -187,7 +191,7 @@ def main() -> int:
                 if "def store" in lines[j - 1] if j - 1 < len(lines) else "":
                     print(f"\nFound @property at L{i}: {line.rstrip()}")
                     for k in range(i - 1, min(i + 6, len(lines))):
-                        print(f"L{k+1:4d}: {lines[k]}")
+                        print(f"L{k + 1:4d}: {lines[k]}")
                     break
         elif "def store" in line and "@property" in (lines[i - 2] if i >= 2 else ""):
             print(f"\nFound def store at L{i}: {line.rstrip()}")
@@ -200,7 +204,7 @@ def main() -> int:
             # Show 5 lines around
             for j in range(max(0, i - 2), min(len(lines), i + 5)):
                 if j != i - 1:
-                    print(f"  L{j+1}: {lines[j].rstrip()}")
+                    print(f"  L{j + 1}: {lines[j].rstrip()}")
 
     # === STEP 5: Check assets/ directory exists & is non-empty ===
     _print_section("STEP 5: Check frontend/map_editor/assets/ directory")
@@ -236,7 +240,7 @@ def main() -> int:
         ecore_src = EDITOR_CORE.read_text(encoding="utf-8", errors="replace")
         elines = ecore_src.split("\n")
         for j in range(370, min(410, len(elines))):
-            print(f"L{j+1:4d}: {elines[j]}")
+            print(f"L{j + 1:4d}: {elines[j]}")
 
     # === STEP 7: All callers of AssetStore() constructor in frontend/map_editor ===
     _print_section("STEP 7: All AssetStore() constructor calls in frontend/map_editor")
@@ -254,7 +258,7 @@ ANALYSIS:
 
   1. CatalogPanel.__init__ sets self._store = None  (catalog_panel.py L40)
   2. Real store loading happens on L100-101 in method: '{containing_def_text if containing_def_text else "(unknown)"}'
-  3. The load method is {'NOT' if not any(f'self.{method_name}(' in l for l in lines[:80]) else ''} called from __init__
+  3. The load method is {"NOT" if not any(f"self.{method_name}(" in l for l in lines[:80]) else ""} called from __init__
   4. editor_core.py L385-392 calls CatalogPanel(...) but does NOT call the load method
   5. editor_core.py L399 accesses self.catalog_panel.store → returns None
   6. L400 assertion fails

@@ -61,6 +61,7 @@ class DistortionProfile:
 @dataclass(frozen=True)
 class Cause:
     """Stage 1 Task 1.2: Provenance for state changes."""
+
     source_event_id: Optional[UUID] = None
     source_action_id: Optional[UUID] = None
     source_belief_id: Optional[UUID] = None
@@ -71,6 +72,7 @@ class Cause:
 @dataclass(frozen=True)
 class CausalChain:
     """Stage 1 Task 1.4: Полная причинная цепочка (8 шагов)."""
+
     source_event: Optional[Any] = None
     observation: Optional[Any] = None
     memory: Optional[Any] = None
@@ -97,9 +99,7 @@ class CausalEntry:
     source: str  # "player_insults", "life_engine", "break_system" и т.д.
     tick: int  # игровой тик
     persistence_time: int = 0  # тиков до затухания (0 = постоянное)
-    emotional_impact: float = (
-        0.0  # сила эмоционального удара [0..1], для генерации drives
-    )
+    emotional_impact: float = 0.0  # сила эмоционального удара [0..1], для генерации drives
     cause: Optional[Cause] = None  # Stage 1 Task 1.2
 
     def to_dict(self) -> Dict[str, Any]:

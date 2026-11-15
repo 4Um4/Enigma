@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/cognition/direct_llm_client.py
 Назначение: P5-B L4 test — прямой HTTP client к llama-server (localhost:8181).
 
@@ -8,6 +8,7 @@ path: /backend/app/services/cognition/direct_llm_client.py
 
 Контракт: LLMClientProtocol.complete(prompt, *, max_tokens, timeout) -> str.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,6 +31,7 @@ class DirectLLMClient:
         # Этап 6: SSOT — URL from settings.llama_cpp_server_url (not hardcoded).
         if not server_url:
             from app.core.config import settings as _s
+
             server_url = _s.llama_cpp_server_url
         self._server_url = server_url.rstrip("/")
         self._model = model
@@ -65,7 +67,8 @@ class DirectLLMClient:
                 content = response_data["choices"][0]["message"]["content"]
                 logger.debug(
                     "DirectLLMClient.complete: prompt_head=%r → %r",
-                    prompt[:80], content,
+                    prompt[:80],
+                    content,
                 )
                 return str(content)
         except urllib.error.URLError as exc:

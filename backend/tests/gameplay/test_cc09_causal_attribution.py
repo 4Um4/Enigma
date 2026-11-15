@@ -22,6 +22,7 @@ causal_ledger (ADR-CAUSAL-SPINE) → _format_causal_context → LLM prompt.
   3. LLM prompt inclusion: formatted text would be in prompt
   4. Actual explanation: (level 3 is prerequisite — prompt includes cause)
 """
+
 from types import SimpleNamespace
 from typing import Any
 
@@ -32,10 +33,7 @@ from app.services.execution.dialogue_executor import DialogueExecutor
 
 def _make_ledger(entries: list) -> list:
     """Helper: create ledger entries from tuples (field, delta, source, tick)."""
-    return [
-        {"field": f, "delta": d, "source": s, "tick": t}
-        for f, d, s, t in entries
-    ]
+    return [{"field": f, "delta": d, "source": s, "tick": t} for f, d, s, t in entries]
 
 
 class TestCC09CausalAttribution:
@@ -46,10 +44,12 @@ class TestCC09CausalAttribution:
     def test_A_data_presence_trust_change(self) -> None:
         """A-1: Attack → CausalEntry in causal_ledger (data presence)."""
         # Simulate: NPC attacked → trust/fear changed → CausalEntry written
-        ledger = _make_ledger([
-            ("trust", -5.0, "player_insults", 3),
-            ("fear", 2.0, "attack_from_player", 5),
-        ])
+        ledger = _make_ledger(
+            [
+                ("trust", -5.0, "player_insults", 3),
+                ("fear", 2.0, "attack_from_player", 5),
+            ]
+        )
         assert len(ledger) == 2
         assert ledger[0]["field"] == "trust"
         assert ledger[0]["source"] == "player_insults"
@@ -58,10 +58,12 @@ class TestCC09CausalAttribution:
     def test_A_accessibility_format_includes_cause(self) -> None:
         """A-2: _format_causal_context includes cause (accessibility)."""
         de = DialogueExecutor()
-        ledger = _make_ledger([
-            ("trust", -5.0, "player_insults", 3),
-            ("fear", 2.0, "attack_from_player", 5),
-        ])
+        ledger = _make_ledger(
+            [
+                ("trust", -5.0, "player_insults", 3),
+                ("fear", 2.0, "attack_from_player", 5),
+            ]
+        )
         result = de._format_causal_context(ledger)
         print(f"[A-2] Format result:\n{result}")
         assert "доверие" in result, "trust field not mapped"
@@ -150,11 +152,13 @@ class TestCC09CausalAttribution:
     def test_D_multiple_causes_all_listed(self) -> None:
         """D-1/2: Multiple causes → all listed in format."""
         de = DialogueExecutor()
-        ledger = _make_ledger([
-            ("trust", -5.0, "player_insults", 3),
-            ("fear", 3.0, "threat_from_X", 4),
-            ("trust", 2.0, "gift_from_player", 5),
-        ])
+        ledger = _make_ledger(
+            [
+                ("trust", -5.0, "player_insults", 3),
+                ("fear", 3.0, "threat_from_X", 4),
+                ("trust", 2.0, "gift_from_player", 5),
+            ]
+        )
         result = de._format_causal_context(ledger)
         print(f"[D] Multiple causes:\n{result}")
         assert "player_insults" in result, "cause 1 missing"

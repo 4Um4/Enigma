@@ -3,6 +3,7 @@ path: /project/backend/tests/test_world_epoch.py
 Назначение: S266 — замок Temporal Epoch: immutability, read-compat,
     write-запрет, view/overlay разделение.
 """
+
 import pytest
 from app.domain.world_epoch import WorldEpoch
 

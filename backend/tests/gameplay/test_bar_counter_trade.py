@@ -20,6 +20,7 @@ Tests the shared create_order → settle_order path:
 Production-path: create_order + settle_order (work_orders.py).
 Test fixtures: WORK_ENABLED=1, seeded stock_for_sale, SimpleNamespace ctx.
 """
+
 import os
 from types import SimpleNamespace
 from typing import Any
@@ -75,9 +76,7 @@ class TestBarCounterTrade:
         h = _setup_harness()
         try:
             ctx = _make_ctx(h)
-            order_id = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order_id = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             print(f"[CHECK] order_id={order_id}")
             assert order_id is not None, "create_order returned None"
 
@@ -100,9 +99,7 @@ class TestBarCounterTrade:
         h = _setup_harness()
         try:
             ctx = _make_ctx(h)
-            order_id = create_order(
-                ctx, buyer=_NPC_BUYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order_id = create_order(ctx, buyer=_NPC_BUYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             print(f"[CHECK] NPC order_id={order_id}")
             assert order_id is not None, "create_order returned None for NPC"
 
@@ -121,14 +118,10 @@ class TestBarCounterTrade:
         h = _setup_harness()
         try:
             ctx = _make_ctx(h)
-            order1 = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order1 = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             assert order1 is not None, "first create_order failed"
 
-            order2 = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order2 = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             print(f"[CHECK] order1={order1}, order2={order2}")
             assert order2 is None, "dedup failed — second order created"
             print("[OK] Dedup: second create_order returned None")
@@ -146,9 +139,7 @@ class TestBarCounterTrade:
             print("[SEED] player gold=0.0")
 
             ctx = _make_ctx(h)
-            order_id = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order_id = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             assert order_id is not None
 
             # Bypass SERVE: manually set ACCEPTED
@@ -176,9 +167,7 @@ class TestBarCounterTrade:
             print("[SEED] seller stock=0.0")
 
             ctx = _make_ctx(h)
-            order_id = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order_id = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             assert order_id is not None
 
             orders = ctx.scene_state.get("work_orders", {})
@@ -206,9 +195,7 @@ class TestBarCounterTrade:
             print(f"[SEED] player gold={initial_gold}, seller stock={initial_stock}")
 
             ctx = _make_ctx(h)
-            order_id = create_order(
-                ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch
-            )
+            order_id = create_order(ctx, buyer=_PLAYER, good=_GOOD, orchestrator=h.game_loop._tick_orch)
             assert order_id is not None
 
             orders = ctx.scene_state.get("work_orders", {})

@@ -18,8 +18,12 @@ R2-TAVERN-ARCHAEOLOGY v2 — расширенная read-only разведка.
 
 Read-only. Никаких изменений.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 
@@ -40,12 +44,22 @@ TARGET_EDGE = ("tavern:exit_south", "tavern:kitchen_bed_2")
 
 # Node IDs we are interested in (with and without "tavern:" prefix)
 TARGET_NODE_IDS = {
-    "tavern:exit_south", "tavern:kitchen_bed_2", "tavern:fireplace",
-    "tavern:kitchen", "tavern:kitchen_bed_1",
-    "tavern:main_hall", "tavern:node_16", "tavern:node_17",
-    "exit_south", "kitchen_bed_2", "fireplace",
-    "kitchen", "kitchen_bed_1", "main_hall",
-    "node_16", "node_17",
+    "tavern:exit_south",
+    "tavern:kitchen_bed_2",
+    "tavern:fireplace",
+    "tavern:kitchen",
+    "tavern:kitchen_bed_1",
+    "tavern:main_hall",
+    "tavern:node_16",
+    "tavern:node_17",
+    "exit_south",
+    "kitchen_bed_2",
+    "fireplace",
+    "kitchen",
+    "kitchen_bed_1",
+    "main_hall",
+    "node_16",
+    "node_17",
 }
 
 
@@ -159,12 +173,19 @@ def _find_edges_in_graph(data: Any, target_pair: Tuple[str, str]) -> List[Tuple[
     for path, val in flat:
         if isinstance(val, dict):
             # Direct edge: {"from":..., "to":...}
-            for from_k, to_k in (("from", "to"), ("source", "target"),
-                                  ("src", "dst"), ("a", "b"),
-                                  ("node_a", "node_b"), ("u", "v"),
-                                  ("start", "end"), ("origin", "dest")):
+            for from_k, to_k in (
+                ("from", "to"),
+                ("source", "target"),
+                ("src", "dst"),
+                ("a", "b"),
+                ("node_a", "node_b"),
+                ("u", "v"),
+                ("start", "end"),
+                ("origin", "dest"),
+            ):
                 if from_k in val and to_k in val:
-                    f = str(val[from_k]); t = str(val[to_k])
+                    f = str(val[from_k])
+                    t = str(val[to_k])
                     if f in pair_set and t in pair_set and f != t:
                         out.append((path, val))
                         break
@@ -237,7 +258,7 @@ def main() -> int:
                 break
 
     if not candidate.exists():
-        print(f"[FATAL] Cannot find tavern.json")
+        print("[FATAL] Cannot find tavern.json")
         return 1
 
     print(f"\nMap file: {candidate}")
@@ -284,11 +305,11 @@ def main() -> int:
             if isinstance(obj, dict):
                 t = obj.get("type") or obj.get("kind") or "<no type>"
                 by_type.setdefault(t, []).append((i, obj))
-        print(f"\nObjects grouped by type:")
+        print("\nObjects grouped by type:")
         for t, items in sorted(by_type.items()):
             print(f"  type={t}: {len(items)} objects")
 
-        print(f"\n--- Full dump of all door-type objects ---")
+        print("\n--- Full dump of all door-type objects ---")
         for t in ("door", "portal", "passage", "exit", "gateway", "opening"):
             if t in by_type:
                 print(f"\n  === type={t} ({len(by_type[t])} objects) ===")
@@ -296,7 +317,7 @@ def main() -> int:
                     print(f"\n  objects[{idx}]:")
                     print(_print_dict(obj))
 
-        print(f"\n--- Full dump of all node-type objects ---")
+        print("\n--- Full dump of all node-type objects ---")
         for t in ("node", "exit_node", "waypoint", "anchor", "spawn_point", "landmark"):
             if t in by_type:
                 print(f"\n  === type={t} ({len(by_type[t])} objects) ===")
@@ -305,7 +326,7 @@ def main() -> int:
                     print(_print_dict(obj))
 
         # Also show objects with id matching target node IDs
-        print(f"\n--- Objects with id matching target nodes (exit_south, kitchen_bed_2, fireplace, ...) ---")
+        print("\n--- Objects with id matching target nodes (exit_south, kitchen_bed_2, fireplace, ...) ---")
         for i, obj in enumerate(objects):
             if isinstance(obj, dict):
                 obj_id = obj.get("id") or obj.get("node_id") or obj.get("name")
@@ -315,7 +336,7 @@ def main() -> int:
 
         # Show ALL objects with type=="furniture" or "prop" that might be nodes
         # (some maps use furniture type for spatial anchors)
-        print(f"\n--- Objects with type=furniture or type=prop (could contain anchor nodes) ---")
+        print("\n--- Objects with type=furniture or type=prop (could contain anchor nodes) ---")
         for t in ("furniture", "prop", "fixture", "static"):
             if t in by_type:
                 print(f"\n  === type={t} ({len(by_type[t])} objects) ===")
@@ -337,8 +358,10 @@ def main() -> int:
                 marker = " <== TARGET" if is_target else ""
                 w_id = w.get("id", "?")
                 x1, y1, x2, y2 = w.get("x1"), w.get("y1"), w.get("x2"), w.get("y2")
-                orient = "vertical" if _approx_equal(x1, x2) else ("horizontal" if _approx_equal(y1, y2) else "diagonal")
-                length = ((float(x2)-float(x1))**2 + (float(y2)-float(y1))**2)**0.5
+                orient = (
+                    "vertical" if _approx_equal(x1, x2) else ("horizontal" if _approx_equal(y1, y2) else "diagonal")
+                )
+                length = ((float(x2) - float(x1)) ** 2 + (float(y2) - float(y1)) ** 2) ** 0.5
                 print(f"  walls[{i}] id={w_id}: x1={x1}, y1={y1}, x2={x2}, y2={y2}, {orient}, len={length:.3f}{marker}")
                 # Show ALL extra fields
                 extra = {k: v for k, v in w.items() if k not in ("x1", "y1", "x2", "y2", "id", "type", "thickness")}
@@ -375,9 +398,13 @@ def main() -> int:
                                 continue
                             on_wall = False
                             if _approx_equal(wx1, wx2):  # vertical
-                                on_wall = _approx_equal(dx, wx1, 0.1) and min(wy1, wy2)-0.01 <= dy <= max(wy1, wy2)+0.01
+                                on_wall = (
+                                    _approx_equal(dx, wx1, 0.1) and min(wy1, wy2) - 0.01 <= dy <= max(wy1, wy2) + 0.01
+                                )
                             elif _approx_equal(wy1, wy2):  # horizontal
-                                on_wall = _approx_equal(dy, wy1, 0.1) and min(wx1, wx2)-0.01 <= dx <= max(wx1, wx2)+0.01
+                                on_wall = (
+                                    _approx_equal(dy, wy1, 0.1) and min(wx1, wx2) - 0.01 <= dx <= max(wx1, wx2) + 0.01
+                                )
                             if on_wall:
                                 print(f"    -> LIES ON walls[{j}] id={w.get('id')}")
                     # Check explicit wall_id
@@ -414,14 +441,14 @@ def main() -> int:
         print(f"  Value:\n{_print_dict(val)}")
 
     # Also look for adjacency lists containing exit_south OR kitchen_bed_2
-    print(f"\n--- Adjacency list references to exit_south ---")
+    print("\n--- Adjacency list references to exit_south ---")
     adj_es = _find_adjacency_lists_for_node(data, "tavern:exit_south")
     adj_es_short = _find_adjacency_lists_for_node(data, "exit_south")
     for path, val in adj_es + adj_es_short:
         print(f"\n  Path: {path}")
         print(f"  Value:\n{_print_dict(val)}")
 
-    print(f"\n--- Adjacency list references to kitchen_bed_2 ---")
+    print("\n--- Adjacency list references to kitchen_bed_2 ---")
     adj_kb = _find_adjacency_lists_for_node(data, "tavern:kitchen_bed_2")
     adj_kb_short = _find_adjacency_lists_for_node(data, "kitchen_bed_2")
     for path, val in adj_kb + adj_kb_short:
@@ -433,7 +460,10 @@ def main() -> int:
     if isinstance(data, dict):
         graph_section_keys = []
         for k, v in data.items():
-            if any(kw in k.lower() for kw in ("graph", "edge", "connection", "adjacen", "neighbor", "exit", "transition", "link", "portal")):
+            if any(
+                kw in k.lower()
+                for kw in ("graph", "edge", "connection", "adjacen", "neighbor", "exit", "transition", "link", "portal")
+            ):
                 graph_section_keys.append((k, v))
         if graph_section_keys:
             for k, v in graph_section_keys:
@@ -441,12 +471,12 @@ def main() -> int:
                 print(f"  type: {type(v).__name__}")
                 if isinstance(v, list):
                     print(f"  length: {len(v)}")
-                    print(f"  first 3 items:")
+                    print("  first 3 items:")
                     for i, item in enumerate(v[:3]):
                         print(f"    [{i}]: {_print_dict(item)[:200]}")
                 elif isinstance(v, dict):
                     print(f"  keys: {list(v.keys())[:10]}")
-                    print(f"  full (truncated to 2000 chars):")
+                    print("  full (truncated to 2000 chars):")
                     print(f"  {_print_dict(v)[:2000]}")
                 else:
                     print(f"  value: {v}")
@@ -468,7 +498,7 @@ def main() -> int:
                         node_coords[v] = (x, y)
                     break
 
-    print(f"\nNode coordinates extracted:")
+    print("\nNode coordinates extracted:")
     for nid, (x, y) in node_coords.items():
         print(f"  {nid}: ({x}, {y})")
 
@@ -490,7 +520,7 @@ def main() -> int:
                 print(f"\n>>> CONFIRMED: edge crosses wall_5 at (19.5, {y_cross:.3f}).")
                 print(">>> Need a door at this point for edge to be valid.")
         else:
-            print(f"\nLine does not cross x=19.5 (both nodes on same side of wall_5).")
+            print("\nLine does not cross x=19.5 (both nodes on same side of wall_5).")
     else:
         print("\n[WARN] Cannot compute intersection — node coordinates not found.")
         print("Probe v3 needed: investigate object schema more deeply (objects[] with non-standard fields).")
@@ -499,15 +529,15 @@ def main() -> int:
     _print_section("STEP J: SUMMARY v2")
     print(f"\nMap file: {candidate}")
     print(f"Top-level keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
-    print(f"\nTarget wall_5: confirmed at walls[2]")
+    print("\nTarget wall_5: confirmed at walls[2]")
     print(f"Target nodes found: {len(node_coords)}/{len(TARGET_NODE_IDS)}")
     if node_coords:
         for nid, (x, y) in node_coords.items():
             print(f"  {nid}: ({x}, {y})")
     print(f"Target edges found: {len(target_edges)}")
-    print(f"\nDoor-wall binding schema: door.wall_id (door has 'wall_id' field referencing wall.id)")
-    print(f"  - door_0: wall_id='wall_2' (Главный вход на верхней внешней стене)")
-    print(f"  - door_1: NO wall_id field (Дверь на кухню, position-based)")
+    print("\nDoor-wall binding schema: door.wall_id (door has 'wall_id' field referencing wall.id)")
+    print("  - door_0: wall_id='wall_2' (Главный вход на верхней внешней стене)")
+    print("  - door_1: NO wall_id field (Дверь на кухню, position-based)")
     if objects and isinstance(objects, list):
         door_count = sum(1 for o in objects if isinstance(o, dict) and o.get("type") == "door")
         print(f"\nTotal door objects in map: {door_count}")

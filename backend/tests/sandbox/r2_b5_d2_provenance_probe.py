@@ -25,6 +25,7 @@ Strategy:
 
 READ-ONLY. No production changes.
 """
+
 from __future__ import annotations
 
 import os
@@ -65,13 +66,17 @@ class TeeStream:
 
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
 
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -92,8 +97,10 @@ class _LogCapture(logging.Handler):
         self.records: List[logging.LogRecord] = []
 
     def emit(self, record: logging.LogRecord) -> None:
-        try: self.records.append(record)
-        except: pass
+        try:
+            self.records.append(record)
+        except Exception:
+            pass
 
     def messages(self) -> List[str]:
         return [f"[{r.levelname}] {r.name}: {r.getMessage()}" for r in self.records]
@@ -117,9 +124,18 @@ def _reset_log_capture() -> None:
 def _dump_record(r: Any) -> Dict[str, Any]:
     """Extract all provenance fields from an EpistemicRecord."""
     out: Dict[str, Any] = {}
-    for field in ("proposition", "confidence", "source_id", "original_source_id",
-                  "source_type", "source_claim_id", "first_observed_tick",
-                  "last_updated_tick", "agent_id", "polarity"):
+    for field in (
+        "proposition",
+        "confidence",
+        "source_id",
+        "original_source_id",
+        "source_type",
+        "source_claim_id",
+        "first_observed_tick",
+        "last_updated_tick",
+        "agent_id",
+        "polarity",
+    ):
         try:
             val = getattr(r, field, None)
             if field == "proposition":
@@ -175,19 +191,27 @@ def main() -> int:
         bus = get_event_bus()
         sub = None
         for attr in ("_subscribers", "_handlers", "_callbacks"):
-            if not hasattr(bus, attr): continue
+            if not hasattr(bus, attr):
+                continue
             container = getattr(bus, attr)
-            if not isinstance(container, dict): continue
+            if not isinstance(container, dict):
+                continue
             for ev_type, cbs in container.items():
-                if cbs is None: continue
-                try: iter_cbs = list(cbs)
-                except TypeError: iter_cbs = [cbs]
+                if cbs is None:
+                    continue
+                try:
+                    iter_cbs = list(cbs)
+                except TypeError:
+                    iter_cbs = [cbs]
                 for cb in iter_cbs:
                     target_obj = getattr(cb, "__self__", None)
                     if target_obj and isinstance(target_obj, ClaimEventSubscriber):
-                        sub = target_obj; break
-                if sub: break
-            if sub: break
+                        sub = target_obj
+                        break
+                if sub:
+                    break
+            if sub:
+                break
         store = getattr(sub, "_store", None) if sub else None
 
         # =====================================================================
@@ -223,9 +247,9 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  published")
+        print("  published")
 
-        expected_prop = Proposition(
+        Proposition(
             subject_id="player",
             predicate=Predicate.INSULTED,
             object_id="tavern_keeper_tornin",
@@ -308,25 +332,28 @@ def main() -> int:
         borko_player_belief = None
         for r in borko_records:
             prop = getattr(r, "proposition", None)
-            if prop and getattr(prop, "subject_id", None) == "player" \
-               and getattr(prop, "predicate", None) == Predicate.INSULTED \
-               and getattr(prop, "object_id", None) == "tavern_keeper_tornin":
+            if (
+                prop
+                and getattr(prop, "subject_id", None) == "player"
+                and getattr(prop, "predicate", None) == Predicate.INSULTED
+                and getattr(prop, "object_id", None) == "tavern_keeper_tornin"
+            ):
                 borko_player_belief = r
                 break
 
-        print(f"\n  === Tornin's record from guard_borko ===")
+        print("\n  === Tornin's record from guard_borko ===")
         if tornin_from_borko:
             dumped = _dump_record(tornin_from_borko)
             print(f"  {json.dumps(dumped, indent=2, default=str, ensure_ascii=False)}")
         else:
-            print(f"  NOT FOUND — Tornin has no record with source_id=guard_borko")
+            print("  NOT FOUND — Tornin has no record with source_id=guard_borko")
 
-        print(f"\n  === Borko's record for player INSULTED tavern_keeper_tornin ===")
+        print("\n  === Borko's record for player INSULTED tavern_keeper_tornin ===")
         if borko_player_belief:
             dumped = _dump_record(borko_player_belief)
             print(f"  {json.dumps(dumped, indent=2, default=str, ensure_ascii=False)}")
         else:
-            print(f"  NOT FOUND — Borko has no record for this proposition")
+            print("  NOT FOUND — Borko has no record for this proposition")
 
         # =====================================================================
         # STEP 8: Provenance check (4 fields)
@@ -365,31 +392,38 @@ def main() -> int:
         print(f"\n  {passed}/{total} provenance checks passed")
 
         if passed == total:
-            print(f"\n  >>> PROVENANCE PASS — full chain verified:")
-            print(f"  >>> player (original) → guard_borko (source) → tavern_keeper_tornin (listener)")
-            print(f"  >>> original_source_id=player preserved through testimony chain")
+            print("\n  >>> PROVENANCE PASS — full chain verified:")
+            print("  >>> player (original) → guard_borko (source) → tavern_keeper_tornin (listener)")
+            print("  >>> original_source_id=player preserved through testimony chain")
         else:
-            print(f"\n  >>> PROVENANCE NEEDS ATTENTION — some fields mismatch")
+            print("\n  >>> PROVENANCE NEEDS ATTENTION — some fields mismatch")
             if not check2:
                 print(f"  >>> Tornin's original_source_id = {tornin_orig} (expected 'player')")
-                print(f"  >>> This means Tornin's belief came from someone other than player directly")
+                print("  >>> This means Tornin's belief came from someone other than player directly")
                 if borko_player_belief:
                     borko_orig_val = getattr(borko_player_belief, "original_source_id", None)
                     print(f"  >>> Borko's original_source_id = {borko_orig_val}")
                     if borko_orig_val != "player":
-                        print(f"  >>> Borko's belief ALSO doesn't trace to player — chain deeper")
+                        print("  >>> Borko's belief ALSO doesn't trace to player — chain deeper")
                     else:
-                        print(f"  >>> Borko's belief traces to player, but Tornin's doesn't trace to player through Borko")
-                        print(f"  >>> Possible: ClaimEventSubscriber didn't use _speaker_record.original_source_id correctly")
+                        print(
+                            "  >>> Borko's belief traces to player, but Tornin's doesn't trace to player through Borko"
+                        )
+                        print(
+                            "  >>> Possible: ClaimEventSubscriber didn't use _speaker_record.original_source_id correctly"
+                        )
 
         # ---- Cleanup ----
         try:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except: pass
+        except Exception:
+            pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
 
     except Exception as e:
         print(f"[FATAL: {e}]")
@@ -414,10 +448,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    try: rc = main()
+    try:
+        rc = main()
     except Exception as e:
         print(f"\n[FATAL] {type(e).__name__}: {e}")
         traceback.print_exc()
         rc = 1
-    finally: sys.stdout = _orig_stdout
+    finally:
+        sys.stdout = _orig_stdout
     sys.exit(rc)

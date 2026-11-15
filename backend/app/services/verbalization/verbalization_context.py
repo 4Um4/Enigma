@@ -26,13 +26,9 @@ class ContentProfile:
 
     def __post_init__(self) -> None:
         if not (0 <= self.profanity_level <= 2):
-            raise ValueError(
-                f"profanity_level должен быть 0-2, получено: {self.profanity_level}"
-            )
+            raise ValueError(f"profanity_level должен быть 0-2, получено: {self.profanity_level}")
         if not (0 <= self.violence_level <= 2):
-            raise ValueError(
-                f"violence_level должен быть 0-2, получено: {self.violence_level}"
-            )
+            raise ValueError(f"violence_level должен быть 0-2, получено: {self.violence_level}")
 
 
 @dataclass(frozen=True)

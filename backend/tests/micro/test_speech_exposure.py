@@ -38,9 +38,7 @@ def test_secret_visibility_mapping_whisper():
     # D3: секрет — шёпот вплотную, адресат слышит (identity-гейт can_observe)
     from app.services.events.intent_event_adapter import IntentEventAdapter
 
-    _vis = IntentEventAdapter._visibility_map if hasattr(
-        IntentEventAdapter, "_visibility_map"
-    ) else None
+    _vis = IntentEventAdapter._visibility_map if hasattr(IntentEventAdapter, "_visibility_map") else None
     # Адаптер строит мап локально в методе — проверяем контракт через домен:
     # visibility-правило закреплено в communication; здесь проверяем сам факт
     # отсутствия "secret" в private-классе мапа (если мап модульный).

@@ -15,8 +15,16 @@ R2-BUTTERFLY-B5-CAUSAL-REACTION probe.
 
 Production-код НЕ менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging, math, time
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
+import math
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -48,14 +56,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_butterfly_b5_causal_reaction.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -82,7 +96,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -96,7 +110,7 @@ def _grep_in_dir(directory: Path, patterns: List[str], file_exts: List[str] = ("
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         for i, line in enumerate(src.split("\n"), 1):
             for pat in patterns:
@@ -118,20 +132,20 @@ def section_a_epistemic_semantics() -> Dict[str, Any]:
         result["error"] = "file not found"
         return result
     src = ecr_path.read_text(encoding="utf-8", errors="replace")
-    lines = src.split("\n")
+    src.split("\n")
 
-    print(f"\n--- A.1: Полная логика report_proposition (L91-101) ---")
+    print("\n--- A.1: Полная логика report_proposition (L91-101) ---")
     for line in _read_lines(ecr_path, 91, 101):
         print(f"  {line}")
 
-    print(f"\n--- A.2: Полная логика claims_about_self (L82-89, L106-113) ---")
+    print("\n--- A.2: Полная логика claims_about_self (L82-89, L106-113) ---")
     for line in _read_lines(ecr_path, 82, 89):
         print(f"  {line}")
     print("  ...")
     for line in _read_lines(ecr_path, 106, 113):
         print(f"  {line}")
 
-    print(f"""
+    print("""
 >>> A.3: Анализ условий для записи player/INSULTED/tavern_keeper_tornin
 
   EpistemicRecord:
@@ -218,7 +232,7 @@ def section_b_same_source_boost() -> Dict[str, Any]:
     src = bre_path.read_text(encoding="utf-8", errors="replace")
     lines = src.split("\n")
 
-    print(f"\n--- B.1: Полный файл belief_revision_engine.py (первые 30 строк) ---")
+    print("\n--- B.1: Полный файл belief_revision_engine.py (первые 30 строк) ---")
     for i, line in enumerate(lines[:30], 1):
         print(f"  L{i}: {line}")
 
@@ -226,20 +240,21 @@ def section_b_same_source_boost() -> Dict[str, Any]:
     boost_value = None
     for i, line in enumerate(lines, 1):
         if "_SAME_SOURCE_BOOST" in line and "=" in line:
-            print(f"\n--- B.2: Найдено объявление _SAME_SOURCE_BOOST ---")
+            print("\n--- B.2: Найдено объявление _SAME_SOURCE_BOOST ---")
             print(f"  L{i}: {line.rstrip()}")
             # Extract value
             try:
                 # Pattern: _SAME_SOURCE_BOOST: float = 0.X
                 import re
+
                 match = re.search(r"_SAME_SOURCE_BOOST.*?=\s*([\d.]+)", line)
                 if match:
                     boost_value = float(match.group(1))
                     print(f"  Значение: {boost_value}")
-            except:
+            except Exception:
                 pass
 
-    print(f"\n--- B.3: Формула обновления (L88-94) ---")
+    print("\n--- B.3: Формула обновления (L88-94) ---")
     for line in _read_lines(bre_path, 88, 94):
         print(f"  {line}")
 
@@ -253,7 +268,7 @@ def section_b_same_source_boost() -> Dict[str, Any]:
     = max(0.0, min(1.0, 0.215 + (reliability * {boost_value})))
 
   Если reliability (Люси для Торнина) ≈ 0.215 (confidence первого сообщения):
-    updated_conf = 0.215 + 0.215 * {boost_value} = 0.215 + {0.215 * boost_value if boost_value else '?':.4f} = {0.215 + 0.215 * boost_value if boost_value else '?':.4f}
+    updated_conf = 0.215 + 0.215 * {boost_value} = 0.215 + {0.215 * boost_value if boost_value else "?":.4f} = {0.215 + 0.215 * boost_value if boost_value else "?":.4f}
 
   Формула при сообщении от ДРУГОГО источника (corroboration):
     updated_conf = max(0.0, min(1.0, existing.confidence + incoming_confidence))
@@ -280,8 +295,8 @@ def section_c_control_run_a() -> Dict[str, Any]:
     _print_section("СЕКЦИЯ C: Контрольный прогон A (без передачи слуха)")
     result = {"section": "C", "pass": False}
 
-    print(f"\n>>> C.1: Запуск game loop БЕЗ PLAYER_INSULTS")
-    print(f"  Цель: зафиксировать baseline Торнина — решения, реплики, modifiers")
+    print("\n>>> C.1: Запуск game loop БЕЗ PLAYER_INSULTS")
+    print("  Цель: зафиксировать baseline Торнина — решения, реплики, modifiers")
 
     try:
         from app.core.config import settings, BASE_DIR
@@ -291,6 +306,7 @@ def section_c_control_run_a() -> Dict[str, Any]:
         from app.domain.events import EventDTO
 
         import tempfile
+
         saves_dir = Path(tempfile.mkdtemp(prefix="r2_b5_A_"))
         settings.saves_dir = str(saves_dir)
         settings.environment = "development"
@@ -308,13 +324,13 @@ def section_c_control_run_a() -> Dict[str, Any]:
                     ex._router = MagicMock()
                     if hasattr(ex._router, "route"):
                         ex._router.route.return_value = "[Контрольный прогон]"
-        except:
+        except Exception:
             pass
 
         # Clear event bus
         try:
             get_event_bus().clear()
-        except:
+        except Exception:
             pass
 
         # Collect NPC_SPOKE events for tornin
@@ -340,11 +356,11 @@ def section_c_control_run_a() -> Dict[str, Any]:
 
         try:
             get_event_bus().subscribe(EventType.NPC_SPOKE, _spy_spoke)
-        except:
+        except Exception:
             pass
 
         # Run 15 ticks WITHOUT PLAYER_INSULTS
-        print(f"\n  Запуск 15 ticks (без PLAYER_INSULTS)...")
+        print("\n  Запуск 15 ticks (без PLAYER_INSULTS)...")
         for tick_i in range(1, 16):
             try:
                 loop.idle_tick("Open_road")
@@ -382,20 +398,22 @@ def section_c_control_run_a() -> Dict[str, Any]:
             if scene:
                 npc_intents = scene.get("npc_intents", {})
                 tornin_intent = npc_intents.get("tavern_keeper_tornin", {})
-                tornin_decisions_a.append({
-                    "intent": tornin_intent.get("intent", "?"),
-                    "target": tornin_intent.get("intent_target", "?"),
-                    "tick": scene.get("tick"),
-                })
-        except:
+                tornin_decisions_a.append(
+                    {
+                        "intent": tornin_intent.get("intent", "?"),
+                        "target": tornin_intent.get("intent_target", "?"),
+                        "tick": scene.get("tick"),
+                    }
+                )
+        except Exception:
             pass
 
-        print(f"\n>>> C.2: Результаты контрольного прогона A")
+        print("\n>>> C.2: Результаты контрольного прогона A")
         print(f"  Tornin speeches: {len(tornin_speeches_a)}")
         for s in tornin_speeches_a:
             print(f"    tick={s['tick']}: '{s['content']}' (intent={s['intent']}, target={s['target']})")
         print(f"\n  All speeches: {len(all_speeches_a)}")
-        print(f"\n  Tornin epistemic state:")
+        print("\n  Tornin epistemic state:")
         print(f"    Records: {tornin_state_a.get('records_count', '?')}")
         for r in tornin_state_a.get("records", []):
             print(f"    {r}")
@@ -408,11 +426,14 @@ def section_c_control_run_a() -> Dict[str, Any]:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         result["pass"] = True
@@ -436,7 +457,7 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
     _print_section("СЕКЦИЯ D: Экспериментальный прогон B (с передачей слуха)")
     result = {"section": "D", "pass": False}
 
-    print(f"\n>>> D.1: Запуск game loop С PLAYER_INSULTS → maid_lusya → tavern_keeper_tornin")
+    print("\n>>> D.1: Запуск game loop С PLAYER_INSULTS → maid_lusya → tavern_keeper_tornin")
 
     try:
         from app.core.config import settings, BASE_DIR
@@ -446,6 +467,7 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
         from app.domain.events import EventDTO
 
         import tempfile
+
         saves_dir = Path(tempfile.mkdtemp(prefix="r2_b5_B_"))
         settings.saves_dir = str(saves_dir)
         settings.environment = "development"
@@ -463,12 +485,12 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
                     ex._router = MagicMock()
                     if hasattr(ex._router, "route"):
                         ex._router.route.return_value = "[Эксперимент]"
-        except:
+        except Exception:
             pass
 
         try:
             get_event_bus().clear()
-        except:
+        except Exception:
             pass
 
         # Collect events
@@ -502,35 +524,43 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
 
         def _spy_claim(event):
             payload = getattr(event, "payload", {})
-            claim_events_b.append({
-                "speaker": getattr(event, "source", "?"),
-                "proposition": payload.get("proposition"),
-                "claim_id": payload.get("claim_id", "?"),
-                "tick": payload.get("event_tick", payload.get("tick", "?")),
-            })
+            claim_events_b.append(
+                {
+                    "speaker": getattr(event, "source", "?"),
+                    "proposition": payload.get("proposition"),
+                    "claim_id": payload.get("claim_id", "?"),
+                    "tick": payload.get("event_tick", payload.get("tick", "?")),
+                }
+            )
 
         try:
             get_event_bus().subscribe(EventType.NPC_SPOKE, _spy_spoke)
             get_event_bus().subscribe(EventType.COMMUNICATION_CLAIM, _spy_claim)
-        except:
+        except Exception:
             pass
 
         # Publish PLAYER_INSULTS event
-        print(f"\n  Публикация PLAYER_INSULTS (target=tavern_keeper_tornin)...")
+        print("\n  Публикация PLAYER_INSULTS (target=tavern_keeper_tornin)...")
         payload = {
-            "action_type": "player_insults", "target_id": "tavern_keeper_tornin",
-            "content": "оскорбление", "event_tick": 1, "visibility": "public",
-            "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+            "action_type": "player_insults",
+            "target_id": "tavern_keeper_tornin",
+            "content": "оскорбление",
+            "event_tick": 1,
+            "visibility": "public",
+            "radius": 999.0,
+            "location": "tavern",
+            "campaign_id": "Open_road",
             "raw_input": "оскорбление",
         }
-        evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                              payload=payload, persistence_level="working")
+        evt = EventDTO.create(
+            event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+        )
         get_event_bus().publish(evt)
         insult_event_published = True
         print(f"  PLAYER_INSULTS published: {insult_event_published}")
 
         # Run 20 ticks
-        print(f"\n  Запуск 20 ticks (с PLAYER_INSULTS)...")
+        print("\n  Запуск 20 ticks (с PLAYER_INSULTS)...")
         for tick_i in range(1, 21):
             print(f"  --- tick {tick_i} ---")
             _log_capture.truncate(0)
@@ -544,12 +574,16 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
             recent_lusya = [s for s in lusya_speeches_b if s.get("tick") == tick_i]
             for s in recent_lusya:
                 if s["target"] == "tavern_keeper_tornin":
-                    print(f"  [LUStoTORNIN] tick={s['tick']} intent={s['intent']} content='{s['content'][:80]}' has_prop={s['has_proposition']}")
+                    print(
+                        f"  [LUStoTORNIN] tick={s['tick']} intent={s['intent']} content='{s['content'][:80]}' has_prop={s['has_proposition']}"
+                    )
 
             # Check if tornin spoke
             recent_tornin = [s for s in tornin_speeches_b if s.get("tick") == tick_i]
             for s in recent_tornin:
-                print(f"  [TORNIN] tick={s['tick']} intent={s['intent']} target={s['target']} content='{s['content'][:80]}'")
+                print(
+                    f"  [TORNIN] tick={s['tick']} intent={s['intent']} target={s['target']} content='{s['content'][:80]}'"
+                )
 
             # Check claim events
             recent_claims = [c for c in claim_events_b if c.get("tick") == tick_i]
@@ -582,7 +616,11 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
         # Get EpistemicContext for tornin
         tornin_context_b = {}
         try:
-            from app.services.npc.epistemic_context_resolver import EpistemicContextResolver, REPORT_CONFIDENCE_THRESHOLD
+            from app.services.npc.epistemic_context_resolver import (
+                EpistemicContextResolver,
+                REPORT_CONFIDENCE_THRESHOLD,
+            )
+
             if epistemic_store:
                 resolver = EpistemicContextResolver(epistemic_store)
                 ctx = resolver.resolve("tavern_keeper_tornin")
@@ -602,22 +640,24 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
         except Exception as e:
             tornin_context_b = {"error": str(e)}
 
-        print(f"\n>>> D.2: Результаты экспериментального прогона B")
+        print("\n>>> D.2: Результаты экспериментального прогона B")
         print(f"  Tornin speeches: {len(tornin_speeches_b)}")
         for s in tornin_speeches_b:
             print(f"    tick={s['tick']}: '{s['content']}' (intent={s['intent']}, target={s['target']})")
-        print(f"\n  Lusya speeches (to tornin): {len([s for s in lusya_speeches_b if s['target'] == 'tavern_keeper_tornin'])}")
-        for s in [s for s in lusya_speeches_b if s['target'] == 'tavern_keeper_tornin']:
+        print(
+            f"\n  Lusya speeches (to tornin): {len([s for s in lusya_speeches_b if s['target'] == 'tavern_keeper_tornin'])}"
+        )
+        for s in [s for s in lusya_speeches_b if s["target"] == "tavern_keeper_tornin"]:
             print(f"    tick={s['tick']}: '{s['content']}' (intent={s['intent']}, has_prop={s['has_proposition']})")
         print(f"\n  All speeches: {len(all_speeches_b)}")
         print(f"  Claim events: {len(claim_events_b)}")
 
-        print(f"\n  Tornin epistemic state:")
+        print("\n  Tornin epistemic state:")
         print(f"    Records: {tornin_state_b.get('records_count', '?')}")
         for r in tornin_state_b.get("records", []):
             print(f"    {r}")
 
-        print(f"\n  Tornin EpistemicContext:")
+        print("\n  Tornin EpistemicContext:")
         for k, v in tornin_context_b.items():
             if k != "error":
                 print(f"    {k}: {v}")
@@ -627,18 +667,21 @@ def section_d_experiment_run_b() -> Dict[str, Any]:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         result["pass"] = True
         result["tornin_speeches_count"] = len(tornin_speeches_b)
         result["tornin_speeches"] = tornin_speeches_b
-        result["lusya_to_tornin_count"] = len([s for s in lusya_speeches_b if s['target'] == 'tavern_keeper_tornin'])
-        result["lusya_to_tornin"] = [s for s in lusya_speeches_b if s['target'] == 'tavern_keeper_tornin']
+        result["lusya_to_tornin_count"] = len([s for s in lusya_speeches_b if s["target"] == "tavern_keeper_tornin"])
+        result["lusya_to_tornin"] = [s for s in lusya_speeches_b if s["target"] == "tavern_keeper_tornin"]
         result["claim_events_count"] = len(claim_events_b)
         result["tornin_epistemic_records"] = tornin_state_b.get("records_count", 0)
         result["tornin_epistemic_records_detail"] = tornin_state_b.get("records", [])
@@ -665,15 +708,15 @@ def section_f_final_report(results_a: Dict, results_b: Dict, results_b_boost: Di
 
 | Проверка                           | Контроль A       | Эксперимент B    |
 |------------------------------------|------------------|------------------|
-| Tornin speeches count              | {results_a.get('tornin_speeches_count', '?'):<16} | {results_b.get('tornin_speeches_count', '?'):<16} |
-| Tornin epistemic records           | {results_a.get('tornin_epistemic_records', '?'):<16} | {results_b.get('tornin_epistemic_records', '?'):<16} |
-| Lusya → Tornin speeches            | N/A              | {results_b.get('lusya_to_tornin_count', '?'):<16} |
-| Claim events                       | N/A              | {results_b.get('claim_events_count', '?'):<16} |
-| _SAME_SOURCE_BOOST                 | {results_b_boost.get('boost_value', '?'):<16} | (same)           |
-| claims_about_self активен          | (baseline)       | {'см. контекст' if results_b.get('tornin_context') else '?':<16} |
-| report_proposition                 | (baseline)       | {'см. контекст' if results_b.get('tornin_context') else '?':<16} |
-| TALK modifier                      | (baseline)       | {results_b.get('tornin_context', {}).get('modifiers', {}).get('talk', '?') if isinstance(results_b.get('tornin_context'), dict) else '?':<16} |
-| SPREAD_RUMOR modifier              | (baseline)       | {results_b.get('tornin_context', {}).get('modifiers', {}).get('spread_rumor', '?') if isinstance(results_b.get('tornin_context'), dict) else '?':<16} |
+| Tornin speeches count              | {results_a.get("tornin_speeches_count", "?"):<16} | {results_b.get("tornin_speeches_count", "?"):<16} |
+| Tornin epistemic records           | {results_a.get("tornin_epistemic_records", "?"):<16} | {results_b.get("tornin_epistemic_records", "?"):<16} |
+| Lusya → Tornin speeches            | N/A              | {results_b.get("lusya_to_tornin_count", "?"):<16} |
+| Claim events                       | N/A              | {results_b.get("claim_events_count", "?"):<16} |
+| _SAME_SOURCE_BOOST                 | {results_b_boost.get("boost_value", "?"):<16} | (same)           |
+| claims_about_self активен          | (baseline)       | {"см. контекст" if results_b.get("tornin_context") else "?":<16} |
+| report_proposition                 | (baseline)       | {"см. контекст" if results_b.get("tornin_context") else "?":<16} |
+| TALK modifier                      | (baseline)       | {results_b.get("tornin_context", {}).get("modifiers", {}).get("talk", "?") if isinstance(results_b.get("tornin_context"), dict) else "?":<16} |
+| SPREAD_RUMOR modifier              | (baseline)       | {results_b.get("tornin_context", {}).get("modifiers", {}).get("spread_rumor", "?") if isinstance(results_b.get("tornin_context"), dict) else "?":<16} |
 
 =============================================================================
 ТРАНСКРИПТ A (контрольный прогон)
@@ -683,14 +726,16 @@ def section_f_final_report(results_a: Dict, results_b: Dict, results_b_boost: Di
         print(f"  [A] tick={s['tick']}: tornin → {s['target']} (intent={s['intent']})")
         print(f"       content: '{s['content']}'")
 
-    print(f"""
+    print("""
 =============================================================================
 ТРАНСКРИПТ B (экспериментальный прогон)
 =============================================================================
 """)
     # Lusya → Tornin
     for s in results_b.get("lusya_to_tornin", []):
-        print(f"  [B] tick={s['tick']}: maid_lusya → tavern_keeper_tornin (intent={s['intent']}, has_prop={s['has_proposition']})")
+        print(
+            f"  [B] tick={s['tick']}: maid_lusya → tavern_keeper_tornin (intent={s['intent']}, has_prop={s['has_proposition']})"
+        )
         print(f"       content: '{s['content']}'")
         if s.get("proposition"):
             print(f"       proposition: {s['proposition']}")
@@ -701,7 +746,7 @@ def section_f_final_report(results_a: Dict, results_b: Dict, results_b_boost: Di
         print(f"       content: '{s['content']}'")
 
     # Tornin epistemic records
-    print(f"""
+    print("""
 =============================================================================
 EPISTEMIC RECORDS ТОрнина (после эксперимента B)
 =============================================================================
@@ -716,19 +761,19 @@ EPISTEMIC RECORDS ТОрнина (после эксперимента B)
 =============================================================================
 EPISTEMIC CONTEXT ТОрнина (после эксперимента B)
 =============================================================================
-  perceived_threats: {ctx.get('perceived_threats')}
-  perceived_allies: {ctx.get('perceived_allies')}
-  max_confidence: {ctx.get('max_confidence')}
-  max_self_confidence: {ctx.get('max_self_confidence')}
-  claims_about_self: {ctx.get('claims_about_self')}
-  report_proposition: {ctx.get('report_proposition')}
-  trigger_proposition: {ctx.get('trigger_proposition')}
-  modifiers: {ctx.get('modifiers')}
-  REPORT_CONFIDENCE_THRESHOLD: {ctx.get('REPORT_CONFIDENCE_THRESHOLD')}
+  perceived_threats: {ctx.get("perceived_threats")}
+  perceived_allies: {ctx.get("perceived_allies")}
+  max_confidence: {ctx.get("max_confidence")}
+  max_self_confidence: {ctx.get("max_self_confidence")}
+  claims_about_self: {ctx.get("claims_about_self")}
+  report_proposition: {ctx.get("report_proposition")}
+  trigger_proposition: {ctx.get("trigger_proposition")}
+  modifiers: {ctx.get("modifiers")}
+  REPORT_CONFIDENCE_THRESHOLD: {ctx.get("REPORT_CONFIDENCE_THRESHOLD")}
 """)
 
     # Verdict
-    print(f"""
+    print("""
 =============================================================================
 ВЕРДИКТ
 =============================================================================
@@ -736,7 +781,7 @@ EPISTEMIC CONTEXT ТОрнина (после эксперимента B)
 
     lusya_to_tornin = results_b.get("lusya_to_tornin_count", 0)
     tornin_speeches_b = results_b.get("tornin_speeches_count", 0)
-    tornin_records = results_b.get("tornin_epistemic_records", 0)
+    results_b.get("tornin_epistemic_records", 0)
 
     # Check if tornin has belief about insult
     has_insult_belief = False
@@ -762,34 +807,34 @@ EPISTEMIC CONTEXT ТОрнина (после эксперимента B)
     print(f"  SPREAD_RUMOR boost: {spread_rumor_boost}")
 
     if has_insult_belief and tornin_speeches_b > 0 and talk_boost > 0:
-        print(f"\n  >>> ВЕРДИКТ: PARTIAL")
+        print("\n  >>> ВЕРДИКТ: PARTIAL")
         print(f"  >>> Информация получена и влияет на контекст (TALK boost={talk_boost})")
         print(f"  >>> Торнин произнёс {tornin_speeches_b} реплик")
-        print(f"  >>> Причинная связь: claims_about_self → TALK boost → DecisionHub → реплика")
+        print("  >>> Причинная связь: claims_about_self → TALK boost → DecisionHub → реплика")
         print(f"  >>> Confidence={insult_confidence:.4f} < 0.25 (REPORT_CONFIDENCE_THRESHOLD)")
-        print(f"  >>> report_proposition = None (object_id == agent_id, не третье лицо)")
-        print(f"  >>> SPREAD_RUMOR boost = 0 (нет report_proposition)")
-        print(f"  >>> Но TALK boost активен через claims_about_self")
+        print("  >>> report_proposition = None (object_id == agent_id, не третье лицо)")
+        print("  >>> SPREAD_RUMOR boost = 0 (нет report_proposition)")
+        print("  >>> Но TALK boost активен через claims_about_self")
     elif has_insult_belief and talk_boost > 0 and tornin_speeches_b == 0:
-        print(f"\n  >>> ВЕРДИКТ: PARTIAL")
+        print("\n  >>> ВЕРДИКТ: PARTIAL")
         print(f"  >>> Информация получена и влияет на контекст (TALK boost={talk_boost})")
-        print(f"  >>> Но Торнин НЕ произнёс реплик")
-        print(f"  >>> Возможные причины: DecisionHub выбрал другой intent, или LLM не вызвалась")
+        print("  >>> Но Торнин НЕ произнёс реплик")
+        print("  >>> Возможные причины: DecisionHub выбрал другой intent, или LLM не вызвалась")
     elif has_insult_belief and tornin_speeches_b > 0:
-        print(f"\n  >>> ВЕРДИКТ: PARTIAL")
-        print(f"  >>> Информация получена, Торнин говорил")
-        print(f"  >>> Но причинная связь реплик с услышанным требует анализа содержания")
+        print("\n  >>> ВЕРДИКТ: PARTIAL")
+        print("  >>> Информация получена, Торнин говорил")
+        print("  >>> Но причинная связь реплик с услышанным требует анализа содержания")
     elif not has_insult_belief:
-        print(f"\n  >>> ВЕРДИКТ: FAIL")
-        print(f"  >>> Информация НЕ попала в EpistemicStore Торнина")
-        print(f"  >>> Возможные причины:")
-        print(f"      - LLM router mock (не real LLM)")
-        print(f"      - PROP_TARGET_IN_REACH blocked")
-        print(f"      - NPC_SPOKE без proposition")
-        print(f"      - ClaimEventSubscriber не обработал")
+        print("\n  >>> ВЕРДИКТ: FAIL")
+        print("  >>> Информация НЕ попала в EpistemicStore Торнина")
+        print("  >>> Возможные причины:")
+        print("      - LLM router mock (не real LLM)")
+        print("      - PROP_TARGET_IN_REACH blocked")
+        print("      - NPC_SPOKE без proposition")
+        print("      - ClaimEventSubscriber не обработал")
     else:
-        print(f"\n  >>> ВЕРДИКТ: PARTIAL")
-        print(f"  >>> Смешанный результат — см. детали выше")
+        print("\n  >>> ВЕРДИКТ: PARTIAL")
+        print("  >>> Смешанный результат — см. детали выше")
 
     print(f"""
 =============================================================================
@@ -802,7 +847,7 @@ EPISTEMIC CONTEXT ТОрнина (после эксперимента B)
 5. report_proposition: НЕ активен для Торнина (object_id == agent_id, а не третье лицо)
 6. TALK boost = max_self_confidence × 0.5 = {insult_confidence * 0.5:.4f}
 7. SPREAD_RUMOR boost = 0 (нет report_proposition)
-8. _SAME_SOURCE_BOOST = {results_b_boost.get('boost_value', '?')}
+8. _SAME_SOURCE_BOOST = {results_b_boost.get("boost_value", "?")}
 
 =============================================================================
 ГИПОТЕЗЫ

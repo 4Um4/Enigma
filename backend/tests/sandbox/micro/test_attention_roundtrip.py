@@ -9,6 +9,7 @@ path: backend/tests/sandbox/micro/test_attention_roundtrip.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_attention_roundtrip.py -v; cd ..
 """
+
 import dataclasses
 
 import pytest
@@ -83,16 +84,12 @@ def test_from_dict_rejects_missing_key() -> None:
 
 def test_non_finite_observation_rejected() -> None:
     with pytest.raises(ValueError):
-        AttentionObservation(
-            tick=1, distance=float("nan"), bearing=0.0, subject_heading=0.0
-        )
+        AttentionObservation(tick=1, distance=float("nan"), bearing=0.0, subject_heading=0.0)
 
 
 def test_non_finite_rel_vector_rejected() -> None:
     with pytest.raises(ValueError):
-        AttentionObservation(
-            tick=1, distance=1.0, bearing=0.0, subject_heading=0.0, rel_dx=float("inf")
-        )
+        AttentionObservation(tick=1, distance=1.0, bearing=0.0, subject_heading=0.0, rel_dx=float("inf"))
 
 
 def test_observer_xy_roundtrip() -> None:

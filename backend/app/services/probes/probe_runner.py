@@ -2,12 +2,14 @@
 """
 Запускает все зарегистрированные probes после тика.
 """
+
 import logging
 from typing import List
 
 from .probe_registry import Probe, ProbeContext, ProbeResult
 
 logger = logging.getLogger(__name__)
+
 
 class ProbeRunner:
     def __init__(self, probes: List[Probe] | None = None) -> None:

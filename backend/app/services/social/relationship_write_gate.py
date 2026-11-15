@@ -37,9 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Whitelist Мастера: ровно пять скаляров. Расширение = вердикт GPT + ADR
 # (контракт ТЗ-RE-01 §5.2; новые RE-сущности через гейт не протекают).
-SCALAR_WHITELIST: Final[FrozenSet[str]] = frozenset(
-    {"trust", "fear", "debt", "respect", "attraction"}
-)
+SCALAR_WHITELIST: Final[FrozenSet[str]] = frozenset({"trust", "fear", "debt", "respect", "attraction"})
 
 
 class RelationshipWriteGate:
@@ -83,8 +81,7 @@ class RelationshipWriteGate:
         """
         if not campaign_id or not source or not target:
             raise ValueError(
-                f"WriteGate.apply: campaign_id/source/target обязательны "
-                f"({campaign_id!r}, {source!r}, {target!r})"
+                f"WriteGate.apply: campaign_id/source/target обязательны ({campaign_id!r}, {source!r}, {target!r})"
             )
         if not isinstance(deltas, dict):
             raise ValueError(f"WriteGate.apply: deltas — dict, получен {type(deltas).__name__}")

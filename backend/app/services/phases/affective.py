@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/affective.py
 Зависимости: app.services.affective, app.models.npc_state, app.services.perception
 Основные сущности: Phase9Deps, run_phase_9, run_affective_pipeline
 """
+
 from __future__ import annotations
 
 import copy
@@ -52,9 +53,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
     Вызывается из ОБЕИХ путей (idle + player turn).
     Без этого affective_load не растёт при player turn → emotion=NEUTRAL → _emotion_modifier()=0.0.
     """
-    logger.debug(
-        f"[SEL_DIAG] _run_affective_pipeline ENTERED. Snapshot is None: {ctx.interpretation_snapshot is None}"
-    )
+    logger.debug(f"[SEL_DIAG] _run_affective_pipeline ENTERED. Snapshot is None: {ctx.interpretation_snapshot is None}")
     # DSTC: Ленивое создание interpretation_snapshot, если Pipeline вызван до Phase 9 (например, в player turn)
     if ctx.interpretation_snapshot is None:
         ctx.interpretation_snapshot = copy.deepcopy(ctx.all_npcs_raw)
@@ -63,9 +62,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
 
             _aggregated = aggregate_deltas(ctx.delta_buffer)
             if _aggregated:
-                deps.state_applicator.apply_batch(
-                    _aggregated, ctx.interpretation_snapshot, ctx.campaign_id
-                )
+                deps.state_applicator.apply_batch(_aggregated, ctx.interpretation_snapshot, ctx.campaign_id)
             ctx.delta_buffer.clear()
 
     if not ctx.interpretation_snapshot:
@@ -155,9 +152,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
             )
 
         if emotion_payload:
-            emotion_payload = dataclass_replace(
-                emotion_payload, affective_load=new_load
-            )
+            emotion_payload = dataclass_replace(emotion_payload, affective_load=new_load)
             logger.debug(
                 f"[AFFECTIVE_PLAYER] npc={entity_id} load={new_load:.3f} prev={current_load:.3f} tag={emotion_payload.emotion_tag}"
             )
@@ -169,9 +164,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
                 stress_delta=emotion_payload.stress_delta,
                 tick_id=ctx.tick_number,
             )
-            logger.debug(
-                f"[SIL_REDIRECT] npc={entity_id} EmotionPayload redirected to semantic_buffer"
-            )
+            logger.debug(f"[SIL_REDIRECT] npc={entity_id} EmotionPayload redirected to semantic_buffer")
 
         # SEL: Коммит Trace State в M-слой.
         # Передаём new_load (после интеграции с волей), а не сырой current_load.
@@ -181,9 +174,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
                 npc_id=entity_id,
                 domain=DeltaDomain.EMOTION,
                 target="system",
-                payload=EmotionPayload(
-                    affective_load=new_load, affective_memory=new_memory
-                ),
+                payload=EmotionPayload(affective_load=new_load, affective_memory=new_memory),
                 source="sel_trace_commit",
             )
         )
@@ -191,11 +182,7 @@ def run_affective_pipeline(ctx: _TickContext, deps: Phase9Deps) -> None:
         # S73-L0: Epistemic Trace (Log-only instrumentation).
         # Фиксируем субъективную проекцию реальности NPC для анализа RSI (Reality Split Index).
         # Не влияет на симуляцию. Позволяет CDS измерять расхождение интерпретаций.
-        _e_tag = (
-            emotion_payload.emotion_tag
-            if emotion_payload
-            else (npc_raw.get("emotion", "neutral") or "neutral")
-        )
+        _e_tag = emotion_payload.emotion_tag if emotion_payload else (npc_raw.get("emotion", "neutral") or "neutral")
         _e_src = "TRANSITION" if emotion_payload else "NONE"
         _prev_src = "memory" if current_memory > 0.01 else "pk"
         _incoming_val = (

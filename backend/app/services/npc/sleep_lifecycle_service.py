@@ -5,6 +5,7 @@ path: /project/backend/app/services/npc/sleep_lifecycle_service.py
 Зависимости: app.domain.events, app.services.npc.sleep_states, app.models.scene
 Основные сущности: SleepLifecycleService
 """
+
 from __future__ import annotations
 
 import logging
@@ -160,9 +161,7 @@ class SleepLifecycleService:
                 "coupling_mode": _profile.coupling_mode.value,
             }
 
-    def _check_wake_up(
-        self, npc: Dict[str, Any], tick: int
-    ) -> List[SceneChange]:
+    def _check_wake_up(self, npc: Dict[str, Any], tick: int) -> List[SceneChange]:
         """Проверяет, должен ли спящий NPC пробудиться (Arousal Gate)."""
         _routine = npc.get("routine", {})
         _current = _routine.get("current", "")
@@ -328,9 +327,7 @@ class SleepLifecycleService:
         _curr_pressure = float(_body.get("sleep_pressure", 0.0))
         _fatigue = float(_body.get("fatigue", 0.0))
         _mod = 1.0 + (_fatigue / 100.0) * FATIGUE_PRESSURE_MOD_COEFF
-        _body["sleep_pressure"] = min(
-            1.0, _curr_pressure + _SLEEP_PRESSURE_WAKE_RATE * _mod
-        )
+        _body["sleep_pressure"] = min(1.0, _curr_pressure + _SLEEP_PRESSURE_WAKE_RATE * _mod)
 
         # 2. Модуляция arousal
         _curr_arousal = float(_body.get("arousal", 0.0))
@@ -381,9 +378,7 @@ class SleepLifecycleService:
         if _stimuli_pressure > 0.1:
             _body["arousal"] = min(1.0, _curr_arousal + _stimuli_pressure * 0.15)
 
-    def _publish_sleep_event(
-        self, event_type: str, npc: Dict[str, Any], tick: int
-    ) -> None:
+    def _publish_sleep_event(self, event_type: str, npc: Dict[str, Any], tick: int) -> None:
         """Публикует событие сна в EventBus (для TimeSkipExecutor и памяти)."""
         npc_id = npc.get("id", "unknown")
         event = EventDTO.create(

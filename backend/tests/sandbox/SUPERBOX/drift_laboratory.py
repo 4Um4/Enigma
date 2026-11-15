@@ -49,13 +49,15 @@ import logging as _logging
 # и консольных флешей — замеренная цена деградации конвейера ×2-4
 # (профиль _prof_conv). Глушим до ERROR только в лаборатории
 # (диагностический контур; INV-SILENT-FAILURE не задет — errors живы).
-for _dn in ("app.services.npc.domain_phases",
-            "app.services.events.social_subscriber",
-            "app.services.game_loop",
-            "app.services.npc.npc_tick_pipeline",
-            "app.services.phases.movement_bridge",
-            "app.services.scene_state_manager",
-            "app.services.npc.state_applicator"):
+for _dn in (
+    "app.services.npc.domain_phases",
+    "app.services.events.social_subscriber",
+    "app.services.game_loop",
+    "app.services.npc.npc_tick_pipeline",
+    "app.services.phases.movement_bridge",
+    "app.services.scene_state_manager",
+    "app.services.npc.state_applicator",
+):
     _logging.getLogger(_dn).setLevel(_logging.ERROR)
 
 # S269-C3: диагностический fsync-канал _log_change (scene_changes.jsonl,
@@ -110,7 +112,7 @@ class DriftConfig:
     # replay determinism
     replay_determinism_ticks: int = 10_000  # 2 × 10k тиков с одинаковым seed
     replay_determinism_ticks_short: int = 10_000  # S268: полное 10k×2 —
-        # целевой режим; выбор через DRIFT_TICKS (env) ниже
+    # целевой режим; выбор через DRIFT_TICKS (env) ниже
 
     # projection parity (CSSE Stage 2)
     projection_parity_ticks: int = 10_000  # 10k тиков dual-reality sync
@@ -191,6 +193,8 @@ class _RNGCounter:
         self.total_calls = 0
         self.random_calls = 0
         self.getrandbits_calls = 0
+
+
 _EXCLUDE_FROM_SCENE_HASH = frozenset(
     {
         "last_save_real_time",  # time.time() — temporal entropy
@@ -356,8 +360,12 @@ class DriftLaboratory:
             # СВЕЖАЯ копия data_dir; world_tick сброшен (прецедент
             # iron_river D-3/F4).
             _data_dst = Path(tempfile.mkdtemp(prefix="drift_lab_data_"))
-            shutil.copytree(_real_data_dir, _data_dst, dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns("replay.db*", "logs", "__pycache__"))
+            shutil.copytree(
+                _real_data_dir,
+                _data_dst,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("replay.db*", "logs", "__pycache__"),
+            )
             _wt = _data_dst / "sessions" / "Open_road" / "world_tick.json"
             if _wt.exists():
                 _wt.unlink()
@@ -376,10 +384,12 @@ class DriftLaboratory:
                     # на 10k тиков это минуты чистого time.sleep.
                     # Эндуранс меряет причинность, не сеть → delay=0.
                     from app.services.llm.mock_provider import MockConfig
+
                     _mc = MockConfig()
                     _mc.response_delay_sec = 0.0
                     _mc.simulate_streaming = False
                     import app.services.llm.mock_provider as _mp
+
                     _mp._default_endurance_config = _mc  # для create_mock_provider
                 except Exception as _e:  # noqa: ENIGMA001
                     logger.warning(f"[DRIFT_LAB] mock-LLM setup skipped: {_e}")
@@ -441,7 +451,7 @@ class DriftLaboratory:
 
         # 2. Закрываем SQLite соединения (иначе Windows не удалит файл)
         self._close_sqlite_connections()
-        
+
         # Подсистема 2: Закрываем ReplayStore, если он был активирован
         if hasattr(self._orchestrator, "_replay_recorder") and self._orchestrator._replay_recorder:
             self._replay_session_id = self._orchestrator._replay_recorder.session_id
@@ -560,36 +570,36 @@ class DriftLaboratory:
         - координаты не (0.0, 0.0) если это невалидная позиция (SC-1)
         """
         if not self._scene_state:
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id, self.config.location_id
-            ) or {}
-            
+            self._scene_state = (
+                self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
+            )
+
         npc_pos = self._scene_state.get("npc_positions", {})
         if not npc_pos:
             print(f"  [GROUND_TRUTH] tick={tick} FAIL: npc_positions is empty")
             return False
-            
+
         for npc_id, pos_data in npc_pos.items():
             if not isinstance(pos_data, dict):
                 print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: pos_data is not dict")
                 return False
-                
+
             loc = pos_data.get("location_id", pos_data.get("location", ""))
             if not loc:
                 print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: missing location_id")
                 return False
-                
+
             lp = pos_data.get("local_position")
             if not isinstance(lp, dict) or "x" not in lp or "y" not in lp:
                 print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: invalid local_position")
                 return False
-                
+
             # SC-1: local_position не может быть (0.0, 0.0), если это не валидная координата
             # В тестовых картах (0.0, 0.0) обычно означает неинициализированную позицию
             if lp.get("x", 1.0) == 0.0 and lp.get("y", 1.0) == 0.0:
                 print(f"  [GROUND_TRUTH] tick={tick} npc={npc_id} FAIL: position is (0.0, 0.0) — SC-1 violation")
                 return False
-                
+
         return True
 
     def _run_idle_ticks(self, count: int, result: DriftResult) -> None:
@@ -604,12 +614,12 @@ class DriftLaboratory:
 
         for tick in range(1, count + 1):
             self._run_idle_tick_direct()
-            
+
             # Актуализируем scene_state после тика
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id, self.config.location_id
-            ) or {}
-            
+            self._scene_state = (
+                self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
+            )
+
             # Ground Truth Validator
             if not self._validate_ground_truth(tick):
                 self._crashed_ticks += 1
@@ -666,7 +676,7 @@ class DriftLaboratory:
         """
         print(f"\n--- MODE A: Mass Traversal ({self.config.mass_traversal_ticks} ticks) ---")
         self._crashed_ticks = 0
-        
+
         # BUG-DRIFT-001 FIX: Сброс tick до 0 перед стартом записи сессии
         # Иначе mass_traversal продолжает тики с прошлого прогона, ломая детерминизм KernelRNG
         if self._scene_manager is not None:
@@ -700,10 +710,10 @@ class DriftLaboratory:
             self._run_idle_tick_direct()
 
             # Актуализируем scene_state после тика
-            self._scene_state = self._scene_manager.get_scene_state(
-                self.config.campaign_id, self.config.location_id
-            ) or {}
-            
+            self._scene_state = (
+                self._scene_manager.get_scene_state(self.config.campaign_id, self.config.location_id) or {}
+            )
+
             # Ground Truth Validator
             if not self._validate_ground_truth(tick):
                 self._crashed_ticks += 1
@@ -908,8 +918,12 @@ class DriftLaboratory:
         if isinstance(_rd, list):
             cleaned["recent_dialogues"] = sorted(
                 _rd,
-                key=lambda d: (d.get("timestamp", 0), d.get("speaker_id", ""),
-                               d.get("target_id", ""), d.get("text", "")),
+                key=lambda d: (
+                    d.get("timestamp", 0),
+                    d.get("speaker_id", ""),
+                    d.get("target_id", ""),
+                    d.get("text", ""),
+                ),
             )
 
         # S269-ФИКС КЭНОН-ХЕША: real_ts — wall-clock метаданные момента
@@ -979,7 +993,9 @@ class DriftLaboratory:
                 # полный dump обоих значений в temp-файл
                 _dump = Path(tempfile.gettempdir()) / "drift_diff_scene.txt"
                 with open(_dump, "w", encoding="utf-8") as _f:
-                    _f.write(f"KEY = {key}\n\nA = {json.dumps(va, ensure_ascii=False, default=str, indent=1)}\n\nB = {json.dumps(vb, ensure_ascii=False, default=str, indent=1)}\n")
+                    _f.write(
+                        f"KEY = {key}\n\nA = {json.dumps(va, ensure_ascii=False, default=str, indent=1)}\n\nB = {json.dumps(vb, ensure_ascii=False, default=str, indent=1)}\n"
+                    )
                 print(f"     [S269] полный диф '{key}' → {_dump}")
                 va_s = str(va)[:100]
                 vb_s = str(vb)[:100]
@@ -1004,9 +1020,12 @@ class DriftLaboratory:
         # S268: env-выбор длины (short = вердикт TODAY, полный — кампания)
         import os as _os
         import random
-        ticks = (self.config.replay_determinism_ticks_short
-                 if _os.environ.get("DRIFT_SHORT") == "1"
-                 else self.config.replay_determinism_ticks)
+
+        ticks = (
+            self.config.replay_determinism_ticks_short
+            if _os.environ.get("DRIFT_SHORT") == "1"
+            else self.config.replay_determinism_ticks
+        )
         # S269-КАЛИБРОВКА: DRIFT_TICKS в Mode E — короткий замерный забег
         # (оба рана одинаково; вердикт не зависит от длины). Прецедент — Mode F.
         _t_env = _os.environ.get("DRIFT_TICKS")
@@ -1035,16 +1054,18 @@ class DriftLaboratory:
                 # 500 при 10k) — короткие прогоны тоже оставляют данные.
                 if tick % max(50, ticks // 10) == 0:
                     _d = self._orchestrator._drift_stats
-                    result.snapshots.append(DriftSnapshot(
-                        tick=tick,
-                        total_comparisons=tick,
-                        drift_A=_d.get("drift_A", 0) - _ds.get("drift_A", 0),
-                        drift_B=_d.get("drift_B", 0) - _ds.get("drift_B", 0),
-                        drift_C=_d.get("drift_C", 0) - _ds.get("drift_C", 0),
-                        drift_D=_d.get("drift_D", 0) - _ds.get("drift_D", 0),
-                        drift_E=_d.get("drift_E", 0) - _ds.get("drift_E", 0),
-                        elapsed_seconds=time.time() - _t0,
-                    ))
+                    result.snapshots.append(
+                        DriftSnapshot(
+                            tick=tick,
+                            total_comparisons=tick,
+                            drift_A=_d.get("drift_A", 0) - _ds.get("drift_A", 0),
+                            drift_B=_d.get("drift_B", 0) - _ds.get("drift_B", 0),
+                            drift_C=_d.get("drift_C", 0) - _ds.get("drift_C", 0),
+                            drift_D=_d.get("drift_D", 0) - _ds.get("drift_D", 0),
+                            drift_E=_d.get("drift_E", 0) - _ds.get("drift_E", 0),
+                            elapsed_seconds=time.time() - _t0,
+                        )
+                    )
         except Exception as e:
             run_a_interrupted = True
             print(f"  [REPLAY] Run A INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
@@ -1082,16 +1103,18 @@ class DriftLaboratory:
                 # tick < ticks: финальную точку пишет снимок после Run B complete
                 if tick % max(50, ticks // 10) == 0 and tick < ticks:
                     _d = self._orchestrator._drift_stats
-                    result.snapshots.append(DriftSnapshot(
-                        tick=ticks + tick,
-                        total_comparisons=ticks + tick,
-                        drift_A=_d.get("drift_A", 0) - _ds_b.get("drift_A", 0),
-                        drift_B=_d.get("drift_B", 0) - _ds_b.get("drift_B", 0),
-                        drift_C=_d.get("drift_C", 0) - _ds_b.get("drift_C", 0),
-                        drift_D=_d.get("drift_D", 0) - _ds_b.get("drift_D", 0),
-                        drift_E=_d.get("drift_E", 0) - _ds_b.get("drift_E", 0),
-                        elapsed_seconds=time.time() - _t0,
-                    ))
+                    result.snapshots.append(
+                        DriftSnapshot(
+                            tick=ticks + tick,
+                            total_comparisons=ticks + tick,
+                            drift_A=_d.get("drift_A", 0) - _ds_b.get("drift_A", 0),
+                            drift_B=_d.get("drift_B", 0) - _ds_b.get("drift_B", 0),
+                            drift_C=_d.get("drift_C", 0) - _ds_b.get("drift_C", 0),
+                            drift_D=_d.get("drift_D", 0) - _ds_b.get("drift_D", 0),
+                            drift_E=_d.get("drift_E", 0) - _ds_b.get("drift_E", 0),
+                            elapsed_seconds=time.time() - _t0,
+                        )
+                    )
         except Exception as e:
             run_b_interrupted = True
             print(f"  [REPLAY] Run B INTERRUPTED at tick {tick}: {type(e).__name__}: {e}")
@@ -1107,15 +1130,17 @@ class DriftLaboratory:
             f"  [REPLAY] Run B drift: C={drift_b.get('drift_C', 0)} D={drift_b.get('drift_D', 0)} E={drift_b.get('drift_E', 0)}"
         )
         # S269-Д2: финальный snapshot — последняя точка оси (2N) с полным drift
-        result.snapshots.append(DriftSnapshot(
-            tick=ticks * 2,
-            total_comparisons=ticks * 2,
-            drift_C=drift_b.get("drift_C", 0),
-            drift_D=drift_b.get("drift_D", 0),
-            drift_E=drift_b.get("drift_E", 0),
-            elapsed_seconds=time.time() - _t0,
-            crashed_ticks=1 if run_a_interrupted or run_b_interrupted else 0,
-        ))
+        result.snapshots.append(
+            DriftSnapshot(
+                tick=ticks * 2,
+                total_comparisons=ticks * 2,
+                drift_C=drift_b.get("drift_C", 0),
+                drift_D=drift_b.get("drift_D", 0),
+                drift_E=drift_b.get("drift_E", 0),
+                elapsed_seconds=time.time() - _t0,
+                crashed_ticks=1 if run_a_interrupted or run_b_interrupted else 0,
+            )
+        )
 
         # ── VERDICT ────────────────────────────────────────────────
         # R4 (Phantom fix): пустой вход ≠ дрейф. 0 воспроизведённых тиков —
@@ -1129,8 +1154,9 @@ class DriftLaboratory:
                 "replay_ticks": 0,
                 "total_drifts": 0,
             }
-            print("\n  ⚪ REPLAY COMPARE: NO_DATA (0 тиков воспроизведено — "
-                  "запись пуста или отсутствует; это НЕ дрейф)")
+            print(
+                "\n  ⚪ REPLAY COMPARE: NO_DATA (0 тиков воспроизведено — запись пуста или отсутствует; это НЕ дрейф)"
+            )
             return
 
         result.final_stats = {
@@ -1176,6 +1202,7 @@ class DriftLaboratory:
         print(f"\n--- MODE H: Replay Compare against session {session_id} ---")
 
         from app.core.config import settings
+
         # R3 (Phantom fix): reader обязан читать тот же путь, что пишет
         # writer (settings.replay_store_path), — независимо от того,
         # куда в данный момент указывает изолированный settings.data_dir.
@@ -1186,13 +1213,7 @@ class DriftLaboratory:
             return
 
         store = ReplayStore(db_path)
-        player = ReplayPlayer(
-            store,
-            self._game_loop,
-            session_id,
-            self.config.campaign_id,
-            self.config.location_id
-        )
+        player = ReplayPlayer(store, self._game_loop, session_id, self.config.campaign_id, self.config.location_id)
 
         # Воспроизводим первые 100 тиков. max_drift=1000, чтобы не падать при первом расхождении.
         try:
@@ -1205,11 +1226,12 @@ class DriftLaboratory:
         result.final_stats = {
             "replay_verdict": "MATCH" if report["status"] == "SUCCESS" else "MISMATCH",
             "replay_ticks": report["replayed_ticks"],
-            "total_drifts": report["total_drifts"]
+            "total_drifts": report["total_drifts"],
         }
 
         # BUG-DRIFT-002 FIX: Обновляем счетчики result для корректной статистики в CSV и дашборде
         import types
+
         _snap = types.SimpleNamespace(
             tick=report["replayed_ticks"],
             total_comparisons=report["replayed_ticks"],
@@ -1219,14 +1241,16 @@ class DriftLaboratory:
             drift_D=0,
             drift_E=0,
             elapsed_seconds=0.0,
-            crashed_ticks=0
+            crashed_ticks=0,
         )
         result.snapshots.append(_snap)
 
         if report["status"] == "SUCCESS":
             print(f"\n  ✅ REPLAY COMPARE: MATCH ({report['replayed_ticks']} ticks)")
         else:
-            print(f"\n  🔴 REPLAY COMPARE: MISMATCH (drifts={report['total_drifts']} out of {report['replayed_ticks']} ticks)")
+            print(
+                f"\n  🔴 REPLAY COMPARE: MISMATCH (drifts={report['total_drifts']} out of {report['replayed_ticks']} ticks)"
+            )
 
     # ─── Mode G: Projection Parity (CSSE Stage 2) ────────────────
 
@@ -1891,9 +1915,13 @@ class DriftReporter:
                 if _rv == "MATCH":
                     lines.append("**Вывод:** Воспроизведение совпало с записью на сравнённых тиках.")
                 elif _rv == "NO_DATA":
-                    lines.append("**Вывод:** Запись пуста или не содержит тиков — вердикт о дрейфе невозможен (инфраструктурный NO_DATA, S299 P7).")
+                    lines.append(
+                        "**Вывод:** Запись пуста или не содержит тиков — вердикт о дрейфе невозможен (инфраструктурный NO_DATA, S299 P7)."
+                    )
                 else:
-                    lines.append("**Вывод:** Расхождение между записью и воспроизведением. ВНИМАНИЕ (S299): текущий ReplayPlayer — упрощённый (не восстанавливает tick_state/interventions), сравнивает два независимых прогона; MISMATCH сам по себе НЕ доказывает нарушение детерминизма. Полноценный replay — кампания ReplayPlayer v2 (вердикт Мастера, Опция B).")
+                    lines.append(
+                        "**Вывод:** Расхождение между записью и воспроизведением. ВНИМАНИЕ (S299): текущий ReplayPlayer — упрощённый (не восстанавливает tick_state/interventions), сравнивает два независимых прогона; MISMATCH сам по себе НЕ доказывает нарушение детерминизма. Полноценный replay — кампания ReplayPlayer v2 (вердикт Мастера, Опция B)."
+                    )
                 lines.append("")
                 lines.append("---")
                 lines.append("*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
@@ -1912,7 +1940,9 @@ class DriftReporter:
             lines.append("# Лаборатория Дрейфа — Вердикт Реплея")
             lines.append("")
             lines.append(f"**Дата:** {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            lines.append(f"**Вердикт:** {'✅ MATCH — мир детерминирован' if _rv == 'MATCH' else '🔴 MISMATCH — скрытая энтропия'}")
+            lines.append(
+                f"**Вердикт:** {'✅ MATCH — мир детерминирован' if _rv == 'MATCH' else '🔴 MISMATCH — скрытая энтропия'}"
+            )
             lines.append("")
             lines.append("| Параметр | Значение |")
             lines.append("|---|---|")
@@ -1923,9 +1953,13 @@ class DriftReporter:
             lines.append(f"| Время | {_et:.1f} сек{_ms} |")
             lines.append("")
             if _rv == "MATCH":
-                lines.append("**Вывод:** Мир воспроизводим при контролируемой энтропии на данной нагрузке. Артефакт валиден как baseline детерминизма; долгосрочный дрейф не обнаружен на прогоне.")
+                lines.append(
+                    "**Вывод:** Мир воспроизводим при контролируемой энтропии на данной нагрузке. Артефакт валиден как baseline детерминизма; долгосрочный дрейф не обнаружен на прогоне."
+                )
             else:
-                lines.append("**Вывод:** Обнаружен скрытый источник энтропии (time/uuid/ordering/поздний writer). Прогон НЕ может считаться baseline. Обязателен каузальный разбор: первый divergent tick → состояние → writer → причина. Повторный полный прогон — только после фикса.")
+                lines.append(
+                    "**Вывод:** Обнаружен скрытый источник энтропии (time/uuid/ordering/поздний writer). Прогон НЕ может считаться baseline. Обязателен каузальный разбор: первый divergent tick → состояние → writer → причина. Повторный полный прогон — только после фикса."
+                )
             lines.append("")
             lines.append("---")
             lines.append("*Авто-сгенерировано Лабораторией Дрейфа ENIGMA*")
@@ -2132,12 +2166,15 @@ _MODE_NAMES = {
 
 class _Tee:
     """Перенаправляет вывод в консоль и в файл одновременно."""
+
     def __init__(self, *files):
         self.files = files
+
     def write(self, obj):
         for f in self.files:
             f.write(obj)
             f.flush()
+
     def flush(self):
         for f in self.files:
             f.flush()
@@ -2167,11 +2204,11 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     log_path = output_dir / f"дрейф_{mode}_{timestamp}.log"
     log_file = open(log_path, "w", encoding="utf-8")
-    
+
     # Перенаправляем вывод
     original_stdout = sys.stdout
     sys.stdout = _Tee(original_stdout, log_file)
-    
+
     result = lab.run(mode, session_id=session_id)
 
     reporter = DriftReporter(result)
@@ -2186,7 +2223,7 @@ def main(mode: str = "long_horizon", session_id: str = None) -> None:
     reporter.save_csv(str(output_dir / f"дрейф_{mode}.csv"))
     reporter.save_markdown(str(output_dir / f"дрейф_{mode}.md"))
     reporter.plot_charts(str(output_dir / f"дрейф_{mode}"))
-    
+
     print(f"  📄 Лог работы сохранён: {log_path}")
 
     # Вердикт

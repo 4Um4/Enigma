@@ -30,6 +30,7 @@ R2-B5-D1 FINAL PROVIDER AND PERCEPTION PROBE.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -155,9 +156,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -249,9 +248,7 @@ def _resolve_callable_target(obj: Any) -> Tuple[str, Optional[object]]:
 # + all four places where provider is passed
 # ============================================================================
 def stage_a_game_loop_provider() -> Dict[str, Any]:
-    _print_section(
-        "STAGE A: game_loop.py — _get_spatial_query_for_subscriber() + 4 provider wiring sites"
-    )
+    _print_section("STAGE A: game_loop.py — _get_spatial_query_for_subscriber() + 4 provider wiring sites")
     result: Dict[str, Any] = {"stage": "A", "pass": False}
 
     # ---- A.1: locate game_loop.py (NOT game_loop_builder.py) ----
@@ -313,7 +310,6 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
                 break
 
     func_text: Optional[str] = None
-    func_bounds: Optional[Tuple[int, int]] = None
     if target_path and target_func_name:
         try:
             rel = target_path.relative_to(_BACKEND)
@@ -324,7 +320,6 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
         bounds = _find_function_bounds(src, target_func_name)
         if bounds:
             start, end = bounds
-            func_bounds = (start, end)
             lines_arr = src.split("\n")
             func_lines = lines_arr[start:end]
             func_text = "\n".join(func_lines)
@@ -341,7 +336,9 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
         print("  [function not found — _get_spatial_query_for_subscriber absent]")
 
     # ---- A.4: analysis of return value, source, None conditions, lifecycle, npc_positions freshness ----
-    print("\n--- A.4: static analysis of provider (return value, source, None conditions, lifecycle, npc_positions freshness) ---")
+    print(
+        "\n--- A.4: static analysis of provider (return value, source, None conditions, lifecycle, npc_positions freshness) ---"
+    )
     analysis = {
         "function_found": target_path is not None,
         "function_name": target_func_name,
@@ -413,7 +410,7 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
             print(f"  --- context L{ctx_start + 1}..L{ctx_end} ---")
             for j in range(ctx_start, ctx_end):
                 marker = ">>>" if j + 1 == ln else "   "
-                print(f"  {marker} L{j+1:4d}: {lines_arr[j]}")
+                print(f"  {marker} L{j + 1:4d}: {lines_arr[j]}")
             wiring_sites.append(
                 {
                     "file": key,
@@ -440,7 +437,7 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
                 lines_arr = src.split("\n")
                 print(f"  __init__ at L{start + 1}..L{end}:")
                 for j in range(start, end):
-                    print(f"  L{j+1:4d}: {lines_arr[j]}")
+                    print(f"  L{j + 1:4d}: {lines_arr[j]}")
             else:
                 print("  [__init__ not found]")
         except Exception as e:
@@ -461,9 +458,7 @@ def stage_a_game_loop_provider() -> Dict[str, Any]:
 # STAGE B: real production PerceptualKernel.can_observe()
 # ============================================================================
 def stage_b_perceptual_kernel() -> Dict[str, Any]:
-    _print_section(
-        "STAGE B: real production PerceptualKernel.can_observe() — skip probe/test/mock"
-    )
+    _print_section("STAGE B: real production PerceptualKernel.can_observe() — skip probe/test/mock")
     result: Dict[str, Any] = {"stage": "B", "pass": False}
 
     # ---- B.1: find ALL files containing PerceptualKernel class or can_observe def ----
@@ -525,15 +520,13 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
         if line.strip() == "":
             continue
         cur_indent = len(line) - len(line.lstrip())
-        if cur_indent <= class_indent and (
-            line.lstrip().startswith("class ") or line.lstrip().startswith("def ")
-        ):
+        if cur_indent <= class_indent and (line.lstrip().startswith("class ") or line.lstrip().startswith("def ")):
             class_end = j
             break
 
     print(f"\n  class PerceptualKernel spans L{class_start + 1}..L{class_end}:")
     for j in range(class_start, class_end):
-        print(f"  L{j+1:4d}: {lines_arr[j]}")
+        print(f"  L{j + 1:4d}: {lines_arr[j]}")
 
     # ---- B.3: read full can_observe method ----
     print("\n--- B.3: full can_observe method ---")
@@ -558,12 +551,14 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
         s, e = can_observe_bounds
         print(f"  can_observe at L{s + 1}..L{e}:")
         for j in range(s, e):
-            print(f"  L{j+1:4d}: {lines_arr[j]}")
+            print(f"  L{j + 1:4d}: {lines_arr[j]}")
     else:
         print("  [can_observe not found in PerceptualKernel class]")
 
     # ---- B.4: detect radius source, event.radius usage, HEARING_RADIUS, additional filters, False conditions ----
-    print("\n--- B.4: radius semantics — source of radius, event.radius, HEARING_RADIUS, additional filters, False conditions ---")
+    print(
+        "\n--- B.4: radius semantics — source of radius, event.radius, HEARING_RADIUS, additional filters, False conditions ---"
+    )
     semantics = {
         "radius_source": None,
         "uses_event_radius": False,
@@ -595,7 +590,10 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
             # Heuristic for additional filters
             if "if " in stripped and "return False" not in stripped:
                 # capture filter-like ifs
-                if any(t in stripped.lower() for t in ("location", "scene", "alive", "conscious", "visible", "same_", "loc")):
+                if any(
+                    t in stripped.lower()
+                    for t in ("location", "scene", "alive", "conscious", "visible", "same_", "loc")
+                ):
                     semantics["additional_filters"].append(stripped)
 
     print(f"  radius_source: {semantics['radius_source']}")
@@ -617,9 +615,7 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
 
     result["pass"] = True
     result["pk_path"] = str(pk_path.relative_to(_BACKEND))
-    result["can_observe_bounds"] = (
-        (can_observe_bounds[0] + 1, can_observe_bounds[1]) if can_observe_bounds else None
-    )
+    result["can_observe_bounds"] = (can_observe_bounds[0] + 1, can_observe_bounds[1]) if can_observe_bounds else None
     result["semantics"] = semantics
     return result
 
@@ -628,9 +624,7 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
 # STAGE C: Runtime verification — capture 9 values on real PLAYER_INSULTS handler
 # ============================================================================
 def stage_c_runtime_verification() -> Dict[str, Any]:
-    _print_section(
-        "STAGE C: Runtime verification — 9 values on real PLAYER_INSULTS handler"
-    )
+    _print_section("STAGE C: Runtime verification — 9 values on real PLAYER_INSULTS handler")
     result: Dict[str, Any] = {"stage": "C", "pass": False}
 
     try:
@@ -750,6 +744,7 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                 orig_method = getattr(engine, method_name, None)
                 if orig_method is None or not callable(orig_method):
                     continue
+
                 # Build closure capturing orig_method + method_name
                 def _make_spy(orig, name):
                     def _spy(*args, **kwargs):
@@ -771,7 +766,9 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                         except Exception:
                             pass
                         return orig(*args, **kwargs)
+
                     return _spy
+
                 try:
                     setattr(engine, method_name, _make_spy(orig_method, method_name))
                     print(f"  spy attached: engine.{method_name}")
@@ -799,7 +796,9 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                         except Exception:
                             pass
                         return orig(*args, **kwargs)
+
                     return _spy
+
                 try:
                     setattr(store, method_name, _make_store_spy(orig_method, method_name))
                     print(f"  spy attached: store.{method_name}")
@@ -893,8 +892,12 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                     manual = math.hypot(px - lx, py - ly)
                     captured["manual_distance_player_lusya"] = manual
                     captured["manual_distance_detail"] = {
-                        "px": px, "py": py, "lx": lx, "ly": ly,
-                        "dx": px - lx, "dy": py - ly,
+                        "px": px,
+                        "py": py,
+                        "lx": lx,
+                        "ly": ly,
+                        "dx": px - lx,
+                        "dy": py - ly,
                     }
                     if distance_value is None:
                         distance_value = manual
@@ -911,16 +914,15 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                 # Find production PerceptualKernel
                 pk_files = _find_files_matching(
                     _BACKEND,
-                    lambda s: ("class PerceptualKernel" in s),
+                    lambda s: "class PerceptualKernel" in s,
                     production_only=True,
                 )
                 if pk_files:
                     pk_path = pk_files[0]
                     # Import dynamically
                     import importlib.util
-                    spec = importlib.util.spec_from_file_location(
-                        f"_pk_probe_{pk_path.stem}", pk_path
-                    )
+
+                    spec = importlib.util.spec_from_file_location(f"_pk_probe_{pk_path.stem}", pk_path)
                     if spec and spec.loader:
                         pk_mod = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(pk_mod)
@@ -970,13 +972,12 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
             # If the engine was called for maid_lusya, that means she was a listener.
             captured["engine_calls_after_on_claim"] = len(engine_calls)
             captured["engine_calls_delta"] = (
-                captured["engine_calls_after_on_claim"]
-                - captured["engine_calls_before_on_claim"]
+                captured["engine_calls_after_on_claim"] - captured["engine_calls_before_on_claim"]
             )
 
             # Inspect engine calls for maid_lusya
             lusya_calls = []
-            for call in engine_calls[captured["engine_calls_before_on_claim"]:]:
+            for call in engine_calls[captured["engine_calls_before_on_claim"] :]:
                 args_str = " ".join(call.get("args", []))
                 if "maid_lusya" in args_str:
                     lusya_calls.append(call)
@@ -1049,8 +1050,10 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
             persistence_level="working",
         )
 
-        print(f"\n--- Publishing PLAYER_INSULTS ---")
-        print(f"  event.source={evt.source}, payload.target_id={payload['target_id']}, payload.radius={payload['radius']}")
+        print("\n--- Publishing PLAYER_INSULTS ---")
+        print(
+            f"  event.source={evt.source}, payload.target_id={payload['target_id']}, payload.radius={payload['radius']}"
+        )
         bus.publish(evt)
 
         # If on_player_spoke is the subscriber's entry, we may need to also publish PLAYER_SPOKE
@@ -1060,7 +1063,7 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
         sub.on_claim_event = orig_on_claim
 
         # ---- C.2: print all 9 captured values ----
-        print(f"\n--- C.2: captured 9 runtime values ---")
+        print("\n--- C.2: captured 9 runtime values ---")
         ordered_keys = [
             ("1. provider_callable", "provider_callable"),
             ("1. provider_repr", "provider_repr"),
@@ -1105,13 +1108,13 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
                 print(f"  {label}: {val}")
 
         # ---- C.3: also dump ALL engine_calls and store_calls for forensics ----
-        print(f"\n--- C.3: all engine_calls during PLAYER_INSULTS ---")
+        print("\n--- C.3: all engine_calls during PLAYER_INSULTS ---")
         for i, call in enumerate(engine_calls):
             print(f"  [{i}] method={call.get('method')} args={call.get('args')}")
         if not engine_calls:
             print("  (none)")
 
-        print(f"\n--- C.4: all store_calls during PLAYER_INSULTS ---")
+        print("\n--- C.4: all store_calls during PLAYER_INSULTS ---")
         for i, call in enumerate(store_calls):
             print(f"  [{i}] method={call.get('method')} args={call.get('args')}")
         if not store_calls:
@@ -1126,8 +1129,10 @@ def stage_c_runtime_verification() -> Dict[str, Any]:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         result["pass"] = True
@@ -1208,7 +1213,7 @@ def stage_d_verdict(
     epistemic_records = captured.get("epistemic_records_for_lusya_after", 0)
     semantics = stage_b.get("semantics", {})
 
-    print(f"\n  FACTS:")
+    print("\n  FACTS:")
     print(f"    provider_callable: {provider_callable}")
     print(f"    provider_result_type: {provider_result_type}")
     print(f"    sq_npc_positions_count: {sq_npc_positions_count}")
@@ -1233,7 +1238,11 @@ def stage_d_verdict(
             "on_claim_event falls back to target_id-only listener list. maid_lusya != target_id "
             "(target_id=tavern_keeper_tornin), so she is not in listeners, no belief created."
         )
-    elif sq_npc_positions_count == 0 or "maid_lusya" not in sq_npc_positions_keys or "player" not in sq_npc_positions_keys:
+    elif (
+        sq_npc_positions_count == 0
+        or "maid_lusya" not in sq_npc_positions_keys
+        or "player" not in sq_npc_positions_keys
+    ):
         verdict = "2. PROVIDER RETURNS STALE SERVICE"
         rationale = (
             "Provider returns a non-None object, but its _npc_positions is empty or "
@@ -1272,68 +1281,68 @@ def stage_d_verdict(
     print(f"  >>> RATIONALE: {rationale}")
 
     # ---- Minimal fix plan ----
-    print(f"\n  >>> MINIMAL FIX PLAN:")
+    print("\n  >>> MINIMAL FIX PLAN:")
     if verdict.startswith("1."):
-        print(f"    - Locate where ClaimEventSubscriber is constructed in production")
-        print(f"      (see Stage A.5 wiring sites — usually game_loop.py or game_loop_builder.py)")
-        print(f"    - Pass a provider that returns the live SpatialQueryService bound to scene_state")
-        print(f"    - DO NOT create a new SpatialQueryService; re-bind to loop.scene_manager")
+        print("    - Locate where ClaimEventSubscriber is constructed in production")
+        print("      (see Stage A.5 wiring sites — usually game_loop.py or game_loop_builder.py)")
+        print("    - Pass a provider that returns the live SpatialQueryService bound to scene_state")
+        print("    - DO NOT create a new SpatialQueryService; re-bind to loop.scene_manager")
     elif verdict.startswith("2."):
-        print(f"    - The provider returns a stale SpatialQueryService instance")
-        print(f"    - Re-bind it to loop.scene_manager so its _npc_positions stays live")
-        print(f"    - Possibly: provider should be `lambda: loop.scene_manager.spatial_query_service`")
+        print("    - The provider returns a stale SpatialQueryService instance")
+        print("    - Re-bind it to loop.scene_manager so its _npc_positions stays live")
+        print("    - Possibly: provider should be `lambda: loop.scene_manager.spatial_query_service`")
     elif verdict.startswith("3."):
-        print(f"    - Constraint: радиусы не менять. NPC не перемещать.")
-        print(f"    - Without changing radii or moving NPCs, the only fix is the spatial membrane itself")
-        print(f"      cannot include maid_lusya at the current distance (10.086m > 10.0m HEARING_RADIUS)")
-        print(f"    - RECOMMEND: confirm with Master whether to relax constraint (move NPC by 0.1m,")
-        print(f"      or bump HEARING_RADIUS by 1m) — otherwise B5 chain cannot complete at this position")
+        print("    - Constraint: радиусы не менять. NPC не перемещать.")
+        print("    - Without changing radii or moving NPCs, the only fix is the spatial membrane itself")
+        print("      cannot include maid_lusya at the current distance (10.086m > 10.0m HEARING_RADIUS)")
+        print("    - RECOMMEND: confirm with Master whether to relax constraint (move NPC by 0.1m,")
+        print("      or bump HEARING_RADIUS by 1m) — otherwise B5 chain cannot complete at this position")
     elif verdict.startswith("4."):
-        print(f"    - Trace downstream: EpistemicContextResolver, DecisionHub, post_decision")
-        print(f"    - Confirm BeliefRevisionEngine.revise() output (confidence, source_id)")
-        print(f"    - Check whether report_proposition activation threshold (0.25) is reached")
+        print("    - Trace downstream: EpistemicContextResolver, DecisionHub, post_decision")
+        print("    - Confirm BeliefRevisionEngine.revise() output (confidence, source_id)")
+        print("    - Check whether report_proposition activation threshold (0.25) is reached")
 
     # ---- Affected files ----
-    print(f"\n  >>> AFFECTED FILES:")
+    print("\n  >>> AFFECTED FILES:")
     if verdict.startswith("1.") or verdict.startswith("2."):
-        print(f"    - app/services/game_loop.py (or game_loop_builder.py — see Stage A)")
-        print(f"    - app/services/events/claim_event_subscriber.py (consumer of provider)")
+        print("    - app/services/game_loop.py (or game_loop_builder.py — see Stage A)")
+        print("    - app/services/events/claim_event_subscriber.py (consumer of provider)")
     elif verdict.startswith("3."):
-        print(f"    - app/models/npc_state.py (PerceptualKernel.can_observe — DO NOT change radii)")
-        print(f"    - OR: saves/Open_road/locations/tavern.json (NPC start positions — DO NOT move)")
-        print(f"    - This verdict requires Master's decision on which constraint to relax")
+        print("    - app/models/npc_state.py (PerceptualKernel.can_observe — DO NOT change radii)")
+        print("    - OR: saves/Open_road/locations/tavern.json (NPC start positions — DO NOT move)")
+        print("    - This verdict requires Master's decision on which constraint to relax")
     else:
-        print(f"    - app/services/npc/epistemic_context_resolver.py")
-        print(f"    - app/services/npc/belief_revision_engine.py")
-        print(f"    - app/services/phases/post_decision.py")
+        print("    - app/services/npc/epistemic_context_resolver.py")
+        print("    - app/services/npc/belief_revision_engine.py")
+        print("    - app/services/phases/post_decision.py")
 
     # ---- Risks ----
-    print(f"\n  >>> RISKS:")
+    print("\n  >>> RISKS:")
     if verdict.startswith("1."):
-        print(f"    - Spatial membrane will start filtering listeners by distance")
-        print(f"    - NPCs >10m from speaker will be excluded (may affect existing scenes)")
-        print(f"    - maid_lusya at 10.086m > 10.0m HEARING_RADIUS — still excluded even with fix!")
-        print(f"    - So fix #1 alone will NOT unblock B5 — combined with constraint #3 (can_observe excludes)")
+        print("    - Spatial membrane will start filtering listeners by distance")
+        print("    - NPCs >10m from speaker will be excluded (may affect existing scenes)")
+        print("    - maid_lusya at 10.086m > 10.0m HEARING_RADIUS — still excluded even with fix!")
+        print("    - So fix #1 alone will NOT unblock B5 — combined with constraint #3 (can_observe excludes)")
     elif verdict.startswith("2."):
-        print(f"    - Same as #1 — once provider is bound live, distance filtering applies")
-        print(f"    - maid_lusya at 10.086m > 10.0m HEARING_RADIUS — still excluded")
+        print("    - Same as #1 — once provider is bound live, distance filtering applies")
+        print("    - maid_lusya at 10.086m > 10.0m HEARING_RADIUS — still excluded")
     elif verdict.startswith("3."):
-        print(f"    - Cannot fix without violating one of: радиусы не менять / NPC не перемещать")
-        print(f"    - Need Master's explicit relaxation of one constraint")
+        print("    - Cannot fix without violating one of: радиусы не менять / NPC не перемещать")
+        print("    - Need Master's explicit relaxation of one constraint")
     else:
-        print(f"    - Downstream changes may have side effects on existing NPC decisions")
+        print("    - Downstream changes may have side effects on existing NPC decisions")
 
     # ---- Tests ----
-    print(f"\n  >>> REQUIRED TESTS:")
-    print(f"    1. distance('player', 'maid_lusya') returns correct value")
-    print(f"    2. distance('player', 'tavern_keeper_tornin') returns correct value")
-    print(f"    3. NPC↔NPC distance computation does not regress")
-    print(f"    4. PLAYER_INSULTS at valid distance creates belief at maid_lusya")
-    print(f"    5. Confidence and provenance of created belief are correct")
-    print(f"    6. Existing NPC↔NPC communication tests still pass")
+    print("\n  >>> REQUIRED TESTS:")
+    print("    1. distance('player', 'maid_lusya') returns correct value")
+    print("    2. distance('player', 'tavern_keeper_tornin') returns correct value")
+    print("    3. NPC↔NPC distance computation does not regress")
+    print("    4. PLAYER_INSULTS at valid distance creates belief at maid_lusya")
+    print("    5. Confidence and provenance of created belief are correct")
+    print("    6. Existing NPC↔NPC communication tests still pass")
     if verdict.startswith("3."):
-        print(f"    7. Boundary test: NPC at exactly HEARING_RADIUS is included")
-        print(f"    8. Boundary test: NPC at HEARING_RADIUS + 0.001m is excluded")
+        print("    7. Boundary test: NPC at exactly HEARING_RADIUS is included")
+        print("    8. Boundary test: NPC at HEARING_RADIUS + 0.001m is excluded")
 
     result["verdict"] = verdict
     result["rationale"] = rationale

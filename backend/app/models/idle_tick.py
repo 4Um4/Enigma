@@ -12,6 +12,7 @@ path: backend/app/models/idle_tick.py
 - в будущем можно добавить отдельные контракты для разных типов idle-обработчиков (например, для репутационного дрейфа, для социальных связей и т.д.), чтобы обеспечить более строгую типизацию и ясность в коде. Но на начальном этапе достаточно общего протокола IdleTickHandler, который может обрабатывать любые аспекты NPC state, не мутируя исходные данные и возвращая дельты для применения. Это позволит нам гибко добавлять новые механики в фазу 0.5 без необходимости менять контракт каждого обработчика.
 - важно, что эти обработчики не мутируют all_npcs_raw, а возвращают List[StateDeltas], который оркестратор применяет через StateApplicator.apply_batch(). Это обеспечивает чистоту данных и предсказуемость изменений в NPC state, а также позволяет легко отслеживать и логировать изменения, вызванные каждым обработчиком.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Protocol, Tuple, TypedDict
@@ -41,9 +42,7 @@ class NPCStateSnapshot(TypedDict):
     consciousness: float  # Сознание (0-1.0, 0=кома/обморок, 1=ясность)
     shock_impulse: float  # Физический шок / болевой удар (0-1.0) — затухает как pain
     life_status: str  # ADR-124: "ALIVE" или "DEAD" — DEATH LOCK для decay handlers
-    injuries_by_zone: Dict[
-        str, List[Dict[str, Any]]
-    ]  # Травмы, сгруппированные по target_zone
+    injuries_by_zone: Dict[str, List[Dict[str, Any]]]  # Травмы, сгруппированные по target_zone
     base_abilities: Dict[str, float]  # Базовые характеристики (из body_profile)
     modifiers: Dict[str, float]  # Модификаторы (травмы/баффы/экипировка, из body_state)
     statuses: List[str]  # Активные статусы (stagger, unconscious, bleeding и т.д.)
@@ -53,7 +52,9 @@ class NPCStateSnapshot(TypedDict):
     # (projection, не alias). combat-билдеры заполняют для единообразия контракта.
     velocity: Tuple[float, float]  # Скорость — детекция WALK/RUN в BodyEngine
     activity: str  # Активность (activity || routine.current — резолвит билдер)
-    coupling_mode: str  # FULL_WAKE/DROWSY/SLEEP/DEEP_SLEEP/REM (из coupling_profile; S2B6-A: фантомные AWAKE/SLEEPING удалены)
+    coupling_mode: (
+        str  # FULL_WAKE/DROWSY/SLEEP/DEEP_SLEEP/REM (из coupling_profile; S2B6-A: фантомные AWAKE/SLEEPING удалены)
+    )
     body_mass: float  # Масса тела (placeholder 1.0 до S2B.7)
 
     # Affective Domain: Psyche LOD Macro (S74: Temporal Mind)

@@ -11,6 +11,7 @@ path: backend/tests/sandbox/micro/test_attention_reflex_fsm.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_attention_reflex_fsm.py -v; cd ..
 """
+
 import math
 
 import pytest
@@ -120,9 +121,7 @@ def test_transition_gating_no_repeat() -> None:
 
 def test_lost_freezes_and_gc_removes() -> None:
     raws = [_raw("orm"), _raw("maid_lusya")]
-    delta1, _ = ar.compute_attention_pass(
-        _state({"orm": _pos(0, 0, 0.0), "maid_lusya": _pos(5, 0)}, raws, tick=100)
-    )
+    delta1, _ = ar.compute_attention_pass(_state({"orm": _pos(0, 0, 0.0), "maid_lusya": _pos(5, 0)}, raws, tick=100))
     prev = {"orm": delta1["orm"]}
     delta2, ch2 = ar.compute_attention_pass(
         _state(
@@ -160,8 +159,8 @@ def test_moving_observer_detects_but_does_not_orient() -> None:
 def test_two_subjects_single_orient_nearest_wins() -> None:
     st = _state(
         {
-            "orm": _pos(0, 0, 0.5),          # нужен поворот к обоим
-            "near": _pos(3, 0.2, math.pi),   # ближайший
+            "orm": _pos(0, 0, 0.5),  # нужен поворот к обоим
+            "near": _pos(3, 0.2, math.pi),  # ближайший
             "far": _pos(8, 0.4, math.pi),
         },
         [_raw("orm"), _raw("far"), _raw("near")],
@@ -206,6 +205,7 @@ def test_player_observer_never_orients() -> None:
     delta, changes = ar.compute_attention_pass(st)
     assert delta["player"]["maid_lusya"]["phase"] == "detected"
     assert all(c.target != "player" for c in changes)
+
 
 def test_reentry_preserves_window_scenario_h() -> None:
     # R25/ТЗ сценарий H: LOST → re-entry сохраняет окно — сближение

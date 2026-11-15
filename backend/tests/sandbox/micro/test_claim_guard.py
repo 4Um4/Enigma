@@ -6,6 +6,7 @@ path: backend/tests/sandbox/micro/test_claim_guard.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_claim_guard.py -v --tb=short; cd ..
 """
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -43,5 +44,7 @@ def test_reject_empty_object_id():
 
 def test_valid_proposition_passes():
     sub = _make_subscriber()
-    sub.on_claim_event(_event({"subject_id": "player", "predicate": "attacked", "object_id": "maid_lusya", "polarity": True}))
+    sub.on_claim_event(
+        _event({"subject_id": "player", "predicate": "attacked", "object_id": "maid_lusya", "polarity": True})
+    )
     sub._engine.revise.assert_called_once()

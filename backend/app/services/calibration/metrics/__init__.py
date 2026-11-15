@@ -4,6 +4,7 @@ path: backend/app/services/calibration/metrics/__init__.py
 Зависимости: метрики-модули пакета.
 Основные сущности: MetricsBundle, build_metrics_bundle.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional

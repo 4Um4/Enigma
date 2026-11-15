@@ -56,9 +56,7 @@ class TestG3SkipSemantics:
     def test_unresolved_target_skips_without_mutation(self, monkeypatch):
         monkeypatch.setenv("W3_G3_ENABLED", "1")
         scene = _scene()  # цели-нет → store.get → None
-        out = execute_object_action(
-            scene, "steal", "thief_shadow", "guard_borko", tick=9
-        )
+        out = execute_object_action(scene, "steal", "thief_shadow", "guard_borko", tick=9)
         assert out.status is G3Status.G3_SKIP
         assert out.reason == "object_unresolved"
         assert "world_objects" not in scene
@@ -75,6 +73,7 @@ class TestG3SkipSemantics:
         assert out.status is G3Status.G3_SKIP
         assert out.reason == "no_target"
 
+
 from app.errors import ArchitecturalViolationError
 from app.services.world.world_object_store import WorldObjectStore
 
@@ -83,9 +82,7 @@ def _scene_with(object_id: str, archetype: str, state: str = "INTACT") -> Dict[s
     """Мини-мир с одним объектом; рождение — ТОЛЬКО через фабрику стора
     (§13.4, паттерн _spawn_tavern из W1)."""
     scene = _scene()
-    WorldObjectStore.spawn(
-        scene, object_id, archetype, "tavern_silver_wolf", (5.0, 3.0), state=state
-    )
+    WorldObjectStore.spawn(scene, object_id, archetype, "tavern_silver_wolf", (5.0, 3.0), state=state)
     return scene
 
 
@@ -94,9 +91,7 @@ class TestG3Verdicts:
         """PASS: FREE-стул + steal → HELD_BY актора. Мир ИЗМЕНИЛСЯ."""
         monkeypatch.setenv("W3_G3_ENABLED", "1")
         scene = _scene_with("chair_1", "chair")
-        out = execute_object_action(
-            scene, "steal", "thief_shadow", "chair_1", tick=11
-        )
+        out = execute_object_action(scene, "steal", "thief_shadow", "chair_1", tick=11)
         assert out.status is G3Status.G3_PASS
         assert out.object_id == "chair_1"
         _held = WorldObjectStore.get(scene, "chair_1")
@@ -107,9 +102,7 @@ class TestG3Verdicts:
         событие публиковать нельзя (D4)."""
         monkeypatch.setenv("W3_G3_ENABLED", "1")
         scene = _scene_with("chest_1", "container", state="CLOSED")
-        out = execute_object_action(
-            scene, "steal", "thief_shadow", "chest_1", tick=12
-        )
+        out = execute_object_action(scene, "steal", "thief_shadow", "chest_1", tick=12)
         assert out.status is G3Status.G3_REJECT
         assert out.reason.startswith("INVALID_TRANSITION")
         # Мир не изменился: контейнер цел.

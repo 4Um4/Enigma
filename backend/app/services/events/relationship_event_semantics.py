@@ -101,9 +101,7 @@ def _resolve_actor_ids(event: EventDTO) -> Tuple[str, str]:
     return source_id, str(payload.get("target_id") or "")
 
 
-def _resolve_subjects(
-    subject: str, source_id: str, target_id: str, event: EventDTO
-) -> Tuple[str, ...]:
+def _resolve_subjects(subject: str, source_id: str, target_id: str, event: EventDTO) -> Tuple[str, ...]:
     """Субъекты профиля: 'source' — инициатор; 'both' — source+target
     (target обязателен); иной subject — конфигурационный разрыв профиля."""
     if subject == "source":
@@ -111,14 +109,10 @@ def _resolve_subjects(
     if subject == "both":
         if not target_id:
             raise ContractValidationError(
-                f"RelationshipEventSemantics: {event.type} требует "
-                f"target_id в payload (event_id={event.id})"
+                f"RelationshipEventSemantics: {event.type} требует target_id в payload (event_id={event.id})"
             )
         return (source_id, target_id)
-    raise ContractValidationError(
-        f"RelationshipEventSemantics: неизвестный subject '{subject}' "
-        f"в профиле {event.type}"
-    )
+    raise ContractValidationError(f"RelationshipEventSemantics: неизвестный subject '{subject}' в профиле {event.type}")
 
 
 def _build_need_delta(
@@ -221,13 +215,6 @@ class RelationshipEventSemantics:
         for subject, need_id, field, signed in profile:
             magnitude = signed * _resolve_need_magnitude(event, source_id)
             for npc_id in _resolve_subjects(subject, source_id, target_id, event):
-                deltas.append(
-                    _build_need_delta(
-                        npc_id, need_id, field, magnitude, event_id, source_tag
-                    )
-                )
-        logger.debug(
-            f"[RE_SEMANTICS] {event.type}: {len(deltas)} need-delta(s) "
-            f"event_id={event_id}"
-        )
+                deltas.append(_build_need_delta(npc_id, need_id, field, magnitude, event_id, source_tag))
+        logger.debug(f"[RE_SEMANTICS] {event.type}: {len(deltas)} need-delta(s) event_id={event_id}")
         return deltas

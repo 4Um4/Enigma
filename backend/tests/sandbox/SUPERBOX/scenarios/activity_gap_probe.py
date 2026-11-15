@@ -45,8 +45,12 @@ import atexit
 atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 from app.services.llm.runtime.client import ensure_llm, release_lease
 
+
 # Этап 4.1.7: migrated to Host broker SDK. Принцип Мастера: идентификация ≠ владение.
-_LLM_KILL = lambda: None  # no-op fallback; SDK owns release_lease via atexit
+def _LLM_KILL():
+    return None  # no-op fallback; SDK owns release_lease via atexit
+
+
 try:
     ensure_llm(label="activity_gap")
     _LLM_KILL = release_lease
@@ -84,8 +88,14 @@ def _scene(w):
 
 def _cache_intent(w, npc) -> str:
     eng = w.game_loop._get_life_engine()
-    st = next((s for s in (eng.get_npc_states(CAMPAIGN) or [])
-               if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc), None)
+    st = next(
+        (
+            s
+            for s in (eng.get_npc_states(CAMPAIGN) or [])
+            if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc
+        ),
+        None,
+    )
     if st is None:
         return "<нет>"
     return str(getattr(st.get("intent"), "value", st.get("intent")) or "").lower()
@@ -93,8 +103,7 @@ def _cache_intent(w, npc) -> str:
 
 def _gate_pred(intent_val: str, e: float, phase: str) -> bool:
     """READ-ONLY повтор предиката Гейт① (simulation.py:163-172) — без применения."""
-    return (intent_val == "observe" and e >= 0.45
-            and phase in ("oriented", "approaching", "near"))
+    return intent_val == "observe" and e >= 0.45 and phase in ("oriented", "approaching", "near")
 
 
 def _install():
@@ -104,8 +113,9 @@ def _install():
 
     def _w(self, state, *a, __o=orig, **kw):
         _res = __o(self, state, *a, **kw)
-        _SSOT[state.npc_id] = str(
-            getattr(getattr(_res, "decision", None), "intent", "?")).lower().replace("intent.", "")
+        _SSOT[state.npc_id] = (
+            str(getattr(getattr(_res, "decision", None), "intent", "?")).lower().replace("intent.", "")
+        )
         return _res
 
     _dh.DecisionHub.compute = _w  # type: ignore[method-assign]
@@ -121,6 +131,7 @@ async def main_async() -> int:
     print("GAP-PROBE v4: контрфактический Гейт① (borko) — факт vs SSOT")
     print("=" * 64)
     from app.services.llm.provider_manager import initialize_model_pool
+
     initialize_model_pool()
     world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=str(_REPO / "data")))
 
@@ -129,10 +140,15 @@ async def main_async() -> int:
             world.game_loop.idle_tick(CAMPAIGN)
 
     async def put(x, y):
-        await world.game_loop.run_turn(ChatTurnRequest(
-            world_id=WORLD, campaign_id=CAMPAIGN, location=LOCATION,
-            actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
-            player_position=(x, y)))
+        await world.game_loop.run_turn(
+            ChatTurnRequest(
+                world_id=WORLD,
+                campaign_id=CAMPAIGN,
+                location=LOCATION,
+                actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+                player_position=(x, y),
+            )
+        )
 
     wrap = _install()
     try:
@@ -178,18 +194,23 @@ async def main_async() -> int:
             cf_hits += 1
         if c["sched"]:
             sched_ticks.append(c["t"])
-        print(f"T{c['t']:02d}[{c['phase']}] {c['cache']} | {c['ssot']} | "
-              f"E={c['e']:.2f} att={c['att_phase']} | факт={f_hit} | контрфакт={cf_hit}"
-              + (" | schedule:жив" if c["sched"] else ""))
-    print(f"\n[ИТОГ] подавлений на источнике прода: {fact_hits}; "
-          f"контрфактически (SSOT): {cf_hits}; "
-          f"тиков с живым schedule-интеном у borko: {len(sched_ticks)} {sched_ticks}")
+        print(
+            f"T{c['t']:02d}[{c['phase']}] {c['cache']} | {c['ssot']} | "
+            f"E={c['e']:.2f} att={c['att_phase']} | факт={f_hit} | контрфакт={cf_hit}"
+            + (" | schedule:жив" if c["sched"] else "")
+        )
+    print(
+        f"\n[ИТОГ] подавлений на источнике прода: {fact_hits}; "
+        f"контрфактически (SSOT): {cf_hits}; "
+        f"тиков с живым schedule-интеном у borko: {len(sched_ticks)} {sched_ticks}"
+    )
     if fact_hits == 0 and cf_hits > 0:
-        print("[ВЕРДИКТ] ИСТОЧНИК ЧТЕНИЯ — корень: предикат сработал бы на SSOT, "
-              "но слеп на life-кэш. П-1 обоснован.")
+        print("[ВЕРДИКТ] ИСТОЧНИК ЧТЕНИЯ — корень: предикат сработал бы на SSOT, но слеп на life-кэш. П-1 обоснован.")
     elif fact_hits == 0 and cf_hits == 0:
-        print("[ВЕРДИКТ] предикат не срабатывает ни на одном источнике — "
-              "причина глубже (E/фаза/отсутствие observe). Разбор до П-1.")
+        print(
+            "[ВЕРДИКТ] предикат не срабатывает ни на одном источнике — "
+            "причина глубже (E/фаза/отсутствие observe). Разбор до П-1."
+        )
     else:
         print("[ВЕРДИКТ] смешанный — детали в таблице.")
     print("PROBE ИТОГО: строк =", len(_CMP))
@@ -205,13 +226,19 @@ def _cmp_tick(world, t: int, phase: str, _ps: int) -> None:
     # schedule-живость: traversal.reason у borko (после рождении в этом тике) ИЛИ
     # реконструкция: schedule-интент родился, если borko-движение в guard_post
     sched_alive = "schedule" in str(trav.get("reason", ""))
-    _CMP.append({"t": t, "phase": phase,
-                 "cache": _cache_intent(world, TARGET),
-                 "ssot": _SSOT.get(TARGET, "?"),
-                 "e": e, "att_phase": att_phase,
-                 "sched": sched_alive,
-                 "gate_fact": _gate_pred(_cache_intent(world, TARGET), e, att_phase),
-                 "gate_cf": _gate_pred(_SSOT.get(TARGET, ""), e, att_phase)})
+    _CMP.append(
+        {
+            "t": t,
+            "phase": phase,
+            "cache": _cache_intent(world, TARGET),
+            "ssot": _SSOT.get(TARGET, "?"),
+            "e": e,
+            "att_phase": att_phase,
+            "sched": sched_alive,
+            "gate_fact": _gate_pred(_cache_intent(world, TARGET), e, att_phase),
+            "gate_cf": _gate_pred(_SSOT.get(TARGET, ""), e, att_phase),
+        }
+    )
 
 
 if __name__ == "__main__":

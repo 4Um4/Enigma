@@ -18,6 +18,7 @@ path: /project/backend/tests/sandbox/live_visibility_monitor.py
 Запуск: cd backend; python tests/sandbox/live_visibility_monitor.py
     (игра запускается параллельно; монитор остановить Ctrl+C после сессии)
 """
+
 import json
 import sqlite3
 import time
@@ -37,7 +38,7 @@ _CAMPAIGN = "Open_road"
 # 0-байтовая заготовка. Абсолютный путь — cwd-независимость монитора.
 _DB = str(Path(__file__).resolve().parents[3] / "saves" / "enigma_runtime.db")
 _POLL_SEC = 1.0
-_STUCK_POLLS = 5          # D5: подряд невидим при не-сне ~5 сек
+_STUCK_POLLS = 5  # D5: подряд невидим при не-сне ~5 сек
 # Целевые NPC вердикта — маркер отчёта, не логика движка (ID-хардкоды
 # запрещены в механизмах; здесь — диагностический фокус наблюдения)
 _TARGETS = {"tavern_keeper_tornin", "merchant_goran", "blacksmith_orm"}
@@ -77,9 +78,9 @@ def _poll():
 
 
 def main() -> int:
-    hist = defaultdict(list)          # nid -> [(ts, visible, act, pos)]
-    cnt = defaultdict(lambda: defaultdict(int))   # nid -> {D1..D5, LEGAL_SLEEP}
-    active = defaultdict(bool)        # nid -> сейчас внутри D1/D5-нарушения
+    hist = defaultdict(list)  # nid -> [(ts, visible, act, pos)]
+    cnt = defaultdict(lambda: defaultdict(int))  # nid -> {D1..D5, LEGAL_SLEEP}
+    active = defaultdict(bool)  # nid -> сейчас внутри D1/D5-нарушения
     print("[LVIS] монитор запущен; Ctrl+C — остановка и отчёт", flush=True)
     _last_beat = 0.0
     _data_seen = False
@@ -89,13 +90,14 @@ def main() -> int:
             snap = _poll()
             if snap and not _data_seen:
                 _data_seen = True
-                print(f"[LVIS] КАНАЛ ЖИВ: NPC={len(snap)} "
-                      f"({', '.join(sorted(snap))[:120]})", flush=True)
+                print(f"[LVIS] КАНАЛ ЖИВ: NPC={len(snap)} ({', '.join(sorted(snap))[:120]})", flush=True)
             if now - _last_beat >= 30.0:
                 _last_beat = now
-                print(f"[LVIS] heartbeat t={time.strftime('%H:%M:%S')}: "
-                      f"NPC в кадре={len(snap)} (нарушений в потоке — тишина)",
-                      flush=True)
+                print(
+                    f"[LVIS] heartbeat t={time.strftime('%H:%M:%S')}: "
+                    f"NPC в кадре={len(snap)} (нарушений в потоке — тишина)",
+                    flush=True,
+                )
             for nid, e in snap.items():
                 h = hist[nid]
                 h.append((now, e["visible"], e["act"], e["pos"]))
@@ -106,8 +108,10 @@ def main() -> int:
                     if not active[nid]:
                         active[nid] = True
                         cnt[nid]["D1"] += 1
-                        print(f"[LVIS][D1] {nid} t={time.strftime('%H:%M:%S')} "
-                              f"act={act!r} pos={pos} loc={e['loc']}", flush=True)
+                        print(
+                            f"[LVIS][D1] {nid} t={time.strftime('%H:%M:%S')} act={act!r} pos={pos} loc={e['loc']}",
+                            flush=True,
+                        )
                 else:
                     active[nid] = False
                 # D2 (v2, живое наблюдение Мастера): sleeping-лейбл вне
@@ -118,24 +122,27 @@ def main() -> int:
                         cnt[nid]["LEGAL_SLEEP"] += 1
                     else:
                         cnt[nid]["D2"] += 1
-                        print(f"[LVIS][D2] {nid} t={time.strftime('%H:%M:%S')} "
-                              f"act={act!r} но pos={pos} не BED loc={e['loc']} "
-                              f"visible={vis}", flush=True)
+                        print(
+                            f"[LVIS][D2] {nid} t={time.strftime('%H:%M:%S')} "
+                            f"act={act!r} но pos={pos} не BED loc={e['loc']} "
+                            f"visible={vis}",
+                            flush=True,
+                        )
                 # D3: wake без немедленного True
                 if len(h) >= 2:
                     _p, pvis, pact, _pp = h[-2]
                     if is_sleeping(pact) and not sleeping and vis is False:
                         cnt[nid]["D3"] += 1
-                        print(f"[LVIS][D3] {nid} t={time.strftime('%H:%M:%S')} "
-                              f"wake {pact!r}->{act!r} но visible=False", flush=True)
+                        print(
+                            f"[LVIS][D3] {nid} t={time.strftime('%H:%M:%S')} wake {pact!r}->{act!r} но visible=False",
+                            flush=True,
+                        )
                     # D4: blink True->False->True при неизменной не-сонной activity
                     if len(h) >= 3:
                         _pp, v2, a2, _p3 = h[-3]
-                        if (v2 is True and pvis is False and vis is True
-                                and a2 == act and not sleeping):
+                        if v2 is True and pvis is False and vis is True and a2 == act and not sleeping:
                             cnt[nid]["D4"] += 1
-                            print(f"[LVIS][D4] {nid} t={time.strftime('%H:%M:%S')} "
-                                  f"blink act={act!r}", flush=True)
+                            print(f"[LVIS][D4] {nid} t={time.strftime('%H:%M:%S')} blink act={act!r}", flush=True)
                 # D5: stuck-False при не-сне
                 if vis is False and not sleeping:
                     streak = 0
@@ -149,8 +156,7 @@ def main() -> int:
                             pass
                         if streak == _STUCK_POLLS + 1:
                             cnt[nid]["D5"] += 1
-                            print(f"[LVIS][D5] {nid} stuck-False "
-                                  f">{_STUCK_POLLS} опросов act={act!r}", flush=True)
+                            print(f"[LVIS][D5] {nid} stuck-False >{_STUCK_POLLS} опросов act={act!r}", flush=True)
             time.sleep(_POLL_SEC)
     except KeyboardInterrupt:
         pass
@@ -163,8 +169,10 @@ def _report(hist, cnt) -> None:
     if not hist:
         # Анти-фальсификация (урок протокола Мастера): пустая выборка —
         # не «ЧИСТО», а невалидное измерение.
-        print("[LVIS] ВЕРДИКТ: ПУСТОЕ ИЗМЕРЕНИЕ — ни один NPC не наблюдался; "
-              "INVALID RUN, живой сессии не было", flush=True)
+        print(
+            "[LVIS] ВЕРДИКТ: ПУСТОЕ ИЗМЕРЕНИЕ — ни один NPC не наблюдался; INVALID RUN, живой сессии не было",
+            flush=True,
+        )
         return
     total_bad = 0
     for nid in sorted(hist):
@@ -173,9 +181,12 @@ def _report(hist, cnt) -> None:
         bad = c["D1"] + c["D2"] + c["D3"] + c["D4"] + c["D5"]
         total_bad += bad
         mark = " <<< ЦЕЛЕВОЙ" if nid in _TARGETS else ""
-        print(f"[LVIS] {nid}: опросов={polls} D1={c['D1']} D2={c['D2']} "
-              f"D3={c['D3']} D4={c['D4']} D5={c['D5']} "
-              f"легальных_снов_на_BED={c['LEGAL_SLEEP']}{mark}", flush=True)
+        print(
+            f"[LVIS] {nid}: опросов={polls} D1={c['D1']} D2={c['D2']} "
+            f"D3={c['D3']} D4={c['D4']} D5={c['D5']} "
+            f"легальных_снов_на_BED={c['LEGAL_SLEEP']}{mark}",
+            flush=True,
+        )
     verdict = "ЧИСТО" if total_bad == 0 else f"НАРУШЕНИЙ={total_bad}"
     print(f"[LVIS] ВЕРДИКТ: {verdict}", flush=True)
 

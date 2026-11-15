@@ -25,12 +25,6 @@ CAMPAIGNS_DIR = Path(__file__).parent / "campaigns"
 TEMPLATE_DIR = Path(__file__).parent / "location_templates"
 
 
-
-
-
-
-
-
 class CampaignManager:
     """Управляет кампаниями — папками с набором локаций"""
 
@@ -88,13 +82,9 @@ class CampaignManager:
                 )
         return sorted(result, key=lambda x: x["name"])
 
-    def create_campaign(
-        self, folder_name: str, name: str, description: str = ""
-    ) -> Tuple[bool, str]:
+    def create_campaign(self, folder_name: str, name: str, description: str = "") -> Tuple[bool, str]:
         """Создаёт новую кампанию с папкой и campaign.json"""
-        safe = "".join(
-            c if c.isalnum() or c in "_- " else "_" for c in folder_name
-        ).strip()
+        safe = "".join(c if c.isalnum() or c in "_- " else "_" for c in folder_name).strip()
         if not safe:
             return False, "Пустое имя папки"
         campaign_dir = CAMPAIGNS_DIR / safe
@@ -106,6 +96,7 @@ class CampaignManager:
         # ME-1.6: auto-copy starter templates → new campaign locations (вердикт в.1: "автокопия")
         if TEMPLATE_DIR.exists():
             import shutil
+
             for tpl_file in TEMPLATE_DIR.glob("*.json"):
                 shutil.copy2(tpl_file, campaign_dir / "locations" / tpl_file.name)
         meta = validate_campaign_meta(
@@ -134,9 +125,7 @@ class CampaignManager:
             return False, f"campaign.json не найден в {campaign_dir}"
         try:
             with open(meta_file, "r", encoding="utf-8") as f:
-                self.campaign_data = validate_campaign_meta(
-                    json.load(f), str(meta_file)
-                )
+                self.campaign_data = validate_campaign_meta(json.load(f), str(meta_file))
         except Exception as e:
             return False, f"Ошибка чтения: {e}"
         self.current_campaign_name = campaign_dir.name
@@ -178,18 +167,18 @@ class CampaignManager:
         """Синхронизирует карты с saves и build/staging, пересобирает кэш графа (spatial_registry.json)."""
         if not self._campaign_dir or not self.current_campaign_name:
             return
-        
+
         campaign_name = self.current_campaign_name
         source_dir = self._campaign_dir / "locations"
         if not source_dir.exists():
             return
-            
+
         target_dirs = [
             Path("saves") / campaign_name / "locations",
             Path("build/staging/saves") / campaign_name / "locations",
-            Path("build/staging/frontend/map_editor/campaigns") / campaign_name / "locations"
+            Path("build/staging/frontend/map_editor/campaigns") / campaign_name / "locations",
         ]
-        
+
         for target_dir in target_dirs:
             try:
                 target_dir.mkdir(parents=True, exist_ok=True)
@@ -201,25 +190,24 @@ class CampaignManager:
         # Принудительная пересборка SpatialRegistry через Orchestrator
         try:
             import sys
+
             frontend_dir = Path(__file__).parent.parent
             if str(frontend_dir) not in sys.path:
                 sys.path.insert(0, str(frontend_dir))
             from spatial_compilation_orchestrator import SpatialCompilationOrchestrator
-            
+
             # Удаляем старый артефакт, чтобы форсировать пересборку
             artifact_path = self._campaign_dir / "compiled" / "spatial_registry.json"
             if artifact_path.exists():
                 artifact_path.unlink()
-                
+
             orch = SpatialCompilationOrchestrator()
             orch.rebuild_if_needed(campaign_name)
             print(f"[EDITOR_SYNC] SpatialRegistry rebuilt for {campaign_name}")
         except Exception as e:
             print(f"[EDITOR_SYNC] Warning: Failed to rebuild SpatialRegistry: {e}")
 
-    def save_location_as(
-        self, source_filename: str, new_filename: str
-    ) -> Tuple[bool, str]:
+    def save_location_as(self, source_filename: str, new_filename: str) -> Tuple[bool, str]:
         """Копирует локацию под новым именем в текущую кампанию"""
         if source_filename not in self.dm.locations:
             return False, "Исходный файл не найден"
@@ -227,9 +215,7 @@ class CampaignManager:
             new_filename += ".json"
         if new_filename in self.dm.locations:
             return False, "Файл уже существует"
-        self.dm.locations[new_filename] = copy.deepcopy(
-            self.dm.locations[source_filename]
-        )
+        self.dm.locations[new_filename] = copy.deepcopy(self.dm.locations[source_filename])
         self.dm.locations[new_filename]["filename"] = new_filename
         self.dm.save(new_filename)
         self._update_modified()
@@ -266,9 +252,7 @@ class CampaignManager:
         """Распаковывает zip-архив как новую кампанию"""
         import zipfile
 
-        safe = "".join(
-            c if c.isalnum() or c in "_- " else "_" for c in folder_name
-        ).strip()
+        safe = "".join(c if c.isalnum() or c in "_- " else "_" for c in folder_name).strip()
         if not safe:
             return False, "Пустое имя папки"
         target_dir = CAMPAIGNS_DIR / safe

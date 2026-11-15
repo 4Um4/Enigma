@@ -9,6 +9,7 @@ path: backend/tests/calibration_lab/test_m0_config_overlay.py
 
 Запуск: cd backend; python -m pytest tests/calibration_lab/test_m0_config_overlay.py -v; cd ..
 """
+
 import pytest
 from app.core import constants as C
 from app.services.calibration.config_overlay import (

@@ -2,6 +2,7 @@
 Менеджер скачивания LLM-моделей.
 Позволяет проверять наличие моделей, инициировать загрузку и трекать прогресс.
 """
+
 import json
 import logging
 import urllib.request
@@ -23,10 +24,12 @@ _REMOTE_SIZE_CACHE_TIME: Dict[str, float] = {}
 
 _VRAM_CACHE: int = 0
 
+
 def _init_vram_cache() -> None:
     """Фоновая инициализация кэша VRAM, чтобы не блокировать первый запрос."""
     global _VRAM_CACHE
     _VRAM_CACHE = _get_vram_mb()
+
 
 def _get_vram_mb() -> int:
     """Получает объём видеопамяти в МБ (кэшируется при первом вызове)."""
@@ -35,10 +38,13 @@ def _get_vram_mb() -> int:
         return _VRAM_CACHE
 
     import subprocess
+
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=2
+            capture_output=True,
+            text=True,
+            timeout=2,
         )
         if result.returncode == 0:
             _VRAM_CACHE = int(result.stdout.strip().split("\n")[0])
@@ -49,12 +55,14 @@ def _get_vram_mb() -> int:
         logger.debug(f"[LLM-VRAM] nvidia-smi недоступен, VRAM=0: {e}")
     return 0
 
+
 def _get_remote_size(url: str, key: str) -> int:
     """Определяет размер файла через HF Tree API (JSON, без CDN-редиректов).
     Кэширует результат на 5 минут. PowerShell-HEAD работал, а urllib-HEAD — нет:
     CDN HuggingFace по-разному отвечает им; Tree API даёт размеры надёжно."""
     import json as _json
     import time
+
     _now = time.time()
     if key in _REMOTE_SIZE_CACHE and _now - _REMOTE_SIZE_CACHE_TIME.get(key, 0) < 300:
         return _REMOTE_SIZE_CACHE[key]
@@ -62,13 +70,14 @@ def _get_remote_size(url: str, key: str) -> int:
         # URL вида https://huggingface.co/{repo}/resolve/{rev}/{filename}
         _parts = url.split("/")
         _idx = _parts.index("resolve")
-        _repo = "/".join(_parts[_idx - 2:_idx])
-        _fname = "/".join(_parts[_idx + 2:])
+        _repo = "/".join(_parts[_idx - 2 : _idx])
+        _fname = "/".join(_parts[_idx + 2 :])
         _api_url = f"https://huggingface.co/api/models/{_repo}/tree/main"
         _headers = {"User-Agent": "Bloodloom/0.5.3"}
         # Gated-репозитории (PygmalionAI, IlyaGusev) отдают 401 без токена.
         # Токен берём из окружения — тот же, что и для скачивания.
         import os as _os
+
         _hf_token = _os.environ.get("HF_TOKEN", "")
         if _hf_token:
             _headers["Authorization"] = f"Bearer {_hf_token}"
@@ -104,6 +113,7 @@ def _get_remote_size(url: str, key: str) -> int:
         logger.debug(f"[REMOTE_SIZE] tree api fail: key={key} err={_e}")
     return 0
 
+
 def _update_remote_sizes_once() -> None:
     """Один проход по всем моделям: определяет размеры на сервере.
     Результат — в лог (Phase-0 debt: print → logger, stdout чист для SSE/UI)."""
@@ -120,16 +130,19 @@ def _update_remote_sizes_once() -> None:
         else:
             logger.debug(f"[REMOTE_SIZE] FAIL key={key} url={_url}")
 
+
 def _remote_sizes_worker() -> None:
     """Периодический воркер: обновляет размеры каждые 60 сек, живёт вечно.
     Одна битая модель не прерывает цикл (тихий отказ запрещён)."""
     import time as _time
+
     while True:
         try:
             _update_remote_sizes_once()
         except Exception as _e:
             logger.warning(f"[REMOTE_SIZE] worker iteration failed: {_e}")
         _time.sleep(60)
+
 
 # Ленивый запуск воркеров: при импорте ПОРОЖДАТЬ потоки нельзя — модуль ещё
 # не доисполнен, get_llm_sources ниже по файлу ещё не определена (NameError
@@ -139,6 +152,7 @@ import threading
 
 _WORKERS_STARTED = False
 
+
 def _ensure_background_workers() -> None:
     """Идемпотентный запуск воркеров размеров и VRAM (ровно один раз)."""
     global _WORKERS_STARTED
@@ -147,6 +161,7 @@ def _ensure_background_workers() -> None:
     _WORKERS_STARTED = True
     threading.Thread(target=_remote_sizes_worker, daemon=True).start()
     threading.Thread(target=_init_vram_cache, daemon=True).start()
+
 
 def get_llm_sources() -> Dict:
     """Читает конфигурацию источников LLM."""
@@ -160,9 +175,11 @@ def get_llm_sources() -> Dict:
         logger.error(f"Ошибка чтения {LLM_SOURCES_FILE}: {e}")
         return {}
 
+
 def get_model_status() -> Dict:
     """Возвращает статус: скачаны ли требуемые модели, прогресс и ошибки. + Сканирует ручные модели."""
     from app.core.config import settings
+
     _ensure_background_workers()  # ленивый старт: модуль гарантированно загружен целиком
 
     sources = get_llm_sources()
@@ -184,7 +201,8 @@ def get_model_status() -> Dict:
         if _split_parts > 1:
             _tname = target.name
             _part_paths = [
-                target.parent / _tname.replace(
+                target.parent
+                / _tname.replace(
                     f"-00001-of-{_split_parts:05d}.gguf",
                     f"-{_i:05d}-of-{_split_parts:05d}.gguf",
                 )
@@ -223,9 +241,8 @@ def get_model_status() -> Dict:
             "error_message": _DOWNLOAD_ERRORS.get(key, "Неизвестная ошибка") if is_error else "",
             "manual": False,
             "gated": info.get("gated", False),
-            "recommended": bool(info.get("recommended", False)) or (
-                _vram_80_limit > 0 and _r_size_mb > 0 and _r_size_mb <= _vram_80_limit
-            )
+            "recommended": bool(info.get("recommended", False))
+            or (_vram_80_limit > 0 and _r_size_mb > 0 and _r_size_mb <= _vram_80_limit),
         }
 
     # Собираем пути файлов, которые уже есть в статусе, чтобы не дублировать
@@ -253,9 +270,10 @@ def get_model_status() -> Dict:
                 "is_downloading": False,
                 "progress": 100.0 if _manual_valid else 0.0,
                 "error": False,
-                "manual": True
+                "manual": True,
             }
     return status
+
 
 def _reporthook(block_num: int, block_size: int, total_size: int, model_key: str) -> None:
     """Callback для urllib.urlretrieve для вычисления процентов."""
@@ -263,6 +281,7 @@ def _reporthook(block_num: int, block_size: int, total_size: int, model_key: str
         downloaded = block_num * block_size
         progress = min(100.0, (downloaded / total_size) * 100.0)
         _DOWNLOAD_STATUS[model_key] = round(progress, 1)
+
 
 def _download_split_model(model_key: str, info: dict, target_path: Path, url: str, parts: int, force: bool) -> bool:
     """Скачивает все части сплит-модели (HF-канон {base}-0000N-of-0000M.gguf).
@@ -279,6 +298,7 @@ def _download_split_model(model_key: str, info: dict, target_path: Path, url: st
 
     try:
         import os as _os
+
         _hf_token = _os.environ.get("HF_TOKEN", "")
         for _i in range(1, parts + 1):
             _suffix = f"-{_i:05d}-of-{parts:05d}.gguf"
@@ -314,9 +334,7 @@ def _download_split_model(model_key: str, info: dict, target_path: Path, url: st
                         _f.write(_chunk)
                         _done_bytes += len(_chunk)
                         if _total_size > 0:
-                            _DOWNLOAD_STATUS[model_key] = round(
-                                min(100.0, _done_bytes / _total_size * 100.0), 1
-                            )
+                            _DOWNLOAD_STATUS[model_key] = round(min(100.0, _done_bytes / _total_size * 100.0), 1)
         if model_key in _DOWNLOAD_STATUS:
             del _DOWNLOAD_STATUS[model_key]
         logger.info(f"Модель '{model_key}' ({parts} частей) скачана в {target_path.parent}")
@@ -330,8 +348,11 @@ def _download_split_model(model_key: str, info: dict, target_path: Path, url: st
         _DOWNLOAD_CANCEL[model_key] = False
         return False
     except urllib.error.HTTPError as _http_err:
-        _msg = ("Модель закрыта лицензией (401). Требуется HF_TOKEN или ручное скачивание."
-                if _http_err.code == 401 else f"HTTP ошибка {_http_err.code}")
+        _msg = (
+            "Модель закрыта лицензией (401). Требуется HF_TOKEN или ручное скачивание."
+            if _http_err.code == 401
+            else f"HTTP ошибка {_http_err.code}"
+        )
         _DOWNLOAD_STATUS[model_key] = -1.0
         _DOWNLOAD_ERRORS[model_key] = _msg
         return False
@@ -340,6 +361,7 @@ def _download_split_model(model_key: str, info: dict, target_path: Path, url: st
         _DOWNLOAD_STATUS[model_key] = -1.0
         _DOWNLOAD_ERRORS[model_key] = str(_e)
         return False
+
 
 def download_model(model_key: str, force: bool = False) -> bool:
     """Скачивает модель по ключу из llm_sources.json. Если force=True — удаляет старый файл."""
@@ -375,13 +397,14 @@ def download_model(model_key: str, force: bool = False) -> bool:
 
         # Поддержка HF_TOKEN для лицензионных моделей (gemma и т.п.)
         import os as _os
+
         _hf_token = _os.environ.get("HF_TOKEN", "")
         if _hf_token:
             _headers["Authorization"] = f"Bearer {_hf_token}"
 
         _req = urllib.request.Request(url, headers=_headers)
         with urllib.request.urlopen(_req, timeout=30) as _response:
-            _total_size = int(_response.info().get('Content-Length', 0))
+            _total_size = int(_response.info().get("Content-Length", 0))
             if _existing_size > 0 and _response.status == 206:  # 206 Partial Content — докачка поддерживается
                 _total_size += _existing_size
             elif _existing_size > 0 and _response.status == 200:  # Сервер не поддерживает докачку — начинаем сначала
@@ -389,7 +412,7 @@ def download_model(model_key: str, force: bool = False) -> bool:
                 target_path.unlink(missing_ok=True)
 
             _cancelled = False
-            with open(target_path, 'ab' if _existing_size > 0 else 'wb') as _f:
+            with open(target_path, "ab" if _existing_size > 0 else "wb") as _f:
                 _downloaded = _existing_size
                 while True:
                     if _DOWNLOAD_CANCEL.get(model_key, False):
@@ -419,9 +442,11 @@ def download_model(model_key: str, force: bool = False) -> bool:
         return True
     except urllib.error.HTTPError as _http_err:
         if _http_err.code == 401:
-            _msg = ("Модель закрыта лицензией (401). Зайдите на huggingface.co, "
-                    "войдите в аккаунт и примите лицензию. Затем скачайте вручную "
-                    "в папку Models LLM или задайте переменную окружения HF_TOKEN.")
+            _msg = (
+                "Модель закрыта лицензией (401). Зайдите на huggingface.co, "
+                "войдите в аккаунт и примите лицензию. Затем скачайте вручную "
+                "в папку Models LLM или задайте переменную окружения HF_TOKEN."
+            )
         else:
             _msg = f"HTTP ошибка {_http_err.code}"
         logger.error(f"Ошибка скачивания модели '{model_key}': {_msg}")
@@ -433,6 +458,7 @@ def download_model(model_key: str, force: bool = False) -> bool:
         _DOWNLOAD_STATUS[model_key] = -1.0
         _DOWNLOAD_ERRORS[model_key] = str(e)
         return False
+
 
 def cancel_download(model_key: str) -> bool:
     """Запрашивает отмену активного скачивания. Файл удалит цикл загрузки."""

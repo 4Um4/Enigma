@@ -5,6 +5,7 @@ path: /project/backend/tests/test_work_orders.py
     идемпотентность терминала (L-W6), FAILED без мутаций (L-W3),
     OFF = no-op (L-W5).
 """
+
 from types import SimpleNamespace
 
 from app.domain.activity import ActivityState, ActivityStep, ActivityType, StepKind
@@ -46,8 +47,7 @@ def _ctx(profiles, npcs=None, scene=None, tracker=None, tick=5):
     _inc = []
     svc = SimpleNamespace(
         get_or_create_economic_profiles=lambda cid: profiles,
-        economy_tracker=tracker
-        or SimpleNamespace(record_income=lambda nid, amt: _inc.append((nid, amt))),
+        economy_tracker=tracker or SimpleNamespace(record_income=lambda nid, amt: _inc.append((nid, amt))),
     )
     return SimpleNamespace(
         npc_services=svc,
@@ -92,11 +92,7 @@ def test_serve_state_roundtrip():
         activity_type=ActivityType.SERVE,
         desire_id="order:wo_1",
         target_ref="wo_1",
-        steps=(
-            ActivityStep(
-                step_kind=StepKind.BODY_ACTION, action_type="SERVE", duration_ticks=2
-            ),
-        ),
+        steps=(ActivityStep(step_kind=StepKind.BODY_ACTION, action_type="SERVE", duration_ticks=2),),
         started_tick=3,
     )
     assert ActivityState.from_dict(_s.to_dict()) == _s
@@ -107,9 +103,7 @@ def test_serve_state_roundtrip():
 
 def test_create_order_off_noop(monkeypatch):
     monkeypatch.delenv("WORK_ENABLED", raising=False)
-    ctx = _ctx(
-        {GORAN: _profile(GORAN), TORNIN: _profile(TORNIN, stock={"ale": 5.0})}
-    )
+    ctx = _ctx({GORAN: _profile(GORAN), TORNIN: _profile(TORNIN, stock={"ale": 5.0})})
     assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
     assert "work_orders" not in ctx.scene_state  # OFF не создаёт даже ключ
 
@@ -123,9 +117,7 @@ def test_create_order_born(monkeypatch):
     npcs = [
         {
             "npc_id": GORAN,
-            "desires": [
-                {"desire_id": "d:ale", "subject_class": "ale", "urgency": 0.9}
-            ],
+            "desires": [{"desire_id": "d:ale", "subject_class": "ale", "urgency": 0.9}],
         }
     ]
     ctx = _ctx(profiles, npcs=npcs)
@@ -173,9 +165,7 @@ def test_work_pass_materializes_serve(monkeypatch):
     assert a["activity_type"] == "serve"
     assert a["desire_id"] == f"order:{oid}"
     assert a["target_ref"] == oid
-    assert ctx.scene_state["work_orders"][oid]["status"] == (
-        TransactionStatus.ACCEPTED.value
-    )
+    assert ctx.scene_state["work_orders"][oid]["status"] == (TransactionStatus.ACCEPTED.value)
 
 
 def test_work_pass_busy_seller_waits(monkeypatch):
@@ -194,17 +184,13 @@ def test_work_pass_busy_seller_waits(monkeypatch):
     ctx.all_npcs_raw = [tornin]
     run_work_orders_pass(ctx, _orch(_Bus()))
     assert tornin["activity_state"]["activity_type"] == "eat"  # не перетёрт
-    assert ctx.scene_state["work_orders"][oid]["status"] == (
-        TransactionStatus.PROPOSED.value
-    )
+    assert ctx.scene_state["work_orders"][oid]["status"] == (TransactionStatus.PROPOSED.value)
 
 
 def test_work_pass_off_noop(monkeypatch):
     monkeypatch.delenv("WORK_ENABLED", raising=False)
     ctx = _ctx({})
-    ctx.scene_state["work_orders"] = {
-        "wo_1": {"status": "proposed", "target_id": TORNIN}
-    }
+    ctx.scene_state["work_orders"] = {"wo_1": {"status": "proposed", "target_id": TORNIN}}
     tornin = {"npc_id": TORNIN, "body_state": {"hp": 100}}
     ctx.all_npcs_raw = [tornin]
     run_work_orders_pass(ctx, _orch(_Bus()))
@@ -231,15 +217,11 @@ def test_settle_success_atomic(monkeypatch):
     assert profiles[GORAN].goods["ale"] == 1.0
     assert profiles[GORAN].gold == 9.99
     assert profiles[TORNIN].gold == 10.01
-    assert ctx.scene_state["work_orders"][oid]["status"] == (
-        TransactionStatus.COMPLETED.value
-    )
+    assert ctx.scene_state["work_orders"][oid]["status"] == (TransactionStatus.COMPLETED.value)
     assert _inc == [(TORNIN, 0.01)]
     _sources = {getattr(e, "source", "") for e in bus.events}
     assert _sources == {GORAN, TORNIN}
-    assert all(
-        (getattr(e, "payload", {}) or {}).get("success") is True for e in bus.events
-    )
+    assert all((getattr(e, "payload", {}) or {}).get("success") is True for e in bus.events)
 
 
 def test_settle_idempotent(monkeypatch):
@@ -262,19 +244,23 @@ def test_settle_no_stock_failed(monkeypatch):
         TORNIN: _profile(TORNIN, gold=10.0, stock={"ale": 0.0}),
     }
     ctx, oid = _accepted_order(monkeypatch, profiles)
-    _before = (profiles[GORAN].gold, dict(profiles[GORAN].goods),
-               profiles[TORNIN].gold, dict(profiles[TORNIN].stock_for_sale))
+    _before = (
+        profiles[GORAN].gold,
+        dict(profiles[GORAN].goods),
+        profiles[TORNIN].gold,
+        dict(profiles[TORNIN].stock_for_sale),
+    )
     bus = _Bus()
     settle_order(ctx, _orch(bus), seller_id=TORNIN, order_id=oid)
-    assert ctx.scene_state["work_orders"][oid]["status"] == (
-        TransactionStatus.FAILED.value
-    )
+    assert ctx.scene_state["work_orders"][oid]["status"] == (TransactionStatus.FAILED.value)
     assert ctx.scene_state["work_orders"][oid]["fail_reason"] == "no_stock:ale"
-    assert (profiles[GORAN].gold, dict(profiles[GORAN].goods),
-            profiles[TORNIN].gold, dict(profiles[TORNIN].stock_for_sale)) == _before
-    assert bus.events and all(
-        (getattr(e, "payload", {}) or {}).get("success") is False for e in bus.events
-    )
+    assert (
+        profiles[GORAN].gold,
+        dict(profiles[GORAN].goods),
+        profiles[TORNIN].gold,
+        dict(profiles[TORNIN].stock_for_sale),
+    ) == _before
+    assert bus.events and all((getattr(e, "payload", {}) or {}).get("success") is False for e in bus.events)
 
 
 def test_settle_no_gold_failed(monkeypatch):
@@ -300,9 +286,7 @@ def test_fail_order_no_mutations(monkeypatch):
     }
     ctx, oid = _accepted_order(monkeypatch, profiles)
     fail_order(ctx, order_id=oid, reason="timeout")
-    assert ctx.scene_state["work_orders"][oid]["status"] == (
-        TransactionStatus.FAILED.value
-    )
+    assert ctx.scene_state["work_orders"][oid]["status"] == (TransactionStatus.FAILED.value)
     assert profiles[TORNIN].stock_for_sale["ale"] == 5.0
     assert profiles[GORAN].gold == 10.0
 
@@ -319,15 +303,11 @@ def test_create_order_routes_to_seller(monkeypatch):
     npcs = [
         {
             "npc_id": GORAN,
-            "desires": [
-                {"desire_id": "d:ale", "subject_class": "ale", "urgency": 0.9}
-            ],
+            "desires": [{"desire_id": "d:ale", "subject_class": "ale", "urgency": 0.9}],
         }
     ]
     ctx = _ctx(profiles, npcs=npcs)
-    oid = create_order_from_trade_intent(
-        ctx, speaker=GORAN, seller_ref="blacksmith_orm"
-    )
+    oid = create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref="blacksmith_orm")
     assert oid == "wo_5_merchant_goran_tavern_keeper_tornin_ale"
     o = ctx.scene_state["work_orders"][oid]
     assert o["target_id"] == TORNIN
@@ -343,9 +323,7 @@ def test_create_order_dedup_open(monkeypatch):
     }
     ctx = _ctx(profiles)
     assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN)
-    assert (
-        create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
-    )
+    assert create_order_from_trade_intent(ctx, speaker=GORAN, seller_ref=TORNIN) is None
 
 
 def test_settle_satisfies_buyer_pressure(monkeypatch):

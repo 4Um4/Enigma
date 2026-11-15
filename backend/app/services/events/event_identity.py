@@ -10,9 +10,7 @@ from typing import Any, Dict, Tuple
 _KEY_ORDINALS = "event_ordinals"
 
 
-def next_event_identity(
-    scene_state: Dict[str, Any], event_type: str, source: str
-) -> Tuple[int, int]:
+def next_event_identity(scene_state: Dict[str, Any], event_type: str, source: str) -> Tuple[int, int]:
     """Выделяет (event_tick, ordinal) для нового события.
 
     Единственная точка инкремента счётчиков identity (Single Writer —
@@ -32,9 +30,7 @@ def next_event_identity(
 _KEY_INTENT_ORDINALS = "intent_ordinals"
 
 
-def next_intent_identity(
-    scene_state: Dict[str, Any], owner: str, action: str
-) -> Tuple[int, int]:
+def next_intent_identity(scene_state: Dict[str, Any], owner: str, action: str) -> Tuple[int, int]:
     """Выделяет (tick, ordinal) для нового намерения (Player или Avatar).
 
     Единственный писатель scene_state["intent_ordinals"] (Single Writer —
@@ -58,9 +54,7 @@ def next_intent_identity(
     return tick, ordinal
 
 
-def intent_id_str(
-    tick: int, owner: str, action: str, ordinal: int
-) -> str:
+def intent_id_str(tick: int, owner: str, action: str, ordinal: int) -> str:
     """Детерминированная строка-идентификатор для intent_lifecycle.
 
     Формат: intent:{tick}:{owner}:{action}:{ordinal}

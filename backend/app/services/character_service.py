@@ -39,9 +39,7 @@ class CharacterService:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return [CharacterSheet.model_validate(item) for item in payload]
 
-    def upsert_character(
-        self, campaign_id: str, sheet: CharacterSheet
-    ) -> CharacterSheet:
+    def upsert_character(self, campaign_id: str, sheet: CharacterSheet) -> CharacterSheet:
         items = self.list_characters(campaign_id)
         updated: list[CharacterSheet] = []
         replaced = False
@@ -56,9 +54,7 @@ class CharacterService:
 
         path = self._characters_path(campaign_id)
         path.write_text(
-            json.dumps(
-                [item.model_dump() for item in updated], ensure_ascii=False, indent=2
-            ),
+            json.dumps([item.model_dump() for item in updated], ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         return sheet
@@ -75,9 +71,7 @@ class CharacterService:
         payload = json.loads(path.read_text(encoding="utf-8-sig"))
         return [CharacterProfile.from_dict(item) for item in payload]
 
-    def get_profile(
-        self, campaign_id: str, character_name: str
-    ) -> Optional[CharacterProfile]:
+    def get_profile(self, campaign_id: str, character_name: str) -> Optional[CharacterProfile]:
         """
         Получает профиль персонажа по имени.
         character_name = CharacterSheet.name (ключ связки).
@@ -89,9 +83,7 @@ class CharacterService:
                 return p
         return None
 
-    def upsert_profile(
-        self, campaign_id: str, profile: CharacterProfile
-    ) -> CharacterProfile:
+    def upsert_profile(self, campaign_id: str, profile: CharacterProfile) -> CharacterProfile:
         """Создаёт или обновляет психологический профиль."""
         items = self.list_profiles(campaign_id)
         updated: list[CharacterProfile] = []
@@ -107,16 +99,12 @@ class CharacterService:
 
         path = self._profiles_path(campaign_id)
         path.write_text(
-            json.dumps(
-                [item.to_dict() for item in updated], ensure_ascii=False, indent=2
-            ),
+            json.dumps([item.to_dict() for item in updated], ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         return profile
 
-    def get_or_create_profile(
-        self, campaign_id: str, character_name: str
-    ) -> CharacterProfile:
+    def get_or_create_profile(self, campaign_id: str, character_name: str) -> CharacterProfile:
         """
         Получает профиль или создаёт дефолтный (пустой аватар).
         Используется для безопасного доступа — никогда не возвращает None.

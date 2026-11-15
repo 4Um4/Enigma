@@ -29,7 +29,7 @@ class WorldDiffBuilder:
         fate_tracker: FateTracker,
         faction_tracker: FactionAlignmentTracker,
         social_fabric: SocialFabricTracker,
-        beliefs: PlayerBeliefModel
+        beliefs: PlayerBeliefModel,
     ) -> WorldStateDiff:
 
         # 1. Судьбы NPC
@@ -69,5 +69,5 @@ class WorldDiffBuilder:
             faction_alignments=faction_alignments,
             secrets_exposed=secrets_exposed,
             world_events=world_events,
-            player_reputation=player_reputation
+            player_reputation=player_reputation,
         )

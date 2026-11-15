@@ -16,6 +16,7 @@ from typing import Any, Optional
 
 class Predicate(Enum):
     """Действия/события, являющиеся предметом утверждения."""
+
     STOLE = "stole"
     ATTACKED = "attacked"
     HELPED = "helped"
@@ -39,41 +40,44 @@ class Predicate(Enum):
 
 class SpeechAct(Enum):
     """Тип коммуникативного акта (Searle's Speech Act Theory, адаптировано под ENIGMA)."""
-    ASSERT       = "assert"        # утверждение
-    QUESTION     = "question"      # вопрос
-    REQUEST      = "request"       # просьба
-    ORDER        = "order"         # приказ
-    OFFER        = "offer"         # предложение
-    PROMISE      = "promise"       # обещание
-    THREAT       = "threat"        # угроза
-    APOLOGY      = "apology"       # извинение
-    COMPLIMENT   = "compliment"    # комплимент
-    INSULT       = "insult"        # оскорбление
-    ACCUSATION   = "accusation"    # обвинение
-    GREETING     = "greeting"      # приветствие
-    FAREWELL     = "farewell"      # прощание
-    CONTINUE     = "continue"      # «продолжай», «ну?», «и?»
-    CLARIFY      = "clarify"       # «не это я имел в виду»
-    REJECT       = "reject"        # отказ
-    ACCEPT       = "accept"        # согласие
+
+    ASSERT = "assert"  # утверждение
+    QUESTION = "question"  # вопрос
+    REQUEST = "request"  # просьба
+    ORDER = "order"  # приказ
+    OFFER = "offer"  # предложение
+    PROMISE = "promise"  # обещание
+    THREAT = "threat"  # угроза
+    APOLOGY = "apology"  # извинение
+    COMPLIMENT = "compliment"  # комплимент
+    INSULT = "insult"  # оскорбление
+    ACCUSATION = "accusation"  # обвинение
+    GREETING = "greeting"  # приветствие
+    FAREWELL = "farewell"  # прощание
+    CONTINUE = "continue"  # «продолжай», «ну?», «и?»
+    CLARIFY = "clarify"  # «не это я имел в виду»
+    REJECT = "reject"  # отказ
+    ACCEPT = "accept"  # согласие
     # Legacy / MVP aliases (для обратной совместимости со старым кодом)
-    DENY         = "reject"
+    DENY = "reject"
+
 
 class SocialIntent(Enum):
     """Каузальная цель социального действия (не путать с лингвистической формой SpeechAct)."""
-    OBTAIN_INFORMATION   = "obtain_information"
-    OBTAIN_COOPERATION   = "obtain_cooperation"
-    OBTAIN_COMPLIANCE    = "obtain_compliance"     # через угрозу
-    REPAIR_RELATIONSHIP  = "repair_relationship"
-    BUILD_RAPPORT        = "build_rapport"
-    INTIMIDATE           = "intimidate"
-    FLIRT                = "flirt"
-    COMFORT              = "comfort"
-    DECEIVE              = "deceive"
-    CONFESS              = "confess"
-    PROVOKE              = "provoke"
-    DEFEND               = "defend"
-    NEUTRAL              = "neutral"               # бытовая коммуникация
+
+    OBTAIN_INFORMATION = "obtain_information"
+    OBTAIN_COOPERATION = "obtain_cooperation"
+    OBTAIN_COMPLIANCE = "obtain_compliance"  # через угрозу
+    REPAIR_RELATIONSHIP = "repair_relationship"
+    BUILD_RAPPORT = "build_rapport"
+    INTIMIDATE = "intimidate"
+    FLIRT = "flirt"
+    COMFORT = "comfort"
+    DECEIVE = "deceive"
+    CONFESS = "confess"
+    PROVOKE = "provoke"
+    DEFEND = "defend"
+    NEUTRAL = "neutral"  # бытовая коммуникация
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,7 @@ class Proposition:
     Чистая семантика утверждения. Не содержит информации об истинности.
     S188 использует бинарный субъект–предикат–объект контракт как MVP-подмножество.
     """
+
     subject_id: str  # О ком утверждение
     predicate: Predicate  # Что произошло
     object_id: str  # С чем/кем взаимодействовали
@@ -114,6 +119,7 @@ class ClaimEvent:
     Контекст передачи информации. Объективное событие в мире (кто-то что-то сказал).
     Один Claim (по claim_id) может передаваться через множество событий.
     """
+
     event_id: str
     claim_id: str
     speaker_id: str
@@ -129,6 +135,7 @@ class EpistemicRecord:
     Субъективное убеждение агента. Это состояние сознания, а не факт мира.
     Хранит provenance (откуда агент это узнал).
     """
+
     agent_id: str
     proposition: Proposition
     confidence: float  # 0.0 - 1.0
@@ -149,11 +156,13 @@ class EpistemicRecord:
     # обработанных утверждений в EpistemicStore с TTL или LRU-вытеснением.
     seen_claim_ids: tuple[str, ...] = ()
 
+
 @dataclass(frozen=True)
 class BeliefSummary:
     """A19.5 Step 2: Лёгкая проекция убеждения для DecisionHub.
     Содержит минимальную семантику для оценки действий без копирования всего EpistemicRecord.
     """
+
     proposition: Proposition
     confidence: float
     source_id: str
@@ -168,6 +177,7 @@ class EpistemicContext:
     Это НЕ EpistemicRecord. Это результат интерпретации убеждений.
     DecisionHub читает этот контекст, а не EpistemicStore.
     """
+
     agent_id: str
     perceived_threats: tuple[str, ...] = ()
     perceived_allies: tuple[str, ...] = ()
@@ -182,7 +192,7 @@ class EpistemicContext:
     # лице (проб S258: perceived_threats содержал самого агента). Отдельный канал
     # самореферентности, развязанный с threat/violation/trigger-путём.
     claims_about_self: tuple[Proposition, ...] = ()
-    claim_source_id: Optional[str] = None    # R4: Автор топ-claim_about_self (для целеполагания)
+    claim_source_id: Optional[str] = None  # R4: Автор топ-claim_about_self (для целеполагания)
     max_self_confidence: float = 0.0
     # COGNITIVE-CONTINUITY-01: report-канал. Знание об оскорблении третьего
     # лица — отдельный канал от threat (trigger) и self-relevance

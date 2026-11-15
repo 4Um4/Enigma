@@ -38,8 +38,11 @@ def is_llm_available():
     except Exception:
         return False
 
+
 # Пропускаем тесты, если LLM-сервер недоступен
-pytestmark = pytest.mark.skipif(not is_llm_available(), reason=f"LLM server is not running at {settings.llama_cpp_server_url}")
+pytestmark = pytest.mark.skipif(
+    not is_llm_available(), reason=f"LLM server is not running at {settings.llama_cpp_server_url}"
+)
 
 _MOCK_DRIVES = EffectiveDrives.from_dict({"control": 0.5, "significance": 0.5, "fear": 0.5, "desire": 0.5})
 
@@ -73,6 +76,7 @@ def llm_router() -> ModelRouter:
     except Exception:
         # Этап 4.1.13: migrated to Host broker SDK. ensure_llm handles start.
         from app.services.llm.runtime.client import ensure_llm
+
         try:
             ensure_llm(label="memory_fixation")
         except Exception as _e:

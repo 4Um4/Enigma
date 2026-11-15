@@ -21,12 +21,8 @@ class SanitizedPerceptualVectors:
     temporal_distortion: float = 0.0  # Лаг рендера, "размазывание" кадров
     perceptual_latency: float = 0.0  # Задержка сборки реальности
     reality_reconciliation_rate: float = 1.0  # Скорость возврата в норму
-    sensory_noise: float = (
-        0.0  # ADR-084: Визуальный шум от конфликта воли (дрожь, артефакты)
-    )
-    motor_disruption: float = (
-        0.0  # ADR-084: Моторный тремор (камера, курсор) от Воли или Шока
-    )
+    sensory_noise: float = 0.0  # ADR-084: Визуальный шум от конфликта воли (дрожь, артефакты)
+    motor_disruption: float = 0.0  # ADR-084: Моторный тремор (камера, курсор) от Воли или Шока
 
     # Средовые векторы (заглушка до интеграции AmbientPhenomenologyDTO)
     emotional_temperature: float = 0.0  # -1.0 (лед) до 1.0 (жар)
@@ -72,12 +68,8 @@ def sanitize_perceptual_input(
 
     # Средовая обработка (AmbientPhenomenologyDTO)
     if ambient_state:
-        vectors.emotional_temperature = _clamp(
-            float(ambient_state.get("emotional_temperature", 0.0)), -1.0, 1.0
-        )
-        vectors.proximity_compression = _clamp(
-            float(ambient_state.get("proximity_compression", 0.0))
-        )
+        vectors.emotional_temperature = _clamp(float(ambient_state.get("emotional_temperature", 0.0)), -1.0, 1.0)
+        vectors.proximity_compression = _clamp(float(ambient_state.get("proximity_compression", 0.0)))
         dpb = ambient_state.get("directional_pressure_bias", (0.0, 0.0))
         if isinstance(dpb, (list, tuple)) and len(dpb) == 2:
             vectors.directional_pressure = (

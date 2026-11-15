@@ -19,6 +19,7 @@
 - payload — dict по прецеденту EventDTO.payload: поверхностная иммутабельность
   frozen-dataclass; глубокая валидация схем kind — обязанность store (fail-loud).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -39,9 +40,9 @@ _KIND_OBSERVATION: Final[str] = "OBSERVATION"
 _KIND_KNOWLEDGE_LINK: Final[str] = "KNOWLEDGE_LINK"
 _KIND_TRAIT_SEED: Final[str] = "TRAIT_SEED"
 _KIND_PORTRET: Final[str] = "PORTRET"  # вердикт владельца: авторский монолог-портрет
-                                       # сохраняется целиком (оригинал > интерпретация)
+# сохраняется целиком (оригинал > интерпретация)
 _KIND_DESIRE_SEED: Final[str] = "DESIRE_SEED"  # вердикт владельца (п.11 Люси):
-                                               # мечта/план — ещё не событие
+# мечта/план — ещё не событие
 
 
 class EntryKind(str, Enum):
@@ -126,9 +127,9 @@ def entry_kind_to_cause_kind(entry_kind: "EntryKind") -> "Optional[CauseKind]":
 class EntityRefKind(str, Enum):
     """Онтология ссылки на сущность хроники (§13.1 roadmap)."""
 
-    RESOLVED = "RESOLVED"          # существующий NPC (npc_id)
-    NEW_NPC = "NEW_NPC"            # кандидат — создаётся только решением автора
-    WHITE_SPOT = "WHITE_SPOT"      # намеренно неопределённая сущность
+    RESOLVED = "RESOLVED"  # существующий NPC (npc_id)
+    NEW_NPC = "NEW_NPC"  # кандидат — создаётся только решением автора
+    WHITE_SPOT = "WHITE_SPOT"  # намеренно неопределённая сущность
     UNKNOWN_PERSON = "UNKNOWN_PERSON"  # фоновая массовка без тик-агента
 
 
@@ -140,9 +141,9 @@ class EntityRef:
     """Ссылка на сущность хроники. Валидация kind↔поля — fail-loud (L4)."""
 
     ref_kind: EntityRefKind
-    npc_id: Optional[str] = None        # для RESOLVED
+    npc_id: Optional[str] = None  # для RESOLVED
     white_spot_id: Optional[str] = None  # для WHITE_SPOT
-    name_hint: str = ""                  # драфт имени для NEW_NPC / массовка
+    name_hint: str = ""  # драфт имени для NEW_NPC / массовка
 
     def __post_init__(self) -> None:
         if self.ref_kind is EntityRefKind.RESOLVED and not self.npc_id:
@@ -213,8 +214,8 @@ class WhiteSpot:
     """
 
     white_spot_id: str
-    label: str                      # «стражник»
-    context_hint: str = ""          # из какого фрагмента возникла
+    label: str  # «стражник»
+    context_hint: str = ""  # из какого фрагмента возникла
     resolution_state: WhiteSpotResolutionState = WhiteSpotResolutionState.OPEN
     resolution_ref: Optional[str] = None  # npc_id после RESOLVED_AS_NPC
     created_from_entry: Optional[str] = None
@@ -237,8 +238,9 @@ class BeliefGrounding(str, Enum):
     """Обоснованность NPC-убеждения о причинной связи (СЛОЙ 2).
     MISTAKEN — только явное решение автора при наличии основания;
     НЕ выводится автоматически из отсутствия CauseRef в effect.causes."""
-    GROUNDED = "GROUNDED"      # совпадает с объективной причиной (есть CauseRef в effect.causes)
-    MISTAKEN = "MISTAKEN"      # противоречит известным фактам (явное решение автора)
+
+    GROUNDED = "GROUNDED"  # совпадает с объективной причиной (есть CauseRef в effect.causes)
+    MISTAKEN = "MISTAKEN"  # противоречит известным фактам (явное решение автора)
     UNVERIFIED = "UNVERIFIED"  # факт не подтверждён, но и не противоречит
 
 
@@ -248,12 +250,14 @@ class CandidateBasis(str, Enum):
 
     SPAN_OVERLAP — не реализован: нет CauseKind.PORTRET (зафиксировано как
     несовместимость контракта — ver. 1)."""
-    TEMPORAL_ORDER = "TEMPORAL_ORDER"        # EVENT M<N (хронология — НЕ причина)
+
+    TEMPORAL_ORDER = "TEMPORAL_ORDER"  # EVENT M<N (хронология — НЕ причина)
     TARGET_HINT_MATCH = "TARGET_HINT_MATCH"  # EFFECT.target_hint == RELATIONSHIP.target_hint
 
 
 class CandidateStatus(str, Enum):
     """Жизненный цикл кандидата. Переходы: PENDING → ACCEPTED | REJECTED."""
+
     PENDING = "PENDING"
     ACCEPTED = "ACCEPTED"
     REJECTED = "REJECTED"
@@ -269,10 +273,11 @@ class NpcCausalBelief:
     Применяет ТЕ ЖЕ правила provenance/confidence, что и ChronicleEntry
     (валидатор :227-231): LLM_DRAFT обязан нести confidence; AUTHOR_* не хранят.
     """
-    believer_id: str                            # NPC, держащий убеждение
-    effect_entry_id: str                        # entry_id следствия (в текущем документе)
-    alleged_cause_entry_id: str                 # entry_id предполагаемой причины (в текущем документе)
-    alleged_cause_kind: CauseKind               # из существующего enum, без расширения
+
+    believer_id: str  # NPC, держащий убеждение
+    effect_entry_id: str  # entry_id следствия (в текущем документе)
+    alleged_cause_entry_id: str  # entry_id предполагаемой причины (в текущем документе)
+    alleged_cause_kind: CauseKind  # из существующего enum, без расширения
     grounding: BeliefGrounding = BeliefGrounding.UNVERIFIED
     provenance: EntryProvenance = EntryProvenance.LLM_DRAFT
     confidence: Optional[float] = None
@@ -298,12 +303,13 @@ class CauseCandidate:
     Idempotency: candidate_id детерминирован (effect+candidate+basis), повторная детекция
     не создаёт дубликат. REJECTED не возобновляется без изменения данных.
     """
+
     candidate_id: str
-    effect_entry_id: str                        # entry, в causes[] которого идёт запись (при ACCEPT)
-    candidate_entry_id: str                     # существующая запись-кандидат (основание)
-    candidate_kind: CauseKind                   # из существующего enum, без расширения
+    effect_entry_id: str  # entry, в causes[] которого идёт запись (при ACCEPT)
+    candidate_entry_id: str  # существующая запись-кандидат (основание)
+    candidate_kind: CauseKind  # из существующего enum, без расширения
     basis: CandidateBasis
-    rationale: str                              # объяснение для автора (детерминированное)
+    rationale: str  # объяснение для автора (детерминированное)
     status: CandidateStatus = CandidateStatus.PENDING
 
     def __post_init__(self) -> None:
@@ -335,15 +341,15 @@ class ChronicleEntry:
     entry_id: str
     kind: EntryKind
     subject_id: EntityRef
-    historical_age: Optional[int] = None   # ось 1: историческое время
+    historical_age: Optional[int] = None  # ось 1: историческое время
     historical_year: Optional[int] = None  # альтернативный якорь (год мира)
     object_id: Optional[EntityRef] = None
     payload: Dict[str, Any] = field(default_factory=dict)  # схема по kind — store
     causes: Tuple[CauseRef, ...] = ()
     provenance: EntryProvenance = EntryProvenance.LLM_DRAFT
-    confidence: Optional[float] = None     # только для гипотезы LLM
+    confidence: Optional[float] = None  # только для гипотезы LLM
     open_questions: Tuple[ClarificationQuestion, ...] = ()
-    ordinal: int = 0                       # порядок в ленте документа
+    ordinal: int = 0  # порядок в ленте документа
 
     def __post_init__(self) -> None:
         if self.provenance is EntryProvenance.LLM_DRAFT and self.confidence is None:
@@ -378,8 +384,7 @@ class KnowledgeLink:
         if link.learned_age is not None and event.historical_age is not None:
             if link.learned_age < event.historical_age:
                 raise ValueError(
-                    f"Два времени смешаны: learned_age({link.learned_age}) < "
-                    f"historical_age({event.historical_age})"
+                    f"Два времени смешаны: learned_age({link.learned_age}) < historical_age({event.historical_age})"
                 )
 
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 ENIGMA Startup Gate (ADR-O-426, Шаг 4 / D70, COV-D70):
 единая блокирующая конъюнкция старта.
 
@@ -19,6 +19,7 @@ ENIGMA Startup Gate (ADR-O-426, Шаг 4 / D70, COV-D70):
 отчёт / явное подтверждение. Здесь — только применение миграций к
 БД, уже прошедшим первичную классификацию.
 """
+
 from __future__ import annotations
 
 import logging
@@ -57,9 +58,7 @@ class StartupValidationError(RuntimeError):
         self.step = step
         self.errors = list(errors)
         self.detail = detail or "; ".join(self.errors)
-        super().__init__(
-            f"[startup_gate:{step}] {self.detail} ({len(self.errors)} error(s))"
-        )
+        super().__init__(f"[startup_gate:{step}] {self.detail} ({len(self.errors)} error(s))")
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -151,14 +150,10 @@ def _check_migrations() -> Tuple[List[str], List[Tuple[str, str, int, int]]]:
 
         results = run_startup_migrations(make_backup=True)
         for r in results:
-            outcomes.append(
-                (r.store_id, r.status, r.detected_version, r.head_version)
-            )
+            outcomes.append((r.store_id, r.status, r.detected_version, r.head_version))
             # status ∈ {"ok", "ok-noop", "skipped", "dry-run"} — иначе блок
             if r.status not in ("ok", "ok-noop", "skipped"):
-                errors.append(
-                    f"migration {r.store_id}: unexpected status '{r.status}'"
-                )
+                errors.append(f"migration {r.store_id}: unexpected status '{r.status}'")
     except MigrationError as e:
         errors.append(f"MigrationError: {e}")
     except Exception as e:

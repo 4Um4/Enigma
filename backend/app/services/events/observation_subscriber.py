@@ -85,9 +85,7 @@ class ObservationSubscriber:
         actor_id = getattr(event, "source", None)  # noqa: ENIGMA002
         target_id = payload.get("target_id")
         if not actor_id or not target_id:
-            logger.warning(
-                f"[OBSERVATION_SUB] {event_type}: нет actor/target — наблюдение пропущено"
-            )
+            logger.warning(f"[OBSERVATION_SUB] {event_type}: нет actor/target — наблюдение пропущено")
             return
 
         witnesses = self._get_witnesses(actor_id)
@@ -114,7 +112,9 @@ class ObservationSubscriber:
             )
             existing = self._store.get(witness_id, proposition)
             record = self._engine.revise(
-                witness_id, claim, existing,
+                witness_id,
+                claim,
+                existing,
                 reliability_context={"source_type": "direct_observation"},
             )
             self._store.upsert(record)
@@ -146,7 +146,5 @@ class ObservationSubscriber:
                 if sq.visibility(entity_id, actor_id):
                     witnesses.append(entity_id)
             except Exception as e:
-                logger.warning(
-                    f"[OBSERVATION_SUB] visibility({entity_id}, {actor_id}) failed: {e}"
-                )
+                logger.warning(f"[OBSERVATION_SUB] visibility({entity_id}, {actor_id}) failed: {e}")
         return witnesses

@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p6_e3_compiler_bridge.py
+# path: /project/backend/tests/gameplay/test_p6_e3_compiler_bridge.py
 """
 Файл: backend/tests/gameplay/test_p6_e3_compiler_bridge.py
 Назначение: P6/E3 — T6: A/A-паритет discovery структурных action-путей
@@ -39,9 +39,7 @@ def _fixtures():
     log = ObservationLog()
     model = PlayerBeliefModel()
     fabric = SocialFabricTracker()
-    compiler = ActionConsequenceCompiler(
-        log, model, fabric, truth_state=truth, discovery_bridge=bridge
-    )
+    compiler = ActionConsequenceCompiler(log, model, fabric, truth_state=truth, discovery_bridge=bridge)
     return compiler, log, truth, state
 
 

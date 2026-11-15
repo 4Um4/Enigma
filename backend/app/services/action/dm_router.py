@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 # backend/app/services/action/dm_router.py
 """
@@ -33,14 +33,11 @@ except Exception as _insult_err:
     # ИСПРАВЛЕНО: раньше empty set молча глотал ошибку → оскорбления
     # не распознавались без видимой причины. Теперь WARN в лог.
     _module_logger.warning(
-        f"[DM_ROUTER] insults_ru.json not loaded ({_insult_err}). "
-        f"Insult detection DISABLED. Path: {_INSULTS_PATH}"
+        f"[DM_ROUTER] insults_ru.json not loaded ({_insult_err}). Insult detection DISABLED. Path: {_INSULTS_PATH}"
     )
     _INSULT_ROOTS = set()
 
-_DIRECTED_AT_PATTERN = re.compile(
-    r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b"
-)
+_DIRECTED_AT_PATTERN = re.compile(r"(?i)\b(ты|тебя|тебе|вас|вам|твой|твоя|твоё|твои|вы)\b")
 
 # Инициализация морфологии один раз (Optional Dependency: Degraded Mode if missing)
 _MORPH = None
@@ -289,8 +286,8 @@ class DMRouter:
                 continue
 
             _morph_result = _MORPH.parse(clean_word) if _MORPH else None  # noqa: ENIGMA001
-            parsed_first = (_morph_result[0] if _morph_result else None)  # noqa: ENIGMA001
-            lemma = (parsed_first.normal_form if parsed_first else clean_word)
+            parsed_first = _morph_result[0] if _morph_result else None  # noqa: ENIGMA001
+            lemma = parsed_first.normal_form if parsed_first else clean_word
 
             if lemma in _INSULT_ROOTS:
                 # 3. ЗАЩИТА ОТ ОТРИЦАНИЙ: "ты не дурак", "он вовсе не идиот"
@@ -299,9 +296,7 @@ class DMRouter:
                 if any(prev_word in negations for prev_word in words[window_start:i]):
                     continue
 
-                profanity_present = (
-                    True  # запоминаем наличие мата (только если не отрицание)
-                )
+                profanity_present = True  # запоминаем наличие мата (только если не отрицание)
 
                 # 2. ЗАЩИТА ОТ МЕЖДОМЕТИЙ: "Блядь, я забыл" (игнорируем как основное оскорбление)
                 if parsed_first is not None and "INTJ" in parsed_first.tag:

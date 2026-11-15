@@ -20,8 +20,13 @@ R2-TAVERN-BOUNDARY-CONTRACT probe v4 — READ-ONLY.
 
 Запрещено: менять production-код, карту, тесты.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy
+import os
+import sys
+import json
+import traceback
+import copy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -53,7 +58,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -125,7 +130,7 @@ def step4_spatial_service_get_furthest() -> None:
                 # show 5 lines after
                 lines_list = src.split("\n")
                 for j in range(i, min(i + 5, len(lines_list))):
-                    print(f"  L{j+1}: {lines_list[j].rstrip()}")
+                    print(f"  L{j + 1}: {lines_list[j].rstrip()}")
                 break
 
 
@@ -222,19 +227,29 @@ EXPECTED OUTCOMES:
             break
 
     if func_start is not None:
-        print(f"\n--- function body (next 80 lines) ---")
+        print("\n--- function body (next 80 lines) ---")
         for j in range(func_start, min(func_start + 80, len(lines))):
-            print(f"  L{j+1}: {lines[j].rstrip()}")
+            print(f"  L{j + 1}: {lines[j].rstrip()}")
             # Stop at next top-level def
             if j > func_start + 3 and lines[j].startswith("def ") and not lines[j].startswith("def _create_boundary"):
                 break
 
         # Check for branching patterns
         print("\n--- branching logic analysis ---")
-        body_lines = lines[func_start:func_start + 80]
-        branching_keywords = ["if ", "elif ", "else:", "in self._graph", "in graph",
-                              "setdefault", "already exists", "skip", "continue",
-                              "raise ", "warn"]
+        body_lines = lines[func_start : func_start + 80]
+        branching_keywords = [
+            "if ",
+            "elif ",
+            "else:",
+            "in self._graph",
+            "in graph",
+            "setdefault",
+            "already exists",
+            "skip",
+            "continue",
+            "raise ",
+            "warn",
+        ]
         for k, line in enumerate(body_lines):
             for kw in branching_keywords:
                 if kw in line:
@@ -276,7 +291,7 @@ LOOK FOR: After the function definition (Step 8), look for:
         print("[function not found]")
         return
     # Show 100 lines of body, then search for adjacency-related code
-    body = lines[func_start:func_start + 120]
+    body = lines[func_start : func_start + 120]
     print("\n--- adjacency/boundary_map references in function ---")
     for k, line in enumerate(body):
         for kw in ["adjacency", "neighbor", "boundary_map", "entry_node", "entry_direction", "exit_", "market_square"]:
@@ -387,16 +402,28 @@ METHOD: Read spatial_service.py around get_furthest (Step 4 already done).
 
     print(f"\n--- get_furthest full body (L{func_start + 1} to L{func_start + 70}) ---")
     for j in range(func_start, min(func_start + 70, len(lines))):
-        print(f"  L{j+1}: {lines[j].rstrip()}")
+        print(f"  L{j + 1}: {lines[j].rstrip()}")
         if j > func_start + 3 and lines[j].startswith("def ") and "get_furthest" not in lines[j]:
             break
 
     # Check for reachability filtering keywords
     print("\n--- reachability filter analysis ---")
-    body = lines[func_start:func_start + 70]
-    reach_keywords = ["reachable", "reachable_from", "connected", "bfs", "astar", "a_star",
-                      "path_to", "has_path", "can_reach", "is_reachable",
-                      "filter", "exclude", "skip"]
+    body = lines[func_start : func_start + 70]
+    reach_keywords = [
+        "reachable",
+        "reachable_from",
+        "connected",
+        "bfs",
+        "astar",
+        "a_star",
+        "path_to",
+        "has_path",
+        "can_reach",
+        "is_reachable",
+        "filter",
+        "exclude",
+        "skip",
+    ]
     found_any = False
     for k, line in enumerate(body):
         for kw in reach_keywords:
@@ -411,7 +438,6 @@ METHOD: Read spatial_service.py around get_furthest (Step 4 already done).
 
     # Also check candidate filter
     print("\n--- candidate filter analysis ---")
-    filter_keywords = ["role", "boundary", "exit_", "type", "node_id", "for ", "if "]
     for k, line in enumerate(body):
         line_lower = line.lower()
         if any(kw in line_lower for kw in ["role", "boundary", "exit_"]):
@@ -438,6 +464,7 @@ NOTE: This does NOT modify production state — we only query the service.
 
         # Use temp saves dir to avoid touching production saves
         import tempfile
+
         saves_dir = Path(tempfile.mkdtemp(prefix="r2_v4_exp_"))
         settings.saves_dir = str(saves_dir)
         settings.environment = "development"
@@ -495,6 +522,7 @@ NOTE: This does NOT modify production state — we only query the service.
 
         # Inspect get_furthest signature
         import inspect
+
         try:
             sig = inspect.signature(spatial_service.get_furthest)
             print(f"\nget_furthest signature: {sig}")
@@ -525,7 +553,7 @@ NOTE: This does NOT modify production state — we only query the service.
                 # Try positional
                 try:
                     result = spatial_service.get_furthest(threat_x, threat_y)
-                    print(f"  WORKED with positional args")
+                    print("  WORKED with positional args")
                 except Exception as e:
                     print(f"  failed with positional: {e}")
 
@@ -549,8 +577,10 @@ NOTE: This does NOT modify production state — we only query the service.
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
     except Exception as e:
         print(f"[FATAL] {type(e).__name__}: {e}")

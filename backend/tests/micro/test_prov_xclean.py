@@ -17,7 +17,7 @@ from app.services.input.llm_compressor_client import LlamaCppCompressorClient
 _ENUM_ITEM = ', "FAREWELL", "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). ASK_PROVENANCE = вопрос о ПРОИСХОЖДЕНИИ'
 _EXAMPLE_MARKER = 'Пример: "Кто тебе сказал, что я Мю?" -> acts:'
 _BLOCK_MARKER = '- Допустимый type "ASK_PROVENANCE": вопрос об ИСТОЧНИКЕ ЗНАНИЯ СОБЕСЕДНИКА'
-_BLOCK_QUESTION_EDGE = 'ГРАНИЦА с QUESTION: вопрос о событиях, фактах или действиях третьих лиц в мире = QUESTION'
+_BLOCK_QUESTION_EDGE = "ГРАНИЦА с QUESTION: вопрос о событиях, фактах или действиях третьих лиц в мире = QUESTION"
 
 
 def test_xclean_off_baseline_intact(monkeypatch):
@@ -29,7 +29,9 @@ def test_xclean_off_baseline_intact(monkeypatch):
     assert _ENUM_ITEM in sys_a, "baseline-перечисление дрейфнуло после рефактора сборки"
     assert _EXAMPLE_MARKER in sys_a
     assert _BLOCK_MARKER not in sys_a
-    assert sys_a.count(', "ASK_PROVENANCE" (params: {"about"') == 1, "дубликат элемента перечисления в OFF — сборка сломана"
+    assert sys_a.count(', "ASK_PROVENANCE" (params: {"about"') == 1, (
+        "дубликат элемента перечисления в OFF — сборка сломана"
+    )
 
 
 def test_xclean_on_extracts_class(monkeypatch):

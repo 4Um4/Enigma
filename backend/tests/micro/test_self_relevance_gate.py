@@ -50,9 +50,7 @@ class _StoreSpy:
 
 
 def _make_claim(subject_id: str, listener_id: str = "maid_lusya") -> ClaimEvent:
-    prop = Proposition(
-        subject_id=subject_id, predicate=Predicate.STOLE, object_id="gold"
-    )
+    prop = Proposition(subject_id=subject_id, predicate=Predicate.STOLE, object_id="gold")
     return ClaimEvent(
         event_id=f"e-{subject_id}",
         claim_id=f"c-{subject_id}",

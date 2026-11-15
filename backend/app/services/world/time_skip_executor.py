@@ -8,6 +8,7 @@ TimeSkipExecutor не содержит собственной симуляции
 SSOT для NPC читается через коллбек, чтобы не создавать жестких связей с LifeEngine.
 SkipPolicy принимают решения на основе Detector'ов и не содержат знаний о физиологии напрямую.
 """
+
 from __future__ import annotations
 
 import copy
@@ -117,9 +118,7 @@ class SignificanceDetector:
                 delta.get("source", "") if isinstance(delta, dict) else ""
             )
             if event_type in self.SIGNIFICANT_EVENT_TYPES:
-                return SignificantEvent(
-                    type=event_type, tick=tick, details={"raw_delta": delta}
-                )
+                return SignificantEvent(type=event_type, tick=tick, details={"raw_delta": delta})
 
         # 2. Проверка абсолютных состояний NPC (через коллбек SSOT)
         prev_map = {n.get("npc_id"): n for n in prev_npcs}
@@ -132,9 +131,7 @@ class SignificanceDetector:
             prev_status = prev_npc.get("body_state", {}).get("life_status", "ALIVE")
             curr_status = curr_npc.get("body_state", {}).get("life_status", "ALIVE")
             if prev_status != "DEAD" and curr_status == "DEAD":
-                return SignificantEvent(
-                    type="npc_death", tick=tick, details={"npc_id": npc_id}
-                )
+                return SignificantEvent(type="npc_death", tick=tick, details={"npc_id": npc_id})
 
             # Проверка травмы (identity_integrity < 0.3)
             prev_integrity = prev_npc.get("psyche", {}).get("identity_integrity", 1.0)
@@ -211,9 +208,7 @@ class SemanticMilestoneFilter:
         child_id = context.get("child_id")
         if child_id:
             child = next((n for n in curr_npcs if n.get("npc_id") == child_id), None)
-            prev_child = next(
-                (n for n in prev_npcs if n.get("npc_id") == child_id), None
-            )
+            prev_child = next((n for n in prev_npcs if n.get("npc_id") == child_id), None)
 
             if child and prev_child:
                 drives = child.get("drives", {})
@@ -304,7 +299,9 @@ class SkipPolicyA:
             )
             # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
             if getattr(result, "status", "ok") == "error":
-                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                logger.error(
+                    f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}"
+                )
                 break
             event_log.extend(result.significant_events or [])
 
@@ -353,7 +350,9 @@ class SkipPolicyB:
             )
             # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
             if getattr(result, "status", "ok") == "error":
-                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                logger.error(
+                    f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}"
+                )
                 break
             event_log.extend(result.significant_events or [])
 
@@ -418,22 +417,18 @@ class SkipPolicyC:
             )
             # M-21 FIX: Защита от None. M-22 FIX: Проверка статуса.
             if getattr(result, "status", "ok") == "error":
-                logger.error(f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}")
+                logger.error(
+                    f"[TIME_SKIP] kernel_execute failed at tick {_tick}: {getattr(result, 'error', 'unknown')}"
+                )
                 break
             event_log.extend(result.significant_events or [])
 
             _curr_npcs = get_npcs(campaign_id)
-            milestone = self._filter.check(
-                _tick, result, _prev_npcs, _curr_npcs, context
-            )
+            milestone = self._filter.check(_tick, result, _prev_npcs, _curr_npcs, context)
 
             if milestone:
                 # Sparse checkpoint: сохраняем state ТОЛЬКО на milestones
-                checkpoints.append(
-                    MilestoneCheckpoint(
-                        tick=_tick, state=copy.deepcopy(_state), milestone=milestone
-                    )
-                )
+                checkpoints.append(MilestoneCheckpoint(tick=_tick, state=copy.deepcopy(_state), milestone=milestone))
             _prev_npcs = _curr_npcs
 
         summary = self._compress(checkpoints, event_log, context)
@@ -467,9 +462,7 @@ class SkipPolicyC:
             highlights=[m.type for m in milestones],
         )
 
-    def _group_by_period(
-        self, checkpoints: List[MilestoneCheckpoint], context: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def _group_by_period(self, checkpoints: List[MilestoneCheckpoint], context: Dict[str, Any]) -> List[Dict[str, Any]]:
         period_type = context.get("period", "year")
         if period_type == "year":
             TICKS_PER_YEAR = 24 * 365
@@ -478,8 +471,7 @@ class SkipPolicyC:
                 year = cp.tick // TICKS_PER_YEAR
                 groups.setdefault(year, []).append(cp)
             return [
-                {"period": f"Year {y}", "milestones": [cp.milestone for cp in cps]}
-                for y, cps in sorted(groups.items())
+                {"period": f"Year {y}", "milestones": [cp.milestone for cp in cps]} for y, cps in sorted(groups.items())
             ]
         return [{"period": "all", "milestones": [cp.milestone for cp in checkpoints]}]
 
@@ -545,10 +537,7 @@ class TimeSkipExecutor:
         if get_npcs_callback is None:
             raise ValueError("get_npcs_callback is required for SSOT access")
 
-        logger.info(
-            f"[TIME_SKIP] policy={policy} ticks={ticks} start={scene_state.get('tick', 0)} "
-            f"context={context}"
-        )
+        logger.info(f"[TIME_SKIP] policy={policy} ticks={ticks} start={scene_state.get('tick', 0)} context={context}")
 
         if policy == "A":
             return self._policy_a.execute(

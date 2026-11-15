@@ -43,9 +43,7 @@ class Phase8Context:
     shared_context: Any  # TODO: типизировать после миграции SharedContext
     campaign_id: str
     tick_ctx: Any  # TODO: типизировать после миграции _TickContext
-    physical_deltas_materialized: Tuple[
-        StateDeltas, ...
-    ] = ()  # Материализованный Physical Layer (t)
+    physical_deltas_materialized: Tuple[StateDeltas, ...] = ()  # Материализованный Physical Layer (t)
 
 
 @dataclass

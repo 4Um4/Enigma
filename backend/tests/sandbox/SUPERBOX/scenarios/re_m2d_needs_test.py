@@ -85,9 +85,7 @@ def run_control() -> _GroupResult:
         needs = _re_state(_last_scene(h))
         if needs:
             return _GroupResult("CONTROL", False, f"needs не пуст при OFF: {list(needs)}")
-        return _GroupResult(
-            "CONTROL", True, "OFF: relationship_state отсутствует (no-op доказан)"
-        )
+        return _GroupResult("CONTROL", True, "OFF: relationship_state отсутствует (no-op доказан)")
     finally:
         _dispose(h)
 
@@ -106,7 +104,8 @@ def run_treatment() -> _GroupResult:
         lvl = _re_state(_last_scene(h)).get(NPC_SOURCE, {}).get("sexual")
         if not lvl:
             return _GroupResult(
-                "TREATMENT", False,
+                "TREATMENT",
+                False,
                 f"нет NeedLevel sexual у {NPC_SOURCE} — цепь не провела дельту",
             )
         fr = float(lvl.get("frustration", 0.0))

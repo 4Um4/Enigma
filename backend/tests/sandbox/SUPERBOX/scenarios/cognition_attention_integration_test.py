@@ -58,6 +58,7 @@ atexit.register(lambda: shutil.rmtree(_TEMP, ignore_errors=True))
 release_lease = lambda: None  # noqa: E731 — fallback if SDK unavailable
 try:
     from app.services.llm.runtime.client import ensure_llm, release_lease
+
     ensure_llm(label="cog_attn")
 except Exception as _e:
     print(f"[INT] LLM недоступна ({_e})")
@@ -67,8 +68,7 @@ from app.services.game_loop_builder import build_game_loop
 from app.services.npc.attention_config import ATTENTION_EVIDENCE_THRESHOLD as _ETH
 
 CAMPAIGN, LOCATION, WORLD = "Open_road", "tavern", "default"
-ALL_NPC = ("merchant_goran", "maid_lusya", "blacksmith_orm", "guard_borko",
-           "thief_shadow", "tavern_keeper_tornin")
+ALL_NPC = ("merchant_goran", "maid_lusya", "blacksmith_orm", "guard_borko", "thief_shadow", "tavern_keeper_tornin")
 # Жизненные rail-классы (production-рельсы жизни). Integration-run2
 # открытие: в дефолтной таверне ИСПОЛНЯЕМОЕ жизненное движение — почти
 # всегда proactive_* DecisionHub (schedule-NPC стоят на постах после
@@ -114,8 +114,14 @@ def _scene(w):
 
 def _intent(w, npc) -> str:
     try:
-        st = next((s for s in w.game_loop._get_life_engine().get_npc_states(CAMPAIGN)
-                   if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc), None)
+        st = next(
+            (
+                s
+                for s in w.game_loop._get_life_engine().get_npc_states(CAMPAIGN)
+                if isinstance(s, dict) and (s.get("id") or s.get("npc_id")) == npc
+            ),
+            None,
+        )
         if st is None:
             return ""
         it = st.get("intent")
@@ -130,8 +136,7 @@ def _att(ss, npc) -> Dict[str, Any]:
 
 def _rail_of(mov_list, npc):
     """Жизненный rail-интент NPC в этом тике (production-рельсы)."""
-    return [m["reason"] for m in mov_list
-            if m["actor"] == npc and m["reason"].startswith(_RAIL_PREFIXES)]
+    return [m["reason"] for m in mov_list if m["actor"] == npc and m["reason"].startswith(_RAIL_PREFIXES)]
 
 
 def _critical_need(rail_reasons) -> bool:
@@ -149,12 +154,22 @@ def _critical_need(rail_reasons) -> bool:
 def _snapshot(w, t: int, phase: str) -> Dict[str, Any]:
     ss = _scene(w) or {}
     pos = ss.get("npc_positions") or {}
-    row = {"t": t, "phase": phase,
-           "E": {}, "att_phase": {}, "probably": {}, "intent": {}, "winner": {},
-           "hd": {}, "trav": {}, "rail": {}, "rail_alive": {},
-           "xy": {n: _xy(pos.get(n)) for n in ALL_NPC + ("player",)},
-           "xy_prev": (_TAPE[-1]["xy"] if _TAPE else {}),
-           "mov": list(_MOV)}
+    row = {
+        "t": t,
+        "phase": phase,
+        "E": {},
+        "att_phase": {},
+        "probably": {},
+        "intent": {},
+        "winner": {},
+        "hd": {},
+        "trav": {},
+        "rail": {},
+        "rail_alive": {},
+        "xy": {n: _xy(pos.get(n)) for n in ALL_NPC + ("player",)},
+        "xy_prev": (_TAPE[-1]["xy"] if _TAPE else {}),
+        "mov": list(_MOV),
+    }
     _MOV.clear()
     for n in ALL_NPC:
         a = _att(ss, n)
@@ -182,17 +197,19 @@ def _print_row(r, focus: str = ""):
     targets = (focus,) if focus else ALL_NPC
     marks = []
     for n in targets:
-        marks.append(f"{n.split('_')[-1]}:E{r['E'][n]}/pr{int(r['probably'][n])}/"
-                     f"w={r['winner'][n][:10]}/rail{int(r['rail_alive'][n])}/"
-                     f"Δp{_dpos(r, n)}/tr{r['trav'][n][:3]}")
+        marks.append(
+            f"{n.split('_')[-1]}:E{r['E'][n]}/pr{int(r['probably'][n])}/"
+            f"w={r['winner'][n][:10]}/rail{int(r['rail_alive'][n])}/"
+            f"Δp{_dpos(r, n)}/tr{r['trav'][n][:3]}"
+        )
     rails_f = [m["reason"] for m in r["mov"] if not focus or m["actor"] == focus]
-    print(f"[T{r['t']:02d}|{r['phase']}] " + " | ".join(marks)
-          + (f" | mov={rails_f[:4]}" if rails_f else ""))
+    print(f"[T{r['t']:02d}|{r['phase']}] " + " | ".join(marks) + (f" | mov={rails_f[:4]}" if rails_f else ""))
 
 
 def _install():
     from app.services.npc import decision_hub as _dh
     from app.services.spatial import movement_engine as _me
+
     orig = {"hub": _dh.DecisionHub.compute, "mov": _me.MovementEngine.process_intents}
 
     def _w_hub(self, state, *a, __o=orig["hub"], **kw):
@@ -202,9 +219,10 @@ def _install():
 
     def _w_mov(self, intents, *a, __o=orig["mov"], **kw):
         _res = __o(self, intents, *a, **kw)
-        _MOV.extend({"actor": str(getattr(i, "actor_id", "") or ""),
-                     "reason": str(getattr(i, "reason", "") or "")}
-                    for i in (intents or []))
+        _MOV.extend(
+            {"actor": str(getattr(i, "actor_id", "") or ""), "reason": str(getattr(i, "reason", "") or "")}
+            for i in (intents or [])
+        )
         return _res
 
     _dh.DecisionHub.compute = _w_hub  # type: ignore[method-assign]
@@ -223,6 +241,7 @@ async def main_async() -> int:
     print("S297 CANONICAL INTEGRATION: КОНТРАКТ БАРСУКА (I–V)")
     print("=" * 64)
     from app.services.llm.provider_manager import initialize_model_pool
+
     initialize_model_pool()
     world = types.SimpleNamespace(game_loop=build_game_loop(data_dir=str(_REPO / "data")))
 
@@ -231,10 +250,15 @@ async def main_async() -> int:
             world.game_loop.idle_tick(CAMPAIGN)
 
     async def put(x, y):
-        await world.game_loop.run_turn(ChatTurnRequest(
-            world_id=WORLD, campaign_id=CAMPAIGN, location=LOCATION,
-            actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
-            player_position=(x, y)))
+        await world.game_loop.run_turn(
+            ChatTurnRequest(
+                world_id=WORLD,
+                campaign_id=CAMPAIGN,
+                location=LOCATION,
+                actions=[PlayerAction(player_name="ВВорг", action="остаюсь на месте")],
+                player_position=(x, y),
+            )
+        )
 
     wrap = _install()
     try:
@@ -252,8 +276,7 @@ async def main_async() -> int:
         # 1.1) честно выбрал «не прерывать» — валидный мир, но Барсук-дока
         # требует ∃ реагирующий; попытки по убыванию rail-активности,
         # БЕЗ имён-хардкодов — P3d attempts-паттерн).
-        _pool = [n for n in ALL_NPC
-                 if _rail_hist[n] >= _T_BASE // 2 and _moved_hist[n] >= 2]
+        _pool = [n for n in ALL_NPC if _rail_hist[n] >= _T_BASE // 2 and _moved_hist[n] >= 2]
         _pool.sort(key=lambda n: -_rail_hist[n])
         if not _pool:
             _pool = [n for n in ALL_NPC if _rail_hist[n] >= 3 and _moved_hist[n] >= 2]
@@ -262,8 +285,10 @@ async def main_async() -> int:
         # ранний выход проверяет ПУЛ, а не ещё-не-существующий target).
         print(f"[I] rail-гистограмма: {_rail_hist} | пул: {_pool}")
         if not _pool:
-            print("[INT] RED-ПРИЧИНА: ни один NPC не занят жизненным rail "
-                  "(все стоячие/хаб-пассивны) — нет субъекта Барсука.")
+            print(
+                "[INT] RED-ПРИЧИНА: ни один NPC не занят жизненным rail "
+                "(все стоячие/хаб-пассивны) — нет субъекта Барсука."
+            )
             print("INT ИТОГО: RED (нет живого rail)")
             return 1
         # G1-цель (фаза II) = первый кандидат пула (run5-фикс: target
@@ -271,8 +296,10 @@ async def main_async() -> int:
         target = _pool[0]
         b0 = _TAPE[-1]
         b0_rail = b0["rail"][target]
-        print(f"[I] ЦЕЛЬ(G1/первая пула)={target} rail={b0_rail} intent={b0['intent'][target]} "
-              f"E={b0['E'][target]} trav={b0['trav'][target]}")
+        print(
+            f"[I] ЦЕЛЬ(G1/первая пула)={target} rail={b0_rail} intent={b0['intent'][target]} "
+            f"E={b0['E'][target]} trav={b0['trav'][target]}"
+        )
 
         # ── II: PASS-BY (поперёк; близость ≠ ко мне; rail живёт) ──
         print("--- II: PASS-BY (вторая половина Барсука) ---")
@@ -332,8 +359,7 @@ async def main_async() -> int:
                     _front = (g[0] + 5.0 * math.cos(h_now), g[1] + 5.0 * math.sin(h_now))
                     _df = math.hypot(_front[0] - p[0], _front[1] - p[1])
                     _sf = min(_STEP, _df)
-                    await put(p[0] + (_front[0] - p[0]) / _df * _sf,
-                              p[1] + (_front[1] - p[1]) / _df * _sf)
+                    await put(p[0] + (_front[0] - p[0]) / _df * _sf, p[1] + (_front[1] - p[1]) / _df * _sf)
                 elif d > _STOP:
                     s = min(_STEP, d - _STOP)
                     await put(p[0] + (g[0] - p[0]) / d * s, p[1] + (g[1] - p[1]) / d * s)
@@ -401,14 +427,18 @@ async def main_async() -> int:
         if r["E"][target] >= _ETH and r["probably"][target]:
             prev = core_rows[i - 1] if i > 0 else None
             nxt = core_rows[i + 1] if i + 1 < len(core_rows) else None
-            print(f"  T{r['t']}: E={r['E'][target]} probably=True winner={r['winner'][target]} "
-                  f"intent={r['intent'][target]} rail={r['rail'][target] or '-'}")
+            print(
+                f"  T{r['t']}: E={r['E'][target]} probably=True winner={r['winner'][target]} "
+                f"intent={r['intent'][target]} rail={r['rail'][target] or '-'}"
+            )
             if prev:
                 print(f"    T-1: rail_alive={prev['rail_alive'][target]} rail={prev['rail'][target] or '-'}")
             if nxt:
-                print(f"    T+1: rail_alive={nxt['rail_alive'][target]} Δpos={_dpos(nxt, target)} "
-                      f"Δhd={round(_angdiff(nxt['hd'][target], r['hd'][target]), 3)} "
-                      f"rail={nxt['rail'][target] or '-'}")
+                print(
+                    f"    T+1: rail_alive={nxt['rail_alive'][target]} Δpos={_dpos(nxt, target)} "
+                    f"Δhd={round(_angdiff(nxt['hd'][target], r['hd'][target]), 3)} "
+                    f"rail={nxt['rail'][target] or '-'}"
+                )
 
     # Гейты
     ok = True
@@ -417,8 +447,10 @@ async def main_async() -> int:
     pb_rail_live = sum(1 for r in passby_rows if r["rail_alive"][target])
     g2 = pb_e < _ETH and pb_rail_live >= len(passby_rows) // 3
     ok = ok and g2
-    print(f"\n[II] {'PASS' if g2 else 'FAIL'}: pass-by max E={pb_e:.2f}<{_ETH}; "
-          f"rail жил {pb_rail_live}/{len(passby_rows)} тиков — «близко ≠ ко мне, жизнь продолжается»")
+    print(
+        f"\n[II] {'PASS' if g2 else 'FAIL'}: pass-by max E={pb_e:.2f}<{_ETH}; "
+        f"rail жил {pb_rail_live}/{len(passby_rows)} тиков — «близко ≠ ко мне, жизнь продолжается»"
+    )
 
     # III: Case-классификация (директива §5; run3-семантика: «cog дошёл,
     # хаб честно выбрал не прерывать» — валидный исход, отличается от
@@ -446,9 +478,11 @@ async def main_async() -> int:
         g3_verdict = "reaction honored (rail прерван при observe)"
     if case_c:
         ok = False
-    print(f"[III] {'PASS' if not case_c else 'FAIL'}: пик E={e_peak:.2f}; observe-тиков={len(obs_ticks)}; "
-          f"rail-при-observe={len(rail_during_obs)} (критичных={len(crit_during_obs)}); "
-          f"вердикт: {g3_verdict}")
+    print(
+        f"[III] {'PASS' if not case_c else 'FAIL'}: пик E={e_peak:.2f}; observe-тиков={len(obs_ticks)}; "
+        f"rail-при-observe={len(rail_during_obs)} (критичных={len(crit_during_obs)}); "
+        f"вердикт: {g3_verdict}"
+    )
 
     # IV/V: угасание + возврат жизни (не того же traversal — новой жизни)
     fin_rows = [r for r in _TAPE if r["phase"] in ("IV", "V")]
@@ -457,19 +491,25 @@ async def main_async() -> int:
     mov_ret = sum(1 for r in fin_rows if _dpos(r, target) > 0)
     g45 = e_fin < _ETH and (rail_ret > 0 or mov_ret > 0)
     ok = ok and g45
-    print(f"[IV/V] {'PASS' if g45 else 'FAIL'}: E→{e_fin:.2f}; rail вернулся {rail_ret} тиков; "
-          f"двигался {mov_ret} тиков — «интерес угас, жизнь возобновилась»")
+    print(
+        f"[IV/V] {'PASS' if g45 else 'FAIL'}: E→{e_fin:.2f}; rail вернулся {rail_ret} тиков; "
+        f"двигался {mov_ret} тиков — «интерес угас, жизнь возобновилась»"
+    )
 
     print("=" * 64)
     print(f"INT ИТОГО: {'GREEN' if ok else 'RED'}")
     if not ok and case_c:
-        print("БАРСУК-FAIL: «NPC видит и решил, но execution продолжает старое движение». "
-              "Per-tick переходы выше — точное звено разрыва для патч-предложения (санкция отдельно).")
+        print(
+            "БАРСУК-FAIL: «NPC видит и решил, но execution продолжает старое движение». "
+            "Per-tick переходы выше — точное звено разрыва для патч-предложения (санкция отдельно)."
+        )
     else:
-        print("СЦЕНА: NPC был занят делом. Игрок прошёл мимо — тот и не обернулся. "
-              "Игрок пошёл прямо — NPC понял, что к нему, и отреагировал по-своему "
-              "(или его потребность честно оказалась важнее — Case B). "
-              "Игрок ушёл — NPC вернулся к своей жизни.")
+        print(
+            "СЦЕНА: NPC был занят делом. Игрок прошёл мимо — тот и не обернулся. "
+            "Игрок пошёл прямо — NPC понял, что к нему, и отреагировал по-своему "
+            "(или его потребность честно оказалась важнее — Case B). "
+            "Игрок ушёл — NPC вернулся к своей жизни."
+        )
     return 0 if ok else 1
 
 

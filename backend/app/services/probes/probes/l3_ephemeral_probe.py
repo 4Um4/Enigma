@@ -3,6 +3,7 @@
 L3-P1: EffectiveDrives эфемерны.
 Проверяет, что L3 не персистится в scene_state или npc_dicts.
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -18,7 +19,7 @@ class L3EphemeralProbe(Probe):
                     name=self.name,
                     severity=self.severity,
                     passed=False,
-                    details=f"scene_state contains persisted L3 key: '{key}' at tick {ctx.tick_id}"
+                    details=f"scene_state contains persisted L3 key: '{key}' at tick {ctx.tick_id}",
                 )
 
         # 2. Проверяем npc_dicts (all_npcs_raw)
@@ -32,7 +33,7 @@ class L3EphemeralProbe(Probe):
                         name=self.name,
                         severity=self.severity,
                         passed=False,
-                        details=f"NPC '{nid}' dict contains persisted L3 key: '{key}' at tick {ctx.tick_id}"
+                        details=f"NPC '{nid}' dict contains persisted L3 key: '{key}' at tick {ctx.tick_id}",
                     )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

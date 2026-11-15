@@ -1,4 +1,4 @@
-﻿"""
+"""
 R4 / GATE-9A D2 — тесты SSM-контракта abort/persist.
 
 7 сценариев:
@@ -10,6 +10,7 @@ R4 / GATE-9A D2 — тесты SSM-контракта abort/persist.
   6. test_marker_reset_at_fresh_acquire        — fresh lock_for_tick сбрасывает маркер
   7. test_marker_reset_on_atomic_commit_exception — БЛОКЕР Мастера: atomic_commit_all исключение -> маркер всё равно сбрасывается
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -115,6 +116,7 @@ def test_marker_reset_at_fresh_acquire(ssm_with_mock_persistence):
 
 def test_marker_reset_on_atomic_commit_exception(ssm_with_mock_persistence):
     import sqlite3
+
     mgr, mock_port = ssm_with_mock_persistence
     mock_port.atomic_commit_all.side_effect = sqlite3.Error("simulated failure")
 

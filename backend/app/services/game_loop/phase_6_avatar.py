@@ -82,10 +82,11 @@ def update_avatar_from_npc_intents(
         # P0-D (S208): архитектурный violation не должен маскироваться в
         # обычное WARNING (ADR-INV-DEF). Диагностика обязательна до деградации.
         from app.errors import ArchitecturalViolationError
+
         if isinstance(_av_err, ArchitecturalViolationError):
             logger.critical(
-                f"[ARCH_VIOLATION][AVATAR] { _av_err } — ownership нарушен, "
-                f"стек: ", exc_info=True,
+                f"[ARCH_VIOLATION][AVATAR] {_av_err} — ownership нарушен, стек: ",
+                exc_info=True,
             )
         else:
             logger.warning(f"[AVATAR] update error: {_av_err}")
@@ -96,25 +97,16 @@ def avatar_to_prompt(state: Any) -> dict:
     wounds_str = "нет"
     if state.wounds:
         wounds_str = ", ".join(
-            f"{w.body_part}({w.severity if isinstance(w.severity, str) else w.severity.value})"
-            for w in state.wounds
+            f"{w.body_part}({w.severity if isinstance(w.severity, str) else w.severity.value})" for w in state.wounds
         )
     conds_str = "нет"
     if state.conditions:
-        conds_str = ", ".join(
-            f"{k}({v.severity:.0%})" for k, v in state.conditions.items()
-        )
+        conds_str = ", ".join(f"{k}({v.severity:.0%})" for k, v in state.conditions.items())
     return {
-        "hp": f"{state.effective_hp}/{state.effective_max_hp}"
-        if state.effective_max_hp > 0
-        else "не задано",
+        "hp": f"{state.effective_hp}/{state.effective_max_hp}" if state.effective_max_hp > 0 else "не задано",
         "stress": round(state.stress, 1),
-        "emotion": state.emotion.value
-        if hasattr(state.emotion, "value")
-        else str(state.emotion),
-        "will_state": state.will_state.value
-        if hasattr(state.will_state, "value")
-        else str(state.will_state),
+        "emotion": state.emotion.value if hasattr(state.emotion, "value") else str(state.emotion),
+        "will_state": state.will_state.value if hasattr(state.will_state, "value") else str(state.will_state),
         "posture": state.posture,
         "wounds": wounds_str,
         "conditions": conds_str,

@@ -152,9 +152,7 @@ def load_npc_profiles_from_config() -> Dict[str, NPCProfileL0]:
     individuals_dir = _CONFIG_NPC_ROOT / "individuals"
 
     if not individuals_dir.exists():
-        logger.warning(
-            f"[NPC_LOADER] Individuals directory not found: {individuals_dir}"
-        )
+        logger.warning(f"[NPC_LOADER] Individuals directory not found: {individuals_dir}")
         return profiles
 
     for json_file in individuals_dir.glob("*.json"):
@@ -163,9 +161,7 @@ def load_npc_profiles_from_config() -> Dict[str, NPCProfileL0]:
             merged = _load_archetype_chain(individual_data)
             profile = load_profile_from_legacy_json(merged)
             profiles[profile.id] = profile
-            logger.debug(
-                f"[NPC_LOADER] Loaded profile: {profile.id} from {json_file.name}"
-            )
+            logger.debug(f"[NPC_LOADER] Loaded profile: {profile.id} from {json_file.name}")
         except Exception as e:
             logger.error(f"[NPC_LOADER] Failed to load {json_file.name}: {e}")
             raise
@@ -224,18 +220,13 @@ def _enrich_with_social_relations(
 
     for source_id, targets in relations.items():
         if source_id not in npc_by_id:
-            logger.debug(
-                f"[NPC_LOADER] Social relation source '{source_id}' "
-                f"not found in loaded NPCs, skipping"
-            )
+            logger.debug(f"[NPC_LOADER] Social relation source '{source_id}' not found in loaded NPCs, skipping")
             continue
 
         npc = npc_by_id[source_id]
 
         # Инициализация relationship_cache
-        if "relationship_cache" not in npc or not isinstance(
-            npc["relationship_cache"], dict
-        ):
+        if "relationship_cache" not in npc or not isinstance(npc["relationship_cache"], dict):
             npc["relationship_cache"] = {}
         rc = npc["relationship_cache"]
 
@@ -252,9 +243,7 @@ def _enrich_with_social_relations(
             base_trust_100 = base_trust_01 * 100.0
             # R8: тёплая ось — та же конверсия, что trust (шаг находки:
             # attraction заявлен V2-контрактом, но никогда не наполнялся)
-            base_affection_100 = (
-                float(rel_data.get("base_affection", 0.0)) * 100.0
-            )
+            base_affection_100 = float(rel_data.get("base_affection", 0.0)) * 100.0
             nature = rel_data.get("nature", "unknown")
 
             # Не перезаписываем существующие (runtime мог мутировать)
@@ -284,9 +273,7 @@ def _enrich_with_social_relations(
 # Теперь мерж выполняется рекурсивно через _deep_merge, сохраняя все runtime-поля.
 
 
-def _apply_runtime_overlay(
-    static_npc: Dict[str, Any], runtime_npc: Dict[str, Any]
-) -> Dict[str, Any]:
+def _apply_runtime_overlay(static_npc: Dict[str, Any], runtime_npc: Dict[str, Any]) -> Dict[str, Any]:
     """
     Глубоко мержит runtime-поля из runtime_npc поверх static_npc.
     Static поля НЕ перезаписываются на верхнем уровне, но runtime-данные
@@ -320,9 +307,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
     static_npcs: List[Dict[str, Any]] = []
 
     if not individuals_dir.exists():
-        logger.warning(
-            f"[NPC_LOADER] Individuals directory not found: {individuals_dir}"
-        )
+        logger.warning(f"[NPC_LOADER] Individuals directory not found: {individuals_dir}")
         return static_npcs
 
     for json_file in sorted(individuals_dir.glob("*.json")):
@@ -362,6 +347,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
                 _npc_id = _npc.get("id") or _npc.get("npc_id")
                 if _npc_id:
                     from app.services.chronicle import chronicle_seeder as _cseed
+
                     _doc = _cseed.canonical_chronicle(_npc_id)
                     if _doc:
                         # 1. Beliefs & Imprints
@@ -390,22 +376,16 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             if "npc_id" not in npc and "id" in npc:
                 npc["npc_id"] = npc["id"]
 
-        logger.info(
-            f"[NPC_LOADER] No runtime file, loaded {len(static_npcs)} NPCs from config only"
-        )
+        logger.info(f"[NPC_LOADER] No runtime file, loaded {len(static_npcs)} NPCs from config only")
         return static_npcs
 
     # 3. Загружаем runtime и строим индекс по ID
     try:
         with open(runtime_path, "r", encoding="utf-8") as f:
             runtime_list = json.load(f)
-        runtime_by_id: Dict[str, Dict[str, Any]] = {
-            npc["id"]: npc for npc in runtime_list if "id" in npc
-        }
+        runtime_by_id: Dict[str, Dict[str, Any]] = {npc["id"]: npc for npc in runtime_list if "id" in npc}
     except Exception as e:
-        logger.warning(
-            f"[NPC_LOADER] Failed to load runtime {runtime_path}: {e}, using static only"
-        )
+        logger.warning(f"[NPC_LOADER] Failed to load runtime {runtime_path}: {e}, using static only")
         result = list(static_npcs)
     else:
         # 4. Мержим runtime поверх static
@@ -443,6 +423,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
             _npc_id = _npc.get("id") or _npc.get("npc_id")
             if _npc_id:
                 from app.services.chronicle import chronicle_seeder as _cseed
+
                 _doc = _cseed.canonical_chronicle(_npc_id)
                 if _doc:
                     # 1. Beliefs & Imprints
@@ -476,9 +457,7 @@ def load_npcs_merged(runtime_path: Optional[Path] = None) -> List[Dict[str, Any]
         if "npc_id" not in npc and "id" in npc:
             npc["npc_id"] = npc["id"]
 
-    logger.info(
-        f"[NPC_LOADER] Loaded {len(result)} NPCs (config + runtime from {runtime_path.name})"
-    )
+    logger.info(f"[NPC_LOADER] Loaded {len(result)} NPCs (config + runtime from {runtime_path.name})")
     return result
 
 
@@ -496,9 +475,7 @@ def materialize_inventory(raw_npc: Dict[str, Any]) -> Dict[str, int]:
         if is_physical_object(obj_id):
             result[obj_id] = 1
         else:
-            logger.debug(
-                f"[NPC_LOADER] Пропущен non-physical маркер '{obj_id}' у NPC {raw_npc.get('id')}"
-            )
+            logger.debug(f"[NPC_LOADER] Пропущен non-physical маркер '{obj_id}' у NPC {raw_npc.get('id')}")
     return result
 
 
@@ -516,9 +493,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
         psyche_base = PsycheBase(
             willpower=int(psyche_raw.get("willpower", 50)),
             breakpoint=int(psyche_raw.get("breakpoint", 80)),
-            loyalty_base=int(
-                psyche_raw.get("loyalty_true", psyche_raw.get("loyalty_base", 50))
-            ),
+            loyalty_base=int(psyche_raw.get("loyalty_true", psyche_raw.get("loyalty_base", 50))),
         )
 
         # Извлекаем только базовые драйвы. Динамические веса (social_stats) игнорируются.
@@ -537,6 +512,7 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
 
         if _archetype_id:
             from app.domain.memetic.voice_archetype import load_voice_archetype
+
             _archetype_data = load_voice_archetype(_archetype_id)
             if _archetype_data and _archetype_data.voice_profile:
                 _voice_profile = _archetype_data.voice_profile
@@ -573,12 +549,8 @@ def load_profile_from_legacy_json(raw_data: Dict[str, Any]) -> NPCProfileL0:
         return profile
 
     except (KeyError, ValueError, TypeError) as e:
-        logger.error(
-            f"[NPC_LOADER] Failed to parse profile from JSON: {e}. Raw keys: {raw_data.keys()}"
-        )
-        raise ValueError(
-            f"Invalid NPC profile format for id={raw_data.get('id', 'UNKNOWN')}: {e}"
-        )
+        logger.error(f"[NPC_LOADER] Failed to parse profile from JSON: {e}. Raw keys: {raw_data.keys()}")
+        raise ValueError(f"Invalid NPC profile format for id={raw_data.get('id', 'UNKNOWN')}: {e}")
 
 
 def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> Tuple[Any, ...]:
@@ -592,14 +564,8 @@ def _convert_origin_events(origin_list: List[Dict], npc_id: str) -> Tuple[Any, .
     for _d in origin_list:
         # JSON даёт list, модель требует tuple (frozen dataclass)
         _tags = tuple(_d["tags"]) if isinstance(_d.get("tags"), list) else tuple()
-        _known = (
-            tuple(_d["known_by"]) if isinstance(_d.get("known_by"), list) else tuple()
-        )
-        _hidden = (
-            tuple(_d["hidden_from"])
-            if isinstance(_d.get("hidden_from"), list)
-            else tuple()
-        )
+        _known = tuple(_d["known_by"]) if isinstance(_d.get("known_by"), list) else tuple()
+        _hidden = tuple(_d["hidden_from"]) if isinstance(_d.get("hidden_from"), list) else tuple()
         _mem = EventMemory(
             event_type=_d.get("event_type", "origin"),
             target_id=_d.get("target_id", ""),
@@ -637,9 +603,7 @@ def _canon_truth_state() -> Any:
         from app.core.config import BASE_DIR
         from app.services.truth_state_loader import TruthStateLoader
 
-        _M1_TRUTH_STATE_CACHE = TruthStateLoader.load(
-            BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
-        )
+        _M1_TRUTH_STATE_CACHE = TruthStateLoader.load(BASE_DIR / "config" / "canon" / "truth_state_tavern.json")
     except Exception as e:  # noqa: ENIGMA001
         logger.warning(f"[M1_P1] canon load failed — seeding degraded: {e}")
         from app.models.truth_state import TruthState
@@ -844,12 +808,7 @@ def get_display_names() -> Dict[str, str]:
         if not _id:
             continue
         # Имя: name / display_name / description-шапка — по факту конфига
-        _name = (
-            data.get("name")
-            or data.get("display_name")
-            or str(data.get("description", ""))[:40]
-            or str(_id)
-        )
+        _name = data.get("name") or data.get("display_name") or str(data.get("description", ""))[:40] or str(_id)
         out[str(_id)] = str(_name)
     return out
 
@@ -977,7 +936,9 @@ def load_l2_state_from_runtime_dict(
 
     # L2.7: LifeProject — динамическая проекция L0.
     # P2: Обратная совместимость. Если нет life_project, берём старое life_direction или L0.
-    _life_project = psyche.get("life_project", psyche.get("life_direction", raw_data.get("core_orientation", "survival")))
+    _life_project = psyche.get(
+        "life_project", psyche.get("life_direction", raw_data.get("core_orientation", "survival"))
+    )
     _life_project_state = psyche.get("life_project_state", "ACTIVE")
 
     state = NPCState(

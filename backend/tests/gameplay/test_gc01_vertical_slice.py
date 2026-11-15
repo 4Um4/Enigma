@@ -1,4 +1,4 @@
-﻿"""
+"""
 GC-01: Вертикальный срез игровой петли.
 
 Test A — real tick vertical slice: 9 обязательных проверок БЕЗ привязки
@@ -18,6 +18,7 @@ Test B — SCALE-05 replay: 3× fresh× seed42× 10 тиков, попарное
   get_scene_fresh@333; idle_tick return@1494-1509 (game_loop.py);
   WorldSnapshotBuilder Phase 9 (post_decision integration).
 """
+
 from __future__ import annotations
 
 from tests.gameplay.harness import TavernGameplayHarness
@@ -26,6 +27,7 @@ from tests.gameplay.harness import TavernGameplayHarness
 # ============================================================================
 # Test A: real tick vertical slice — 9 mandatory checks (LLM-agnostic)
 # ============================================================================
+
 
 class TestARealTickVerticalSlice:
     """9 инвариантов вертикального среза одного тика (LLM-агностик).
@@ -62,11 +64,9 @@ class TestARealTickVerticalSlice:
         """
         snaps = self.harness.advance_ticks(3)
         times = [s.get("time") for s in snaps]
-        assert all(t is not None for t in times), \
-            f"time missing in snapshots: {snaps}"
+        assert all(t is not None for t in times), f"time missing in snapshots: {snaps}"
         for i in range(1, len(times)):
-            assert times[i] > times[i - 1], \
-                f"time not strictly increasing: {times}"
+            assert times[i] > times[i - 1], f"time not strictly increasing: {times}"
 
     def test_a3_phase9_integration_fields_present(self) -> None:
         """Phase 9 (Integration): scene_state содержит базовые поля интеграции.
@@ -78,10 +78,8 @@ class TestARealTickVerticalSlice:
         self.harness.advance_ticks(1)
         scene = self.harness.get_scene_fresh()
         assert scene is not None, "scene fresh is None after advance_ticks"
-        assert "tick" in scene, \
-            f"tick missing in scene_state; keys: {list(scene.keys())}"
-        assert "game_time_seconds" in scene, \
-            f"game_time_seconds missing in scene_state; keys: {list(scene.keys())}"
+        assert "tick" in scene, f"tick missing in scene_state; keys: {list(scene.keys())}"
+        assert "game_time_seconds" in scene, f"game_time_seconds missing in scene_state; keys: {list(scene.keys())}"
 
     def test_a4_npc_count_positive_int(self) -> None:
         """AVID-1: NPC (включая аватара) присутствуют в сцене (count > 0).
@@ -92,10 +90,8 @@ class TestARealTickVerticalSlice:
         """
         snaps = self.harness.advance_ticks(1)
         npcs = snaps[0].get("npc")
-        assert isinstance(npcs, int), \
-            f"npc must be int (count from len(npc_positions)); got {type(npcs)}: {npcs!r}"
-        assert npcs > 0, \
-            f"NPC count not positive after new_game+tick: {npcs}"
+        assert isinstance(npcs, int), f"npc must be int (count from len(npc_positions)); got {type(npcs)}: {npcs!r}"
+        assert npcs > 0, f"NPC count not positive after new_game+tick: {npcs}"
 
     def test_a5_pending_tasks_stable_or_decreasing(self) -> None:
         """S262: execute_pending идемпотентен — pending не растёт без входа.
@@ -110,8 +106,7 @@ class TestARealTickVerticalSlice:
             prev, curr = pendings[i - 1], pendings[i]
             if prev is None or curr is None:
                 continue
-            assert curr <= prev, \
-                f"pending grew without input: prev={prev}, curr={curr}, full={pendings}"
+            assert curr <= prev, f"pending grew without input: prev={prev}, curr={curr}, full={pendings}"
 
     def test_a6_no_simulation_integrity_error(self) -> None:
         """INV-TIME-FREEZE: SimulationIntegrityError не выбрасывается в штатном idle.
@@ -132,8 +127,7 @@ class TestARealTickVerticalSlice:
         self.harness.advance_ticks(1)
         scene = self.harness.get_scene_fresh()
         wcd = scene.get("will_conflict_data")
-        assert wcd is None, \
-            f"will_conflict_data not None in idle: {wcd!r}"
+        assert wcd is None, f"will_conflict_data not None in idle: {wcd!r}"
 
     def test_a8_events_empty_by_default(self) -> None:
         """DEBT-FE-DELTAS: events=[] при IDLE_EVENTS_PROJECTION_ENABLED=OFF.
@@ -143,8 +137,7 @@ class TestARealTickVerticalSlice:
         """
         snaps = self.harness.advance_ticks(1)
         events = snaps[0].get("events")
-        assert events is None or events == [], \
-            f"events not empty by default: {events!r}"
+        assert events is None or events == [], f"events not empty by default: {events!r}"
 
     def test_a9_avatar_player_present_in_scene(self) -> None:
         """AVID-1 FIX: аватар игрока присутствует в npc_positions.
@@ -155,13 +148,15 @@ class TestARealTickVerticalSlice:
         self.harness.advance_ticks(1)
         scene = self.harness.get_scene_fresh()
         npc_positions = scene.get("npc_positions", {})
-        assert "player" in npc_positions, \
+        assert "player" in npc_positions, (
             f"avatar 'player' missing in npc_positions; keys: {list(npc_positions.keys())}"
+        )
 
 
 # ============================================================================
 # Test B: SCALE-05 replay — 3× fresh, seed=42, 10 ticks, pairwise equal
 # ============================================================================
+
 
 class TestBScale05ReplayDeterminism:
     """SCALE-05: 3 прогона одного seed дают попарно равные отпечатки (S269).
@@ -191,14 +186,12 @@ class TestBScale05ReplayDeterminism:
         """
         runs = [self._run_one() for _ in range(self.REPLAY_COUNT)]
         lengths = [len(r) for r in runs]
-        assert len(set(lengths)) == 1, \
-            f"lengths differ across runs: {lengths}"
+        assert len(set(lengths)) == 1, f"lengths differ across runs: {lengths}"
         for i in range(self.REPLAY_COUNT):
             for j in range(i + 1, self.REPLAY_COUNT):
-                assert runs[i] == runs[j], \
-                    f"MISMATCH run{i} vs run{j}:\n" \
-                    f"  run{i}[-1]={runs[i][-1]!r}\n" \
-                    f"  run{j}[-1]={runs[j][-1]!r}"
+                assert runs[i] == runs[j], (
+                    f"MISMATCH run{i} vs run{j}:\n  run{i}[-1]={runs[i][-1]!r}\n  run{j}[-1]={runs[j][-1]!r}"
+                )
 
     def test_b2_anti_vacuum_runs_have_npc(self) -> None:
         """Анти-вакуум: пустые равные результаты ≠ доказательство.
@@ -208,8 +201,7 @@ class TestBScale05ReplayDeterminism:
         """
         for i in range(self.REPLAY_COUNT):
             snaps = self._run_one()
-            assert len(snaps) == self.TICKS, \
-                f"run{i}: expected {self.TICKS} snaps, got {len(snaps)}"
+            assert len(snaps) == self.TICKS, f"run{i}: expected {self.TICKS} snaps, got {len(snaps)}"
             last = snaps[-1]
             npcs = last.get("npc")
             if isinstance(npcs, list):
@@ -227,7 +219,5 @@ class TestBScale05ReplayDeterminism:
         for i in range(self.REPLAY_COUNT):
             snaps = self._run_one()
             times = [s.get("time") for s in snaps]
-            assert all(t is not None for t in times), \
-                f"run{i}: time missing in some snapshots"
-            assert times[-1] > times[0], \
-                f"run{i}: time did not advance: first={times[0]}, last={times[-1]}"
+            assert all(t is not None for t in times), f"run{i}: time missing in some snapshots"
+            assert times[-1] > times[0], f"run{i}: time did not advance: first={times[0]}, last={times[-1]}"

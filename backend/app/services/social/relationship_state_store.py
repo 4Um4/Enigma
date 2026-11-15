@@ -137,18 +137,14 @@ class RelationshipStateStore:
         result: Dict[str, NeedLevel] = {}
         for need_id in RE_NEED_SLOTS:
             raw = npc_needs.get(need_id)
-            result[need_id] = (
-                NeedLevel(need_id=need_id) if raw is None else need_level_from_dict(raw)
-            )
+            result[need_id] = NeedLevel(need_id=need_id) if raw is None else need_level_from_dict(raw)
         return result
 
     @staticmethod
     def get_need_level(scene_state: Dict[str, Any], npc_id: str, need_id: str) -> NeedLevel:
         """Одна потребность NPC → NeedLevel(frozen). Отсутствие → нулевой дефолт."""
         if need_id not in RE_NEED_SLOTS:
-            raise ContractValidationError(
-                f"get_need_level: need_id '{need_id}' вне закрытого реестра M1a"
-            )
+            raise ContractValidationError(f"get_need_level: need_id '{need_id}' вне закрытого реестра M1a")
         return RelationshipStateStore.get_need_levels(scene_state, npc_id)[need_id]
 
     @staticmethod
@@ -181,9 +177,7 @@ class RelationshipStateStore:
         return {cid: hard_constraint_from_dict(raw) for cid, raw in npc_cons.items()}
 
     @staticmethod
-    def get_exclusivity(
-        scene_state: Dict[str, Any], npc_id: str, target_id: str
-    ) -> ExclusivityRequirement:
+    def get_exclusivity(scene_state: Dict[str, Any], npc_id: str, target_id: str) -> ExclusivityRequirement:
         """Направленная норма эксклюзивности npc_id → target_id (вердикт №3).
 
         Отсутствие → дефолт scope="none" (направленный, НЕ парный: пары нет).
@@ -222,9 +216,7 @@ class RelationshipStateStore:
         # 1) Caller-guard: единственный writer-маршрут (вердикт Мастера, ADR-O-370)
         caller = sys._getframe(1).f_globals.get("__name__", "")
         if caller not in _ALLOWED_WRITER_MODULES:
-            raise ArchitecturalViolationError(
-                f"apply_need_deltas({npc_id}, {need_id})", caller
-            )
+            raise ArchitecturalViolationError(f"apply_need_deltas({npc_id}, {need_id})", caller)
         # 2) Валидация входа (до мутации)
         if not npc_id:
             raise ContractValidationError("apply_need_deltas: npc_id пуст")
@@ -243,9 +235,7 @@ class RelationshipStateStore:
             try:
                 d = float(value)
             except (TypeError, ValueError) as e:
-                raise ContractValidationError(
-                    f"apply_need_deltas.{name}: не число: {value!r}"
-                ) from e
+                raise ContractValidationError(f"apply_need_deltas.{name}: не число: {value!r}") from e
             if d != d:  # NaN
                 raise ContractValidationError(f"apply_need_deltas.{name}: NaN запрещён")
             deltas[name] = d
@@ -329,22 +319,16 @@ class RelationshipStateStore:
             with open(legacy_path, "r", encoding="utf-8-sig") as f:
                 legacy_data = json.load(f)
         except (OSError, ValueError) as e:
-            raise ContractValidationError(
-                f"migrate_legacy: повреждённый {legacy_path}: {e}"
-            ) from e
+            raise ContractValidationError(f"migrate_legacy: повреждённый {legacy_path}: {e}") from e
         if not isinstance(legacy_data, dict):
-            raise ContractValidationError(
-                f"migrate_legacy: {legacy_path} — не dict ({type(legacy_data).__name__})"
-            )
+            raise ContractValidationError(f"migrate_legacy: {legacy_path} — не dict ({type(legacy_data).__name__})")
         # (в) Deterministic transform: сырые числа как лежат — БЕЗ сатурации/round
         directed: Dict[str, Dict[str, float]] = {}
         for pair_key, raw in legacy_data.items():
             if not isinstance(pair_key, str) or "→" not in pair_key or not isinstance(raw, dict):
                 # Повреждённая запись — громкий отказ всего переноса (не тихий скип):
                 # частичная миграция хуже отсутствия (двойная поверхность)
-                raise ContractValidationError(
-                    f"migrate_legacy: повреждённая пара '{pair_key}' в {legacy_path}"
-                )
+                raise ContractValidationError(f"migrate_legacy: повреждённая пара '{pair_key}' в {legacy_path}")
             entry: Dict[str, float] = {}
             for attr, val in raw.items():
                 if attr not in _LEGACY_SCALARS:
@@ -352,9 +336,7 @@ class RelationshipStateStore:
                 try:
                     entry[attr] = float(val)
                 except (TypeError, ValueError) as e:
-                    raise ContractValidationError(
-                        f"migrate_legacy: '{pair_key}'.{attr} не число: {val!r}"
-                    ) from e
+                    raise ContractValidationError(f"migrate_legacy: '{pair_key}'.{attr} не число: {val!r}") from e
             if entry:
                 directed[pair_key] = entry
         # (г) Запись в v2 (существующее поддерево directed не затираем — merge:
@@ -391,9 +373,7 @@ class RelationshipStateStore:
         return True
 
     @staticmethod
-    def get_directed_pair(
-        scene_state: Dict[str, Any], source: str, target: str
-    ) -> Dict[str, float]:
+    def get_directed_pair(scene_state: Dict[str, Any], source: str, target: str) -> Dict[str, float]:
         """READ v2 (M1b): направленная пара source→target; Vacuum = {} (нет записи —
         нет знания, §ENIGMA-003); round(4) — read-контракт, унаследован от legacy
         get_pair (D3: точность — контракт персистентности/чтения)."""
@@ -411,8 +391,4 @@ class RelationshipStateStore:
         if raw is None:
             return {}  # Vacuum: не материализуем 0.0 из пустоты
         raw = _require_dict(raw, f"directed[{source}→{target}]")
-        return {
-            attr: round(float(val), 4)
-            for attr, val in raw.items()
-            if attr in _LEGACY_SCALARS
-        }
+        return {attr: round(float(val), 4) for attr, val in raw.items() if attr in _LEGACY_SCALARS}

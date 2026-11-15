@@ -15,6 +15,7 @@
     app.services.game_loop.phase_1_input, app.domain.intent_profile
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_d4_kernel_red.py -v; cd ..
 """
+
 import asyncio
 from types import SimpleNamespace
 
@@ -44,19 +45,19 @@ def _partial_resolution():
     """Живая PARTIAL-классификация NEG-04 через фабрику (§13.4)."""
     sf = IntentSemanticField(action=ActionType.ATTACK, raw_text="Не бей его.")
     return resolve_player_intent(
-        raw_action="Не бей его.", action_type="player_attacks", target="",
-        player_dict=None, scene_context=_SCENE, semantic_field=sf,
+        raw_action="Не бей его.",
+        action_type="player_attacks",
+        target="",
+        player_dict=None,
+        scene_context=_SCENE,
+        semantic_field=sf,
     )
 
 
 def _res_stub(readiness: str) -> SimpleNamespace:
     """Стаб resolution: ядро читает только intent_readiness; производство
     классификации заперто сьютой S346 (block3_gate), здесь не дублируется."""
-    return SimpleNamespace(
-        original_intent=SimpleNamespace(
-            parameters=SimpleNamespace(intent_readiness=readiness)
-        )
-    )
+    return SimpleNamespace(original_intent=SimpleNamespace(parameters=SimpleNamespace(intent_readiness=readiness)))
 
 
 def _run_player_action(sem_action: str, readiness: str, resolution=None) -> _SpyBus:
@@ -74,8 +75,14 @@ def _run_player_action(sem_action: str, readiness: str, resolution=None) -> _Spy
     )
     interv = SimpleNamespace(
         source="player",
-        payload={"text": "stub", "player_name": "p", "semantic_action": sem_action,
-                 "target_id": "guard_gate", "target_reference": "стражник", "tick": 1},
+        payload={
+            "text": "stub",
+            "player_name": "p",
+            "semantic_action": sem_action,
+            "target_id": "guard_gate",
+            "target_reference": "стражник",
+            "tick": 1,
+        },
     )
     # D4-реструктуризация (урок прогона): через ГРАНИЦУ — место гейта ④.
     self_stub = SimpleNamespace(
@@ -83,11 +90,11 @@ def _run_player_action(sem_action: str, readiness: str, resolution=None) -> _Spy
         _get_life_engine=lambda: None,
         _process_player_dm_action=lambda ctx, dm_ctx: None,
     )
-    self_stub._player_intent_readiness = (
-        lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+    self_stub._player_intent_readiness = lambda ctx, interv: TickOrchestrator._player_intent_readiness(
+        self_stub, ctx, interv
     )
-    self_stub._process_player_action = (
-        lambda ctx, interv: TickOrchestrator._process_player_action(self_stub, ctx, interv)
+    self_stub._process_player_action = lambda ctx, interv: TickOrchestrator._process_player_action(
+        self_stub, ctx, interv
     )
     ctx.interventions = [interv]
     ctx.campaign_id = "c1"
@@ -101,11 +108,10 @@ def _attack_events(bus: _SpyBus) -> list:
 
 # ── (1) S122-труба ─────────────────────────────────────────────────
 
+
 def test_red_s122_partial_attack_not_published():
     bus = _run_player_action("ATTACK", "PARTIAL")
-    assert not _attack_events(bus), (
-        "PLAYER_ATTACKED опубликован при PARTIAL (NEG-04) — обход fail-closed S346"
-    )
+    assert not _attack_events(bus), "PLAYER_ATTACKED опубликован при PARTIAL (NEG-04) — обход fail-closed S346"
 
 
 def test_red_s122_reference_ambiguous_attack_not_published():
@@ -125,20 +131,29 @@ def test_control_s122_live_partial_resolution():
 
 # ── (2) M1: ActionConsequenceCompiler ──────────────────────────────
 
+
 def _run_help(readiness: str) -> list:
     calls: list = []
-    compiler = SimpleNamespace(process_action=lambda a: (calls.append(a) or None))
+    compiler = SimpleNamespace(process_action=lambda a: calls.append(a) or None)
     bus = _SpyBus()
     ctx = SimpleNamespace(
-        tick_number=1, scene_state={"game_time_seconds": 0.0},
-        all_npcs_raw=[], delta_buffer=[],
+        tick_number=1,
+        scene_state={"game_time_seconds": 0.0},
+        all_npcs_raw=[],
+        delta_buffer=[],
         mvp_controller=SimpleNamespace(action_compiler=compiler),
         shared_context=SimpleNamespace(action_rejected=False, intent_resolution=_res_stub(readiness)),
     )
     interv = SimpleNamespace(
         source="player",
-        payload={"text": "stub", "player_name": "p", "semantic_action": "HELP",
-                 "target_id": "guard_gate", "target_reference": "стражник", "tick": 1},
+        payload={
+            "text": "stub",
+            "player_name": "p",
+            "semantic_action": "HELP",
+            "target_id": "guard_gate",
+            "target_reference": "стражник",
+            "tick": 1,
+        },
     )
     # D4-реструктуризация: через ГРАНИЦУ _phase_1_input_merge (гейт ④).
     self_stub = SimpleNamespace(
@@ -146,11 +161,11 @@ def _run_help(readiness: str) -> list:
         _get_life_engine=lambda: None,
         _process_player_dm_action=lambda ctx, dm_ctx: None,
     )
-    self_stub._player_intent_readiness = (
-        lambda ctx, interv: TickOrchestrator._player_intent_readiness(self_stub, ctx, interv)
+    self_stub._player_intent_readiness = lambda ctx, interv: TickOrchestrator._player_intent_readiness(
+        self_stub, ctx, interv
     )
-    self_stub._process_player_action = (
-        lambda ctx, interv: TickOrchestrator._process_player_action(self_stub, ctx, interv)
+    self_stub._process_player_action = lambda ctx, interv: TickOrchestrator._process_player_action(
+        self_stub, ctx, interv
     )
     ctx.interventions = [interv]
     ctx.campaign_id = "c1"
@@ -167,6 +182,7 @@ def test_control_m1_resolved_help_compiled():
 
 
 # ── (3) Rules/экономика: _finalize ─────────────────────────────────
+
 
 def _run_finalize(readiness: str, monkeypatch) -> list:
     calls: list = []
@@ -191,8 +207,10 @@ def _run_finalize(readiness: str, monkeypatch) -> list:
     )
     ctx = SimpleNamespace(all_npcs_raw=[], scene_state={"location_id": "tavern"})
     shared = SimpleNamespace(
-        action_type="player_attacks", intent_resolution=_res_stub(readiness),
-        current_tick=1, scene_state={"active_traversals": {}},
+        action_type="player_attacks",
+        intent_resolution=_res_stub(readiness),
+        current_tick=1,
+        scene_state={"active_traversals": {}},
         player_target_id="guard_gate",  # turn_pipeline:155 — payload rules-события
     )
     actions = [SimpleNamespace(player_name="p", action="Не бей его.")]
@@ -200,9 +218,7 @@ def _run_finalize(readiness: str, monkeypatch) -> list:
     # Метод async (turn_pipeline:127): без await тело не исполняется вовсе —
     # урок прогона (XPASS-strict поймал coroutine-never-awaited)
     asyncio.run(
-        TurnPipeline._finalize_pipeline_and_build_dm_frame(
-            self_stub, shared, ctx, "c1", actions, player_result
-        )
+        TurnPipeline._finalize_pipeline_and_build_dm_frame(self_stub, shared, ctx, "c1", actions, player_result)
     )
     return calls
 

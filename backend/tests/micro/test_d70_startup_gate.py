@@ -1,4 +1,4 @@
-﻿"""
+"""
 D70 Startup Gate — негативные и позитивные тесты (ADR-O-426 Шаг 4 / COV-D70).
 
 Покрытие (вердикт Мастера п.5):
@@ -10,6 +10,7 @@ D70 Startup Gate — негативные и позитивные тесты (AD
   - readiness (from app_state)
   - cleanup-on-fail (dispose вызывается при провале)
 """
+
 import os
 import sys
 import types
@@ -104,8 +105,10 @@ class TestMigrationsStage(unittest.TestCase):
 
     def test_migration_error_blocks(self):
         from app.services.state.migration_runner import MigrationError
-        with patch("app.services.state.migration_runner.run_startup_migrations",
-                   side_effect=MigrationError("ambiguous legacy")):
+
+        with patch(
+            "app.services.state.migration_runner.run_startup_migrations", side_effect=MigrationError("ambiguous legacy")
+        ):
             errors, outcomes = _check_migrations()
         self.assertEqual(len(errors), 1)
         self.assertIn("MigrationError", errors[0])
@@ -118,8 +121,7 @@ class TestSchemaStage(unittest.TestCase):
         self.assertIsInstance(errors, list)
 
     def test_schema_crash_returns_error(self):
-        with patch("app.core.schema_validator.validate_all_schemas",
-                   side_effect=RuntimeError("crashed")):
+        with patch("app.core.schema_validator.validate_all_schemas", side_effect=RuntimeError("crashed")):
             errors = _check_schema(game_loop=None)
         self.assertEqual(len(errors), 1)
         self.assertIn("crashed", errors[0])
@@ -134,15 +136,16 @@ class TestRunStartupGate(unittest.TestCase):
 
     def test_migration_failure_raises(self):
         from app.services.state.migration_runner import MigrationError
-        with patch("app.services.state.migration_runner.run_startup_migrations",
-                   side_effect=MigrationError("test")):
+
+        with patch("app.services.state.migration_runner.run_startup_migrations", side_effect=MigrationError("test")):
             with self.assertRaises(StartupValidationError) as ctx:
                 run_startup_gate(known_config_fields=[], game_loop=None)
         self.assertEqual(ctx.exception.step, "migrations")
 
     def test_schema_failure_raises(self):
-        with patch("app.core.schema_validator.validate_all_schemas",
-                   return_value=["NPC X: broken", "EventBus: no subs"]):
+        with patch(
+            "app.core.schema_validator.validate_all_schemas", return_value=["NPC X: broken", "EventBus: no subs"]
+        ):
             with self.assertRaises(StartupValidationError) as ctx:
                 run_startup_gate(known_config_fields=[], game_loop=None)
         self.assertEqual(ctx.exception.step, "schema")
@@ -160,12 +163,15 @@ class TestRunStartupGate(unittest.TestCase):
     def test_stage_order_migrations_before_schema(self):
         schema_called = [False]
         from app.services.state.migration_runner import MigrationError
+
         def fake_schema(_gl):
             schema_called[0] = True
             return []
-        with patch("app.services.state.migration_runner.run_startup_migrations",
-                   side_effect=MigrationError("test")), \
-             patch("app.core.schema_validator.validate_all_schemas", side_effect=fake_schema):
+
+        with (
+            patch("app.services.state.migration_runner.run_startup_migrations", side_effect=MigrationError("test")),
+            patch("app.core.schema_validator.validate_all_schemas", side_effect=fake_schema),
+        ):
             with self.assertRaises(StartupValidationError):
                 run_startup_gate(known_config_fields=[], game_loop=None)
         self.assertFalse(schema_called[0], "schema must NOT run after migration failure")
@@ -173,10 +179,14 @@ class TestRunStartupGate(unittest.TestCase):
 
 class TestStartupGateResultAsDict(unittest.TestCase):
     def test_as_dict(self):
-        r = StartupGateResult(ok=True, step="ready",
-                              migrations=(("mem", "ok", 2, 2),),
-                              schema_errors=(), config_warnings=("env: X",),
-                              detail="passed")
+        r = StartupGateResult(
+            ok=True,
+            step="ready",
+            migrations=(("mem", "ok", 2, 2),),
+            schema_errors=(),
+            config_warnings=("env: X",),
+            detail="passed",
+        )
         d = r.as_dict()
         self.assertEqual(d["ok"], True)
         self.assertEqual(d["migrations"], [["mem", "ok", 2, 2]])
@@ -186,9 +196,10 @@ class TestStartupGateResultAsDict(unittest.TestCase):
 class TestReadinessIntegration(unittest.TestCase):
     def test_readiness_from_gate_result(self):
         from app.services.readiness import ReadinessService
-        gate = StartupGateResult(ok=True, step="ready",
-                                  migrations=(("mem", "ok", 2, 2),),
-                                  schema_errors=(), config_warnings=(), detail="ok")
+
+        gate = StartupGateResult(
+            ok=True, step="ready", migrations=(("mem", "ok", 2, 2),), schema_errors=(), config_warnings=(), detail="ok"
+        )
         app_state = types.SimpleNamespace()
         app_state.startup_gate = gate
         app_state.game_loop = MagicMock()
@@ -199,6 +210,7 @@ class TestReadinessIntegration(unittest.TestCase):
 
     def test_readiness_when_gate_failed(self):
         from app.services.readiness import ReadinessService
+
         app_state = types.SimpleNamespace()
         app_state.startup_gate = None
         app_state.game_loop = None
@@ -211,12 +223,13 @@ class TestReadinessIntegration(unittest.TestCase):
 class TestCleanupOnFail(unittest.TestCase):
     def test_dispose_called_on_gate_failure(self):
         disposed = [False]
+
         class FakeGameLoop:
             def dispose(self):
                 disposed[0] = True
+
         fake_loop = FakeGameLoop()
-        with patch("app.core.startup_gate._check_migrations",
-                   return_value=(["MigrationError: test"], [])):
+        with patch("app.core.startup_gate._check_migrations", return_value=(["MigrationError: test"], [])):
             with self.assertRaises(StartupValidationError):
                 _loop = fake_loop
                 try:

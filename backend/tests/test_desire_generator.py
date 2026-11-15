@@ -4,6 +4,7 @@ Guarded-продюсер DesireSet: no-op при OFF, upsert при ON, идем
 
 Запуск: cd backend; python -m pytest tests/test_desire_generator.py -v; cd ..
 """
+
 import os
 import unittest
 
@@ -51,7 +52,7 @@ class TestDesireGeneratorGuard(unittest.TestCase):
         npc["needs"]["hunger"] = 0.9
         dg.update_all([npc], tick=200)
         desires = npc["desires"]
-        self.assertEqual(len(desires), 1)       # нет дублей (idempotent)
+        self.assertEqual(len(desires), 1)  # нет дублей (idempotent)
         self.assertEqual(desires[0]["urgency"], 0.9)
         self.assertEqual(desires[0]["born_tick"], 118)  # история не тронута
 
@@ -61,9 +62,7 @@ class TestDesireGeneratorGuard(unittest.TestCase):
         self.assertNotIn("desires", npc)
 
     def test_all_four_need_sources_complete(self):
-        npc = _npc(
-            {"hunger": 0.8, "shelter_urge": 0.3, "social_urge": 0.6, "fatigue": 0.4}
-        )
+        npc = _npc({"hunger": 0.8, "shelter_urge": 0.3, "social_urge": 0.6, "fatigue": 0.4})
         dg.update_all([npc], tick=1)
         ids = {d["desire_id"] for d in npc["desires"]}
         self.assertEqual(ids, {"d:food", "d:shelter", "d:social", "d:rest"})

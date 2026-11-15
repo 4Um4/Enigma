@@ -22,6 +22,7 @@ TODO: оптимизации — кэширование графов, оптим
 TODO: расширение функционала — учёт высоты, динамические объекты, более сложные модификаторы среды и т.д.
 TODO: расширение формул — например, добавление шумов к LOS, учёт укрытий, более сложные правила взаимодействия NPC и игрока и т.д.
 """
+
 from __future__ import annotations
 
 import logging
@@ -145,9 +146,7 @@ def resolve_distance_between_entities(
     return round(base + math.dist(_local(a), _local(b)), 2)
 
 
-def _point_to_segment_dist(
-    px: float, py: float, x1: float, y1: float, x2: float, y2: float
-) -> float:
+def _point_to_segment_dist(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
     """Минимальное расстояние от точки (px, py) до отрезка (x1,y1)-(x2,y2)."""
     dx, dy = x2 - x1, y2 - y1
     if dx == 0 and dy == 0:
@@ -158,25 +157,19 @@ def _point_to_segment_dist(
     return math.hypot(px - proj_x, py - proj_y)
 
 
-def is_blocked_by_wall(
-    ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]
-) -> bool:
+def is_blocked_by_wall(ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]) -> bool:
     """Проверяет, пересекает ли линия AB любую стену из spatial_walls."""
     scene_state = normalize_scene_state(scene_state)
     walls = scene_state.get("spatial_walls", [])
     if not walls:
         return False
     for wall in walls:
-        if _segments_intersect(
-            ax, ay, bx, by, wall["x1"], wall["y1"], wall["x2"], wall["y2"]
-        ):
+        if _segments_intersect(ax, ay, bx, by, wall["x1"], wall["y1"], wall["x2"], wall["y2"]):
             return True
     return False
 
 
-def is_blocked_by_obstacle(
-    ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]
-) -> bool:
+def is_blocked_by_obstacle(ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]) -> bool:
     """Проверяет, пересекает ли линия AB любой прямоугольный obstacle."""
     scene_state = normalize_scene_state(scene_state)
     obstacles = scene_state.get("spatial_obstacles", [])
@@ -190,18 +183,14 @@ def is_blocked_by_obstacle(
     return False
 
 
-def is_line_of_sight_clear(
-    ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]
-) -> bool:
+def is_line_of_sight_clear(ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]) -> bool:
     """Полная проверка LOS: стены + непроходимые объекты."""
-    return not is_blocked_by_wall(
+    return not is_blocked_by_wall(ax, ay, bx, by, scene_state) and not is_blocked_by_obstacle(
         ax, ay, bx, by, scene_state
-    ) and not is_blocked_by_obstacle(ax, ay, bx, by, scene_state)
+    )
 
 
-def is_movement_blocked(
-    ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]
-) -> bool:
+def is_movement_blocked(ax: float, ay: float, bx: float, by: float, scene_state: Dict[str, Any]) -> bool:
     """Проверяет, блокирует ли что-либо ДВИЖЕНИЕ (стены + непроходимые объекты).
     Отличие от is_blocked_by_wall: учитывает мебель (passability.walk=False).
     Отличие от is_line_of_sight_clear: блокировка движения ≠ блокировка обзора.
@@ -218,9 +207,7 @@ def is_movement_blocked(
         _pass = obs.get("passability", {})
         _blocks_walk = not _pass.get("walk", True)
         if _blocks_walk or obs.get("blocks_los", False):
-            if _line_rect_intersect(
-                ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]
-            ):
+            if _line_rect_intersect(ax, ay, bx, by, obs["x"], obs["y"], obs["w"], obs["h"]):
                 return True
     return False
 
@@ -329,18 +316,14 @@ def extract_scene_for_npc(
             d = euclidean_distance(me, other)
             if d > 1.5 or not line_of_sight(d, scene_state):
                 continue
-            nearby.append(
-                {"npc_id": other_id, "distance": round(d, 2), "detected": True}
-            )
+            nearby.append({"npc_id": other_id, "distance": round(d, 2), "detected": True})
             continue
 
         d = euclidean_distance(me, other)
         if d <= perception_radius:
             my_xy = _local(me)
             other_xy = _local(other)
-            los = line_of_sight(
-                d, scene_state, my_xy[0], my_xy[1], other_xy[0], other_xy[1]
-            )
+            los = line_of_sight(d, scene_state, my_xy[0], my_xy[1], other_xy[0], other_xy[1])
             nearby.append({"npc_id": other_id, "distance": round(d, 2), "in_los": los})
 
     # --- Игрок в радиусе восприятия ---
@@ -352,9 +335,7 @@ def extract_scene_for_npc(
         if d_player <= perception_radius:
             my_xy = _local(me)
             player_xy = _local(player_data)
-            los = line_of_sight(
-                d_player, scene_state, my_xy[0], my_xy[1], player_xy[0], player_xy[1]
-            )
+            los = line_of_sight(d_player, scene_state, my_xy[0], my_xy[1], player_xy[0], player_xy[1])
             player_snapshot = {
                 "distance": round(d_player, 2),
                 "in_los": los,
@@ -362,9 +343,7 @@ def extract_scene_for_npc(
             }
 
     # --- Доступные действия ---
-    all_close = nearby + (
-        [{"distance": player_snapshot["distance"]}] if player_snapshot else []
-    )
+    all_close = nearby + ([{"distance": player_snapshot["distance"]}] if player_snapshot else [])
     available_actions: list[str] = ["wait", "move"]
     if nearby or player_snapshot:
         available_actions.append("interact")

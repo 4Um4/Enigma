@@ -57,14 +57,15 @@ def test_span_id_deterministic_and_child_of_event():
     s1 = make_span_id("event-A", 0, 5, "speaker_mention")
     s2 = make_span_id("event-A", 0, 5, "speaker_mention")
     s3 = make_span_id("event-B", 0, 5, "speaker_mention")
-    assert s1 == s2          # same event + same range → same span_id
-    assert s1 != s3          # разные события → разные span_id
+    assert s1 == s2  # same event + same range → same span_id
+    assert s1 != s3  # разные события → разные span_id
 
 
 def test_grounding_boundary_speaker_not_in_text():
     """Граница Мастера: speaker ≠ substring текста. Имя отсутствует →
     spans=[] (никаких искусственных спанов из метаданных)."""
     from app.services.integration.span_grounding import ground_speaker_mention
+
     assert ground_speaker_mention("E1", "Горан", "Он вошёл в таверну.") == []
     assert ground_speaker_mention("E1", "", "Лусия здесь.") == []
     assert ground_speaker_mention("", "Лусия", "Лусия здесь.") == []
@@ -75,10 +76,8 @@ def test_full_projection_matrix_spans():
     без identity → [] + provenance_complete=False."""
     projected = project_journal(
         [
-            {"speaker": "Лусия", "text": "Лусия кивнула.", "channel": "direct",
-             "event_id": "E9", "tick": 1},
-            {"speaker": "Лусия", "text": "Кивнула.", "channel": "direct",
-             "event_id": "E10", "tick": 2},
+            {"speaker": "Лусия", "text": "Лусия кивнула.", "channel": "direct", "event_id": "E9", "tick": 1},
+            {"speaker": "Лусия", "text": "Кивнула.", "channel": "direct", "event_id": "E10", "tick": 2},
             {"speaker": "Лусия", "text": "Лусия кивнула.", "channel": "narrative"},
         ]
     )

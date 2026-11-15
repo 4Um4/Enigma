@@ -156,7 +156,9 @@ async def _trace_one(compressor, cls, phrase, expected) -> dict:
         return trace
     trace["latency_s"] = round(time.monotonic() - t0, 2)
     trace["action"] = getattr(getattr(field, "action", None), "value", str(getattr(field, "action", None)))
-    trace["speech_act"] = str(getattr(getattr(field, "speech_act", None), "value", getattr(field, "speech_act", None)) or "")
+    trace["speech_act"] = str(
+        getattr(getattr(field, "speech_act", None), "value", getattr(field, "speech_act", None)) or ""
+    )
     trace["semantic_acts"] = [
         {
             **{k: v for k, v in a.items() if k != "source_fields"},
@@ -166,10 +168,7 @@ async def _trace_one(compressor, cls, phrase, expected) -> dict:
         }
         for a in (getattr(field, "semantic_acts", None) or [])
     ]
-    trace["topic"] = [
-        a.get("params", {}).get("topic", "")
-        for a in trace["semantic_acts"] if isinstance(a, dict)
-    ]
+    trace["topic"] = [a.get("params", {}).get("topic", "") for a in trace["semantic_acts"] if isinstance(a, dict)]
     trace["proposition"] = str(getattr(field, "proposition", None))
     return trace
 
@@ -200,8 +199,7 @@ async def main() -> None:
         tr = await _trace_one(compressor, cls, phrase, expected)
         traces.append(tr)
         _acts_str = "; ".join(
-            f"{a['type']}({a.get('params', {}).get('topic', '')})"
-            + ("*" if a.get("recovered") else "")
+            f"{a['type']}({a.get('params', {}).get('topic', '')})" + ("*" if a.get("recovered") else "")
             for a in tr.get("semantic_acts", [])
         )
         print(f"\n[{cls}] TEXT: {phrase!r}")
@@ -215,10 +213,7 @@ async def main() -> None:
     print("\n=== СВОДКА ДЛЯ RCA-КАРТЫ ===")
     for tr in traces:
         _acts_types = [a.get("type") for a in tr.get("semantic_acts", [])]
-        _topic_hit = any(
-            "told" in str(t).lower() or "who" in str(t).lower()
-            for t in tr.get("topic", [])
-        )
+        _topic_hit = any("told" in str(t).lower() or "who" in str(t).lower() for t in tr.get("topic", []))
         print(f"[{tr['class']}] {tr['text']!r} -> action={tr.get('action')} acts={_acts_types} prov_topic={_topic_hit}")
 
     print("\n(RCA-разметка: FAILURE_BOUNDARY по каждому промаху — вручную по trace выше)")

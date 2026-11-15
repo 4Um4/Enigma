@@ -74,8 +74,7 @@ def render_markdown(records: List[Dict[str, Any]], campaign: str) -> str:
     for r in records:
         age = "—" if r["historical_age"] is None else str(r["historical_age"])
         lines.append(
-            f"| {r['npc_id']} | {r['statement']} | {r['belief_type'] or '—'} "
-            f"| {r['status']} | {r['source']} | {age} |"
+            f"| {r['npc_id']} | {r['statement']} | {r['belief_type'] or '—'} | {r['status']} | {r['source']} | {age} |"
         )
     lines.append("")
     lines.append(

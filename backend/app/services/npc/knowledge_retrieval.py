@@ -1,4 +1,4 @@
-﻿# path: /project/backend/app/services/npc/knowledge_retrieval.py
+# path: /project/backend/app/services/npc/knowledge_retrieval.py
 # Назначение: M1/P4 (ТЗ «Таверна тайн», вердикт Мастера 2026-09-12) —
 #   чистый reader над narrative_cache: по SubjectRef вопроса находит
 #   знание, которым NPC УЖЕ обладает. Не создаёт, не мутирует, не
@@ -24,8 +24,8 @@ class MatchReason(Enum):
     EVENT_NP — отложен до production-доказательства необходимости."""
 
     EXACT_SECRET = "exact_secret"  # subject_id напрямую указывает на этот факт
-    PARTICIPANT = "participant"    # subject — NPC, участвующий в этом факте
-    CANON_TOPIC = "canon_topic"    # subject — канон-тема этого факта
+    PARTICIPANT = "participant"  # subject — NPC, участвующий в этом факте
+    CANON_TOPIC = "canon_topic"  # subject — канон-тема этого факта
 
 
 @dataclass(frozen=True)
@@ -35,9 +35,9 @@ class KnowledgeItem:
     Живёт только в стеке вызова P4→P5; не хранится, не персистится,
     не является possession-записью."""
 
-    secret_id: str         # идентичность ФАКТА канона
-    summary: str           # что NPC знает (канон-текст или origin-текст)
-    importance: float      # текущая важность (для P5-приоритизации)
+    secret_id: str  # идентичность ФАКТА канона
+    summary: str  # что NPC знает (канон-текст или origin-текст)
+    importance: float  # текущая важность (для P5-приоритизации)
     match_reason: MatchReason
 
 

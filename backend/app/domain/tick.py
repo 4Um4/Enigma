@@ -3,6 +3,7 @@
 Зависимости: dataclasses, typing, domain.snapshot
 Основные сущности: TickResultDTO
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -109,18 +110,10 @@ def create_tick_state(
         drf_tick_id=drf_tick_id,
         memory_weights_map=frozen(memory_weights_map) if memory_weights_map else {},
         narrative_cache_map=frozen(narrative_cache_map) if narrative_cache_map else {},
-        social_modifiers_map=frozen(social_modifiers_map)
-        if social_modifiers_map
-        else {},
-        reputation_modifiers_map=frozen(reputation_modifiers_map)
-        if reputation_modifiers_map
-        else {},
-        economic_profiles_map=frozen(economic_profiles_map)
-        if economic_profiles_map
-        else {},
-        crystallized_beliefs_map=frozen(crystallized_beliefs_map)
-        if crystallized_beliefs_map
-        else {},
+        social_modifiers_map=frozen(social_modifiers_map) if social_modifiers_map else {},
+        reputation_modifiers_map=frozen(reputation_modifiers_map) if reputation_modifiers_map else {},
+        economic_profiles_map=frozen(economic_profiles_map) if economic_profiles_map else {},
+        crystallized_beliefs_map=frozen(crystallized_beliefs_map) if crystallized_beliefs_map else {},
         identity_traits_map=frozen(identity_traits_map) if identity_traits_map else {},
         relationship_store=relationship_store,
         spatial_service=spatial_service,
@@ -135,9 +128,7 @@ def create_tick_state(
         epistemic_store=epistemic_store,
         epistemic_context_resolver=epistemic_context_resolver,
         # ADR-O-378 (G2 v1): заморозка по паттерну соседних preloaded-карт
-        affordance_facts_map=frozen(affordance_facts_map)
-        if affordance_facts_map
-        else {},
+        affordance_facts_map=frozen(affordance_facts_map) if affordance_facts_map else {},
         epoch_id=epoch_id,
         world_view=world_view,
         attention_states_map=frozen(attention_states_map) if attention_states_map else {},
@@ -178,27 +169,13 @@ class TickState:
     world_view: Any = None
 
     # TZ-10: Preloaded Data (загружаются Orchestrator ДО вызова run)
-    memory_weights_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> weights
-    narrative_cache_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> cache
-    social_modifiers_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> social_mods
-    reputation_modifiers_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> rep_mod
-    economic_profiles_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> eco_profile
-    crystallized_beliefs_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> beliefs
-    identity_traits_map: Any = field(
-        default_factory=dict
-    )  # MappingProxyType: npc_id -> traits
+    memory_weights_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> weights
+    narrative_cache_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> cache
+    social_modifiers_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> social_mods
+    reputation_modifiers_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> rep_mod
+    economic_profiles_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> eco_profile
+    crystallized_beliefs_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> beliefs
+    identity_traits_map: Any = field(default_factory=dict)  # MappingProxyType: npc_id -> traits
     # ADR-O-378 (G2 v1, канал b1′): per-NPC производные факты W2
     # (v1: weapon_access) из замороженного снапшота тика. Пустая карта
     # (флаг OFF / фактов нет) -> потребители читают честный False,
@@ -233,6 +210,7 @@ class TickMutation:
 
     TZ-10: Expanded with deferred mutations (l1_events, memory_events).
     """
+
     npc_deltas: List[Any]
     communication_intents: List[Any]
     movement_intents: List[Any]

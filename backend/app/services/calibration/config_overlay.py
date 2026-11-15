@@ -24,6 +24,7 @@ path: backend/app/services/calibration/config_overlay.py
        c) константы, вычисленные из других при import-time
           (TRAIT_ACTIVATION_RATE) — патчуются напрямую по имени.
 """
+
 from __future__ import annotations
 
 import sys
@@ -85,14 +86,10 @@ def _verify_applied(patch_log: List[_PatchEntry]) -> None:
     for module, attr_name, _original, expected in patch_log:
         current = getattr(module, attr_name, None)  # noqa: ENIGMA002
         if current != expected:
-            problems.append(
-                f"{module.__name__}.{attr_name}: ожидалось {expected!r}, "
-                f"фактически {current!r}"
-            )
+            problems.append(f"{module.__name__}.{attr_name}: ожидалось {expected!r}, фактически {current!r}")
     if problems:
         raise CalibrationOverlayError(
-            "overlay verify FAILED (подмена не видна потребителям — "
-            "эксперимент недостоверен): " + "; ".join(problems)
+            "overlay verify FAILED (подмена не видна потребителям — эксперимент недостоверен): " + "; ".join(problems)
         )
 
 
@@ -102,15 +99,9 @@ def _verify_restored(patch_log: List[_PatchEntry]) -> None:
     for module, attr_name, original, _new_value in patch_log:
         current = getattr(module, attr_name, None)  # noqa: ENIGMA002
         if current is not original:
-            problems.append(
-                f"{module.__name__}.{attr_name}: ожидался оригинал "
-                f"{original!r}, фактически {current!r}"
-            )
+            problems.append(f"{module.__name__}.{attr_name}: ожидался оригинал {original!r}, фактически {current!r}")
     if problems:
-        raise CalibrationOverlayError(
-            "overlay restore FAILED (состояние констант повреждено): "
-            + "; ".join(problems)
-        )
+        raise CalibrationOverlayError("overlay restore FAILED (состояние констант повреждено): " + "; ".join(problems))
 
 
 @contextmanager
@@ -136,8 +127,7 @@ def overlay_constants(
     global _ACTIVE
     if _ACTIVE:
         raise CalibrationOverlayError(
-            "Вложенный overlay запрещён (ADR-O-361): одновременные "
-            "эксперименты — только изоляция процессами."
+            "Вложенный overlay запрещён (ADR-O-361): одновременные эксперименты — только изоляция процессами."
         )
     missing = [name for name in require_loaded if name not in sys.modules]
     if missing:
@@ -199,6 +189,7 @@ def overlay_active() -> bool:
     """Активен ли overlay (для runner'а и тестов)."""
     return _ACTIVE
 
+
 @contextmanager
 def overlay_module_attrs(
     patches: Sequence[Tuple[str, str, Any]],
@@ -258,10 +249,18 @@ def overlay_profile(
         ("app.services.events.observation_subscriber", "_OBSERVATION_SIGHT_RADIUS", profile.observation_sight_radius),
         ("app.services.events.claim_event_subscriber", "HEARING_RADIUS", profile.hearing_radius),
         ("app.domain.constants", "_DEFAULT_ACTION_RADIUS", profile.default_action_radius),
-        ("app.services.player_cognition.action_consequence_compiler", "_ACCUSE_CONFIDENCE_THRESHOLD", profile.accuse_confidence_threshold),
+        (
+            "app.services.player_cognition.action_consequence_compiler",
+            "_ACCUSE_CONFIDENCE_THRESHOLD",
+            profile.accuse_confidence_threshold,
+        ),
         ("app.services.npc.trust_based_reliability_provider", "_ENEMY_TRUST_THRESHOLD", profile.enemy_trust_threshold),
         ("app.services.npc.trust_based_reliability_provider", "_UNKNOWN_SOURCE_TRUST", profile.unknown_source_trust),
-        ("app.services.npc.trust_based_reliability_provider", "DIRECT_OBSERVATION_RELIABILITY", profile.direct_observation_reliability),
+        (
+            "app.services.npc.trust_based_reliability_provider",
+            "DIRECT_OBSERVATION_RELIABILITY",
+            profile.direct_observation_reliability,
+        ),
         # Phase 2: dialogue_queue MAX_PENDING_TASKS/MAX_RATE_PER_MINUTE — class attrs,
         # need extraction to module-level first (same pattern as 7 extractions)
         ("app.domain.vital_state", "_CONSCIOUSNESS_THRESHOLD", profile.consciousness_threshold),

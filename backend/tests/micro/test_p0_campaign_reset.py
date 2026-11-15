@@ -10,6 +10,7 @@
 P0-3 (_pending_dialogue_memories) — DEFERRED: EventDTO не несёт campaign_id.
 Контракт add_pending_dialogue_memory не расширялся; глобальный буфер не чистится.
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace

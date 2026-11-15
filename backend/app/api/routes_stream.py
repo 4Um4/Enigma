@@ -20,6 +20,7 @@ routes_stream.py делает ровно три вещи:
   data: {"type":"token",       "text":"Вы ", "n":1}
   data: {"type":"done",        "tokens":512, "ms":8200, "tps":65}
 """
+
 from __future__ import annotations
 
 import json
@@ -44,9 +45,7 @@ def _sse(event: dict) -> str:
 
 
 @router.post("/game/action/stream")
-async def game_action_stream(
-    request: dict, game_loop: Any = Depends(get_game_loop)
-) -> StreamingResponse:
+async def game_action_stream(request: dict, game_loop: Any = Depends(get_game_loop)) -> StreamingResponse:
     """
     SSE эндпоинт — токены идут в браузер по мере генерации DM агента.
 
@@ -67,16 +66,12 @@ async def game_action_stream(
     _player_pos = tuple(_pos_raw) if _pos_raw and len(_pos_raw) == 2 else None  # noqa: ENIGMA001
 
     if not player or not campaign_id or not action_text:
-        raise HTTPException(
-            status_code=400, detail="Поля 'player', 'campaign', 'action' обязательны"
-        )
+        raise HTTPException(status_code=400, detail="Поля 'player', 'campaign', 'action' обязательны")
 
     # Проверка сессии
     session = player_session_service.get_session(campaign_id)
     if session is None:
-        raise HTTPException(
-            status_code=412, detail=f"Сессия не найдена для кампании '{campaign_id}'"
-        )
+        raise HTTPException(status_code=412, detail=f"Сессия не найдена для кампании '{campaign_id}'")
 
     if not player_session_service.is_player_active(campaign_id, player):
         session.active = True

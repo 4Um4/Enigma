@@ -8,6 +8,7 @@ ENIGMA SELF-HEALING (Level 5): Startup Schema Validation (ADR-O-426 D70).
 
 Логирование — на стороне вызова (старт-гейт логирует перед raise).
 """
+
 import logging
 from typing import Any, List
 

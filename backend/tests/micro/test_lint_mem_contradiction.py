@@ -2,6 +2,7 @@
 
 49 from design v2 matrix + 1 invariant-WARN semantic (Master technical #3).
 """
+
 import sys
 from pathlib import Path
 
@@ -90,30 +91,44 @@ def test_t10_global(tmp_path):
 
 
 def test_t11_nonlocal(tmp_path):
-    _write(tmp_path, "m.py", "def outer():\n    x = 0\n    def inner():\n        nonlocal x\n        x = 1\n    return inner\n")
+    _write(
+        tmp_path,
+        "m.py",
+        "def outer():\n    x = 0\n    def inner():\n        nonlocal x\n        x = 1\n    return inner\n",
+    )
     # no forbidden here — use a forbidden nonlocal
-    _write(tmp_path, "m.py", "def outer():\n    latest_wins = 0\n    def inner():\n        nonlocal latest_wins\n        latest_wins = 1\n    return inner\n")
+    _write(
+        tmp_path,
+        "m.py",
+        "def outer():\n    latest_wins = 0\n    def inner():\n        nonlocal latest_wins\n        latest_wins = 1\n    return inner\n",
+    )
     assert _crit(run_lint(root=tmp_path))
 
 
 # ============================================================
 # A-1 negatives — 6 (T12-T17)
 # ============================================================
-@pytest.mark.parametrize("code", [
-    "latest_event_id = 1\n",
-    "my_latest_wins_cache = {}\n",
-    "highest_confidence = 0.9\n",
-])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "latest_event_id = 1\n",
+        "my_latest_wins_cache = {}\n",
+        "highest_confidence = 0.9\n",
+    ],
+)
 def test_t12_t14_substring_negatives(tmp_path, code):
     _write(tmp_path, "m.py", code)
     assert run_lint(root=tmp_path) == []
 
 
-@pytest.mark.parametrize("code", [
-    "resolve_all = None\n",
-    "confidence = 0.5\n",
-    "get_latest_wins = None\n",
-])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "resolve_all = None\n",
+        "confidence = 0.5\n",
+        "get_latest_wins = None\n",
+    ],
+)
 def test_t15_t17_extra_negatives(tmp_path, code):
     _write(tmp_path, "m.py", code)
     assert run_lint(root=tmp_path) == []
@@ -158,7 +173,7 @@ def test_t24_comment_neg(tmp_path):
 
 
 def test_t25_docstring_neg(tmp_path):
-    _write(tmp_path, 'm.py', '"""latest_wins"""\nx = 1\n')
+    _write(tmp_path, "m.py", '"""latest_wins"""\nx = 1\n')
     assert run_lint(root=tmp_path) == []
 
 
@@ -189,38 +204,34 @@ def test_t29_contradiction_resolver_not_prefix(tmp_path):
 # C-2 Heuristic Resolver — 5 (T30-T34)
 # ============================================================
 def test_t30_resolver_with_method_warn(tmp_path):
-    _write(tmp_path, "services/memory/x.py",
-           "class FooResolver:\n    def resolve_conflict(self):\n        pass\n")
+    _write(tmp_path, "services/memory/x.py", "class FooResolver:\n    def resolve_conflict(self):\n        pass\n")
     r = run_lint(root=tmp_path)
     assert _warn(r) and not _crit(r), r
 
 
 def test_t31_resolver_with_field_warn(tmp_path):
-    _write(tmp_path, "services/memory/x.py",
-           "class FooResolver:\n    pick_winner = None\n")
+    _write(tmp_path, "services/memory/x.py", "class FooResolver:\n    pick_winner = None\n")
     r = run_lint(root=tmp_path)
     assert _warn(r) and not _crit(r), r
 
 
 def test_t32_resolver_no_markers_pass(tmp_path):
-    _write(tmp_path, "services/memory/x.py",
-           "class FooResolver:\n    def other(self):\n        pass\n")
+    _write(tmp_path, "services/memory/x.py", "class FooResolver:\n    def other(self):\n        pass\n")
     assert run_lint(root=tmp_path) == []
 
 
 def test_t33_nested_class_no_inherit(tmp_path):
     # outer no own marker; nested has marker -> outer not WARN
-    _write(tmp_path, "services/memory/x.py",
-           "class FooResolver:\n"
-           "    class Bar:\n"
-           "        def resolve_conflict(self):\n"
-           "            pass\n")
+    _write(
+        tmp_path,
+        "services/memory/x.py",
+        "class FooResolver:\n    class Bar:\n        def resolve_conflict(self):\n            pass\n",
+    )
     assert run_lint(root=tmp_path) == []
 
 
 def test_t34_resolver_outside_memory_pass(tmp_path):
-    _write(tmp_path, "services/npc/x.py",
-           "class FooResolver:\n    def resolve_conflict(self):\n        pass\n")
+    _write(tmp_path, "services/npc/x.py", "class FooResolver:\n    def resolve_conflict(self):\n        pass\n")
     assert run_lint(root=tmp_path) == []
 
 
@@ -249,28 +260,40 @@ def test_t37_deep_nested_crit(tmp_path):
 # ============================================================
 def test_t38_allowlist_exact_pass(tmp_path):
     _write(tmp_path, "m.py", "latest_wins = 1\n")
-    allow = {("m.py", "identifier", "latest_wins"): {
-        "status": "approved", "role": "identifier_legacy",
-        "adr": "ADR-O-TEST", "rationale": "test",
-    }}
+    allow = {
+        ("m.py", "identifier", "latest_wins"): {
+            "status": "approved",
+            "role": "identifier_legacy",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     assert run_lint(root=tmp_path, allowlist=allow) == []
 
 
 def test_t39_allowlist_no_adr_crit(tmp_path):
     _write(tmp_path, "m.py", "latest_wins = 1\n")
-    allow = {("m.py", "identifier", "latest_wins"): {
-        "status": "approved", "role": "identifier_legacy", "rationale": "test",
-    }}
+    allow = {
+        ("m.py", "identifier", "latest_wins"): {
+            "status": "approved",
+            "role": "identifier_legacy",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r))
 
 
 def test_t40_legacy_for_non_baseline_crit(tmp_path):
     _write(tmp_path, "m.py", "latest_wins = 1\n")
-    allow = {("m.py", "identifier", "latest_wins"): {
-        "status": "legacy_baseline", "role": "identifier_legacy",
-        "historical_basis": "new", "rationale": "test",
-    }}
+    allow = {
+        ("m.py", "identifier", "latest_wins"): {
+            "status": "legacy_baseline",
+            "role": "identifier_legacy",
+            "historical_basis": "new",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r))
 
@@ -281,20 +304,28 @@ def test_t41_approved_on_legacy_crit(tmp_path, monkeypatch):
     # Temporarily treat this key as legacy baseline (B5.3 check):
     # approved on legacy -> ALLOWLIST_MALFORMED.
     monkeypatch.setattr(lint_module, "LEGACY_BASELINE_KEYS", frozenset({key}))
-    allow = {key: {
-        "status": "approved", "role": "identifier_legacy",
-        "adr": "ADR-O-TEST", "rationale": "test",
-    }}
+    allow = {
+        key: {
+            "status": "approved",
+            "role": "identifier_legacy",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ALLOWLIST_MALFORMED" in v for v in _crit(r)), r
 
 
 def test_t42_orphan_crit(tmp_path):
     _write(tmp_path, "m.py", "x = 1\n")
-    allow = {("m.py", "identifier", "latest_wins"): {
-        "status": "approved", "role": "identifier_legacy",
-        "adr": "ADR-O-TEST", "rationale": "test",
-    }}
+    allow = {
+        ("m.py", "identifier", "latest_wins"): {
+            "status": "approved",
+            "role": "identifier_legacy",
+            "adr": "ADR-O-TEST",
+            "rationale": "test",
+        }
+    }
     r = run_lint(root=tmp_path, allowlist=allow)
     assert any("ORPHAN" in v for v in _crit(r))
 
@@ -320,12 +351,15 @@ def test_t45_baseline_empty():
 # ============================================================
 # T46 Live files no violation — 4 cases
 # ============================================================
-@pytest.mark.parametrize("real_file", [
-    "backend/app/services/memory/contradiction_resolver.py",
-    "backend/app/services/phases/integration.py",
-    "backend/app/models/npc/beliefs.py",
-    "backend/app/services/npc/npc_tick_pipeline.py",
-])
+@pytest.mark.parametrize(
+    "real_file",
+    [
+        "backend/app/services/memory/contradiction_resolver.py",
+        "backend/app/services/phases/integration.py",
+        "backend/app/models/npc/beliefs.py",
+        "backend/app/services/npc/npc_tick_pipeline.py",
+    ],
+)
 def test_t46_live_files_clean(tmp_path, real_file):
     root = Path(__file__).resolve().parents[3]
     p = root / real_file
@@ -345,6 +379,7 @@ def test_invariant_warn_does_not_fail(monkeypatch):
     """WARN-only must yield InvariantResult(passed=True, severity=WARNING)."""
     # Import IPT lazily
     from backend.tests import IPT
+
     # Patch run_lint in lint module to return WARN only
     monkeypatch.setattr(lint_module, "run_lint", lambda: ["WARN|x.py:1|heuristic"])
     result = IPT.inv_mem_contradiction(None)

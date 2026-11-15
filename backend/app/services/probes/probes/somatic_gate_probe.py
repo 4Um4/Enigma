@@ -3,6 +3,7 @@
 ADR-O-139: Somatic Gate. Body → Somatic → Semantic.
 Проверяем, что NPC в шоке (>0.7) не имеют активных перемещений (MOVING).
 """
+
 from ..probe_registry import Probe, ProbeContext, ProbeResult
 
 
@@ -15,9 +16,11 @@ class SomaticGateProbe(Probe):
         _npc_positions = ctx.scene_state.get("npc_positions", {})
 
         for npc in ctx.all_npcs_raw:
-            if not isinstance(npc, dict): continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
+            if not isinstance(npc, dict):
+                continue  # type: ignore[unreachable]  # S313: runtime-гвард (cast лжёт на мусоре)
             npc_id = npc.get("id") or npc.get("npc_id")
-            if not npc_id: continue
+            if not npc_id:
+                continue
 
             body_state = npc.get("body_state", {})
             shock = body_state.get("shock", 0.0)
@@ -30,7 +33,7 @@ class SomaticGateProbe(Probe):
                         name=self.name,
                         severity=self.severity,
                         passed=False,
-                        details=f"Tick {ctx.tick_id}: NPC {npc_id} in shock ({shock:.2f}) but is MOVING"
+                        details=f"Tick {ctx.tick_id}: NPC {npc_id} in shock ({shock:.2f}) but is MOVING",
                     )
 
         return ProbeResult(name=self.name, severity=self.severity, passed=True)

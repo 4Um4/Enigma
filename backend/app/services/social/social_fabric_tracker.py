@@ -21,7 +21,7 @@ class SocialFabricTracker:
         """Устанавливает базовое состояние. Идемпотентно (V8-MVP-9 FIX)."""
         key = (source_id, target_id)
         if key in self._baseline:
-            return # V8-MVP-9 FIX: Skip if already set
+            return  # V8-MVP-9 FIX: Skip if already set
         self._baseline[key] = snapshot
         self._current[key] = snapshot
 
@@ -37,7 +37,7 @@ class SocialFabricTracker:
         fear_delta: float = 0.0,
         affection_delta: float = 0.0,
         cause: str = "unknown",
-        description: str = ""
+        description: str = "",
     ) -> RelationshipDelta:
         """Применяет изменение к отношениям и записывает в историю."""
         key = (source_id, target_id)
@@ -63,7 +63,7 @@ class SocialFabricTracker:
             fear=new_fear,
             affection=new_affection,
             debt=debt,
-            respect=respect
+            respect=respect,
         )
         self._current[key] = updated_snapshot
 
@@ -75,7 +75,7 @@ class SocialFabricTracker:
             fear_delta=fear_delta,
             affection_delta=affection_delta,
             cause=cause,
-            description=description
+            description=description,
         )
         self._deltas.append(delta)
         return delta

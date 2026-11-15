@@ -1,4 +1,4 @@
-﻿# path: /project/backend/tests/gameplay/test_p3_dialogue_query.py
+# path: /project/backend/tests/gameplay/test_p3_dialogue_query.py
 # Назначение: M1/P3 — гейт семантического входного провода: QUESTION-акт +
 #   SubjectRef-ось (коррекция Мастера: без ASK_*-склейки). Инварианты:
 #   N1 (не-вопрос != QUESTION), N2 (акт переживает нерезолв),
@@ -69,15 +69,12 @@ def test_p3_aa_identical_parse():
         b = _compress(text)
         assert (a is None) == (b is None)
         if a is not None:
-            assert a.model_dump(exclude={"confidence"}) == b.model_dump(
-                exclude={"confidence"}
-            ), f"A/A дрейф: {text!r}"
+            assert a.model_dump(exclude={"confidence"}) == b.model_dump(exclude={"confidence"}), f"A/A дрейф: {text!r}"
 
 
 def test_p3_extractor_deterministic():
     """Экстрактор детерминирован и LLM-независим (тот же вход = тот же SubjectRef)."""
-    for text in ("Что ты знаешь о Люсе?", "Расскажи про караван",
-                 "Почему Горан нервничает?"):
+    for text in ("Что ты знаешь о Люсе?", "Расскажи про караван", "Почему Горан нервничает?"):
         a = extract_subject(text)
         b = extract_subject(text)
         assert a == b, f"недетерминизм: {text!r}"

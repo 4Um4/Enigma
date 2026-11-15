@@ -40,9 +40,7 @@ class EventType(str, Enum):
 
     # ── Игрок ─────────────────────────────────────────────────────────────
     PLAYER_MOVED = "player_moved"
-    PLAYER_ATTACKED = (
-        "PLAYER_ATTACKED"  # сохранено для совместимости со старыми строками
-    )
+    PLAYER_ATTACKED = "PLAYER_ATTACKED"  # сохранено для совместимости со старыми строками
     PLAYER_SPOKE = "PLAYER_SPOKE"  # сохранено для совместимости со старыми строками
     PLAYER_USED_ITEM = "player_used_item"
     PLAYER_CAST_SPELL = "player_cast_spell"
@@ -123,4 +121,6 @@ class EventType(str, Enum):
     FLIRT_REJECTED = "flirt_rejected"
     INTIMATE_ENCOUNTER = "intimate_encounter"
     INTIMATE_REJECTION = "intimate_rejection"
-    NPC_ADDRESSES_PLAYER = "npc_addresses_player"  # ADR-O-436: NPC инициирует обращение к игроку (whisper, LC-IMPL-3 Ступень A)
+    NPC_ADDRESSES_PLAYER = (
+        "npc_addresses_player"  # ADR-O-436: NPC инициирует обращение к игроку (whisper, LC-IMPL-3 Ступень A)
+    )

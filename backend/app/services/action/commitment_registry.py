@@ -94,9 +94,7 @@ class CommitmentRegistry:
         return bool(trav.get("status") == "MOVING")
 
     @staticmethod
-    def get_active(
-        scene_state: Dict[str, Any], npc_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_active(scene_state: Dict[str, Any], npc_id: str) -> Optional[Dict[str, Any]]:
         """Активное обязательство NPC (или None). Read-only."""
         return (scene_state.get(_KEY_ACTIVE) or {}).get(npc_id)
 
@@ -112,9 +110,7 @@ class CommitmentRegistry:
         return nxt
 
     @staticmethod
-    def _to_history(
-        scene_state: Dict[str, Any], npc_id: str, commitment: Dict[str, Any]
-    ) -> None:
+    def _to_history(scene_state: Dict[str, Any], npc_id: str, commitment: Dict[str, Any]) -> None:
         """Терминальная запись -> bounded history (№1: retained, cap)."""
         bucket = scene_state.setdefault(_KEY_HISTORY, {}).setdefault(npc_id, [])
         bucket.append(commitment)
@@ -199,8 +195,7 @@ class CommitmentRegistry:
         )
         active[npc_id] = commitment
         logger.debug(
-            f"[COMMITMENT] COMMIT npc={npc_id} action={action} "
-            f"cause={cause} ordinal={ordinal} parent={_parent}"
+            f"[COMMITMENT] COMMIT npc={npc_id} action={action} cause={cause} ordinal={ordinal} parent={_parent}"
         )
         return commitment
 
@@ -211,10 +206,7 @@ class CommitmentRegistry:
         if commitment is None:
             return False
         if not transition_commitment(commitment, "EXECUTING", tick=tick):
-            logger.error(
-                f"[COMMITMENT] EXECUTING rejected for npc={npc_id} "
-                f"(status={commitment.get('status')})"
-            )
+            logger.error(f"[COMMITMENT] EXECUTING rejected for npc={npc_id} (status={commitment.get('status')})")
             return False
         return True
 
@@ -227,14 +219,10 @@ class CommitmentRegistry:
     def fail(scene_state: Dict[str, Any], npc_id: str, tick: int, fail_reason: str) -> bool:
         """-> FAILED (+history). Причина провала ОБЯЗАТЕЛЬНА (D-6: симметрия
         INTERRUPTED). fail_reason ∈ FAIL_* — реестр констант, закон №16."""
-        return CommitmentRegistry._terminate(
-            scene_state, npc_id, tick, "FAILED", fail_reason=fail_reason
-        )
+        return CommitmentRegistry._terminate(scene_state, npc_id, tick, "FAILED", fail_reason=fail_reason)
 
     @staticmethod
-    def interrupt(
-        scene_state: Dict[str, Any], npc_id: str, tick: int, interrupt_reason: str
-    ) -> bool:
+    def interrupt(scene_state: Dict[str, Any], npc_id: str, tick: int, interrupt_reason: str) -> bool:
         """-> INTERRUPTED (+history). Причина прекращения обязательна."""
         return CommitmentRegistry._terminate(
             scene_state, npc_id, tick, "INTERRUPTED", interrupt_reason=interrupt_reason
@@ -280,10 +268,7 @@ class CommitmentRegistry:
         _parent: Optional[str] = None
         _hist = (scene_state.get("commitment_history") or {}).get(npc_id, [])
         for _prev in reversed(_hist):
-            if (
-                _prev.get("interrupt_reason") == INTERRUPT_PRIORITY_SUPERSEDE
-                and _prev.get("updated_tick") == tick
-            ):
+            if _prev.get("interrupt_reason") == INTERRUPT_PRIORITY_SUPERSEDE and _prev.get("updated_tick") == tick:
                 _parent = _prev.get("commitment_id")
                 break
         commitment = CommitmentRegistry.commit(
@@ -300,9 +285,7 @@ class CommitmentRegistry:
             CommitmentRegistry.mark_executing(scene_state, npc_id, tick)
 
     @staticmethod
-    def mirror_traversal_completed(
-        scene_state: Dict[str, Any], npc_id: str, tick: int
-    ) -> None:
+    def mirror_traversal_completed(scene_state: Dict[str, Any], npc_id: str, tick: int) -> None:
         """TES: traversal достиг цели (EXECUTING -> COMPLETED)."""
         if not COMMITMENT_REGISTRY_ENABLED:
             return
@@ -359,8 +342,7 @@ class CommitmentRegistry:
         )
         active[npc_id] = commitment
         logger.debug(
-            f"[COMMITMENT] MIRROR-COMMIT npc={npc_id} action={action} "
-            f"executor={executor} executor_ref={executor_ref}"
+            f"[COMMITMENT] MIRROR-COMMIT npc={npc_id} action={action} executor={executor} executor_ref={executor_ref}"
         )
         return commitment
 
@@ -381,8 +363,13 @@ class CommitmentRegistry:
         from app.domain.action_priority import PRIORITY_POLICY_VERSION
 
         return CommitmentRegistry._commit_nonsuperseding(
-            scene_state, tick, npc_id, action="TALK", cause=cause,
-            executor="task", executor_ref=task_id,
+            scene_state,
+            tick,
+            npc_id,
+            action="TALK",
+            cause=cause,
+            executor="task",
+            executor_ref=task_id,
             priority=priority,
             priority_policy_version=(PRIORITY_POLICY_VERSION if priority else None),  # noqa: ENIGMA001
         )
@@ -420,9 +407,7 @@ class CommitmentRegistry:
         if outcome == "FAILED":
             return CommitmentRegistry.fail(scene_state, npc_id, tick, fail_reason or "")
         if outcome == "INTERRUPTED":
-            return CommitmentRegistry.interrupt(
-                scene_state, npc_id, tick, interrupt_reason or "UNKNOWN"
-            )
+            return CommitmentRegistry.interrupt(scene_state, npc_id, tick, interrupt_reason or "UNKNOWN")
         if outcome == "CANCELLED":
             return CommitmentRegistry.cancel(scene_state, npc_id, tick)
         if outcome == "EXPIRED":
@@ -447,33 +432,31 @@ class CommitmentRegistry:
         )
 
         return CommitmentRegistry._commit_nonsuperseding(
-            scene_state, tick, npc_id, action=action_type.upper(), cause=cause,
-            executor="windup", executor_ref=None, target_id=target_id,
+            scene_state,
+            tick,
+            npc_id,
+            action=action_type.upper(),
+            cause=cause,
+            executor="windup",
+            executor_ref=None,
+            target_id=target_id,
             priority=resolve_candidate_priority(intent_type=action_type),
             priority_policy_version=PRIORITY_POLICY_VERSION,
         )
 
     @staticmethod
-    def mirror_task_expired_by_ref(
-        scene_state: Dict[str, Any], npc_id: str, task_id: str, tick: int
-    ) -> bool:
+    def mirror_task_expired_by_ref(scene_state: Dict[str, Any], npc_id: str, task_id: str, tick: int) -> bool:
         """M-29 purge: EXPIRED строго по executor_ref — иначе можно убить
         чужое (следующее) обязательство того же NPC."""
         if not (COMMITMENT_REGISTRY_ENABLED and S203_4_OWNERSHIP_MIRRORS):
             return False
         commitment = CommitmentRegistry.get_active(scene_state, npc_id)
-        if (
-            commitment is None
-            or commitment.get("executor") != "task"
-            or commitment.get("executor_ref") != task_id
-        ):
+        if commitment is None or commitment.get("executor") != "task" or commitment.get("executor_ref") != task_id:
             return False
         return CommitmentRegistry.expire(scene_state, npc_id, tick)
 
     @staticmethod
-    def reconcile_sleep_ownership(
-        scene_state: Dict[str, Any], npcs: list, tick: int
-    ) -> None:
+    def reconcile_sleep_ownership(scene_state: Dict[str, Any], npcs: list, tick: int) -> None:
         """Э5-d (D-3): state-based сверка инварианта Y6 после Фазы 0.6.
 
         coupling ∈ {SLEEPING, REM} ∧ нет владельца → sleep-зеркало;
@@ -496,17 +479,17 @@ class CommitmentRegistry:
             _alive.add(_nid)
             if (_npc.get("body_state", {}).get("life_status")) == "DEAD":
                 continue
-            _mode = (
-                (_npc.get("body_state", {}) or {})
-                .get("coupling_profile", {})
-                .get("coupling_mode", "")
-            )
+            _mode = (_npc.get("body_state", {}) or {}).get("coupling_profile", {}).get("coupling_mode", "")
             _cm = CommitmentRegistry.get_active(scene_state, _nid)
             if is_sleep_coupling(_mode):
                 if _cm is None:
                     _created = CommitmentRegistry._commit_nonsuperseding(
-                        scene_state, tick, _nid, action="SLEEP",
-                        cause="sleep:coupling", executor="sleep",
+                        scene_state,
+                        tick,
+                        _nid,
+                        action="SLEEP",
+                        cause="sleep:coupling",
+                        executor="sleep",
                     )
                     if _created is not None:
                         # Сон = born-EXECUTING (NPC спит СЕЙЧАС, не «обязуется»);
@@ -516,14 +499,10 @@ class CommitmentRegistry:
                 CommitmentRegistry.complete(scene_state, _nid, tick)
         for _nid, _cm in list((scene_state.get(_KEY_ACTIVE) or {}).items()):
             if _cm.get("executor") == "sleep" and _nid not in _alive:
-                CommitmentRegistry.interrupt(
-                    scene_state, _nid, tick, "SLEEP_VANISHED"
-                )
+                CommitmentRegistry.interrupt(scene_state, _nid, tick, "SLEEP_VANISHED")
 
     @staticmethod
-    def reconcile_activity_ownership(
-        scene_state: Dict[str, Any], npcs: list, tick: int
-    ) -> None:
+    def reconcile_activity_ownership(scene_state: Dict[str, Any], npcs: list, tick: int) -> None:
         """Living Activity (шаг 4, D-3-паттерн сна): факт деятельности без
         владельца → activity-зеркало; деятельность ушла → COMPLETED;
         NPC исчез → INTERRUPTED(ACTIVITY_VANISHED). Идемпотентно."""
@@ -541,12 +520,14 @@ class CommitmentRegistry:
             _cm = CommitmentRegistry.get_active(scene_state, _nid)
             if _has:
                 if _cm is None:
-                    _atype = str(
-                        (_npc.get("activity_state") or {}).get("activity_type", "activity")
-                    ).upper()
+                    _atype = str((_npc.get("activity_state") or {}).get("activity_type", "activity")).upper()
                     _created = CommitmentRegistry._commit_nonsuperseding(
-                        scene_state, tick, _nid, action=_atype,
-                        cause="activity:lifecycle", executor="activity",
+                        scene_state,
+                        tick,
+                        _nid,
+                        action=_atype,
+                        cause="activity:lifecycle",
+                        executor="activity",
                     )
                     if _created is not None:
                         # Деятельность = born-EXECUTING (делает СЕЙЧАС)
@@ -555,8 +536,7 @@ class CommitmentRegistry:
                 CommitmentRegistry.complete(scene_state, _nid, tick)
         for _nid, _cm in list((scene_state.get(_KEY_ACTIVE) or {}).items()):
             if _cm.get("executor") == "activity" and _nid not in _alive:
-                CommitmentRegistry.interrupt(
-                    scene_state, _nid, tick, "ACTIVITY_VANISHED")
+                CommitmentRegistry.interrupt(scene_state, _nid, tick, "ACTIVITY_VANISHED")
 
     @staticmethod
     def mirror_traversal_interrupted(
@@ -599,9 +579,7 @@ class CommitmentRegistry:
             commitment = active[npc_id]
             _executor = commitment.get("executor") or ""
             if _executor == "traversal" and npc_id not in traversals:
-                CommitmentRegistry.interrupt(
-                    scene_state, npc_id, tick, _INTERRUPT_VANISHED
-                )
+                CommitmentRegistry.interrupt(scene_state, npc_id, tick, _INTERRUPT_VANISHED)
                 swept += 1
             elif commitment.get("status") == "BLOCKED":
                 # S203.4 (Ц5): BLOCKED → FAILED после BLOCKED_TIMEOUT_TICKS=10.
@@ -611,28 +589,19 @@ class CommitmentRegistry:
                 if _bsince is not None and tick - _bsince > 10:
                     from app.domain.action_commitment import FAIL_BLOCKED_TIMEOUT
 
-                    CommitmentRegistry.fail(
-                        scene_state, npc_id, tick, FAIL_BLOCKED_TIMEOUT
-                    )
+                    CommitmentRegistry.fail(scene_state, npc_id, tick, FAIL_BLOCKED_TIMEOUT)
                     swept += 1
             elif _executor in _GRACE_REASONS:
                 # Outbox-дренаж — основной путь терминалов; sweep ловит
                 # осиротевших (save/load-потеря очереди, async-гонки,
                 # забытые хуки). Grace > worst-case резиденции → ложных
                 # срабатываний нет при здоровом outbox-дренаже.
-                _last = (
-                    commitment.get("updated_tick")
-                    or commitment.get("created_tick")
-                    or 0
-                )
+                _last = commitment.get("updated_tick") or commitment.get("created_tick") or 0
                 if tick - _last > _TASK_GRACE_TICKS:
-                    CommitmentRegistry.interrupt(
-                        scene_state, npc_id, tick, _GRACE_REASONS[_executor]
-                    )
+                    CommitmentRegistry.interrupt(scene_state, npc_id, tick, _GRACE_REASONS[_executor])
                     swept += 1
         if swept:
             logger.warning(
-                f"[COMMITMENT][SWEEP] tick={tick} vanished={swept} "
-                f"(unmirrored bypass paths / grace timeout)"
+                f"[COMMITMENT][SWEEP] tick={tick} vanished={swept} (unmirrored bypass paths / grace timeout)"
             )
         return swept

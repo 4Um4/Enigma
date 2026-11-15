@@ -14,6 +14,7 @@ path: backend/app/services/calibration/scenario_player.py
 Основные сущности: ScenarioError, ScenarioEvent, Scenario, load_scenario,
     ScenarioPlayer.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -90,9 +91,7 @@ def load_scenario(path: "str | Path") -> Scenario:
     errors: List[str] = []
     unknown_root = [k for k in raw if k not in _ROOT_KEYS]
     if unknown_root:
-        errors.append(
-            f"неизвестные ключи корня {unknown_root} (разрешены {sorted(_ROOT_KEYS)})"
-        )
+        errors.append(f"неизвестные ключи корня {unknown_root} (разрешены {sorted(_ROOT_KEYS)})")
     scenario_id = raw.get("scenario_id", "")
     if not isinstance(scenario_id, str) or not scenario_id.strip():
         errors.append("scenario_id: непустая строка обязательна")
@@ -117,22 +116,15 @@ def load_scenario(path: "str | Path") -> Scenario:
             continue
         unknown = [k for k in entry if k not in _EVENT_KEYS]
         if unknown:
-            errors.append(
-                f"events[{idx}]: неизвестные ключи {unknown} "
-                f"(разрешены {sorted(_EVENT_KEYS)})"
-            )
+            errors.append(f"events[{idx}]: неизвестные ключи {unknown} (разрешены {sorted(_EVENT_KEYS)})")
             continue
         tick = entry.get("tick")
         if not isinstance(tick, int) or isinstance(tick, bool) or tick < 1:
-            errors.append(
-                f"events[{idx}].tick: ожидается целое >= 1, получено {tick!r}"
-            )
+            errors.append(f"events[{idx}].tick: ожидается целое >= 1, получено {tick!r}")
             continue
         action_raw = entry.get("action", "")
         if not isinstance(action_raw, str):
-            errors.append(
-                f"events[{idx}].action: ожидается строка, получено {action_raw!r}"
-            )
+            errors.append(f"events[{idx}].action: ожидается строка, получено {action_raw!r}")
             continue
         action = action_raw.strip().upper()
         if action not in SUPPORTED_ACTIONS:
@@ -165,9 +157,7 @@ def load_scenario(path: "str | Path") -> Scenario:
         )
 
     if errors:
-        raise ScenarioError(
-            f"Сценарий невалиден ({scenario_path}):\n  - " + "\n  - ".join(errors)
-        )
+        raise ScenarioError(f"Сценарий невалиден ({scenario_path}):\n  - " + "\n  - ".join(errors))
     return Scenario(
         scenario_id=scenario_id,
         description=description,

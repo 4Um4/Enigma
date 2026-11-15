@@ -51,18 +51,20 @@ class CognitionContextResolver:
 
         # --- STM: claims + open_questions (существующее поведение) ---
         try:
-            session = self._memory.get_dialogue_session(
-                self._get_campaign_id(), npc_id, partner_id=partner_id
-            )
+            session = self._memory.get_dialogue_session(self._get_campaign_id(), npc_id, partner_id=partner_id)
             open_claims = [
-                c for c in getattr(session, "claims", []) if getattr(c, "status", "") == "open"  # noqa: ENIGMA002
+                c
+                for c in getattr(session, "claims", [])
+                if getattr(c, "status", "") == "open"  # noqa: ENIGMA002
             ]
             if open_claims:
                 lines.append("Что NPC слышал в разговоре (утверждения собеседника):")
                 for c in open_claims[-5:]:
                     lines.append(f"- {c.speaker} {c.text}")
             open_q = [
-                q for q in getattr(session, "open_questions", []) if not getattr(q, "answered", True)  # noqa: ENIGMA002
+                q
+                for q in getattr(session, "open_questions", [])
+                if not getattr(q, "answered", True)  # noqa: ENIGMA002
             ]
             if open_q:
                 lines.append("Открытые вопросы без ответа:")
@@ -86,20 +88,20 @@ class CognitionContextResolver:
         try:
             records = self._epistemic_store.get_all_for_agent(npc_id)
             # Фильтр: confidence >= 0.25, skip EXITS_TO (spatial noise)
-            relevant = [
-                r for r in records
-                if r.confidence >= 0.25
-                and r.proposition.predicate.value != "exits_to"
-            ]
+            relevant = [r for r in records if r.confidence >= 0.25 and r.proposition.predicate.value != "exits_to"]
             for r in relevant[:5]:  # Топ-5 наиболее релевантных
                 subj_name = self._resolve_name(r.proposition.subject_id)
                 obj_name = self._resolve_name(r.proposition.object_id)
-                pred_val = r.proposition.predicate.value if hasattr(r.proposition.predicate, "value") else str(r.proposition.predicate)
+                pred_val = (
+                    r.proposition.predicate.value
+                    if hasattr(r.proposition.predicate, "value")
+                    else str(r.proposition.predicate)
+                )
                 pred_text = _PRED_TEXT.get(pred_val, pred_val)
 
                 # ASSERTS — object это содержание (не имя)
                 if pred_val == "asserts":
-                    line = f"- {subj_name} {pred_text} \"{str(r.proposition.object_id)[:100]}\""
+                    line = f'- {subj_name} {pred_text} "{str(r.proposition.object_id)[:100]}"'
                 else:
                     line = f"- {subj_name} {pred_text} {obj_name}"
 

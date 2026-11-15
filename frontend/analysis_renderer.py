@@ -4,6 +4,7 @@ path: /frontend/analysis_renderer.py
 Зависимости: pygame, constants, i18n
 Основные сущности: AnalysisRenderer
 """
+
 import logging
 
 import pygame
@@ -20,6 +21,7 @@ from constants import (
 from i18n import t
 
 logger = logging.getLogger(__name__)
+
 
 class AnalysisRenderer:
     """Отвечает за отрисовку панелей, которые игрок открывает осознанно."""
@@ -40,9 +42,7 @@ class AnalysisRenderer:
             return []
 
         _panel_width = self.screen.get_width() // 3
-        _journal_surf = pygame.Surface(
-            (_panel_width, self.screen.get_height()), pygame.SRCALPHA
-        )
+        _journal_surf = pygame.Surface((_panel_width, self.screen.get_height()), pygame.SRCALPHA)
         _journal_surf.fill((20, 20, 30, 220))
 
         _font_title = pygame.font.Font(None, 32)
@@ -60,14 +60,14 @@ class AnalysisRenderer:
             ("observations", "Наблюдения"),
             ("hypotheses", "Гипотезы"),
             ("facts", "Факты"),
-            ("beliefs", "Убеждения")
+            ("beliefs", "Убеждения"),
         ]
 
         for _tab_id, _tab_name in _tabs:
             _color = COLOR_TEXT_DEFAULT if _tab_id == active_tab else COLOR_TEXT_MUTED
             _tab_surf = _font_tab.render(_tab_name, True, _color)
             _journal_surf.blit(_tab_surf, (_tab_x, _tab_y))
-            
+
             _abs_x = self.screen.get_width() - _panel_width + _tab_x
             _new_rects.append((_tab_id, pygame.Rect(_abs_x, _tab_y, _tab_surf.get_width(), _tab_surf.get_height())))
             _tab_x += _tab_surf.get_width() + 15
@@ -87,18 +87,18 @@ class AnalysisRenderer:
                     _subj = _prop.get("subject_id", "???")
                     _pred = _prop.get("predicate", "???")
                     _conf = float(_belief.get("confidence", 0.0))
-                    
+
                     # Текст убеждения
                     _text = f"{_subj} {_pred}"
                     _text_surf = _font_text.render(_text, True, COLOR_TEXT_DEFAULT)
                     _journal_surf.blit(_text_surf, (15, _y_offset))
-                    
+
                     # Полоса уверенности (10 символов)
                     _bar_len = int(_conf * 10)
                     _bar = "[" + "█" * _bar_len + "░" * (10 - _bar_len) + "]"
                     _bar_surf = _font_text.render(_bar, True, COLOR_TEXT_SCALE_HIGHLIGHT)
                     _journal_surf.blit(_bar_surf, (15, _y_offset + 20))
-                    
+
                     # Метка уверенности
                     if _conf < 0.2:
                         _label = "Сомнительно"
@@ -108,7 +108,7 @@ class AnalysisRenderer:
                         _label = "Неуверенно"
                     _label_surf = _font_text.render(_label, True, COLOR_TEXT_MUTED)
                     _journal_surf.blit(_label_surf, (15, _y_offset + 40))
-                    
+
                     _y_offset += 65
 
         elif active_tab == "observations":
@@ -158,9 +158,7 @@ class AnalysisRenderer:
                     _y_offset += 24
 
                     _clip_saved = _journal_surf.get_clip()
-                    _journal_surf.set_clip(
-                        pygame.Rect(0, _y_offset, _panel_width, _vis_h - 24)
-                    )
+                    _journal_surf.set_clip(pygame.Rect(0, _y_offset, _panel_width, _vis_h - 24))
                     _line_y = _y_offset - _off
                     for _line in _lines:
                         _text_surf = _font_text.render(_line, True, COLOR_TEXT_DEFAULT)
@@ -170,19 +168,19 @@ class AnalysisRenderer:
 
                     if _max_off > 0:
                         _more_surf = _font_text.render("▾", True, COLOR_TEXT_MUTED)
-                        _journal_surf.blit(
-                            _more_surf, (_panel_width - 30, _y_offset + _vis_h - 24 - 18)
+                        _journal_surf.blit(_more_surf, (_panel_width - 30, _y_offset + _vis_h - 24 - 18))
+                    self._journal_entry_rects.append(
+                        (
+                            pygame.Rect(
+                                self.screen.get_width() - _panel_width + 15,
+                                _y_offset - 24,
+                                _panel_width - 30,
+                                _vis_h,
+                            ),
+                            _key,
+                            _max_off,
                         )
-                    self._journal_entry_rects.append((
-                        pygame.Rect(
-                            self.screen.get_width() - _panel_width + 15,
-                            _y_offset - 24,
-                            _panel_width - 30,
-                            _vis_h,
-                        ),
-                        _key,
-                        _max_off,
-                    ))
+                    )
 
                     _y_offset += _vis_h - 24 + 10
                     if _y_offset >= _panel_bottom:
@@ -212,9 +210,7 @@ class AnalysisRenderer:
             if _rect.collidepoint(pos):
                 if _max_off > 0:
                     _cur = self._journal_entry_offsets.get(_key, 0)
-                    self._journal_entry_offsets[_key] = max(
-                        0, min(_max_off, _cur + direction * 20)
-                    )
+                    self._journal_entry_offsets[_key] = max(0, min(_max_off, _cur + direction * 20))
                 return True
         return False
 
@@ -277,11 +273,11 @@ class AnalysisRenderer:
                         _item_surf = _font_item.render(_item_text, True, COLOR_TEXT_DEFAULT)
                         _inv_surf.blit(_item_surf, (25, _y_offset))
                         _y_offset += 20
-                
+
                 _y_offset += 5
                 if _y_offset > self.screen.get_height() - 100:
                     break
-            
+
             if _y_offset > self.screen.get_height() - 100:
                 break
 
@@ -294,7 +290,7 @@ class AnalysisRenderer:
 
         _stats_w = _font_stats.render(f"Вес: {_total_weight:.1f} / {_carry_cap:.1f}", True, _weight_color)
         _stats_b = _font_stats.render(f"Габаритность: {_total_bulk}", True, COLOR_TEXT_DEFAULT)
-        
+
         _inv_surf.blit(_stats_w, (15, _y_stats))
         _inv_surf.blit(_stats_b, (15, _y_stats + 25))
 
@@ -326,39 +322,49 @@ class AnalysisRenderer:
             "moderate": (255, 255, 0),
             "major": (255, 165, 0),
             "critical": (255, 50, 50),
-            "extreme": (180, 0, 0)
+            "extreme": (180, 0, 0),
         }
         _shape_map = {
-            "food": "circle",      # Голод
-            "income": "diamond",   # Финансы
-            "shelter": "square",   # Усталость
-            "social": "triangle"   # Одиночество
+            "food": "circle",  # Голод
+            "income": "diamond",  # Финансы
+            "shelter": "square",  # Усталость
+            "social": "triangle",  # Одиночество
         }
 
         for need in _needs:
             _nid = need.get("id", "")
             _sev = need.get("severity", "minor")
-            
+
             if _sev in _color_map:
                 _color = _color_map[_sev]
                 _shape = _shape_map.get(_nid, "square")
-                
+
                 if _shape == "circle":
-                    pygame.draw.circle(self.screen, _color, (_start_x + _icon_size//2, _start_y + _icon_size//2), _icon_size//2)
+                    pygame.draw.circle(
+                        self.screen, _color, (_start_x + _icon_size // 2, _start_y + _icon_size // 2), _icon_size // 2
+                    )
                 elif _shape == "diamond":
-                    pygame.draw.polygon(self.screen, _color, [
-                        (_start_x + _icon_size//2, _start_y),
-                        (_start_x + _icon_size, _start_y + _icon_size//2),
-                        (_start_x + _icon_size//2, _start_y + _icon_size),
-                        (_start_x, _start_y + _icon_size//2)
-                    ])
+                    pygame.draw.polygon(
+                        self.screen,
+                        _color,
+                        [
+                            (_start_x + _icon_size // 2, _start_y),
+                            (_start_x + _icon_size, _start_y + _icon_size // 2),
+                            (_start_x + _icon_size // 2, _start_y + _icon_size),
+                            (_start_x, _start_y + _icon_size // 2),
+                        ],
+                    )
                 elif _shape == "triangle":
-                    pygame.draw.polygon(self.screen, _color, [
-                        (_start_x + _icon_size//2, _start_y),
-                        (_start_x + _icon_size, _start_y + _icon_size),
-                        (_start_x, _start_y + _icon_size)
-                    ])
-                else: # square
+                    pygame.draw.polygon(
+                        self.screen,
+                        _color,
+                        [
+                            (_start_x + _icon_size // 2, _start_y),
+                            (_start_x + _icon_size, _start_y + _icon_size),
+                            (_start_x, _start_y + _icon_size),
+                        ],
+                    )
+                else:  # square
                     pygame.draw.rect(self.screen, _color, (_start_x, _start_y, _icon_size, _icon_size))
-                
+
                 _start_x += _icon_size + _spacing

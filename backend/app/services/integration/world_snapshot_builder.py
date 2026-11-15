@@ -41,14 +41,14 @@ class WorldSnapshotBuilder:
         scene_state: Dict,
         tick: int,
         last_event_id: Optional[Any] = None,
-        epistemic_store: Optional[Any] = None, # Phase 8.2: Для проекции убеждений игрока
+        epistemic_store: Optional[Any] = None,  # Phase 8.2: Для проекции убеждений игрока
         avatar_state: Optional["AvatarStateDTO"] = None,  # ADR-035
         all_npcs_raw: Optional[List[Dict]] = None,  # ADR-037: Для вычисления среды
-        player_perception: Optional[
-            "PlayerPerceptionDTO"
-        ] = None,  # ТЗ EMBODIED UI PERCEPTION
+        player_perception: Optional["PlayerPerceptionDTO"] = None,  # ТЗ EMBODIED UI PERCEPTION
         recent_dialogues: Optional[List[Dict]] = None,  # ADR-O-313: Для Speech Bubbles
-        perceived_narratives: Optional[List[PerceivedNarrativeDTO]] = None,  # S313: готовая проекция S159 — перекрывает naive-конверсию
+        perceived_narratives: Optional[
+            List[PerceivedNarrativeDTO]
+        ] = None,  # S313: готовая проекция S159 — перекрывает naive-конверсию
         player_body_topology: Optional[Dict] = None,  # ТЗ Presentation v2.0: Инвентарь
         visual_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал визуальной презентации
         audible_dto: Optional[Dict] = None,  # ТЗ Presentation v2.0: Канал аудио презентации
@@ -104,10 +104,7 @@ class WorldSnapshotBuilder:
         # для Board/реакций. НЕ телепатия: убеждение СУЩЕСТВУЕТ у NPC.
         _npc_beliefs_about_player = []
         if epistemic_store:
-            _npc_beliefs_about_player = [
-                r for r in epistemic_store.to_dict()
-                if r.get("agent_id") != "player"
-            ]
+            _npc_beliefs_about_player = [r for r in epistemic_store.to_dict() if r.get("agent_id") != "player"]
 
         # Sprint UI-EPISTEMIC-01A: Транспорт реплик через PerceivedNarrativeDTO.
         # S313: caller передал готовую проекцию (NarrativeProjector, S159) —
@@ -200,9 +197,7 @@ class WorldSnapshotBuilder:
         "ATMOSPHERE_UNEASY": "Обстановка тревожная",
     }
 
-    def _convert_perception(
-        self, domain_perception: Any, tick: int = 0
-    ) -> Optional[PlayerPerceptionDTO]:
+    def _convert_perception(self, domain_perception: Any, tick: int = 0) -> Optional[PlayerPerceptionDTO]:
         """Конвертация domain PlayerPerceptionDTO → API PlayerPerceptionDTO.
 
         Domain DTO (embodied_trace) кладёт cue-дикты в active_perceptions.
@@ -252,9 +247,7 @@ class WorldSnapshotBuilder:
         _domain_manifests = getattr(domain_perception, "manifestations", {})  # noqa: ENIGMA002
         if _domain_manifests:
             for _nid, _tags in _domain_manifests.items():
-                _api_manifestations.append(
-                    ManifestationDTO(npc_id=_nid, tags=list(_tags))
-                )
+                _api_manifestations.append(ManifestationDTO(npc_id=_nid, tags=list(_tags)))
 
         return PlayerPerceptionDTO(
             active_perceptions=active_perceptions,
@@ -289,12 +282,7 @@ class WorldSnapshotBuilder:
                 continue
 
             local = data.get("local_position", {})
-            logger.info(
-                f"[TRACE][SNAPSHOT] "
-                f"npc={npc_id} "
-                f"x={local.get('x') or 0.0} "
-                f"y={local.get('y') or 0.0}"
-            )
+            logger.info(f"[TRACE][SNAPSHOT] npc={npc_id} x={local.get('x') or 0.0} y={local.get('y') or 0.0}")
             # ADR-O-319: RecognitionMemory projection.
             # Читаем confidence из scene_state (персистится в SQLite).
             _recog_map = scene_state.get("player_recognition", {})
@@ -312,8 +300,7 @@ class WorldSnapshotBuilder:
                 # recognition ∧ name. Гейт-поле пишет subscriber-drain
                 # (runtime-мост); builder остаётся чистой проекцией.
                 # Нет ключа / OFF = прежнее поведение (паритет).
-                _display_name = scene_state.get(
-                    "name_gate", {}).get(npc_id, _real_name)
+                _display_name = scene_state.get("name_gate", {}).get(npc_id, _real_name)
             elif _recog_status == "tentative" or _confidence >= 0.6:
                 _display_name = f"{_real_name} (?)"
 
@@ -374,10 +361,7 @@ class WorldSnapshotBuilder:
         result = {}
 
         for npc_id, trav in traversals.items():
-            if (
-                trav.get("status") == "MOVING"
-                and len(trav.get("path_waypoints", [])) >= 2
-            ):
+            if trav.get("status") == "MOVING" and len(trav.get("path_waypoints", [])) >= 2:
                 # CEI-2: Сохраняем ПОЛНЫЙ маршрут (intermediate nodes не теряются)
                 wp = trav.get("path_waypoints", [])
                 # Нормализация: гарантируем [[x,y], [x,y], ...]
@@ -386,9 +370,7 @@ class WorldSnapshotBuilder:
                     if isinstance(pt, (list, tuple)) and len(pt) >= 2:
                         normalized_wp.append([float(pt[0]), float(pt[1])])
                     elif isinstance(pt, dict):
-                        normalized_wp.append(
-                            [float(pt.get("x", 0)), float(pt.get("y", 0))]
-                        )
+                        normalized_wp.append([float(pt.get("x", 0)), float(pt.get("y", 0))])
 
                 if len(normalized_wp) >= 2:
                     result[npc_id] = {
@@ -405,9 +387,7 @@ class WorldSnapshotBuilder:
                     }
         return result
 
-    def _compute_ambient_phenomenology(
-        self, all_npcs_raw: Optional[List[Dict]]
-    ) -> Optional[Dict[str, Any]]:
+    def _compute_ambient_phenomenology(self, all_npcs_raw: Optional[List[Dict]]) -> Optional[Dict[str, Any]]:
         """Вычисляет феноменологическое давление среды на основе стресса и страха NPC (ADR-037)."""
         if not all_npcs_raw:
             return None
@@ -470,8 +450,6 @@ class WorldSnapshotBuilder:
             game_time_seconds=0,
             # NOTE(mypy): legacy-совместимость (ADR-O-313) — пустой путь получает
             # сырые dict-реплики; RecentDialogueDTO — str-Enum-совместимый контракт.
-            recent_dialogues=cast(
-                "List[RecentDialogueDTO]", recent_dialogues or []
-            ),  # ADR-O-313: Проброс кэша реплик
+            recent_dialogues=cast("List[RecentDialogueDTO]", recent_dialogues or []),  # ADR-O-313: Проброс кэша реплик
             active_traversals={},  # FIX: Гарантируем dict, иначе DTO возвращает None и ломает фронтенд
         )

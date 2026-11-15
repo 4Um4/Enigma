@@ -8,8 +8,10 @@ from pathlib import Path
 
 base = Path(__file__).parent.parent / "SUPERBOX" / "reports" / "o399_snaps"
 
+
 def load(tag):
     return json.loads((base / f"scene_{tag}.json").read_text(encoding="utf-8"))["scene_a"]
+
 
 def walk(a, b, path, diffs, limit=5):
     if len(diffs) >= 200:
@@ -33,6 +35,7 @@ def walk(a, b, path, diffs, limit=5):
     elif a != b:
         diffs.append((path, "CHANGED", str(a)[:60], str(b)[:60]))
 
+
 a, b = load(sys.argv[1]), load(sys.argv[2])
 diffs = []
 walk(a, b, "$", diffs)
@@ -44,4 +47,4 @@ for p, kind, va, vb in diffs:
     buckets[dom] += 1
 print("по верхним ключам:", json.dumps(buckets, ensure_ascii=False, indent=1))
 for p, kind, va, vb in diffs[:12]:
-    print(f"  {kind:8} {p}: {va} -> {vb[:40] if isinstance(vb,str) else vb}")
+    print(f"  {kind:8} {p}: {va} -> {vb[:40] if isinstance(vb, str) else vb}")

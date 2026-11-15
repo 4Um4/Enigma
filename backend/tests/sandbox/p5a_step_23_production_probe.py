@@ -10,9 +10,18 @@ A: PLAYER_INSULTS → EpistemicStore(maid_lusya)
 B: idle_tick → DecisionHub → CommunicationIntent → QueuedTask → NPC_SPOKE
 C: A/B control (no PLAYER_INSULTS) — сравнение
 """
+
 from __future__ import annotations
 
-import os, sys, json, shutil, tempfile, traceback, types, uuid, asyncio
+import os
+import sys
+import json
+import shutil
+import tempfile
+import traceback
+import types
+import uuid
+import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from unittest.mock import MagicMock
@@ -36,9 +45,11 @@ from app.services.npc.belief_revision_engine import BeliefRevisionEngine
 # === Spy registry ===
 SPY_LOG: List[Dict[str, Any]] = []
 
+
 def _stamp(tag: str, **kw: Any) -> None:
     SPY_LOG.append({"tag": tag, **kw})
     print(f"[SPY] {tag}: " + json.dumps(kw, ensure_ascii=False, default=str))
+
 
 def wrap(obj: Any, method_name: str, tag: str) -> None:
     """Wrapper — before/after log. No semantic change (письмо №3 S350)."""
@@ -49,6 +60,7 @@ def wrap(obj: Any, method_name: str, tag: str) -> None:
         _stamp(f"{tag}:SKIP", reason=f"no method {method_name}")
         return
     original = getattr(obj, method_name)
+
     def wrapper(*args, **kwargs):
         try:
             arg_dump = []
@@ -61,14 +73,14 @@ def wrap(obj: Any, method_name: str, tag: str) -> None:
         try:
             result = original(*args, **kwargs)
             try:
-                _stamp(f"{tag}:EXIT", result_type=type(result).__name__,
-                       result_repr=repr(result)[:200])
+                _stamp(f"{tag}:EXIT", result_type=type(result).__name__, result_repr=repr(result)[:200])
             except Exception:
                 _stamp(f"{tag}:EXIT", result_type=type(result).__name__)
             return result
         except Exception as e:
             _stamp(f"{tag}:ERROR", error=type(e).__name__, msg=str(e)[:300])
             raise
+
     setattr(obj, method_name, wrapper)
 
 
@@ -77,8 +89,6 @@ def build_test_loop() -> Tuple[Any, Path]:
     """Build real GameLoop with isolated saves + mock LLM router (conftest pattern)."""
     temp_dir = Path(tempfile.mkdtemp(prefix="p23_probe_"))
     real_data_dir = Path(settings.data_dir)
-    original_saves_dir = settings.saves_dir
-    original_env = settings.environment
 
     settings.saves_dir = str(temp_dir)
     settings.environment = "development"
@@ -131,6 +141,7 @@ def attach_spies(loop: Any) -> Dict[str, Any]:
     # 2. BeliefRevisionEngine — wrapper at class level (no handle to instance)
     try:
         orig_revise = BeliefRevisionEngine.revise
+
         def spy_revise(self_engine, *args, **kwargs):
             listener_id = args[0] if args else kwargs.get("listener_id", "?")
             claim = args[1] if len(args) > 1 else kwargs.get("claim", None)
@@ -139,16 +150,22 @@ def attach_spies(loop: Any) -> Dict[str, Any]:
                 p = getattr(claim, "proposition", None)
                 if p is not None:
                     prop_summary = f"{p.subject_id}/{p.predicate.value}/{p.object_id}"
-            _stamp("A4.belief_revision_engine.revise:ENTER",
-                   listener=listener_id, prop=prop_summary,
-                   speaker=getattr(claim, "speaker_id", "?"),
-                   tick=getattr(claim, "tick", "?"))
+            _stamp(
+                "A4.belief_revision_engine.revise:ENTER",
+                listener=listener_id,
+                prop=prop_summary,
+                speaker=getattr(claim, "speaker_id", "?"),
+                tick=getattr(claim, "tick", "?"),
+            )
             result = orig_revise(self_engine, *args, **kwargs)
-            _stamp("A4.belief_revision_engine.revise:EXIT",
-                   conf=getattr(result, "confidence", None),
-                   source=getattr(result, "source_id", None),
-                   orig_src=getattr(result, "original_source_id", None))
+            _stamp(
+                "A4.belief_revision_engine.revise:EXIT",
+                conf=getattr(result, "confidence", None),
+                source=getattr(result, "source_id", None),
+                orig_src=getattr(result, "original_source_id", None),
+            )
             return result
+
         BeliefRevisionEngine.revise = spy_revise  # type: ignore
         refs["engine_class_patched"] = True
     except Exception as e:
@@ -168,7 +185,6 @@ def attach_spies(loop: Any) -> Dict[str, Any]:
         # DialogueExecutor — publish NPC_SPOKE
         if hasattr(ts, "_executor_pool"):
             try:
-                pool = ts._executor_pool
                 for kind, ex in (getattr(ts, "_executors", {}) or {}).items():
                     wrap(ex, "execute", f"B4.dialogue_executor.{kind}.execute")
             except Exception as e:
@@ -179,12 +195,14 @@ def attach_spies(loop: Any) -> Dict[str, Any]:
     # 5. EventBus — publish spy
     bus = get_event_bus()
     orig_pub = bus.publish
+
     def spy_publish(evt: Any) -> None:
         et = getattr(evt, "type", "?")
         src = getattr(evt, "source", "?")
         tgt = (getattr(evt, "payload", {}) or {}).get("target_id")
         _stamp("BUS.publish", event_type=et, source=src, target_id=tgt)
         return orig_pub(evt)
+
     bus.publish = spy_publish  # type: ignore
 
     return refs
@@ -224,8 +242,7 @@ def check_belief(loop: Any, agent_id: str) -> Dict[str, Any]:
     store = getattr(sub, "_store", None)
     if store is None:
         return {"error": "no store"}
-    prop = Proposition(subject_id="player", predicate=Predicate.INSULTED,
-                       object_id=agent_id, polarity=True)
+    prop = Proposition(subject_id="player", predicate=Predicate.INSULTED, object_id=agent_id, polarity=True)
     rec = store.get(agent_id, prop)
     if rec is None:
         return {"agent": agent_id, "belief_present": False}
@@ -253,7 +270,9 @@ def track_b_idle(loop: Any, campaign_id: str = "Open_road") -> Dict[str, Any]:
             try:
                 all_recs = store.to_dict() if hasattr(store, "to_dict") else []
                 pre_beliefs["total"] = len(all_recs) if isinstance(all_recs, list) else "?"
-                pre_beliefs["agents"] = sorted({r.get("agent_id") for r in all_recs}) if isinstance(all_recs, list) else []
+                pre_beliefs["agents"] = (
+                    sorted({r.get("agent_id") for r in all_recs}) if isinstance(all_recs, list) else []
+                )
             except Exception as e:
                 pre_beliefs["error"] = str(e)[:100]
 
@@ -261,9 +280,12 @@ def track_b_idle(loop: Any, campaign_id: str = "Open_road") -> Dict[str, Any]:
         scene = loop.scene_manager.get_scene_state(campaign_id, "tavern")
         if scene is not None:
             pre_pending = len(scene.get("pending_tasks", []) or [])
-            _stamp("B.pre_state", pending_tasks=pre_pending,
-                   game_time=scene.get("game_time_seconds", "?"),
-                   npc_count=len(scene.get("npc_positions", {}) or {}))
+            _stamp(
+                "B.pre_state",
+                pending_tasks=pre_pending,
+                game_time=scene.get("game_time_seconds", "?"),
+                npc_count=len(scene.get("npc_positions", {}) or {}),
+            )
         else:
             _stamp("B.pre_state", scene="None")
     except Exception as e:
@@ -272,9 +294,11 @@ def track_b_idle(loop: Any, campaign_id: str = "Open_road") -> Dict[str, Any]:
     # Run idle_tick
     try:
         result = loop.idle_tick(campaign_id)
-        _stamp("B.idle_tick:EXIT",
-               status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__,
-               npc_count=len(result.get("npc_positions", {})) if isinstance(result, dict) else 0)
+        _stamp(
+            "B.idle_tick:EXIT",
+            status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__,
+            npc_count=len(result.get("npc_positions", {})) if isinstance(result, dict) else 0,
+        )
     except Exception as e:
         _stamp("B.idle_tick:ERROR", error=type(e).__name__, msg=str(e)[:300])
         return {"error": str(e)[:200]}
@@ -288,7 +312,9 @@ def track_b_idle(loop: Any, campaign_id: str = "Open_road") -> Dict[str, Any]:
             try:
                 all_recs = store.to_dict() if hasattr(store, "to_dict") else []
                 post_beliefs["total"] = len(all_recs) if isinstance(all_recs, list) else "?"
-                post_beliefs["agents"] = sorted({r.get("agent_id") for r in all_recs}) if isinstance(all_recs, list) else []
+                post_beliefs["agents"] = (
+                    sorted({r.get("agent_id") for r in all_recs}) if isinstance(all_recs, list) else []
+                )
             except Exception as e:
                 post_beliefs["error"] = str(e)[:100]
 
@@ -296,8 +322,7 @@ def track_b_idle(loop: Any, campaign_id: str = "Open_road") -> Dict[str, Any]:
         scene = loop.scene_manager.get_scene_state(campaign_id, "tavern")
         if scene is not None:
             post_pending = len(scene.get("pending_tasks", []) or [])
-            _stamp("B.post_state", pending_tasks=post_pending,
-                   game_time=scene.get("game_time_seconds", "?"))
+            _stamp("B.post_state", pending_tasks=post_pending, game_time=scene.get("game_time_seconds", "?"))
         else:
             _stamp("B.post_state", scene="None")
     except Exception as e:
@@ -333,10 +358,12 @@ def main() -> int:
         _stamp("HARNESS.built", temp_dir=str(temp_dir))
 
         refs = attach_spies(loop)
-        _stamp("HARNESS.spies_attached",
-               has_subscriber=refs.get("subscriber") is not None,
-               has_store=refs.get("store") is not None,
-               has_task_scheduler=refs.get("task_scheduler") is not None)
+        _stamp(
+            "HARNESS.spies_attached",
+            has_subscriber=refs.get("subscriber") is not None,
+            has_store=refs.get("store") is not None,
+            has_task_scheduler=refs.get("task_scheduler") is not None,
+        )
 
         # === TRACK A: PLAYER_INSULTS ===
         SPY_LOG.clear()
@@ -347,7 +374,7 @@ def main() -> int:
         _stamp("A.FINAL.belief", **belief_a)
 
         # === TRACK B: idle_tick ===
-        SPY_LOG_b_start = len(SPY_LOG)
+        len(SPY_LOG)
         b_result = track_b_idle(loop, campaign_id="Open_road")
         _stamp("B.FINAL.summary", **b_result)
 
@@ -363,7 +390,7 @@ def main() -> int:
         print("=" * 78)
         print(f"\nTotal SPY entries: {len(SPY_LOG)}")
         tags_seen = sorted({e["tag"] for e in SPY_LOG})
-        print(f"\nAll tags:\n  " + "\n  ".join(tags_seen))
+        print("\nAll tags:\n  " + "\n  ".join(tags_seen))
         print(f"\nTrack A belief (maid_lusya): {belief_a}")
         print(f"\nTrack A belief (after idle): {belief_a_after_idle}")
         print(f"\nTrack B summary: {b_result}")

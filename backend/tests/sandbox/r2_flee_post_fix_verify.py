@@ -13,8 +13,14 @@ R2-FLEE-POST-FIX-VERIFY — проверка после применения pro
   8. market_square: entrance (node_5) coords вне declared size — проверка
   9. city_gate: нет entrance → fallback на LOCAL direction offsets
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, logging, math
+import os
+import sys
+import json
+import traceback
+import logging
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 import io
@@ -132,10 +138,10 @@ def test1_tavern_boundary_coords() -> Dict[str, Any]:
 
     graph = compile_result[0]
     connections = compile_result[1]
-    boundary_map = compile_result[3] if len(compile_result) > 3 else {}
+    compile_result[3] if len(compile_result) > 3 else {}
 
     print(f"\n  Graph size: {len(graph)}")
-    print(f"  Expected: 18 (16 authored + 2 boundary)")
+    print("  Expected: 18 (16 authored + 2 boundary)")
 
     # Check exit_east coords
     ee = graph.get("tavern:exit_east")
@@ -187,7 +193,7 @@ def test1_tavern_boundary_coords() -> Dict[str, Any]:
 
     ee_reachable = "tavern:exit_east" in visited
     es_reachable = "tavern:exit_south" in visited
-    print(f"\n  BFS from fireplace:")
+    print("\n  BFS from fireplace:")
     print(f"    exit_east reachable: {ee_reachable}")
     print(f"    exit_south reachable: {es_reachable}")
 
@@ -202,12 +208,12 @@ def test1_tavern_boundary_coords() -> Dict[str, Any]:
         ey_ee = float(getattr(ee, "y", 0))
         ex_ent = float(entrance.get("x", 0))
         ey_ent = float(entrance.get("y", 0))
-        matches_entrance = (abs(ex_ee - ex_ent) < 0.01 and abs(ey_ee - ey_ent) < 0.01)
+        matches_entrance = abs(ex_ee - ex_ent) < 0.01 and abs(ey_ee - ey_ent) < 0.01
         print(f"\n  exit_east coords match entrance: {matches_entrance}")
         print(f"    entrance: ({ex_ent}, {ey_ent})")
         print(f"    exit_east: ({ex_ee}, {ey_ee})")
         if matches_entrance:
-            print(f"    → NPC выходит через door_0 (entrance = внешнее пространство)")
+            print("    → NPC выходит через door_0 (entrance = внешнее пространство)")
 
     result["pass"] = True
     result["graph_size"] = len(graph)
@@ -299,10 +305,10 @@ def test2_flee_target() -> Dict[str, Any]:
     if entrance:
         ex_ent = float(entrance.get("x", 0))
         ey_ent = float(entrance.get("y", 0))
-        matches = (abs(float(furthest.x) - ex_ent) < 0.01 and abs(float(furthest.y) - ey_ent) < 0.01)
+        matches = abs(float(furthest.x) - ex_ent) < 0.01 and abs(float(furthest.y) - ey_ent) < 0.01
         print(f"    matches entrance (door_0): {matches}")
         if matches:
-            print(f"    → NPC движется к door_0 (внешний выход) ✓")
+            print("    → NPC движется к door_0 (внешний выход) ✓")
 
     result["pass"] = True
     result["flee_target"] = furthest.node_id
@@ -330,7 +336,7 @@ def test3_author_geometry_intact() -> Dict[str, Any]:
 
     # Check node count
     print(f"\n  Authors nodes count: {len(nodes)}")
-    print(f"  Expected: 16 (не изменено)")
+    print("  Expected: 16 (не изменено)")
     if len(nodes) != 16:
         result["error"] = f"nodes count = {len(nodes)}, expected 16"
         return result
@@ -342,8 +348,8 @@ def test3_author_geometry_intact() -> Dict[str, Any]:
     if "exit_south" in nodes:
         result["error"] = "exit_south added to nodes dict (forbidden)"
         return result
-    print(f"  exit_east in nodes: False ✓")
-    print(f"  exit_south in nodes: False ✓")
+    print("  exit_east in nodes: False ✓")
+    print("  exit_south in nodes: False ✓")
 
     # Check door_0
     door_0 = None
@@ -354,7 +360,7 @@ def test3_author_geometry_intact() -> Dict[str, Any]:
     if not door_0:
         result["error"] = "door_0 not found"
         return result
-    print(f"\n  door_0:")
+    print("\n  door_0:")
     print(f"    position: {door_0.get('position')}")
     print(f"    wall_id: {door_0.get('wall_id')}")
     if door_0.get("wall_id") != "wall_2":
@@ -370,7 +376,7 @@ def test3_author_geometry_intact() -> Dict[str, Any]:
     if not door_1:
         result["error"] = "door_1 not found"
         return result
-    print(f"\n  door_1:")
+    print("\n  door_1:")
     print(f"    position: {door_1.get('position')}")
     print(f"    wall_id: {door_1.get('wall_id')}")
 
@@ -379,20 +385,20 @@ def test3_author_geometry_intact() -> Dict[str, Any]:
     if not node_16:
         result["error"] = "node_16 not found"
         return result
-    print(f"\n  node_16:")
+    print("\n  node_16:")
     print(f"    x={node_16.get('x')}, y={node_16.get('y')}")
     print(f"    connections: {node_16.get('connections')}")
 
     # Check walls count
     print(f"\n  Walls count: {len(walls)}")
-    print(f"  Expected: 8 (не изменено)")
+    print("  Expected: 8 (не изменено)")
     if len(walls) != 8:
         result["error"] = f"walls count = {len(walls)}, expected 8"
         return result
 
     # Check rooms count
     print(f"\n  Rooms count: {len(rooms)}")
-    print(f"  Expected: 2 (не изменено)")
+    print("  Expected: 2 (не изменено)")
     if len(rooms) != 2:
         result["error"] = f"rooms count = {len(rooms)}, expected 2"
         return result
@@ -445,7 +451,7 @@ def test4_market_square_entrance() -> Dict[str, Any]:
         print(f"    {nid}: ({x}, {y})")
         try:
             fx, fy = float(x), float(y)
-            outside = (fx > W + 0.5 or fy > H + 0.5)
+            outside = fx > W + 0.5 or fy > H + 0.5
             print(f"      вне declared size [{W}x{H}]: {outside}")
         except (TypeError, ValueError):
             pass
@@ -531,7 +537,7 @@ def test5_city_gate_fallback() -> Dict[str, Any]:
             entrance_nodes.append((nid, nd.get("x"), nd.get("y")))
     print(f"  Entrance nodes: {len(entrance_nodes)}")
     if not entrance_nodes:
-        print(f"  → Нет entrance → fallback на LOCAL direction offsets")
+        print("  → Нет entrance → fallback на LOCAL direction offsets")
 
     # Compile city_gate
     try:
@@ -625,7 +631,7 @@ def test6_boundary_nodes_test_compatibility() -> Dict[str, Any]:
     connections = compile_result[1]
     boundary_map = compile_result[3] if len(compile_result) > 3 else {}
 
-    print(f"\n  Test map: 5x5 (default size), center node + adjacency")
+    print("\n  Test map: 5x5 (default size), center node + adjacency")
     print(f"  Graph size: {len(graph)}")
     print(f"  boundary_map entries: {len(boundary_map)}")
 
@@ -647,15 +653,15 @@ def test6_boundary_nodes_test_compatibility() -> Dict[str, Any]:
     es = graph.get("test_loc:exit_south")
     if ee:
         print(f"\n  exit_east coords: ({ee.x}, {ee.y})")
-        print(f"  Expected (LOCAL fallback): (9.0, 5.0)")
+        print("  Expected (LOCAL fallback): (9.0, 5.0)")
     if es:
         print(f"  exit_south coords: ({es.x}, {es.y})")
-        print(f"  Expected (LOCAL fallback): (5.0, 1.0)")
+        print("  Expected (LOCAL fallback): (5.0, 1.0)")
 
     # Check connections (center connected to boundary)
     center_conns = connections.get("test_loc:center", set())
     print(f"\n  center connections: {sorted(center_conns)}")
-    print(f"  Expected: contains exit_east and exit_south")
+    print("  Expected: contains exit_east and exit_south")
 
     if "test_loc:exit_east" not in center_conns:
         result["error"] = "center not connected to exit_east"
@@ -664,7 +670,7 @@ def test6_boundary_nodes_test_compatibility() -> Dict[str, Any]:
         result["error"] = "center not connected to exit_south"
         return result
 
-    print(f"\n  ✓ test_boundary_nodes.py compatibility — PASS")
+    print("\n  ✓ test_boundary_nodes.py compatibility — PASS")
 
     result["pass"] = True
     return result
@@ -737,12 +743,12 @@ def main() -> int:
         if not r.get("pass"):
             all_pass = False
 
-    print(f"\n{'='*78}")
+    print(f"\n{'=' * 78}")
     if all_pass:
-        print(f">>> ALL TESTS PASSED — production-fix работает корректно <<<")
+        print(">>> ALL TESTS PASSED — production-fix работает корректно <<<")
     else:
-        print(f">>> SOME TESTS FAILED — см. детали выше <<<")
-    print(f"{'='*78}")
+        print(">>> SOME TESTS FAILED — см. детали выше <<<")
+    print(f"{'=' * 78}")
 
     # Write to file
     try:

@@ -18,8 +18,14 @@ R2-FLEE-DOOR0-ROUTE-AUDIT — исследование маршрута NPC че
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, copy, logging
+import os
+import sys
+import json
+import traceback
+import copy
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -108,7 +114,7 @@ def check1_entrance_connections() -> None:
 
     nodes = tavern.get("nodes", {})
 
-    print(f"\n--- Все авторские узлы с их connections ---")
+    print("\n--- Все авторские узлы с их connections ---")
     print(f"{'node_id':<22} {'x':>8} {'y':>8}  role                connections")
     print("-" * 90)
     for nid, nd in nodes.items():
@@ -120,16 +126,16 @@ def check1_entrance_connections() -> None:
         conns = nd.get("connections", [])
         print(f"{nid:<22} {str(x):>8} {str(y):>8}  {str(role):<20} {conns}")
 
-    print(f"\n--- Специфичная проверка: entrance ---")
+    print("\n--- Специфичная проверка: entrance ---")
     entrance = nodes.get("entrance", {})
     if entrance:
         print(f"  entrance coords: ({entrance.get('x')}, {entrance.get('y')})")
         print(f"  role: {entrance.get('role')}")
         print(f"  connections: {entrance.get('connections')}")
     else:
-        print(f"  entrance НЕ НАЙДЕН в nodes")
+        print("  entrance НЕ НАЙДЕН в nodes")
 
-    print(f"\n--- Специфичная проверка: door_0 как навигационный узел ---")
+    print("\n--- Специфичная проверка: door_0 как навигационный узел ---")
     # door_0 — это объект типа "door" в objects[], НЕ узел в nodes[]
     objects = tavern.get("objects", [])
     door_0_obj = None
@@ -139,29 +145,29 @@ def check1_entrance_connections() -> None:
             break
 
     if door_0_obj:
-        print(f"  door_0 найден в objects[]:")
+        print("  door_0 найден в objects[]:")
         print(f"    type: {door_0_obj.get('type')}")
         print(f"    position: {door_0_obj.get('position')}")
         print(f"    wall_id: {door_0_obj.get('wall_id')}")
         print(f"    target_file: {door_0_obj.get('properties', {}).get('target_file')}")
     else:
-        print(f"  door_0 НЕ НАЙДЕН в objects[]")
+        print("  door_0 НЕ НАЙДЕН в objects[]")
 
     # Check if there's a node called "door_0" in nodes dict
     if "door_0" in nodes:
-        print(f"  ✓ Узел 'door_0' существует в nodes dict")
+        print("  ✓ Узел 'door_0' существует в nodes dict")
     else:
-        print(f"  ✗ Узла 'door_0' НЕТ в nodes dict")
-        print(f"    → door_0 существует только как физический объект (objects[])")
-        print(f"    → НЕ существует как навигационный узел (nodes dict)")
+        print("  ✗ Узла 'door_0' НЕТ в nodes dict")
+        print("    → door_0 существует только как физический объект (objects[])")
+        print("    → НЕ существует как навигационный узел (nodes dict)")
 
-    print(f"\n--- Какой узел находится рядом с door_0? ---")
+    print("\n--- Какой узел находится рядом с door_0? ---")
     if door_0_obj:
         door_pos = door_0_obj.get("position", {})
         dx = door_pos.get("x", 0)
         dy = door_pos.get("y", 0)
         print(f"  door_0 position: ({dx}, {dy})")
-        print(f"  Ближайшие узлы (по расстоянию):")
+        print("  Ближайшие узлы (по расстоянию):")
         distances = []
         for nid, nd in nodes.items():
             if not isinstance(nd, dict):
@@ -177,7 +183,7 @@ def check1_entrance_connections() -> None:
         for nid, d, nx, ny in distances[:5]:
             print(f"    {nid}: ({nx}, {ny}) — distance={d:.3f}m")
 
-    print(f"""
+    print("""
 >>> ВЫВОД ПРОВЕРКИ 1:
 
   entrance — это авторский навигационный узел.
@@ -203,7 +209,7 @@ def check1_entrance_connections() -> None:
 def check2_door0_in_graph() -> None:
     _print_section("ПРОВЕРКА 2: Как door_0 учитывается в навигационном графе")
 
-    print(f"""
+    print("""
 Вопрос: door_0 — это физический объект (objects[]), который разрезает стену
         wall_2. Как это влияет на навигационный граф?
 
@@ -254,11 +260,11 @@ def check2_door0_in_graph() -> None:
     graph = result[0]
     connections = result[1]
 
-    print(f"\n--- Все рёбра в graph, связанные с entrance ---")
+    print("\n--- Все рёбра в graph, связанные с entrance ---")
     entrance_conns = connections.get("tavern:entrance", set())
     print(f"  tavern:entrance connections: {sorted(entrance_conns)}")
 
-    print(f"\n--- Все рёбра, проходящие через y=13.0 (стена wall_2 / door_0) ---")
+    print("\n--- Все рёбра, проходящие через y=13.0 (стена wall_2 / door_0) ---")
     # Find all edges where both endpoints have y near 13.0
     for src, targets in connections.items():
         src_node = graph.get(src)
@@ -281,7 +287,7 @@ def check2_door0_in_graph() -> None:
             except (TypeError, ValueError):
                 pass
 
-    print(f"\n--- Есть ли узел с y > 13.0 (вне здания)? ---")
+    print("\n--- Есть ли узел с y > 13.0 (вне здания)? ---")
     outside_nodes = []
     for nid, nref in graph.items():
         y = getattr(nref, "y", 0)
@@ -296,9 +302,9 @@ def check2_door0_in_graph() -> None:
         for nid, x, y in outside_nodes:
             print(f"    {nid}: ({x}, {y})")
     else:
-        print(f"  ✗ НЕТ узлов с y > 13.0 в graph")
-        print(f"    → Все навигационные узлы ВНУТРИ здания (y ≤ 13.0)")
-        print(f"    → НЕТ узла 'вне здания' или 'на границе территории'")
+        print("  ✗ НЕТ узлов с y > 13.0 в graph")
+        print("    → Все навигационные узлы ВНУТРИ здания (y ≤ 13.0)")
+        print("    → НЕТ узла 'вне здания' или 'на границе территории'")
 
 
 # ============================================================================
@@ -311,7 +317,7 @@ def check3_outside_nodes() -> None:
     if not tavern:
         return
 
-    print(f"""
+    print("""
 Авторская модель (по Вашим словам):
   - Tavern — здание с двумя комнатами
   - main_hall (room_0): x∈[0.5, 14.0], y∈[0.5, 13.0] — главный зал
@@ -331,10 +337,9 @@ def check3_outside_nodes() -> None:
     print(f"  rooms: {len(rooms)}")
     for r in rooms:
         if isinstance(r, dict):
-            print(f"    {r.get('id')}: x={r.get('x')}, y={r.get('y')}, "
-                  f"w={r.get('width')}, h={r.get('height')}")
+            print(f"    {r.get('id')}: x={r.get('x')}, y={r.get('y')}, w={r.get('width')}, h={r.get('height')}")
 
-    print(f"""
+    print("""
 Проверка: есть ли узлы с coords ВНЕ rooms (вне здания)?
 
   Building bounding box: x∈[0.5, 19.5], y∈[0.5, 13.0]
@@ -354,8 +359,7 @@ def check3_outside_nodes() -> None:
         y = nd.get("y", 0)
         try:
             fx, fy = float(x), float(y)
-            is_inside = (building_x_min <= fx <= building_x_max and
-                         building_y_min <= fy <= building_y_max)
+            is_inside = building_x_min <= fx <= building_x_max and building_y_min <= fy <= building_y_max
             status = "ВНУТРИ" if is_inside else "ВНЕ ЗДАНИЯ"
             print(f"    {nid}: ({fx}, {fy}) — {status}")
             if is_inside:
@@ -367,7 +371,7 @@ def check3_outside_nodes() -> None:
 
     print(f"\n  Итог: {inside_count} узлов внутри здания, {outside_count} узлов вне здания")
 
-    print(f"""
+    print("""
 >>> ВЫВОД ПРОВЕРКИ 3:
 
   В JSON НЕТ узлов, представляющих:
@@ -424,16 +428,16 @@ def check4_boundary_dwell() -> None:
     src = me_path.read_text(encoding="utf-8", errors="replace")
     lines = src.split("\n")
 
-    print(f"\n--- MovementEngine: код BOUNDARY_DWELL ---")
+    print("\n--- MovementEngine: код BOUNDARY_DWELL ---")
     for i, line in enumerate(lines, 1):
         if "boundary_dwell" in line.lower() or "BOUNDARY_DWELL" in line:
             # Show 3 lines context
             print(f"\n  L{i}: {line.rstrip()}")
             for j in range(max(0, i), min(len(lines), i + 3)):
                 if j != i - 1:
-                    print(f"  L{j+1}: {lines[j].rstrip()}")
+                    print(f"  L{j + 1}: {lines[j].rstrip()}")
 
-    print(f"""
+    print("""
 >>> Анализ BOUNDARY_DWELL:
 
   L466-468: BOUNDARY_DWELL записывает в scene_state["boundary_dwell"][npc_id]:
@@ -511,7 +515,7 @@ def check5_astar_reachability() -> None:
                 visited.add(n)
                 queue.append(n)
 
-    print(f"\n--- BFS от tavern:fireplace — все достижимые узлы ---")
+    print("\n--- BFS от tavern:fireplace — все достижимые узлы ---")
     print(f"  Старт: {start}")
     print(f"  Достижимо: {len(visited)} узлов")
     for nid in sorted(visited):
@@ -522,7 +526,7 @@ def check5_astar_reachability() -> None:
             role = getattr(nref, "role", "?")
             print(f"    {nid}: ({x}, {y}) role={role}")
 
-    print(f"\n--- Недостижимые узлы (есть в graph, но не достижимы от fireplace) ---")
+    print("\n--- Недостижимые узлы (есть в graph, но не достижимы от fireplace) ---")
     unreachable = set(graph.keys()) - visited
     if unreachable:
         for nid in sorted(unreachable):
@@ -533,11 +537,16 @@ def check5_astar_reachability() -> None:
                 role = getattr(nref, "role", "?")
                 print(f"    {nid}: ({x}, {y}) role={role}")
     else:
-        print(f"    Все узлы достижимы")
+        print("    Все узлы достижимы")
 
-    print(f"\n--- Достижимость ключевых узлов ---")
-    for target in ("tavern:entrance", "tavern:exit_east", "tavern:exit_south",
-                   "tavern:kitchen_bed_2", "tavern:kitchen"):
+    print("\n--- Достижимость ключевых узлов ---")
+    for target in (
+        "tavern:entrance",
+        "tavern:exit_east",
+        "tavern:exit_south",
+        "tavern:kitchen_bed_2",
+        "tavern:kitchen",
+    ):
         reachable = target in visited
         nref = graph.get(target)
         if nref:
@@ -547,7 +556,7 @@ def check5_astar_reachability() -> None:
         else:
             print(f"  {target}: НЕТ в graph")
 
-    print(f"""
+    print("""
 >>> ВЫВОД ПРОВЕРКИ 5:
 
   Текущий граф (с мировыми coords boundary):
@@ -574,7 +583,7 @@ def check5_astar_reachability() -> None:
 def final_separation() -> None:
     _print_section("ИТОГ: Разделение coord fix и route fix")
 
-    print(f"""
+    print("""
 =============================================================================
 ДВА ОТДЕЛЬНЫХ ДЕФЕКТА — НЕ СМЕШИВАТЬ
 =============================================================================

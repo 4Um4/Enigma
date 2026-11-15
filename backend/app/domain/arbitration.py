@@ -22,10 +22,11 @@ from typing import Optional, Tuple
 
 class CompatibilityClass(Enum):
     """Результат проверки совместимости двух намерений."""
-    COMPATIBLE = "compatible"        # Разные ресурсы тела — оба могут исполняться
-    CONFLICT = "conflict"            # Один ресурс тела — конфликт
-    CONDITIONAL = "conditional"      # Зависит от состояния тела/мира
-    UNKNOWN = "unknown"              # Недостаточно данных для классификации
+
+    COMPATIBLE = "compatible"  # Разные ресурсы тела — оба могут исполняться
+    CONFLICT = "conflict"  # Один ресурс тела — конфликт
+    CONDITIONAL = "conditional"  # Зависит от состояния тела/мира
+    UNKNOWN = "unknown"  # Недостаточно данных для классификации
 
 
 @dataclass(frozen=True)
@@ -38,14 +39,15 @@ class PhysicalEffectProfile:
     is_internal=True означает, что намерение не требует тела
     (внутренний диалог, размышление) — всегда COMPATIBLE.
     """
-    requires_movement: bool = False       # Намерение требует движения тела
-    requires_stop: bool = False           # Намерение требует неподвижности
-    requires_hands: bool = False          # Намерение требует рук
-    requires_voice: bool = False          # Намерение требует голоса
+
+    requires_movement: bool = False  # Намерение требует движения тела
+    requires_stop: bool = False  # Намерение требует неподвижности
+    requires_hands: bool = False  # Намерение требует рук
+    requires_voice: bool = False  # Намерение требует голоса
     target_position: Optional[Tuple[float, float]] = None  # Куда направлено
-    requires_proximity: bool = False      # Требует близости к цели
-    duration_ticks: int = 1               # Сколько тиков занимает (1=мгновенное)
-    is_internal: bool = False             # Внутреннее (не требует тела)
+    requires_proximity: bool = False  # Требует близости к цели
+    duration_ticks: int = 1  # Сколько тиков занимает (1=мгновенное)
+    is_internal: bool = False  # Внутреннее (не требует тела)
 
 
 def _profile_from_intent(
@@ -255,11 +257,12 @@ def check_compatibility(
 
 class ArbitrationVerdict(Enum):
     """Тип разрешения конфликта. НЕ победитель."""
-    NO_CONFLICT = "no_conflict"               # Нет конфликта (одно намерение или COMPATIBLE)
+
+    NO_CONFLICT = "no_conflict"  # Нет конфликта (одно намерение или COMPATIBLE)
     RESOLVE_RESISTANCE = "resolve_resistance"  # Обычное сопротивление (режим B)
-    RESOLVE_STRUGGLE = "resolve_struggle"      # Борьба за контроль (режим C, future)
-    DEFER_BOTH = "defer_both"                  # Отложить оба (CONDITIONAL)
-    FAIL_BOTH = "fail_both"                    # Отклонить оба (невозможно/UNKNOWN)
+    RESOLVE_STRUGGLE = "resolve_struggle"  # Борьба за контроль (режим C, future)
+    DEFER_BOTH = "defer_both"  # Отложить оба (CONDITIONAL)
+    FAIL_BOTH = "fail_both"  # Отклонить оба (невозможно/UNKNOWN)
 
 
 @dataclass(frozen=True)
@@ -269,6 +272,7 @@ class ArbitrationResult:
     Победитель определяется отдельным механизмом разрешения
     (сопротивление или борьба), не BodyArbiter.
     """
+
     verdict: ArbitrationVerdict
     player_intent_id: Optional[str]
     avatar_intent_id: Optional[str]
@@ -283,6 +287,7 @@ class ArbitrationResult:
 
 class EffectState(Enum):
     """Состояние конкретного эффекта намерения."""
+
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -299,6 +304,7 @@ class ResistanceBehavior(Enum):
     НЕ предопределён алгоритмом. Выбор поведения — отдельная
     ответственность, калибруемая через существующие характеристики.
     """
+
     RESIST_PHYSICAL = "resist_physical"
     YIELD = "yield"
     NEGOTIATE = "negotiate"
@@ -314,15 +320,17 @@ class ResistanceAssessment:
     Значения вычисляются из существующих полей NPCState/Desire.
     НЕ сравниваются с порогами в коде. Передаются в калибровку.
     """
-    desire_strength: float         # Из Desire.urgency
-    willingness_to_resist: float    # Из psyche (willpower) + body_state (stress, fatigue)
-    decision_to_struggle: float     # Из identity_integrity + история REJECTED
-    physical_capability: float      # Из body_state (fatigue, pain, shock, sleep)
+
+    desire_strength: float  # Из Desire.urgency
+    willingness_to_resist: float  # Из psyche (willpower) + body_state (stress, fatigue)
+    decision_to_struggle: float  # Из identity_integrity + история REJECTED
+    physical_capability: float  # Из body_state (fatigue, pain, shock, sleep)
 
 
 @dataclass(frozen=True)
 class ResistanceOutcome:
     """Исход сопротивления. НЕ содержит победителя."""
+
     behavior: ResistanceBehavior
     avatar_intent_id: str
     player_intent_id: str
@@ -341,10 +349,11 @@ class DerivedPhysicalIntent:
     Связь с исходным Avatar Intent сохраняется через source_intent_id.
     Владелец — UUID-A (Avatar consciousness). Тело — UUID-B (общее).
     """
-    derived_id: str               # Детерминированный ID
-    source_intent_id: str          # intent_id породившего Avatar Intent
-    owner: str                     # UUID-A (Avatar consciousness)
-    body_id: str                   # UUID-B (shared body)
-    derived_action: str            # "self_harm" / "resist_physical" / "redirect_movement"
-    physical_effect: str           # "body_damage" / "movement_redirect" / "none"
+
+    derived_id: str  # Детерминированный ID
+    source_intent_id: str  # intent_id породившего Avatar Intent
+    owner: str  # UUID-A (Avatar consciousness)
+    body_id: str  # UUID-B (shared body)
+    derived_action: str  # "self_harm" / "resist_physical" / "redirect_movement"
+    physical_effect: str  # "body_damage" / "movement_redirect" / "none"
     formed_tick: int

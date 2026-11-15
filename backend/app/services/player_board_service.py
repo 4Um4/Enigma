@@ -15,6 +15,7 @@ path: /project/backend/app/services/player_board_service.py
 Основные сущности: PlayerBoardService (write-path), чистые операции
     над BoardState (add/remove/move/link/unlink/hypotheses).
 """
+
 import json
 import os
 import re
@@ -74,6 +75,7 @@ def _empty_board() -> Dict[str, Any]:
 # коллизии id при ручной правке/повреждении файла. Переиспользование
 # существующего ID запрещено всегда.
 
+
 def _repair_counters(board: Dict[str, Any]) -> None:
     declared_card = int(board.get(_KEY_NEXT_CARD, 1))
     declared_hyp = int(board.get(_KEY_NEXT_HYP, 1))
@@ -92,15 +94,15 @@ def _repair_counters(board: Dict[str, Any]) -> None:
 
 
 def _allocate_id(
-    board: Dict[str, Any], counter_key: str, prefix: str,
+    board: Dict[str, Any],
+    counter_key: str,
+    prefix: str,
     collection_key: str,
 ) -> str:
     """Выдаёт следующий свободный id. While-цикл = защита от дублей
     при ручном JSON: счетчик после repair уже > max, но дубли внутри
     коллекции (два board-card-001 руками) не должны порождать третий."""
-    existing = {
-        str(_c.get(_KEY_ID, "")) for _c in board.get(collection_key, [])
-    }
+    existing = {str(_c.get(_KEY_ID, "")) for _c in board.get(collection_key, [])}
     _n = int(board.get(counter_key, 1))
     while f"{prefix}{_n:0{_ID_MIN_WIDTH}d}" in existing:
         _n += 1
@@ -116,18 +118,18 @@ def _find_card(board: Dict[str, Any], card_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _hyp_exists(board: Dict[str, Any], hyp_id: str) -> bool:
-    return any(
-        str(_h.get(_KEY_ID, "")) == hyp_id
-        for _h in board.get(_KEY_HYPOTHESES, [])
-    )
+    return any(str(_h.get(_KEY_ID, "")) == hyp_id for _h in board.get(_KEY_HYPOTHESES, []))
 
 
 # ══ ЧИСТЫЕ ОПЕРАЦИИ над BoardState (мутируют board, без I/O) ════
 # Нарушение контракта = громкий ValueError (L4: никаких тихих отказов).
 # Каждая операция из закрытого списка ТЗ §3 — одна функция.
 
+
 def add_card(
-    board: Dict[str, Any], ref_type: str, ref_id: str,
+    board: Dict[str, Any],
+    ref_type: str,
+    ref_id: str,
     pos: Optional[Tuple[float, float]] = None,
 ) -> str:
     """ADD_CARD. Возвращает новый card_id."""
@@ -156,20 +158,18 @@ def remove_card(board: Dict[str, Any], card_id: str) -> None:
     несуществующую карточку — та же битая ссылка, что card→hyp:
     инвариант целостности собственного файла."""
     _before = len(board.get(_KEY_CARDS, []))
-    board[_KEY_CARDS] = [
-        _c for _c in board.get(_KEY_CARDS, [])
-        if str(_c.get(_KEY_ID, "")) != card_id
-    ]
+    board[_KEY_CARDS] = [_c for _c in board.get(_KEY_CARDS, []) if str(_c.get(_KEY_ID, "")) != card_id]
     if len(board[_KEY_CARDS]) == _before:
         raise ValueError(f"[BOARD] Карточка {card_id} не существует")
     board[_KEY_LINKS] = [
-        _l for _l in board.get(_KEY_LINKS, [])
-        if _l.get(_KEY_FROM) != card_id and _l.get(_KEY_TO) != card_id
+        _l for _l in board.get(_KEY_LINKS, []) if _l.get(_KEY_FROM) != card_id and _l.get(_KEY_TO) != card_id
     ]
 
 
 def move_card(
-    board: Dict[str, Any], card_id: str, pos: Tuple[float, float],
+    board: Dict[str, Any],
+    card_id: str,
+    pos: Tuple[float, float],
 ) -> None:
     """MOVE_CARD: координаты на «столе» (вердикт В2)."""
     _card = _find_card(board, card_id)
@@ -188,15 +188,9 @@ def link(board: Dict[str, Any], from_id: str, to_id: str, kind: str) -> str:
     if _find_card(board, to_id) is None:
         raise ValueError(f"[BOARD] Карточка {to_id} не существует")
     for _l in board.get(_KEY_LINKS, []):
-        if (
-            _l.get(_KEY_FROM) == from_id
-            and _l.get(_KEY_TO) == to_id
-            and _l.get(_KEY_KIND) == kind
-        ):
+        if _l.get(_KEY_FROM) == from_id and _l.get(_KEY_TO) == to_id and _l.get(_KEY_KIND) == kind:
             return "noop"
-    board[_KEY_LINKS].append(
-        {_KEY_FROM: from_id, _KEY_TO: to_id, _KEY_KIND: kind}
-    )
+    board[_KEY_LINKS].append({_KEY_FROM: from_id, _KEY_TO: to_id, _KEY_KIND: kind})
     return "linked"
 
 
@@ -205,12 +199,9 @@ def unlink(board: Dict[str, Any], from_id: str, to_id: str, kind: str) -> str:
     ребра — безопасный no-op, не ошибка."""
     _before = len(board.get(_KEY_LINKS, []))
     board[_KEY_LINKS] = [
-        _l for _l in board.get(_KEY_LINKS, [])
-        if not (
-            _l.get(_KEY_FROM) == from_id
-            and _l.get(_KEY_TO) == to_id
-            and _l.get(_KEY_KIND) == kind
-        )
+        _l
+        for _l in board.get(_KEY_LINKS, [])
+        if not (_l.get(_KEY_FROM) == from_id and _l.get(_KEY_TO) == to_id and _l.get(_KEY_KIND) == kind)
     ]
     return "unlinked" if len(board[_KEY_LINKS]) < _before else "noop"
 
@@ -221,15 +212,15 @@ def create_hypothesis(board: Dict[str, Any], text: str) -> str:
     if not text or not text.strip():
         raise ValueError("[BOARD] Гипотеза без текста запрещена")
     _hyp_id = _allocate_id(board, _KEY_NEXT_HYP, _HYP_PREFIX, _KEY_HYPOTHESES)
-    board[_KEY_HYPOTHESES].append(
-        {_KEY_ID: _hyp_id, _KEY_TEXT: text, _KEY_STATUS: "open"}
-    )
+    board[_KEY_HYPOTHESES].append({_KEY_ID: _hyp_id, _KEY_TEXT: text, _KEY_STATUS: "open"})
     return _hyp_id
 
 
 def edit_hypothesis(
-    board: Dict[str, Any], hyp_id: str,
-    text: Optional[str] = None, status: Optional[str] = None,
+    board: Dict[str, Any],
+    hyp_id: str,
+    text: Optional[str] = None,
+    status: Optional[str] = None,
 ) -> None:
     """EDIT_HYPOTHESIS. Множество статусов НЕ ограничиваем: единственный
     засвидетельствованный ТЗ статус — «open»; вводить enum без второго
@@ -252,29 +243,22 @@ def delete_hypothesis(board: Dict[str, Any], hyp_id: str) -> None:
     на неё + все рёбра этих карточек. Каскад не трогает ничего ВНЕ
     board_state.json по построению (функция видит только board)."""
     _before = len(board.get(_KEY_HYPOTHESES, []))
-    board[_KEY_HYPOTHESES] = [
-        _h for _h in board.get(_KEY_HYPOTHESES, [])
-        if str(_h.get(_KEY_ID, "")) != hyp_id
-    ]
+    board[_KEY_HYPOTHESES] = [_h for _h in board.get(_KEY_HYPOTHESES, []) if str(_h.get(_KEY_ID, "")) != hyp_id]
     if len(board[_KEY_HYPOTHESES]) == _before:
         raise ValueError(f"[BOARD] Гипотеза {hyp_id} не существует")
     _doomed = {
         str(_c.get(_KEY_ID, ""))
         for _c in board.get(_KEY_CARDS, [])
-        if _c.get(_KEY_REF_TYPE) == "hypothesis"
-        and _c.get(_KEY_REF_ID) == hyp_id
+        if _c.get(_KEY_REF_TYPE) == "hypothesis" and _c.get(_KEY_REF_ID) == hyp_id
     }
-    board[_KEY_CARDS] = [
-        _c for _c in board.get(_KEY_CARDS, [])
-        if str(_c.get(_KEY_ID, "")) not in _doomed
-    ]
+    board[_KEY_CARDS] = [_c for _c in board.get(_KEY_CARDS, []) if str(_c.get(_KEY_ID, "")) not in _doomed]
     board[_KEY_LINKS] = [
-        _l for _l in board.get(_KEY_LINKS, [])
-        if _l.get(_KEY_FROM) not in _doomed and _l.get(_KEY_TO) not in _doomed
+        _l for _l in board.get(_KEY_LINKS, []) if _l.get(_KEY_FROM) not in _doomed and _l.get(_KEY_TO) not in _doomed
     ]
 
 
 # ══ WRITE-PATH (единственный писатель файла) ════════════════════
+
 
 class PlayerBoardService:
     """Владелец board_state.json. Lock per campaign: операции приходят
@@ -311,9 +295,7 @@ class PlayerBoardService:
         try:
             _data = json.loads(_path.read_text(encoding="utf-8-sig"))
         except json.JSONDecodeError as _e:
-            raise ValueError(
-                f"[BOARD] Повреждённый {_path}: {_e}"
-            ) from _e
+            raise ValueError(f"[BOARD] Повреждённый {_path}: {_e}") from _e
         if not isinstance(_data, dict):
             raise ValueError(f"[BOARD] {_path}: корень не dict")
         _board = _empty_board()
@@ -325,13 +307,12 @@ class PlayerBoardService:
         self._ensure_campaign_dir(campaign_id)
         _path = self._board_path(campaign_id)
         _tmp = _path.with_name(_path.name + ".tmp")
-        _tmp.write_text(
-            json.dumps(board, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        _tmp.write_text(json.dumps(board, ensure_ascii=False, indent=2), encoding="utf-8")
         os.replace(_tmp, _path)
 
     def mutate(
-        self, campaign_id: str,
+        self,
+        campaign_id: str,
         operation: Callable[[Dict[str, Any]], Any],
     ) -> Any:
         """Единственный write-path: lock → load → чистая операция →

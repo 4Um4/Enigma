@@ -16,12 +16,7 @@ from app.services.player_cognition.player_belief_model import PlayerBeliefModel
 class EvaluationEngine:
     """Сравнивает PlayerBeliefModel с TruthState (Post-game only)."""
 
-    def evaluate(
-        self,
-        truth: TruthState,
-        beliefs: PlayerBeliefModel,
-        observations: ObservationLog
-    ) -> EvaluationResult:
+    def evaluate(self, truth: TruthState, beliefs: PlayerBeliefModel, observations: ObservationLog) -> EvaluationResult:
         secrets_total = len(truth.secrets)
         secrets_identified = 0
         secrets_misidentified = 0
@@ -46,8 +41,9 @@ class EvaluationEngine:
             was_correct = False
             was_misidentified = False
 
-            if (secret_id in truth.discovered_secrets) or \
-               (belief and belief.belief_value == BeliefValue.TRUE and confidence >= 0.8):
+            if (secret_id in truth.discovered_secrets) or (
+                belief and belief.belief_value == BeliefValue.TRUE and confidence >= 0.8
+            ):
                 secrets_identified += 1
                 was_correct = True
             elif belief and belief.belief_value == BeliefValue.FALSE and confidence <= -0.8:
@@ -56,13 +52,15 @@ class EvaluationEngine:
             else:
                 secrets_missed += 1
 
-            per_secret.append(SecretEvaluation(
-                secret_id=secret_id,
-                net_confidence=confidence,
-                was_correct=was_correct,
-                was_misidentified=was_misidentified,
-                discovery_methods=tuple(sorted(list(methods)))
-            ))
+            per_secret.append(
+                SecretEvaluation(
+                    secret_id=secret_id,
+                    net_confidence=confidence,
+                    was_correct=was_correct,
+                    was_misidentified=was_misidentified,
+                    discovery_methods=tuple(sorted(list(methods))),
+                )
+            )
 
         return EvaluationResult(
             secrets_total=secrets_total,
@@ -70,7 +68,7 @@ class EvaluationEngine:
             secrets_misidentified=secrets_misidentified,
             secrets_missed=secrets_missed,
             causal_links_total=len(truth.relations),
-            causal_links_identified=0, # Отложено до PlayerCausalModel
+            causal_links_identified=0,  # Отложено до PlayerCausalModel
             methods_used=methods_used,
-            per_secret_results=per_secret
+            per_secret_results=per_secret,
         )

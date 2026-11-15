@@ -19,9 +19,7 @@ class _SessionMemory:
     def __init__(self) -> None:
         self._sessions: dict = {}
 
-    def get_dialogue_session(
-        self, campaign_id: str, npc_id: str, partner_id: str = "player"
-    ) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         key = (campaign_id, npc_id, partner_id)
         if key not in self._sessions:
             self._sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)

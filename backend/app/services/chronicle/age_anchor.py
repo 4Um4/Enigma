@@ -11,6 +11,7 @@ AgeAnchor — frozen dataclass с kind и source_span. extract_age_anchors
 Не делает: regex под конкретную фразу; правило 146-57; универсальное
 распределение anchors по EVENT'ам.
 """
+
 from __future__ import annotations
 
 import re
@@ -23,20 +24,22 @@ class AgeAnchorKind(str, Enum):
     """Семантика возрастного якоря (CCH-15 P0: 4 формы времени)."""
 
     # Точка в прошлом
-    CURRENT_AGE = "current_age"   # «N лет» — текущий возраст на game_start
-    AT_AGE = "at_age"              # «в N лет» — возраст на момент события
-    SINCE_AGE = "since_age"       # «с N лет» — возраст начала периода
-    YEARS_AGO = "years_ago"       # «N лет назад» / «N лет тому назад» — точка в прошлом от game_start
+    CURRENT_AGE = "current_age"  # «N лет» — текущий возраст на game_start
+    AT_AGE = "at_age"  # «в N лет» — возраст на момент события
+    SINCE_AGE = "since_age"  # «с N лет» — возраст начала периода
+    YEARS_AGO = "years_ago"  # «N лет назад» / «N лет тому назад» — точка в прошлом от game_start
     # Длительность события
-    DURATION = "duration"          # «уже N лет» / «в течение N лет» / «из которых N лет» — длительность
+    DURATION = "duration"  # «уже N лет» / «в течение N лет» / «из которых N лет» — длительность
     # Временной интервал (между событиями)
-    INTERVAL = "interval"          # «через N лет» / «N лет спустя» / «год спустя» — интервал
+    INTERVAL = "interval"  # «через N лет» / «N лет спустя» / «год спустя» — интервал
     # Конец периода (относительная точка)
     END_OF_PERIOD = "end_of_period"  # «к концу того года» / «к концу периода» — конец периода (value=0, маркер)
     # Повторяемость события
-    REPEAT = "repeat"              # «каждый год» / «каждые N лет» / «регулярно» / «постоянно» — повтор (value=0=N лет, 0=без периода)
+    REPEAT = (
+        "repeat"  # «каждый год» / «каждые N лет» / «регулярно» / «постоянно» — повтор (value=0=N лет, 0=без периода)
+    )
     # Неоднозначное
-    AMBIGUOUS = "ambiguous"       # «N лет» без контекста — нельзя классифицировать
+    AMBIGUOUS = "ambiguous"  # «N лет» без контекста — нельзя классифицировать
 
 
 @dataclass(frozen=True)
@@ -233,4 +236,3 @@ def age_anchors_to_hint(anchors: List[AgeAnchor]) -> str:
                     "НЕ years_ago, НЕ duration_years."
                 )
     return "\n".join(lines) + "\n\n"
-

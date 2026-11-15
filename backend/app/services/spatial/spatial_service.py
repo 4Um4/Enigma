@@ -67,9 +67,7 @@ class SpatialService:
         else:
             _loaded = load_editor_json(campaign_id, location_id)
             if not _loaded:
-                logger.warning(
-                    f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}"
-                )
+                logger.warning(f"[SPATIAL] editor JSON не найден для {campaign_id}/{location_id}")
                 return None
             editor_data = _loaded
 
@@ -82,7 +80,16 @@ class SpatialService:
         _result_list: List[Any] = list(result)
         while len(_result_list) < 8:
             _result_list.append(None)
-        graph, connections, alias_map, boundary_map, rooms_geometry, spatial_walls, spatial_obstacles, affordance_objects = _result_list
+        (
+            graph,
+            connections,
+            alias_map,
+            boundary_map,
+            rooms_geometry,
+            spatial_walls,
+            spatial_obstacles,
+            affordance_objects,
+        ) = _result_list
         if boundary_map is None:
             boundary_map = {}
         if rooms_geometry is None:
@@ -115,12 +122,8 @@ class SpatialService:
         alias_map: Dict[str, str],
         overlay: SpatialOverlay,
         location_id: str = "",  # Сохраняем принадлежность к локации для динамического резолва
-        boundary_map: Optional[
-            Dict[str, Dict[str, Any]]
-        ] = None,  # ДОЛГ 6.2: boundary node → neighbor info
-        rooms_geometry: Optional[
-            Dict[str, List[Tuple[float, float]]]
-        ] = None,  # ETKE-IK v1
+        boundary_map: Optional[Dict[str, Dict[str, Any]]] = None,  # ДОЛГ 6.2: boundary node → neighbor info
+        rooms_geometry: Optional[Dict[str, List[Tuple[float, float]]]] = None,  # ETKE-IK v1
         spatial_walls: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
         spatial_obstacles: Optional[List[Dict[str, Any]]] = None,  # ADR-O-324
         affordance_objects: Optional[List[Dict[str, Any]]] = None,  # ADR-O-330
@@ -129,9 +132,7 @@ class SpatialService:
         self._connections = connections  # canonical_id → set[canonical_id]
         self._alias_map = alias_map  # legacy_id → canonical_id
         self._overlay = overlay
-        self._location_id = (
-            location_id  # ADR-052: Сохраняем для мультисценового резолва
-        )
+        self._location_id = location_id  # ADR-052: Сохраняем для мультисценового резолва
         self._boundary_map = boundary_map or {}  # ДОЛГ 6.2
         self._rooms_geometry = rooms_geometry or {}  # ETKE-IK v1
         self._spatial_walls = spatial_walls or []  # ADR-O-324
@@ -148,7 +149,7 @@ class SpatialService:
         from app.services.spatial.geometry_kernel import point_to_rect_min_dist_sq, point_to_segment_dist_sq
 
         cx, cy = center_xy
-        r_sq = perception_radius ** 2
+        r_sq = perception_radius**2
 
         def _seg_in_range(x1: float, y1: float, x2: float, y2: float) -> bool:
             return point_to_segment_dist_sq((cx, cy), (x1, y1), (x2, y2)) <= r_sq
@@ -158,7 +159,8 @@ class SpatialService:
 
         walls = tuple(
             WallSegment(w["x1"], w["y1"], w["x2"], w["y2"])
-            for w in self._spatial_walls if _seg_in_range(w["x1"], w["y1"], w["x2"], w["y2"])
+            for w in self._spatial_walls
+            if _seg_in_range(w["x1"], w["y1"], w["x2"], w["y2"])
         )
         obstacles = tuple(
             Obstacle(o.get("id", "unknown"), o["x"], o["y"], o["w"], o["h"], o.get("height", 1.0))
@@ -347,16 +349,15 @@ class SpatialService:
             return None
 
         candidates = [
-            obj for obj in self._affordance_objects
-            if affordance_type in obj.get("affordances", [])
-            and not obj.get("destroyed", False)
+            obj
+            for obj in self._affordance_objects
+            if affordance_type in obj.get("affordances", []) and not obj.get("destroyed", False)
         ]
 
         # Фильтр по владельцу (через теги owner:orm или поле owner)
         if owner:
             candidates = [
-                obj for obj in candidates
-                if f"owner:{owner}" in obj.get("tags", []) or obj.get("owner") == owner
+                obj for obj in candidates if f"owner:{owner}" in obj.get("tags", []) or obj.get("owner") == owner
             ]
 
         if not candidates:
@@ -364,7 +365,7 @@ class SpatialService:
 
         # Скоринг по дистанции до NPC
         best_obj = None
-        min_dist_sq = float('inf')
+        min_dist_sq = float("inf")
         ox, oy = origin_xy
 
         for obj in candidates:
@@ -417,9 +418,7 @@ class SpatialService:
             # Fallback: TRANSITION узлы для выхода из зоны
             if origin_zone:
                 transitions = [
-                    n
-                    for n in self._graph.values()
-                    if n.role == NodeRole.TRANSITION and n.zone_id == origin_zone
+                    n for n in self._graph.values() if n.role == NodeRole.TRANSITION and n.zone_id == origin_zone
                 ]
                 if transitions:
                     candidates = transitions
@@ -453,9 +452,7 @@ class SpatialService:
         # 5. Скоринг
         scored = []
         for node in candidates:
-            score = self._compute_score(
-                node, origin_xy, filters, urgency, requesting_npc_id
-            )
+            score = self._compute_score(node, origin_xy, filters, urgency, requesting_npc_id)
             scored.append((score, node.node_id, node))
 
         # Детерминированная сортировка: score ↓, node_id ↑
@@ -539,7 +536,9 @@ class SpatialService:
             logger.debug(f"[FIND_PATH_DIAG] SUCCESS: start_node is target. node={start_node.node_id}")
             return [start_node]
 
-        logger.debug(f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}")
+        logger.debug(
+            f"[FIND_PATH_DIAG] start_xy={start_xy} target={target_id} start_node={start_node.node_id} zone={target_node.zone_id}"
+        )
 
         # Кэш
         cache_key = (
@@ -562,7 +561,9 @@ class SpatialService:
         g_score: Dict[str, float] = {start_node.node_id: 0.0}
 
         # SLEEP_FIX: Отладка A*
-        logger.debug(f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}")
+        logger.debug(
+            f"[FIND_PATH_ASTAR] start={start_node.node_id} target={target_id} start_connections={self._connections.get(start_node.node_id, set())}"
+        )
 
         while open_set:
             _, _, current_id = heapq.heappop(open_set)
@@ -586,9 +587,7 @@ class SpatialService:
 
                 # S129 FIX: P4-04 — A* obstacle-aware.
                 # Если ребро заблокировано геометрией (стена, стол), считаем его непроходимым.
-                if self.is_segment_blocked(
-                    current_node.x, current_node.y, neighbor_node.x, neighbor_node.y
-                ):
+                if self.is_segment_blocked(current_node.x, current_node.y, neighbor_node.x, neighbor_node.y):
                     continue
 
                 edge_cost = self._edge_cost(current_node, neighbor_node, urgency)
@@ -604,16 +603,13 @@ class SpatialService:
                     heapq.heappush(open_set, (f, counter, neighbor_id))
 
         # Путь не найден
-        logger.warning(
-            f"[SPATIAL] Путь не найден: {start_node.node_id} → {target_id} "
-            f"(urgency={urgency.value})"
+        logger.warning(f"[SPATIAL] Путь не найден: {start_node.node_id} → {target_id} (urgency={urgency.value})")
+        logger.debug(
+            f"[FIND_PATH_DIAG] FAIL: A* no path. start={start_node.node_id} target={target_id} connections={self._connections.get(start_node.node_id, set())}"
         )
-        logger.debug(f"[FIND_PATH_DIAG] FAIL: A* no path. start={start_node.node_id} target={target_id} connections={self._connections.get(start_node.node_id, set())}")
         return []
 
-    def _edge_cost(
-        self, from_node: NodeRef, to_node: NodeRef, urgency: Urgency
-    ) -> float:
+    def _edge_cost(self, from_node: NodeRef, to_node: NodeRef, urgency: Urgency) -> float:
         """Динамическая стоимость ребра. Дистанция + overlay-модификаторы."""
         base_dist = self.world_distance(from_node.xy, to_node.xy)
 
@@ -631,9 +627,7 @@ class SpatialService:
 
         return cost
 
-    def _reconstruct_path(
-        self, came_from: Dict[str, str], current_id: str
-    ) -> List[NodeRef]:
+    def _reconstruct_path(self, came_from: Dict[str, str], current_id: str) -> List[NodeRef]:
         """Восстанавливает путь из came_from маппинга."""
         path_ids = [current_id]
         while current_id in came_from:
@@ -660,9 +654,7 @@ class SpatialService:
                 best_node = node
         return best_node
 
-    def get_nearest_safe_node(
-        self, zone_id: str, origin_xy: Tuple[float, float]
-    ) -> Optional[NodeRef]:
+    def get_nearest_safe_node(self, zone_id: str, origin_xy: Tuple[float, float]) -> Optional[NodeRef]:
         """S-03.1: Возвращает ближайший узел, не изолированный и не находящийся внутри walk=False препятствия."""
         candidates = [n for n in self._graph.values() if n.zone_id == zone_id]
         if not candidates:
@@ -765,9 +757,7 @@ class SpatialService:
         for node_id, node_ref in self._graph.items():
             connections = self._connections.get(node_id, set())
             # Границы — это те связи, которые ведут в другие существующие узлы (кластеры)
-            boundaries = frozenset(
-                conn_id for conn_id in connections if conn_id in self._graph
-            )
+            boundaries = frozenset(conn_id for conn_id in connections if conn_id in self._graph)
             clusters[node_id] = ClusterDef(
                 cluster_id=node_id,
                 boundary_cells=boundaries,

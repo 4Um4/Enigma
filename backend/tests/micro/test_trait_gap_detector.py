@@ -18,9 +18,7 @@ from app.services.chronicle import trait_gap_detector
 
 
 def _doc(npc: str, entries) -> ChronicleDocument:
-    return ChronicleDocument(
-        chronicle_id=npc, npc_ref=npc, entries=tuple(entries), canonical=False
-    )
+    return ChronicleDocument(chronicle_id=npc, npc_ref=npc, entries=tuple(entries), canonical=False)
 
 
 def _portret(eid: str, statement: str, traits) -> ChronicleEntry:

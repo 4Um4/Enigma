@@ -16,20 +16,30 @@ class TestP707DilemmaEngine:
     def engine(self) -> DilemmaEngine:
         e = DilemmaEngine()
         side_a = DilemmaSide(
-            label="Сдать страже", description="Арест", npcs_affected=["guard_borko"],
-            npcs_betrayed=["maid_lusya"], moral_weight=0.8,
-            consequences=[FateConsequence(npc_id="maid_lusya", outcome=FateOutcome.IMPRISONED, description="Арестована", tick_delay=0)]
+            label="Сдать страже",
+            description="Арест",
+            npcs_affected=["guard_borko"],
+            npcs_betrayed=["maid_lusya"],
+            moral_weight=0.8,
+            consequences=[
+                FateConsequence(
+                    npc_id="maid_lusya", outcome=FateOutcome.IMPRISONED, description="Арестована", tick_delay=0
+                )
+            ],
         )
         side_b = DilemmaSide(
-            label="Молчать", description="Прикрыть", npcs_affected=["maid_lusya"],
-            npcs_betrayed=[], moral_weight=0.3,
-            consequences=[]
+            label="Молчать",
+            description="Прикрыть",
+            npcs_affected=["maid_lusya"],
+            npcs_betrayed=[],
+            moral_weight=0.3,
+            consequences=[],
         )
         dilemma = MoralDilemma(
             dilemma_id="lusya_basement_dilemma",
             trigger_condition="lusya_basement",
             sides={DilemmaChoice.SIDE_A: side_a, DilemmaChoice.SIDE_B: side_b},
-            philosophical_question="Что важнее: закон или милосердие?"
+            philosophical_question="Что важнее: закон или милосердие?",
         )
         e.register_dilemma(dilemma)
         return e
@@ -54,7 +64,7 @@ class TestP707DilemmaEngine:
         """Инвариант: Разрешение необратимо."""
         engine.check_triggers(["lusya_basement"])
         engine.resolve("lusya_basement_dilemma", DilemmaChoice.SIDE_A, tick=1)
-        
+
         with pytest.raises(ValueError, match="already resolved"):
             engine.resolve("lusya_basement_dilemma", DilemmaChoice.SIDE_A, tick=2)
 
@@ -62,7 +72,7 @@ class TestP707DilemmaEngine:
         """Разрешение возвращает DilemmaResolution с последствиями."""
         engine.check_triggers(["lusya_basement"])
         resolution = engine.resolve("lusya_basement_dilemma", DilemmaChoice.SIDE_A, tick=5)
-        
+
         assert resolution.choice == DilemmaChoice.SIDE_A
         assert resolution.tick == 5
         assert len(resolution.consequences) == 1

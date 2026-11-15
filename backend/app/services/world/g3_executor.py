@@ -105,9 +105,7 @@ def execute_object_action(
         # без wo_-identity); ownership не принимается, путь вызывающего
         # не меняется.
         return G3Outcome(G3Status.G3_SKIP, reason="object_unresolved")
-    _result = WorldObjectStore.apply_transition(
-        scene_state, target_id, _world_action, actor_id
-    )
+    _result = WorldObjectStore.apply_transition(scene_state, target_id, _world_action, actor_id)
     _outcome = G3Outcome(
         status=_VERDICT_TO_STATUS[_result.verdict],
         reason=_result.reason,

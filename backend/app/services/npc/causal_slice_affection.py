@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Калибровки (НЕ законы): пороги согласованы с SSOT-шкалой 0-100
 WARM_TRUST_GATE: float = 40.0
 WARM_AFFECTION_GATE: float = 40.0
-DISTRESS_GATE: float = 50.0    # hunger B ≥ 50 (зеркало NEED_GATE R6)
+DISTRESS_GATE: float = 50.0  # hunger B ≥ 50 (зеркало NEED_GATE R6)
 REACH_RADIUS: float = 5.0
 VIABILITY_GATE: float = 0.1
 
@@ -57,14 +57,10 @@ class AffectionDesiredChangeProducer:
                 if not _axes:
                     continue
                 _trust = float(_axes.get("trust", 0.0))
-                _warm_axis = float(
-                    _axes.get("attraction", _axes.get("affection", 0.0))
-                )
+                _warm_axis = float(_axes.get("attraction", _axes.get("affection", 0.0)))
                 if _trust < WARM_TRUST_GATE or _warm_axis < WARM_AFFECTION_GATE:
                     continue
-                _warmth = _clamp01(
-                    (_trust / 100.0 + _warm_axis / 100.0) / 2.0
-                )
+                _warmth = _clamp01((_trust / 100.0 + _warm_axis / 100.0) / 2.0)
                 if _warmth > best_warmth:
                     best_warmth, best_tid = _warmth, _tid
             if best_tid is None:
@@ -98,13 +94,9 @@ class AffectionDesiredChangeProducer:
             _res_factor = 1.0 if _own_food else 0.3
             w["talk"] = round(best_warmth * _distress * _res_factor, 4)
             # купить ДЛЯ B: деньги × тепло × distress
-            w["trade"] = round(
-                (1.0 if _afford else 0.0) * best_warmth * _distress * 0.8, 4
-            )
+            w["trade"] = round((1.0 if _afford else 0.0) * best_warmth * _distress * 0.8, 4)
             # тяжёлый случай: привлечь помощь (distress > 0.6)
-            w["call_for_help"] = round(
-                best_warmth * max(0.0, _distress - 0.6) * 0.5, 4
-            )
+            w["call_for_help"] = round(best_warmth * max(0.0, _distress - 0.6) * 0.5, 4)
 
             _sum = sum(w.values())
             if _sum > 1.0:

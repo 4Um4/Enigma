@@ -19,8 +19,12 @@ R2-TAVERN-BOUNDARY-CONTRACT probe v5 — READ-ONLY SOURCE ARCHAEOLOGY.
   - Создание новых узлов/дверей
   - Исправление GraphCompiler
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -103,7 +107,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -176,7 +180,7 @@ def step2_graph_compiler_validate_connectivity() -> None:
             print(f"\nFound at L{start + 1} to L{end}")
             lines = src.split("\n")
             for j in range(start, end):
-                print(f"L{j+1:4d}: {lines[j]}")
+                print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -202,7 +206,7 @@ def step3_graph_compiler_create_boundary_nodes() -> None:
     print()
     lines = src.split("\n")
     for j in range(start, end):
-        print(f"L{j+1:4d}: {lines[j]}")
+        print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -225,7 +229,7 @@ def step4_spatial_service_get_furthest() -> None:
     print()
     lines = src.split("\n")
     for j in range(start, end):
-        print(f"L{j+1:4d}: {lines[j]}")
+        print(f"L{j + 1:4d}: {lines[j]}")
 
 
 # ============================================================================
@@ -342,17 +346,33 @@ METHOD:
     func_start, func_end = bounds
     body = lines[func_start:func_end]
 
-    print(f"\n--- Branching logic analysis (in _create_boundary_nodes, L{func_start+1}–L{func_end}) ---")
+    print(f"\n--- Branching logic analysis (in _create_boundary_nodes, L{func_start + 1}–L{func_end}) ---")
 
     branching_keywords = [
-        "if ", "elif ", "else:",
-        "in self._graph", "in graph", "in nodes",
-        "setdefault", "already exists", "skip", "continue",
-        "raise ", "warn", "already present",
-        "exit_id", "boundary_id",
-        "graph[", "graph.add", "graph.setdefault",
-        ".x = ", ".y = ", "node.x", "node.y",
-        "NodeRef(", "boundary_node",
+        "if ",
+        "elif ",
+        "else:",
+        "in self._graph",
+        "in graph",
+        "in nodes",
+        "setdefault",
+        "already exists",
+        "skip",
+        "continue",
+        "raise ",
+        "warn",
+        "already present",
+        "exit_id",
+        "boundary_id",
+        "graph[",
+        "graph.add",
+        "graph.setdefault",
+        ".x = ",
+        ".y = ",
+        "node.x",
+        "node.y",
+        "NodeRef(",
+        "boundary_node",
     ]
     found_lines = []
     for k, line in enumerate(body):
@@ -370,11 +390,11 @@ METHOD:
 
     print("\n--- Verdict on Experiment A ---")
     # Look specifically for "if X in graph" or "setdefault"
-    has_skip_pattern = any("in self._graph" in l or "in graph" in l or "already" in l.lower()
-                           for _, _, l in found_lines)
+    has_skip_pattern = any(
+        "in self._graph" in l or "in graph" in l or "already" in l.lower() for _, _, l in found_lines
+    )
     has_setdefault = any("setdefault" in l for _, _, l in found_lines)
-    has_unconditional_add = any("graph[" in l and "=" in l and "setdefault" not in l
-                                for _, _, l in found_lines)
+    has_unconditional_add = any("graph[" in l and "=" in l and "setdefault" not in l for _, _, l in found_lines)
 
     if has_skip_pattern:
         print("  >>> ДОКАЗАНО: функция проверяет существование узла перед добавлением.")
@@ -426,10 +446,20 @@ METHOD:
     func_start, func_end = bounds
     body = lines[func_start:func_end]
 
-    print(f"\n--- adjacency / boundary_map / entry_node_hint references in _create_boundary_nodes ---")
-    keywords_b = ["adjacency", "boundary_map", "entry_node", "entry_direction",
-                  "neighbor_loc", "market_square", "exit_south", "exit_east",
-                  "exit_north", "exit_west", "boundary"]
+    print("\n--- adjacency / boundary_map / entry_node_hint references in _create_boundary_nodes ---")
+    keywords_b = [
+        "adjacency",
+        "boundary_map",
+        "entry_node",
+        "entry_direction",
+        "neighbor_loc",
+        "market_square",
+        "exit_south",
+        "exit_east",
+        "exit_north",
+        "exit_west",
+        "boundary",
+    ]
     for k, line in enumerate(body):
         for kw in keywords_b:
             if kw in line:
@@ -508,14 +538,19 @@ HOW TO VERIFY:
         for i, line in enumerate(lines, 1):
             # Look for door-wall binding logic
             line_lower = line.lower()
-            if (("wall_id" in line_lower or "door_id" in line_lower)
-                and ("door" in line_lower or "wall" in line_lower)):
+            if ("wall_id" in line_lower or "door_id" in line_lower) and ("door" in line_lower or "wall" in line_lower):
                 rel = py_file.relative_to(_BACKEND)
                 print(f"  {rel} L{i}: {line.rstrip()}")
-            elif "door" in line_lower and "wall" in line_lower and (
-                "matches" in line_lower or "overlap" in line_lower or
-                "intersect" in line_lower or "on_wall" in line_lower or
-                "passable" in line_lower
+            elif (
+                "door" in line_lower
+                and "wall" in line_lower
+                and (
+                    "matches" in line_lower
+                    or "overlap" in line_lower
+                    or "intersect" in line_lower
+                    or "on_wall" in line_lower
+                    or "passable" in line_lower
+                )
             ):
                 rel = py_file.relative_to(_BACKEND)
                 print(f"  {rel} L{i}: {line.rstrip()}")
@@ -576,12 +611,10 @@ METHOD:
     func_start, func_end = bounds
     body = lines[func_start:func_end]
 
-    print(f"\n--- get_furthest body analysis (L{func_start+1}–L{func_end}) ---")
+    print(f"\n--- get_furthest body analysis (L{func_start + 1}–L{func_end}) ---")
 
     # Candidate filter
     print("\n--- Candidate filter (role/type/boundary/exit_) ---")
-    filter_keywords = ["role", "boundary", "exit_", "type", "node_id",
-                       "for ", "if ", "candidate", "tag"]
     found_filter = False
     for k, line in enumerate(body):
         line_lower = line.lower()
@@ -593,8 +626,7 @@ METHOD:
 
     # Distance metric
     print("\n--- Distance metric (euclidean/manhattan) ---")
-    dist_keywords = ["dist", "distance", "math.sqrt", "math.hypot", "** 2", "**2",
-                    "abs(", "hypot", "norm"]
+    dist_keywords = ["dist", "distance", "math.sqrt", "math.hypot", "** 2", "**2", "abs(", "hypot", "norm"]
     found_dist = False
     for k, line in enumerate(body):
         for kw in dist_keywords:
@@ -607,9 +639,21 @@ METHOD:
 
     # Reachability filter
     print("\n--- Reachability filter (reachable/astar/bfs/connected) ---")
-    reach_keywords = ["reachable", "reachable_from", "connected", "bfs", "astar",
-                      "a_star", "path_to", "has_path", "can_reach", "is_reachable",
-                      "filter", "exclude", "skip"]
+    reach_keywords = [
+        "reachable",
+        "reachable_from",
+        "connected",
+        "bfs",
+        "astar",
+        "a_star",
+        "path_to",
+        "has_path",
+        "can_reach",
+        "is_reachable",
+        "filter",
+        "exclude",
+        "skip",
+    ]
     found_reach = False
     for k, line in enumerate(body):
         line_lower = line.lower()
@@ -637,7 +681,7 @@ METHOD:
                 print(f"\n  L{i}: {line.rstrip()}")
                 for j in range(max(0, i - 3), min(len(rlines), i + 5)):
                     if j != i - 1:
-                        print(f"  L{j+1}: {rlines[j].rstrip()}")
+                        print(f"  L{j + 1}: {rlines[j].rstrip()}")
                 break
 
     print("\n--- Verdict on Experiment D ---")
@@ -730,7 +774,7 @@ def main() -> int:
     print("R2-TAVERN-BOUNDARY-CONTRACT probe v5 — READ-ONLY SOURCE ARCHAEOLOGY")
     print(f"Map file: {MAP_FILE}")
     print(f"Output file: {OUT_FILE}")
-    print(f"Mode: NO GameLoop, NO scene init, NO CCH_SEED runtime noise.")
+    print("Mode: NO GameLoop, NO scene init, NO CCH_SEED runtime noise.")
     print("=" * 78)
 
     try:

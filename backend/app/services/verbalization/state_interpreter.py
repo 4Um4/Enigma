@@ -220,11 +220,7 @@ class StateInterpreter:
 
     def interpret(self, state: NPCState) -> NPCStateDescription:
         """Основной метод: NPCState → человекочитаемое описание."""
-        hp_ratio = (
-            state.effective_hp / state.effective_max_hp
-            if state.effective_max_hp > 0
-            else 1.0
-        )
+        hp_ratio = state.effective_hp / state.effective_max_hp if state.effective_max_hp > 0 else 1.0
         gender = self._get_gender(state)
         # GAP5 FIX: Читаем живую физиологию, а не только RPG-абстракцию HP
         body_state = getattr(state, "body_state", {}) or {}  # noqa: ENIGMA002
@@ -232,15 +228,11 @@ class StateInterpreter:
         return NPCStateDescription(
             name=state.npc_id,
             intent=self._intent_to_word(state.intent),
-            physical_state=_apply_gender(
-                self._physical_state_to_word(hp_ratio, body_state), gender
-            ),
+            physical_state=_apply_gender(self._physical_state_to_word(hp_ratio, body_state), gender),
             posture=self._posture_to_word(state.posture),
             conditions=self._conditions_to_list(state.conditions, gender),
             can_speak=self.derive_can_speak(state.posture, state.conditions),
-            can_move=self.derive_can_move(
-                state.posture, state.conditions, int(state.effective_hp)
-            ),
+            can_move=self.derive_can_move(state.posture, state.conditions, int(state.effective_hp)),
             gender=gender,
         )
 
@@ -260,15 +252,9 @@ class StateInterpreter:
         """GAP5 FIX: Физиология говорит правду. Боль и шок перекрывают RPG-абстракцию HP.
         NPC с 80% HP, но с агонизирующей болью (pain: 0.9) больше не "слегка ранен".
         """
-        pain = (
-            body_state.get("pain", 0.0) / 100.0
-        )  # Нормализация 0-100 → 0-1 (как pressure_derivation.py:24)
-        shock = body_state.get(
-            "shock_impulse", 0.0
-        )  # Уже 0-1 (tick_orchestrator.py:650)
-        blood_loss = body_state.get(
-            "blood_loss", 0.0
-        )  # Уже 0-1 (state_applicator.py:499)
+        pain = body_state.get("pain", 0.0) / 100.0  # Нормализация 0-100 → 0-1 (как pressure_derivation.py:24)
+        shock = body_state.get("shock_impulse", 0.0)  # Уже 0-1 (tick_orchestrator.py:650)
+        blood_loss = body_state.get("blood_loss", 0.0)  # Уже 0-1 (state_applicator.py:499)
 
         # Шок доминирует: NPC в нокауте или на грани
         if shock > 0.8:
@@ -313,9 +299,7 @@ class StateInterpreter:
             return "female"
         return "male"
 
-    def _conditions_to_list(
-        self, conditions: Dict[str, Condition], gender: str = "male"
-    ) -> List[str]:
+    def _conditions_to_list(self, conditions: Dict[str, Condition], gender: str = "male") -> List[str]:
         """
         Словарь Condition → список русских описаний.
         Только значимые (severity > 0.3). С гендерными окончаниями.
@@ -340,9 +324,7 @@ class StateInterpreter:
                 return False
         return True
 
-    def derive_can_move(
-        self, posture: str, conditions: Dict[str, Condition], hp: int
-    ) -> bool:
+    def derive_can_move(self, posture: str, conditions: Dict[str, Condition], hp: int) -> bool:
         """Выводит возможность двигаться из posture + conditions + hp."""
         if hp <= 0:
             return False

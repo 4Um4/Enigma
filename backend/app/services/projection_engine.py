@@ -17,6 +17,7 @@ path: backend/app/services/projection_engine.py
 Зависимости: app.models.thick_scene_change (ThickSceneChange)
 Основные сущности: ProjectionEngine
 """
+
 from __future__ import annotations
 
 import copy
@@ -109,10 +110,14 @@ class ProjectionEngine:
         # Бэкенд мгновенно обновляет позицию на цель (target_xy).
         # Фронтенд сам отвечает за плавную интерполяцию (LERP) к этой точке.
         if thick.spatial and thick.spatial.target_xy:
-            entry.update({"local_position": {
-                "x": thick.spatial.target_xy[0],
-                "y": thick.spatial.target_xy[1],
-            }})
+            entry.update(
+                {
+                    "local_position": {
+                        "x": thick.spatial.target_xy[0],
+                        "y": thick.spatial.target_xy[1],
+                    }
+                }
+            )
 
         # 3. Boundary resolution (кросс-локационное перемещение)
         if thick.boundary and thick.boundary.is_boundary:
@@ -156,6 +161,7 @@ class ProjectionEngine:
                     # подавлена guard'ом in-flight — мёртвый путь в dual-rail).
                     # cause verbatim из thick-контракта; пустой -> UNKNOWN_LEGACY_SOURCE.
                     from app.services.action.commitment_registry import CommitmentRegistry
+
                     CommitmentRegistry.mirror_traversal_materialized(
                         scene_state=scene_state,
                         tick=_fields.get("started_tick", 0),
@@ -176,9 +182,7 @@ class ProjectionEngine:
                 if thick.target in traversals:
                     _current_status = traversals[thick.target].get("status")
                     if _current_status == "COMPLETED":
-                        logger.debug(
-                            f"[PROJECTION] Traversal COMPLETED confirmed (read-only): npc={thick.target}"
-                        )
+                        logger.debug(f"[PROJECTION] Traversal COMPLETED confirmed (read-only): npc={thick.target}")
                     else:
                         logger.info(
                             f"[PROJECTION] Traversal COMPLETED shadow vs legacy drift: "
@@ -201,8 +205,7 @@ class ProjectionEngine:
             entry.update({"local_position": thick.value})
         else:
             logger.warning(
-                f"[PROJECTION] local_position value is not dict: "
-                f"npc={thick.target} type={type(thick.value).__name__}"
+                f"[PROJECTION] local_position value is not dict: npc={thick.target} type={type(thick.value).__name__}"
             )
             return False
 

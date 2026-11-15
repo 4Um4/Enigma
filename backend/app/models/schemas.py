@@ -109,9 +109,7 @@ class CharacterSheet(BaseModel):
     max_hp: int = 10
     ac: int = 10
     effects: List[str] = Field(default_factory=list)
-    importance: Optional[str] = Field(
-        default=None, description="major or mass for NPC importance"
-    )
+    importance: Optional[str] = Field(default=None, description="major or mass for NPC importance")
 
 
 class NPCState(BaseModel):

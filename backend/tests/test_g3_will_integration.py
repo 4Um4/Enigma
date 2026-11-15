@@ -22,9 +22,7 @@ from app.services.npc.decision_hub import DecisionHub, EventContext
 
 def _drives() -> EffectiveDrives:
     """Desire-доминанта (L3, ADR-O-208, фабрика from_dict)."""
-    return EffectiveDrives.from_dict(
-        {"control": 0.05, "significance": 0.05, "fear": 0.05, "desire": 0.85}
-    )
+    return EffectiveDrives.from_dict({"control": 0.05, "significance": 0.05, "fear": 0.05, "desire": 0.85})
 
 
 def _personality() -> NPCProfileL0:
@@ -78,10 +76,7 @@ class TestG3WillIntegration:
         _opp_raw = _res.scores_trace.get("opp_raw_score", 0.0)
         _opp_thr = _res.scores_trace.get("opp_threshold", 1.0)
         # Главное доказательство T1: доступность (замок открыт).
-        assert _opp_raw >= _opp_thr, (
-            f"открытый момент не разблокировал STEAL: "
-            f"raw={_opp_raw} < threshold={_opp_thr}"
-        )
+        assert _opp_raw >= _opp_thr, f"открытый момент не разблокировал STEAL: raw={_opp_raw} < threshold={_opp_thr}"
         assert "steal" in _res.scores_trace or _res.intent.value == "steal", (
             "STEAL разблокирован, но не скорится (не в possible?)"
         )
@@ -94,17 +89,23 @@ class TestG3WillIntegration:
         # PEP 701: многострочное выражение внутри f-string допустимо только с 3.12,
         # а CI гоняет матрицу 3.11/3.12 — поэтому top3 считается до подстановки.
         _top3 = sorted(
-            ((k, v) for k, v in _res.scores_trace.items()
-             if isinstance(v, (int, float)) and k not in (
-                 'opp_attention_component', 'opp_distance_component',
-                 'opp_weapon_component', 'opp_allies_component',
-                 'opp_raw_score', 'opp_threshold')),
-            key=lambda x: -x[1])[:3]
-        print(
-            f"[G3-T1] raw={_opp_raw} winner={_res.intent.value} "
-            f"target={_res.intent_target!r} "
-            f"top3={_top3}"
-        )
+            (
+                (k, v)
+                for k, v in _res.scores_trace.items()
+                if isinstance(v, (int, float))
+                and k
+                not in (
+                    "opp_attention_component",
+                    "opp_distance_component",
+                    "opp_weapon_component",
+                    "opp_allies_component",
+                    "opp_raw_score",
+                    "opp_threshold",
+                )
+            ),
+            key=lambda x: -x[1],
+        )[:3]
+        print(f"[G3-T1] raw={_opp_raw} winner={_res.intent.value} target={_res.intent_target!r} top3={_top3}")
 
     def test_closed_moment_keeps_steal_locked(self):
         """T2: контроль замка — внимание игрока держит STEAL locked.
@@ -125,10 +126,6 @@ class TestG3WillIntegration:
         )
         _opp_raw = _res.scores_trace.get("opp_raw_score", 0.0)
         _opp_thr = _res.scores_trace.get("opp_threshold", 1.0)
-        assert _opp_raw < _opp_thr, (
-            f"замок должен быть закрыт: raw={_opp_raw} >= {_opp_thr}"
-        )
-        assert "steal" not in _res.scores_trace, (
-            "STEAL скорится при закрытом моменте — замок дыряв"
-        )
+        assert _opp_raw < _opp_thr, f"замок должен быть закрыт: raw={_opp_raw} >= {_opp_thr}"
+        assert "steal" not in _res.scores_trace, "STEAL скорится при закрытом моменте — замок дыряв"
         assert _res.intent.value != "steal"

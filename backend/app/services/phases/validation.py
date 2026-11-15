@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/validation.py
 Зависимости: app.services.equivalence_validator
 Основные сущности: validate_shadow_vs_legacy
 """
+
 from __future__ import annotations
 
 import logging
@@ -109,10 +110,7 @@ def validate_shadow_vs_legacy(
         for _d in _drifts:
             orchestrator._drift_stats.setdefault(f"drift_{_d.drift_class.value}", 0)
             orchestrator._drift_stats[f"drift_{_d.drift_class.value}"] += 1
-            logger.info(
-                f"[DUAL_RAIL][{phase_label}] npc={npc_id} "
-                f"class={_d.drift_class.value} field={_d.field}"
-            )
+            logger.info(f"[DUAL_RAIL][{phase_label}] npc={npc_id} class={_d.drift_class.value} field={_d.field}")
 
     # Периодический отчёт (каждые 100 наблюдений)
     orchestrator._log_drift_summary()

@@ -13,8 +13,15 @@ R2-B5-D1 SPATIAL PERCEPTION FORENSIC PROBE.
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
-import os, sys, json, traceback, logging, math, copy
+import os
+import sys
+import json
+import traceback
+import logging
+import math
+import copy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Set
 import io
@@ -46,14 +53,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_b5_d1_perception_forensic.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -73,7 +86,7 @@ def _read_lines(path: Path, start: int, end: int) -> List[str]:
         return [f"[file not found: {path}]"]
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-        return [f"L{i+1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
+        return [f"L{i + 1:4d}: {lines[i]}" for i in range(start - 1, min(end, len(lines)))]
     except Exception as e:
         return [f"[read error: {e}]"]
 
@@ -117,7 +130,7 @@ def check1_perceptual_kernel() -> Dict[str, Any]:
             continue
         try:
             src = f.read_text(encoding="utf-8", errors="replace")
-        except:
+        except Exception:
             continue
         if "class PerceptualKernel" in src or "def can_observe" in src:
             pk_path = f
@@ -142,9 +155,9 @@ def check1_perceptual_kernel() -> Dict[str, Any]:
         bounds = _find_function_bounds(src, "can_observe")
         if bounds:
             start, end = bounds
-            print(f"\n--- can_observe (L{start+1}–L{end}) ---")
+            print(f"\n--- can_observe (L{start + 1}–L{end}) ---")
             for j in range(start, end):
-                print(f"L{j+1}: {lines[j]}")
+                print(f"L{j + 1}: {lines[j]}")
         else:
             print("[can_observe not found in file]")
             # Print all method definitions
@@ -153,15 +166,17 @@ def check1_perceptual_kernel() -> Dict[str, Any]:
                     print(f"  L{i}: {line.rstrip()}")
 
     # Search for HEARING_RADIUS in this file
-    print(f"\n--- HEARING_RADIUS references ---")
+    print("\n--- HEARING_RADIUS references ---")
     for i, line in enumerate(lines, 1):
         if "HEARING_RADIUS" in line or "hearing_radius" in line.lower():
             print(f"  L{i}: {line.rstrip()}")
 
     # Search for radius usage
-    print(f"\n--- radius references ---")
+    print("\n--- radius references ---")
     for i, line in enumerate(lines, 1):
-        if "radius" in line.lower() and ("event" in line.lower() or "payload" in line.lower() or "self" in line.lower()):
+        if "radius" in line.lower() and (
+            "event" in line.lower() or "payload" in line.lower() or "self" in line.lower()
+        ):
             print(f"  L{i}: {line.rstrip()}")
 
     result["pass"] = True
@@ -195,7 +210,7 @@ def check2_runtime_distance() -> Dict[str, Any]:
         # Get npc_positions BEFORE any ticks
         npc_positions = scene.get("npc_positions", {})
 
-        print(f"\n--- Runtime npc_positions (from scene_state) ---")
+        print("\n--- Runtime npc_positions (from scene_state) ---")
         print(f"  npc_positions keys: {list(npc_positions.keys())}")
         for nid, pos_data in npc_positions.items():
             lp = pos_data.get("local_position", {})
@@ -208,7 +223,7 @@ def check2_runtime_distance() -> Dict[str, Any]:
         player_lp = player_pos.get("local_position", {})
         px = player_lp.get("x", 0) if isinstance(player_lp, dict) else 0
         py = player_lp.get("y", 0) if isinstance(player_lp, dict) else 0
-        print(f"\n--- Player coords ---")
+        print("\n--- Player coords ---")
         print(f"  player: local_position=({px}, {py})")
         print(f"  player position (node): {player_pos.get('position')}")
 
@@ -217,22 +232,22 @@ def check2_runtime_distance() -> Dict[str, Any]:
         lusya_lp = lusya_pos.get("local_position", {})
         lx = lusya_lp.get("x", 0) if isinstance(lusya_lp, dict) else 0
         ly = lusya_lp.get("y", 0) if isinstance(lusya_lp, dict) else 0
-        print(f"\n--- maid_lusya coords ---")
+        print("\n--- maid_lusya coords ---")
         print(f"  maid_lusya: local_position=({lx}, {ly})")
         print(f"  maid_lusya position (node): {lusya_pos.get('position')}")
 
         # Compute distance
         dist = math.hypot(float(px) - float(lx), float(py) - float(ly))
-        print(f"\n--- Distance player ↔ maid_lusya ---")
+        print("\n--- Distance player ↔ maid_lusya ---")
         print(f"  dx = {px} - {lx} = {float(px) - float(lx):.6f}")
         print(f"  dy = {py} - {ly} = {float(py) - float(ly):.6f}")
         print(f"  distance = hypot({float(px) - float(lx):.6f}, {float(py) - float(ly):.6f}) = {dist:.6f}m")
-        print(f"  HEARING_RADIUS = 10.0")
+        print("  HEARING_RADIUS = 10.0")
         print(f"  distance <= HEARING_RADIUS: {dist <= 10.0}")
         print(f"  distance <= event.radius (999.0): {dist <= 999.0}")
 
         # Get SpatialQueryService
-        print(f"\n--- SpatialQueryService ---")
+        print("\n--- SpatialQueryService ---")
         spatial_svc = None
         for attr in ("spatial_service", "_spatial_service"):
             if hasattr(loop, attr):
@@ -249,7 +264,7 @@ def check2_runtime_distance() -> Dict[str, Any]:
             print(f"  Found: {type(spatial_svc).__name__}")
 
             # Try distance
-            print(f"\n--- spatial_svc.distance('player', 'maid_lusya') ---")
+            print("\n--- spatial_svc.distance('player', 'maid_lusya') ---")
             try:
                 d = spatial_svc.distance("player", "maid_lusya")
                 print(f"  Result: {d}")
@@ -260,7 +275,7 @@ def check2_runtime_distance() -> Dict[str, Any]:
 
             # Check _npc_positions in spatial_svc
             _npc_pos_svc = getattr(spatial_svc, "_npc_positions", {})
-            print(f"\n--- spatial_svc._npc_positions ---")
+            print("\n--- spatial_svc._npc_positions ---")
             print(f"  Keys: {list(_npc_pos_svc.keys()) if _npc_pos_svc else 'empty'}")
             if _npc_pos_svc:
                 for nid, pos in _npc_pos_svc.items():
@@ -269,15 +284,15 @@ def check2_runtime_distance() -> Dict[str, Any]:
             # Check if player is in _npc_positions
             print(f"\n  'player' in _npc_positions: {'player' in _npc_pos_svc}")
         else:
-            print(f"  NOT FOUND")
+            print("  NOT FOUND")
 
         # Now try to actually publish PLAYER_INSULTS and spy on ClaimEventSubscriber
-        print(f"\n--- Publishing PLAYER_INSULTS and spying on on_claim_event ---")
+        print("\n--- Publishing PLAYER_INSULTS and spying on on_claim_event ---")
 
         # Monkey-patch ClaimEventSubscriber.on_claim_event to capture runtime state
         try:
             from app.services.events.claim_event_subscriber import ClaimEventSubscriber
-        except:
+        except Exception:
             ClaimEventSubscriber = None
 
         captured_state: Dict[str, Any] = {}
@@ -344,7 +359,7 @@ def check2_runtime_distance() -> Dict[str, Any]:
                             # Check can_observe for each NPC
                             try:
                                 from app.models.npc_state import PerceptualKernel
-                            except:
+                            except Exception:
                                 PerceptualKernel = None
 
                             if PerceptualKernel:
@@ -353,42 +368,52 @@ def check2_runtime_distance() -> Dict[str, Any]:
                                     if isinstance(d, (int, float)):
                                         try:
                                             result = PerceptualKernel.can_observe(
-                                                event, d, nid, payload.get("target_id"))
+                                                event, d, nid, payload.get("target_id")
+                                            )
                                             can_observe_results[nid] = {"distance": d, "can_observe": result}
                                         except Exception as e:
                                             can_observe_results[nid] = {"distance": d, "error": str(e)}
                                     else:
-                                        can_observe_results[nid] = {"distance": d, "can_observe": "N/A (distance error)"}
+                                        can_observe_results[nid] = {
+                                            "distance": d,
+                                            "can_observe": "N/A (distance error)",
+                                        }
                                 captured_state["can_observe_results"] = can_observe_results
 
                     # Call original
                     return orig_on_claim(event)
 
                 claim_sub.on_claim_event = _spy_on_claim
-                print(f"  Spy attached to ClaimEventSubscriber.on_claim_event")
+                print("  Spy attached to ClaimEventSubscriber.on_claim_event")
             else:
-                print(f"  ClaimEventSubscriber instance not found in tick_orch")
+                print("  ClaimEventSubscriber instance not found in tick_orch")
 
         # Clear event bus
         try:
             get_event_bus().clear()
-        except:
+        except Exception:
             pass
 
         # Publish PLAYER_INSULTS
         payload = {
-            "action_type": "player_insults", "target_id": "tavern_keeper_tornin",
-            "content": "оскорбление", "event_tick": 1, "visibility": "public",
-            "radius": 999.0, "location": "tavern", "campaign_id": "Open_road",
+            "action_type": "player_insults",
+            "target_id": "tavern_keeper_tornin",
+            "content": "оскорбление",
+            "event_tick": 1,
+            "visibility": "public",
+            "radius": 999.0,
+            "location": "tavern",
+            "campaign_id": "Open_road",
             "raw_input": "оскорбление",
         }
-        evt = EventDTO.create(event_type=EventType.PLAYER_INSULTS, source="player",
-                              payload=payload, persistence_level="working")
+        evt = EventDTO.create(
+            event_type=EventType.PLAYER_INSULTS, source="player", payload=payload, persistence_level="working"
+        )
         get_event_bus().publish(evt)
-        print(f"\n  PLAYER_INSULTS published")
+        print("\n  PLAYER_INSULTS published")
 
         # Print captured state
-        print(f"\n--- Captured state from on_claim_event spy ---")
+        print("\n--- Captured state from on_claim_event spy ---")
         for k, v in captured_state.items():
             if k in ("distances", "can_observe_results"):
                 print(f"  {k}:")
@@ -403,11 +428,14 @@ def check2_runtime_distance() -> Dict[str, Any]:
             ts = loop._get_task_scheduler()
             if hasattr(ts, "_executor_pool"):
                 ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-        except:
+        except Exception:
             pass
         del loop
-        import gc; gc.collect()
+        import gc
+
+        gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         result["pass"] = True
@@ -431,12 +459,12 @@ def check3_runtime_provider(captured: Dict) -> Dict[str, Any]:
     print(f"""
 --- Данные из captured_state ---
 
-  has_spatial_provider: {captured.get('has_spatial_provider', 'N/A')}
-  has_sq: {captured.get('has_sq', 'N/A')}
-  sq_npc_positions_keys: {captured.get('sq_npc_positions_keys', 'N/A')}
-  origin_id: {captured.get('origin_id', 'N/A')}
+  has_spatial_provider: {captured.get("has_spatial_provider", "N/A")}
+  has_sq: {captured.get("has_sq", "N/A")}
+  sq_npc_positions_keys: {captured.get("sq_npc_positions_keys", "N/A")}
+  origin_id: {captured.get("origin_id", "N/A")}
 
-  sq_player_data: {captured.get('sq_player_data', 'N/A')}
+  sq_player_data: {captured.get("sq_player_data", "N/A")}
 
 --- Distances from player to each NPC ---
 """)
@@ -444,7 +472,7 @@ def check3_runtime_provider(captured: Dict) -> Dict[str, Any]:
     for nid, d in distances.items():
         print(f"  {nid}: {d}")
 
-    print(f"""
+    print("""
 --- can_observe results ---
 """)
     can_observe = captured.get("can_observe_results", {})
@@ -465,7 +493,9 @@ def check4_all_npcs(captured: Dict) -> Dict[str, Any]:
     distances = captured.get("distances", {})
     can_observe = captured.get("can_observe_results", {})
 
-    print(f"\n{'NPC':<25} {'distance':>10} {'can_observe':>12} {'HEARING_RADIUS':>15} {'event.radius':>15} {'in_listeners':>15}")
+    print(
+        f"\n{'NPC':<25} {'distance':>10} {'can_observe':>12} {'HEARING_RADIUS':>15} {'event.radius':>15} {'in_listeners':>15}"
+    )
     print("-" * 92)
 
     HEARING_RADIUS = 10.0
@@ -475,11 +505,13 @@ def check4_all_npcs(captured: Dict) -> Dict[str, Any]:
         d = distances.get(nid, "?")
         co = can_observe.get(nid, {})
         co_result = co.get("can_observe", "?") if isinstance(co, dict) else "?"
-        co_dist = co.get("distance", "?") if isinstance(co, dict) else "?"
+        co.get("distance", "?") if isinstance(co, dict) else "?"
 
         in_listeners = co_result if isinstance(co_result, bool) else "?"
 
-        print(f"  {nid:<25} {str(d):>10} {str(co_result):>12} {HEARING_RADIUS:>15.1f} {event_radius:>15.1f} {str(in_listeners):>15}")
+        print(
+            f"  {nid:<25} {str(d):>10} {str(co_result):>12} {HEARING_RADIUS:>15.1f} {event_radius:>15.1f} {str(in_listeners):>15}"
+        )
 
     print(f"""
 --- Итог ---
@@ -518,7 +550,7 @@ def final_verdict(captured: Dict) -> None:
     has_sq = captured.get("has_sq", False)
     has_provider = captured.get("has_spatial_provider", False)
 
-    print(f"""
+    print("""
 =============================================================================
 ОДНОЗНАЧНЫЙ ВЫВОД
 =============================================================================
@@ -527,74 +559,76 @@ def final_verdict(captured: Dict) -> None:
 """)
 
     if not has_provider:
-        print(f"   → _get_spatial_query = None (provider не существует)")
-        print(f"   → on_claim_event fallback: target_id добавляется в listeners")
-        print(f"   → maid_lusya НЕ target_id (target = tavern_keeper_tornin)")
-        print(f"   → maid_lusya НЕ в listeners")
-        print(f"   → Причина: spatial_query_provider не настроен в production")
+        print("   → _get_spatial_query = None (provider не существует)")
+        print("   → on_claim_event fallback: target_id добавляется в listeners")
+        print("   → maid_lusya НЕ target_id (target = tavern_keeper_tornin)")
+        print("   → maid_lusya НЕ в listeners")
+        print("   → Причина: spatial_query_provider не настроен в production")
     elif not has_sq:
-        print(f"   → _get_spatial_query существует, но возвращает None")
-        print(f"   → on_claim_event fallback: target_id добавляется в listeners")
-        print(f"   → maid_lusya НЕ в listeners")
+        print("   → _get_spatial_query существует, но возвращает None")
+        print("   → on_claim_event fallback: target_id добавляется в listeners")
+        print("   → maid_lusya НЕ в listeners")
     elif isinstance(ml_co_result, bool) and not ml_co_result:
-        print(f"   → PerceptualKernel.can_observe вернул False для maid_lusya")
+        print("   → PerceptualKernel.can_observe вернул False для maid_lusya")
         print(f"   → distance = {ml_co_dist}")
         if isinstance(ml_dist, (int, float)):
             if ml_dist > 10.0:
                 print(f"   → distance {ml_dist:.4f}m > HEARING_RADIUS 10.0m → НЕ в радиусе")
-                print(f"   → event.radius = {captured.get('payload_radius', '?')}, но can_observe использует HEARING_RADIUS")
+                print(
+                    f"   → event.radius = {captured.get('payload_radius', '?')}, но can_observe использует HEARING_RADIUS"
+                )
             else:
                 print(f"   → distance {ml_dist:.4f}m <= HEARING_RADIUS 10.0m, но can_observe всё равно False")
-                print(f"   → Другая причина в can_observe (visibility, perception tier, etc.)")
+                print("   → Другая причина в can_observe (visibility, perception tier, etc.)")
     elif isinstance(ml_co_result, bool) and ml_co_result:
-        print(f"   → PerceptualKernel.can_observe вернул True для maid_lusya")
-        print(f"   → maid_lusya ДОЛЖНА быть в listeners")
-        print(f"   → Если она не в listeners — проблема в другом месте (не в can_observe)")
+        print("   → PerceptualKernel.can_observe вернул True для maid_lusya")
+        print("   → maid_lusya ДОЛЖНА быть в listeners")
+        print("   → Если она не в listeners — проблема в другом месте (не в can_observe)")
     else:
         print(f"   → can_observe результат неизвестен: {ml_co_result}")
         print(f"   → distance = {ml_dist}")
 
-    print(f"""
+    print("""
 2. ПОЧЕМУ event.radius=999.0 НЕ ОБЕСПЕЧИВАЕТ ВОСПРИЯТИЕ:
 """)
 
     event_radius = captured.get("payload_radius", "?")
     if isinstance(ml_dist, (int, float)) and ml_dist > 10.0:
         print(f"   → event.radius = {event_radius}, но can_observe проверяет HEARING_RADIUS = 10.0")
-        print(f"   → event.radius используется для can_observe event.radius parameter,")
-        print(f"     но PerceptualKernel.can_observe может использовать оба:")
-        print(f"       if dist <= min(event.radius, HEARING_RADIUS): can_observe = True")
-        print(f"     → Если так, то 999.0 не помогает, т.к. HEARING_RADIUS = 10.0 ограничивает")
+        print("   → event.radius используется для can_observe event.radius parameter,")
+        print("     но PerceptualKernel.can_observe может использовать оба:")
+        print("       if dist <= min(event.radius, HEARING_RADIUS): can_observe = True")
+        print("     → Если так, то 999.0 не помогает, т.к. HEARING_RADIUS = 10.0 ограничивает")
     else:
-        print(f"   → Нужно проверить PerceptualKernel.can_observe код (Проверка 1)")
+        print("   → Нужно проверить PerceptualKernel.can_observe код (Проверка 1)")
 
-    print(f"""
+    print("""
 3. ЯВЛЯЕТСЯ ЛИ ПОВЕДЕНИЕ ОЖИДАЕМЫМ ИГРОВЫМ ПРАВИЛОМ ИЛИ ДЕФЕКТОМ:
 """)
 
     if isinstance(ml_dist, (int, float)) and ml_dist > 10.0:
-        print(f"   → Поведение ВЫГЛЯДИТ как игровое правило: NPC слышит только в радиусе 10м")
-        print(f"   → Player стоит у entrance (8.2, 11.9), maid_lusya у fireplace (8.0, 1.8)")
-        print(f"   → Расстояние ~10.1m — чуть больше 10.0m порога")
-        print(f"   → НО: PLAYER_INSULTS — это публичное событие (visibility='public', radius=999.0)")
-        print(f"   → Если player кричит оскорбление — ВСЕ в таверне должны слышать")
-        print(f"   → HEARING_RADIUS = 10.0 — это радиус обычной речи, не крика")
-        print(f"   → ВОЗМОЖНЫЙ ДЕФЕКТ: can_observe не различает обычную речь и публичные события")
+        print("   → Поведение ВЫГЛЯДИТ как игровое правило: NPC слышит только в радиусе 10м")
+        print("   → Player стоит у entrance (8.2, 11.9), maid_lusya у fireplace (8.0, 1.8)")
+        print("   → Расстояние ~10.1m — чуть больше 10.0m порога")
+        print("   → НО: PLAYER_INSULTS — это публичное событие (visibility='public', radius=999.0)")
+        print("   → Если player кричит оскорбление — ВСЕ в таверне должны слышать")
+        print("   → HEARING_RADIUS = 10.0 — это радиус обычной речи, не крика")
+        print("   → ВОЗМОЖНЫЙ ДЕФЕКТ: can_observe не различает обычную речь и публичные события")
     else:
-        print(f"   → Нужно больше данных (см. Проверку 1 и 2)")
+        print("   → Нужно больше данных (см. Проверку 1 и 2)")
 
-    print(f"""
+    print("""
 4. МИНИМАЛЬНОЕ ИЗМЕНЕНИЕ (если дефект существует):
 """)
 
     if isinstance(ml_dist, (int, float)) and ml_dist > 10.0:
-        print(f"   → В PerceptualKernel.can_observe:")
-        print(f"     Если event имеет radius > HEARING_RADIUS (публичное событие):")
-        print(f"       использовать event.radius вместо HEARING_RADIUS")
-        print(f"     Это позволит публичным событиям (PLAYER_INSULTS с radius=999.0)")
-        print(f"     быть услышанными всеми NPC в локации.")
+        print("   → В PerceptualKernel.can_observe:")
+        print("     Если event имеет radius > HEARING_RADIUS (публичное событие):")
+        print("       использовать event.radius вместо HEARING_RADIUS")
+        print("     Это позволит публичным событиям (PLAYER_INSULTS с radius=999.0)")
+        print("     быть услышанными всеми NPC в локации.")
     else:
-        print(f"   → Зависит от результатов Проверки 1 (PerceptualKernel код)")
+        print("   → Зависит от результатов Проверки 1 (PerceptualKernel код)")
 
 
 # ============================================================================

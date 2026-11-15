@@ -94,14 +94,8 @@ class WorldSimulationAgent:
         current_events: list[str],
     ) -> str:
         """Build simulation prompt."""
-        action_str = (
-            "\n".join(f"- {a}" for a in actions) if actions else "- Нет действий"
-        )
-        event_str = (
-            "\n".join(f"- {e}" for e in current_events)
-            if current_events
-            else "- Нет текущих событий"
-        )
+        action_str = "\n".join(f"- {a}" for a in actions) if actions else "- Нет действий"
+        event_str = "\n".join(f"- {e}" for e in current_events) if current_events else "- Нет текущих событий"
 
         return f"""Локация: {location}
 Текущие события:

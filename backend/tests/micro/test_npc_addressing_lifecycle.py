@@ -17,12 +17,14 @@ NPC вне восприятия, NPC за стеной, Temporal Delay, смен
 Поэтому индикаторы НЕ удаляются по отсутствию NPC — только по смене intent
 (через intent_formed_at в payload) или по переключению кампании.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
 
 
 # ── Source inspection helpers ──────────────────────────────────────────────
+
 
 def _repo_root() -> Path:
     p = Path(__file__).resolve()
@@ -51,6 +53,7 @@ def _read_focus_renderer_source() -> str:
 # ── Simulated lifecycle logic (mirrors game_screen.py parsing block) ───────
 # Воспроизводит логику C3-A2-UI-2 для поведенческих тестов без запуска
 # полного GameScreen (требует pygame, backend wiring и т.д.).
+
 
 def apply_addressing_event(
     indicators: dict,
@@ -106,14 +109,21 @@ def apply_addressing_event(
 
 # ── Behavioral tests ───────────────────────────────────────────────────────
 
+
 def test_1_actual_addressing_preserved():
     """Актуальное обращение сохраняется (нет нового события для того же NPC)."""
     indicators = {
         "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
     }
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_2", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_2",
+            "event_id": "evt_B",
+            "intent": "warn",
+            "intent_formed_at": 10,
+        },
+    )
     assert "evt_A" in new_indicators, (
         "Existing addressing for npc_1 must be preserved when event for different NPC arrives"
     )
@@ -126,17 +136,29 @@ def test_2_intent_formed_at_change_removes_stale():
         "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
     }
     # Newer event arrives → older removed
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_B",
+            "intent": "warn",
+            "intent_formed_at": 10,
+        },
+    )
     assert "evt_A" not in new_indicators, "Stale event (older intent_formed_at) must be removed"
     assert "evt_B" in new_indicators
     assert removed == ["evt_A"]
 
     # Stale re-delivery of evt_A (older) must NOT re-add it
-    new_indicators_2, removed_2 = apply_addressing_event(new_indicators, {
-        "npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5,
-    })
+    new_indicators_2, removed_2 = apply_addressing_event(
+        new_indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_A",
+            "intent": "talk",
+            "intent_formed_at": 5,
+        },
+    )
     assert "evt_A" not in new_indicators_2, "Stale re-delivery must not re-add removed event"
     assert "evt_B" in new_indicators_2, "Newer event must be preserved"
     assert removed_2 == []
@@ -151,8 +173,7 @@ def test_3_npc_absence_preserves_event():
     fr_src = _read_focus_renderer_source()
     # Итерация по dict индикаторов (не по npc_coords)
     assert "for _eid, _addr in addressing_indicators.items()" in fr_src, (
-        "draw_addressing_indicators must iterate indicators dict — "
-        "preserves events when NPC absent from npc_coords"
+        "draw_addressing_indicators must iterate indicators dict — preserves events when NPC absent from npc_coords"
     )
     # Никаких операций удаления в focus_renderer
     assert "addressing_indicators.pop" not in fr_src
@@ -166,9 +187,15 @@ def test_4_multiple_npcs_independent():
         "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
         "evt_B": {"npc_id": "npc_2", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 5},
     }
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_1", "event_id": "evt_C", "intent": "trade", "intent_formed_at": 10,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_C",
+            "intent": "trade",
+            "intent_formed_at": 10,
+        },
+    )
     assert "evt_B" in new_indicators, "Event for npc_2 must be preserved when new event for npc_1 arrives"
     assert "evt_A" not in new_indicators, "Old event for npc_1 must be removed (intent changed)"
     assert "evt_C" in new_indicators
@@ -184,9 +211,15 @@ def test_5_multiple_events_per_npc_tracked_by_event_id():
     indicators = {
         "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk"},  # no intent_formed_at
     }
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 10,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_B",
+            "intent": "warn",
+            "intent_formed_at": 10,
+        },
+    )
     assert "evt_A" in new_indicators, "Event with unknown actuality must be preserved"
     assert "evt_B" in new_indicators
     assert removed == [], "Event with missing intent_formed_at must not be removed"
@@ -200,9 +233,15 @@ def test_6_redelivery_no_duplicates():
     indicators = {
         "evt_A": {"npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5},
     }
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_1", "event_id": "evt_A", "intent": "talk", "intent_formed_at": 5,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_A",
+            "intent": "talk",
+            "intent_formed_at": 5,
+        },
+    )
     assert len(new_indicators) == 1, "Re-delivery of same event_id must not create duplicate"
     assert "evt_A" in new_indicators
     assert removed == []
@@ -217,7 +256,7 @@ def test_7_campaign_switch_resets():
     src = _read_game_screen_source()
     run_start = src.find("def run(self, campaign_folder:")
     assert run_start >= 0, "run() method not found"
-    run_body = src[run_start:run_start + 2000]
+    run_body = src[run_start : run_start + 2000]
     assert "self.npc_addressing_indicators = {}" in run_body, (
         "run() must reset npc_addressing_indicators (campaign switch isolation)"
     )
@@ -233,9 +272,15 @@ def test_8_unknown_actuality_preserved():
         "evt_B": {"npc_id": "npc_1", "event_id": "evt_B", "intent": "warn", "intent_formed_at": 5},
     }
     # New event with intent_formed_at — removes evt_B (older) but NOT evt_A (unknown)
-    new_indicators, removed = apply_addressing_event(indicators, {
-        "npc_id": "npc_1", "event_id": "evt_C", "intent": "trade", "intent_formed_at": 10,
-    })
+    new_indicators, removed = apply_addressing_event(
+        indicators,
+        {
+            "npc_id": "npc_1",
+            "event_id": "evt_C",
+            "intent": "trade",
+            "intent_formed_at": 10,
+        },
+    )
     assert "evt_A" in new_indicators, "Event with unknown actuality must be preserved"
     assert "evt_B" not in new_indicators, "Event with older intent_formed_at must be removed"
     assert "evt_C" in new_indicators
@@ -284,9 +329,7 @@ def test_9_ack_and_delivery_queue_unchanged():
             _ack_idx = _i
             break
     assert _ack_idx is not None, "ack_addressing call not found in game_screen.py"
-    assert _ack_idx > _skip_idx, (
-        f"ACK (L{_ack_idx + 1}) must be below guard (L{_skip_idx + 1})"
-    )
+    assert _ack_idx > _skip_idx, f"ACK (L{_ack_idx + 1}) must be below guard (L{_skip_idx + 1})"
 
     _ack_indent = len(_lines[_ack_idx]) - len(_lines[_ack_idx].lstrip())
 

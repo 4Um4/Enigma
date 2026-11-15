@@ -16,7 +16,7 @@ class PlayerBeliefModel:
     def __init__(self) -> None:
         self._beliefs: Dict[str, PlayerBelief] = {}
         self._processed_evidence: set = set()
-        self._processed_observations: Dict[str, set] = {} # secret_id -> set of obs_ids
+        self._processed_observations: Dict[str, set] = {}  # secret_id -> set of obs_ids
 
     def update_from_evidence(self, observation: Observation, evidence: EvidenceLink) -> PlayerBelief:
         """Обновляет убеждение на основе нового доказательства. Идемпотентно."""
@@ -60,12 +60,14 @@ class PlayerBeliefModel:
             support_mass=new_support,
             contradiction_mass=new_contradiction,
             supporting_observations=new_supporting,
-            contradicting_observations=new_contradicting
+            contradicting_observations=new_contradicting,
         )
         self._beliefs[secret_id] = updated_belief
         return updated_belief
 
-    def register_direct_evidence(self, secret_id: str, polarity: EvidencePolarity, strength: float, evidence_id: str) -> PlayerBelief:
+    def register_direct_evidence(
+        self, secret_id: str, polarity: EvidencePolarity, strength: float, evidence_id: str
+    ) -> PlayerBelief:
         """Прямая установка доказательства (например, при шантаже игроком).
         Требует явный evidence_id для строгой идемпотентности.
         """
@@ -100,7 +102,7 @@ class PlayerBeliefModel:
             support_mass=new_support,
             contradiction_mass=new_contradiction,
             supporting_observations=current.supporting_observations if current else (),
-            contradicting_observations=current.contradicting_observations if current else ()
+            contradicting_observations=current.contradicting_observations if current else (),
         )
         self._beliefs[secret_id] = belief
         return belief

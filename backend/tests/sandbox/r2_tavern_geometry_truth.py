@@ -14,8 +14,12 @@ R2-TAVERN-GEOMETRY-TRUTH probe — read-only.
 
 Запись в файл: r2_tavern_geometry_truth.txt
 """
+
 from __future__ import annotations
-import os, sys, json, traceback
+import os
+import sys
+import json
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import io
@@ -116,10 +120,10 @@ def main() -> int:
     print(f"\n>>> Declared size: W={W}m, H={H}m")
     print(f">>> Declared origin: ({OX}, {OY})")
     if data.get("global_coords"):
-        print(f">>> global_coords=true: координаты узлов ОТНОСИТЕЛЬНЫЕ (внутри location)")
-        print(f">>> World coords = origin + node.coords")
+        print(">>> global_coords=true: координаты узлов ОТНОСИТЕЛЬНЫЕ (внутри location)")
+        print(">>> World coords = origin + node.coords")
     else:
-        print(f">>> global_coords=false: координаты узлов АБСОЛЮТНЫЕ (мировые)")
+        print(">>> global_coords=false: координаты узлов АБСОЛЮТНЫЕ (мировые)")
 
     # === STEP 2: All 18 nodes with coords ===
     _print_section("STEP 2: All 18 nodes — REAL COORDINATES")
@@ -217,16 +221,16 @@ def main() -> int:
         min_y, max_y = min(all_y), max(all_y)
         actual_w = max_x - min_x
         actual_h = max_y - min_y
-        print(f"\n>>> Computed bounding box from nodes+walls+rooms:")
+        print("\n>>> Computed bounding box from nodes+walls+rooms:")
         print(f"    x range: [{min_x:.3f}, {max_x:.3f}]  (width = {actual_w:.3f}m)")
         print(f"    y range: [{min_y:.3f}, {max_y:.3f}]  (height = {actual_h:.3f}m)")
         print(f"\n>>> Declared size: W={W}m, H={H}m")
         print(f">>> Difference: actual_width={actual_w:.3f} vs declared={W} (delta={actual_w - W:+.3f})")
         print(f">>>             actual_height={actual_h:.3f} vs declared={H} (delta={actual_h - H:+.3f})")
         if abs(actual_w - W) > 0.5 or abs(actual_h - H) > 0.5:
-            print(f">>> WARNING: declared size does NOT match actual content extent!")
-            print(f">>> This means the bounding box is larger than the actual geometry.")
-            print(f">>> 'Empty zones' exist inside the bounding box.")
+            print(">>> WARNING: declared size does NOT match actual content extent!")
+            print(">>> This means the bounding box is larger than the actual geometry.")
+            print(">>> 'Empty zones' exist inside the bounding box.")
 
     # === STEP 6: Find gaps inside bounding box ===
     _print_section("STEP 6: GAPS inside bounding box — zones not covered by any room")
@@ -286,13 +290,13 @@ def main() -> int:
             gx_max = max(p[0] for p in gap_points)
             gy_min = min(p[1] for p in gap_points)
             gy_max = max(p[1] for p in gap_points)
-            print(f"\n>>> Gap bounding box:")
+            print("\n>>> Gap bounding box:")
             print(f"    x range: [{gx_min:.2f}, {gx_max:.2f}]  (width = {gx_max - gx_min:.2f}m)")
             print(f"    y range: [{gy_min:.2f}, {gy_max:.2f}]  (height = {gy_max - gy_min:.2f}m)")
             print(f"    approximate area: {(gx_max - gx_min) * (gy_max - gy_min):.2f} m²")
 
             # Show first 10 gap points
-            print(f"\n>>> First 10 gap points (sample):")
+            print("\n>>> First 10 gap points (sample):")
             for px, py in gap_points[:10]:
                 print(f"    ({px:.1f}, {py:.1f})")
 
@@ -366,8 +370,8 @@ def main() -> int:
 
         # Print grid (Y inverted: top of grid = high Y)
         print(f"\nScale: 1 char = {scale}m")
-        print(f"Legend: '#' = room_0, '+' = room_1, '=' = wall, '.' = empty/gap")
-        print(f"Node letters (first letter of name):")
+        print("Legend: '#' = room_0, '+' = room_1, '=' = wall, '.' = empty/gap")
+        print("Node letters (first letter of name):")
         for c, name in sorted(node_chars.items()):
             print(f"  '{c}' = {name}")
         print()
@@ -386,7 +390,7 @@ def main() -> int:
     _print_section("STEP 8: exit_east REAL position + proposed exit_south")
     if "exit_east" in nodes:
         ee = nodes["exit_east"]
-        print(f"\nexit_east:")
+        print("\nexit_east:")
         print(f"  coords: ({ee.get('x')}, {ee.get('y')})")
         print(f"  role: {ee.get('role')}")
         print(f"  connections: {ee.get('connections')}")
@@ -394,14 +398,14 @@ def main() -> int:
 
     if "exit_south" in nodes:
         es = nodes["exit_south"]
-        print(f"\nexit_south (already exists):")
+        print("\nexit_south (already exists):")
         print(f"  coords: ({es.get('x')}, {es.get('y')})")
         print(f"  role: {es.get('role')}")
         print(f"  connections: {es.get('connections')}")
     else:
-        print(f"\nexit_south: NOT IN nodes dict (confirmed)")
-        print(f">>> This is the root cause of FLEE BLOCKED.")
-        print(f">>> GraphCompiler creates phantom with world coords.")
+        print("\nexit_south: NOT IN nodes dict (confirmed)")
+        print(">>> This is the root cause of FLEE BLOCKED.")
+        print(">>> GraphCompiler creates phantom with world coords.")
 
     # === STEP 9: VERDICT ===
     _print_section("STEP 9: VERDICT — geometry truth")
@@ -410,7 +414,7 @@ ACTUAL GEOMETRY (from JSON):
 
   Declared size: {W}m × {H}m
   Declared origin: ({OX}, {OY})
-  global_coords: {data.get('global_coords')}
+  global_coords: {data.get("global_coords")}
 
   Actual content extent:
     x: [{min_x:.3f}, {max_x:.3f}]  width = {actual_w:.3f}m
@@ -430,7 +434,7 @@ ACTUAL GEOMETRY (from JSON):
             → FLEE BLOCKED
 
   Gap zones (inside bounding box, not covered by rooms):
-    {len(gap_points) if 'gap_points' in dir() else '?'} sample points
+    {len(gap_points) if "gap_points" in dir() else "?"} sample points
     See Step 6 for details.
 """)
 

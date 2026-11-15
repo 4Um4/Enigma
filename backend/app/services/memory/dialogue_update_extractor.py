@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DialogueUpdate:
     """Структурированное обновление сессии диалога."""
+
     topic: Optional[str] = None
     topic_confidence: float = 0.0
     new_claims: Optional[List[dict]] = None
@@ -38,10 +39,11 @@ class DialogueUpdateExtractor:
         try:
             prompt = self._build_extraction_prompt(stm_before, new_turn, partner)
             from app.services.llm.provider import GenerationParams
+
             response = self._router.request_for_agent(
                 agent_name="dialogue_extractor",
                 prompt=prompt,
-                params=GenerationParams(max_tokens=200, temperature=0.1, response_format={"type": "json_object"})
+                params=GenerationParams(max_tokens=200, temperature=0.1, response_format={"type": "json_object"}),
             )
             # Очищаем от markdown-разметки, если LLM обернула ответ
             cleaned_response = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
@@ -51,13 +53,14 @@ class DialogueUpdateExtractor:
             except json.JSONDecodeError:
                 # LLM иногда возвращает JSON с одинарными кавычками, trailing commas или обрезанный (truncated).
                 import ast
+
                 try:
                     # Пробуем закрыть незакрытые скобки (грубый эвристический фикс для обрезанных ответов)
                     repaired_response = cleaned_response
-                    if repaired_response.count('{') > repaired_response.count('}'):
-                        repaired_response += '}' * (repaired_response.count('{') - repaired_response.count('}'))
-                    if repaired_response.count('[') > repaired_response.count(']'):
-                        repaired_response += ']' * (repaired_response.count('[') - repaired_response.count(']'))
+                    if repaired_response.count("{") > repaired_response.count("}"):
+                        repaired_response += "}" * (repaired_response.count("{") - repaired_response.count("}"))
+                    if repaired_response.count("[") > repaired_response.count("]"):
+                        repaired_response += "]" * (repaired_response.count("[") - repaired_response.count("]"))
 
                     data = json.loads(repaired_response.replace("'", '"'), strict=False)
                 except Exception:
@@ -65,7 +68,9 @@ class DialogueUpdateExtractor:
                         data = ast.literal_eval(cleaned_response)
                     except Exception as parse_err:
                         # Понижаем уровень до DEBUG, так как это ожидаемая проблема LLM, а не системы.
-                        logger.debug(f"Dialogue update extraction failed (JSON parse error): {parse_err}. Raw: {cleaned_response[:200]}")
+                        logger.debug(
+                            f"Dialogue update extraction failed (JSON parse error): {parse_err}. Raw: {cleaned_response[:200]}"
+                        )
                         return DialogueUpdate()
             return self._parse_update(data)
         except Exception as e:
@@ -112,5 +117,5 @@ JSON:"""
             new_claims=data.get("new_claims", []),
             answered_questions=data.get("answered_questions", []),
             raised_questions=data.get("raised_questions", []),
-            last_speaker_intent=data.get("last_speaker_intent", "")
+            last_speaker_intent=data.get("last_speaker_intent", ""),
         )

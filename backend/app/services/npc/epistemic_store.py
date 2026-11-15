@@ -12,12 +12,14 @@ from app.domain.epistemology import EpistemicRecord, Proposition
 
 logger = logging.getLogger(__name__)
 
+
 class EpistemicStore:
     """
     Хранит убеждения NPC.
     Ключ: (agent_id, proposition).
     Полностью изолирован от RelationshipStore и L1Chronicle.
     """
+
     def __init__(self) -> None:
         self._records: Dict[Tuple[str, Proposition], EpistemicRecord] = {}
 
@@ -57,37 +59,42 @@ class EpistemicStore:
         # реестр живых акторов для can_address — отдельное будущее ADR
         # (Two-Domain Rule: ждём второго домена-подтверждения).
         self._records[(record.agent_id, record.proposition)] = record
-        logger.debug(f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: {record.proposition} conf={record.confidence:.2f}")
+        logger.debug(
+            f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: {record.proposition} conf={record.confidence:.2f}"
+        )
 
     def to_dict(self) -> list:
         """S193: Сериализует все записи в список словарей для scene_state."""
         records = []
         for record in self._records.values():
-            records.append({
-                "agent_id": record.agent_id,
-                "proposition": {
-                    "subject_id": record.proposition.subject_id,
-                    "predicate": record.proposition.predicate.value,
-                    "object_id": record.proposition.object_id,
-                    "polarity": record.proposition.polarity
-                },
-                "confidence": record.confidence,
-                "source_id": record.source_id,
-                "source_claim_id": record.source_claim_id,
-                "first_observed_tick": record.first_observed_tick,
-                "last_updated_tick": record.last_updated_tick,
-                # COGNITIVE-CONTINUITY-01: provenance chain serialization (§12 WARA).
-                "source_type": record.source_type,
-                "original_source_id": record.original_source_id,
-                # A19.5: Сериализация истории обработанных claim_id для идемпотентности
-                "seen_claim_ids": list(record.seen_claim_ids)
-            })
+            records.append(
+                {
+                    "agent_id": record.agent_id,
+                    "proposition": {
+                        "subject_id": record.proposition.subject_id,
+                        "predicate": record.proposition.predicate.value,
+                        "object_id": record.proposition.object_id,
+                        "polarity": record.proposition.polarity,
+                    },
+                    "confidence": record.confidence,
+                    "source_id": record.source_id,
+                    "source_claim_id": record.source_claim_id,
+                    "first_observed_tick": record.first_observed_tick,
+                    "last_updated_tick": record.last_updated_tick,
+                    # COGNITIVE-CONTINUITY-01: provenance chain serialization (§12 WARA).
+                    "source_type": record.source_type,
+                    "original_source_id": record.original_source_id,
+                    # A19.5: Сериализация истории обработанных claim_id для идемпотентности
+                    "seen_claim_ids": list(record.seen_claim_ids),
+                }
+            )
         return records
 
     @classmethod
     def from_dict(cls, data: list) -> "EpistemicStore":
         """S193: Десериализует записи из scene_state."""
         from app.domain.epistemology import Predicate
+
         store = cls()
         if not data:
             return store
@@ -98,7 +105,7 @@ class EpistemicStore:
                     subject_id=prop_data.get("subject_id"),
                     predicate=Predicate(prop_data.get("predicate")),
                     object_id=prop_data.get("object_id"),
-                    polarity=prop_data.get("polarity", True)
+                    polarity=prop_data.get("polarity", True),
                 )
                 # A19.5: Обратная совместимость — если seen_claim_ids отсутствует,
                 # восстанавливаем хотя бы последний известный source_claim_id.
@@ -108,7 +115,7 @@ class EpistemicStore:
                     _seen = (_source_claim,) if _source_claim else ()
                 else:
                     _seen = tuple(cid for cid in _seen_raw if cid)
-                
+
                 record = EpistemicRecord(
                     agent_id=item.get("agent_id"),
                     proposition=prop,
@@ -121,7 +128,7 @@ class EpistemicStore:
                     # .get default "" — обратная совместимость со старыми сейвами.
                     source_type=item.get("source_type", ""),
                     original_source_id=item.get("original_source_id", ""),
-                    seen_claim_ids=_seen
+                    seen_claim_ids=_seen,
                 )
                 store.upsert(record)
             except Exception as e:

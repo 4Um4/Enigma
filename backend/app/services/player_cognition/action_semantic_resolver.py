@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_CANON_PATH = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"
 
+
 class ActionSemanticResolver:
     """Эвристический резолвер для парсинга raw_text в PlayerAction для MVP."""
 
@@ -27,7 +28,7 @@ class ActionSemanticResolver:
                 self._truth = TruthStateLoader.load(_DEFAULT_CANON_PATH)
             except Exception as e:
                 logger.error(f"Failed to load default TruthState from {_DEFAULT_CANON_PATH}: {e}")
-                self._truth = TruthState(secrets={}, relations=()) # Fallback для изоляции тестов
+                self._truth = TruthState(secrets={}, relations=())  # Fallback для изоляции тестов
 
     def resolve(self, raw_text: str, tick: int, target_id: str) -> PlayerAction:
         """Разбирает текст игрока и возвращает структурированный PlayerAction."""
@@ -70,5 +71,5 @@ class ActionSemanticResolver:
             action_type=_action_type,
             target_id=target_id,
             secret_id=_secret_id,
-            description=raw_text
+            description=raw_text,
         )

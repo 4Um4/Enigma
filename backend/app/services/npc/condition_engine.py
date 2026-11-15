@@ -171,9 +171,6 @@ class ConditionEngine:
 
         # Лог expired
         if expired:
-            logger.debug(
-                f"[CONDITION] {state.npc_id}: expired {expired}, "
-                f"remaining {list(state.conditions.keys())}"
-            )
+            logger.debug(f"[CONDITION] {state.npc_id}: expired {expired}, remaining {list(state.conditions.keys())}")
 
         return state_changes, scene_events

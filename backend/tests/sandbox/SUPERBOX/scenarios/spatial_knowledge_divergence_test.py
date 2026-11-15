@@ -6,6 +6,7 @@
     Канонический boundary из кампании; EpistemicStore substrate; без моков.
 Зависимости: tests.gameplay.harness, SpatialFactory, EpistemicStore
 Основные сущности: main, _resolve_canonical_boundary"""
+
 from __future__ import annotations
 
 from tests.gameplay.harness import TavernGameplayHarness
@@ -38,6 +39,7 @@ def main() -> int:
         _log(f"канонический boundary: {boundary_node} → {target_loc}")
 
         from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
+
         store = getattr(h.game_loop._tick_orch, "_epistemic_store", None)
         if store is None:
             _RED.append("EpistemicStore недоступен из production game_loop")
@@ -46,19 +48,26 @@ def main() -> int:
 
         def _prop(actor: str) -> Proposition:
             return Proposition(
-                subject_id=actor, predicate=Predicate.EXITS_TO,
-                object_id=target_loc, polarity=True,
+                subject_id=actor,
+                predicate=Predicate.EXITS_TO,
+                object_id=target_loc,
+                polarity=True,
             )
 
         # ── R0: substrate принимает spatial-предложение ─────────────────
         try:
             prop_b = _prop("guard_borko")
-            store.upsert(EpistemicRecord(
-                agent_id="guard_borko", proposition=prop_b,
-                confidence=0.9, source_id="guard_borko",
-                source_claim_id=f"initial:{boundary_node}",
-                first_observed_tick=0, last_updated_tick=0,
-            ))
+            store.upsert(
+                EpistemicRecord(
+                    agent_id="guard_borko",
+                    proposition=prop_b,
+                    confidence=0.9,
+                    source_id="guard_borko",
+                    source_claim_id=f"initial:{boundary_node}",
+                    first_observed_tick=0,
+                    last_updated_tick=0,
+                )
+            )
             _GREEN.append("R0: EpistemicStore хранит EXITS_TO")
         except Exception as e:
             _RED.append(f"R0 RED: {e}")
@@ -88,11 +97,7 @@ def main() -> int:
         src = inspect.getsource(_orch.TickOrchestrator._run_core_phases)
         # Маркер via-канала обновлён: «через какой выход» едет в entry NPC
         # (_via_boundary), cross-scene dict не переживает смену сцены тика.
-        ok_p4 = (
-            "EXITS_TO" in src
-            and "_via_boundary" in src
-            and "direct:" in src
-        )
+        ok_p4 = "EXITS_TO" in src and "_via_boundary" in src and "direct:" in src
         if ok_p4:
             _GREEN.append("R3: S186 INJECT пишет DIRECT_EXPERIENCE (маркер direct:)")
         else:
@@ -111,12 +116,17 @@ def main() -> int:
         p_shadow_obs = _prop("thief_shadow")
         # Симуляция наблюдения каналом: не инъекция истины, а авторинг
         # входа канала (то же, что делает ObservationSubscriber на событии).
-        store.upsert(EpistemicRecord(
-            agent_id="thief_shadow", proposition=p_shadow_obs,
-            confidence=0.55, source_id="guard_borko",
-            source_claim_id=f"observed:guard_borko:{boundary_node}:42",
-            first_observed_tick=42, last_updated_tick=42,
-        ))
+        store.upsert(
+            EpistemicRecord(
+                agent_id="thief_shadow",
+                proposition=p_shadow_obs,
+                confidence=0.55,
+                source_id="guard_borko",
+                source_claim_id=f"observed:guard_borko:{boundary_node}:42",
+                first_observed_tick=42,
+                last_updated_tick=42,
+            )
+        )
         r_after = store.get("thief_shadow", p_shadow_obs)
         if r_after is not None and r_after.source_claim_id.startswith("observed:"):
             _GREEN.append("R5: observed-запись персистентна, provenance=observed:")
@@ -127,17 +137,20 @@ def main() -> int:
         # Порядок: direct-upsert ДО дихотомии — иначе R6 видит только
         # observed-маркер (upsert по той же proposition перезаписывает).
         conf_before = r_after.confidence
-        store.upsert(EpistemicRecord(
-            agent_id="thief_shadow", proposition=p_shadow_obs,
-            confidence=min(1.0, conf_before + 0.3), source_id="thief_shadow",
-            source_claim_id=f"direct:thief_shadow:{boundary_node}:50",
-            first_observed_tick=r_after.first_observed_tick, last_updated_tick=50,
-        ))
+        store.upsert(
+            EpistemicRecord(
+                agent_id="thief_shadow",
+                proposition=p_shadow_obs,
+                confidence=min(1.0, conf_before + 0.3),
+                source_id="thief_shadow",
+                source_claim_id=f"direct:thief_shadow:{boundary_node}:50",
+                first_observed_tick=r_after.first_observed_tick,
+                last_updated_tick=50,
+            )
+        )
         r_dir = store.get("thief_shadow", p_shadow_obs)
         if r_dir is not None and r_dir.confidence > conf_before and r_dir.source_claim_id.startswith("direct:"):
-            _GREEN.append(
-                f"R6a: прямое опытие усилило belief {conf_before:.2f}→{r_dir.confidence:.2f}, маркер direct:"
-            )
+            _GREEN.append(f"R6a: прямое опытие усилило belief {conf_before:.2f}→{r_dir.confidence:.2f}, маркер direct:")
         else:
             _RED.append("R6a RED: direct experience не усилил/не замаркировался")
 
@@ -150,9 +163,7 @@ def main() -> int:
         # shadow прошёл путь observed (свидетельство) → direct (собственный
         # переход) — история различна, записи принадлежат разным агентам.
         if b_tags != s_tags and "initial" in b_tags and "direct" in s_tags:
-            _GREEN.append(
-                f"R6b: знания различны и по provenance (borko={sorted(b_tags)}, shadow={sorted(s_tags)})"
-            )
+            _GREEN.append(f"R6b: знания различны и по provenance (borko={sorted(b_tags)}, shadow={sorted(s_tags)})")
         else:
             _RED.append(f"R6b RED: provenance не различаются (b={sorted(b_tags)}, s={sorted(s_tags)})")
 

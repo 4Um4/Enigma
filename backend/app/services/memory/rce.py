@@ -65,9 +65,7 @@ def extract_speech_events(
     # НЕ пытаемся извлечь речь. Это симптом бага нормализации.
     _stripped = dm_text.strip()
     if _stripped.startswith("{") and (
-        '"dm_response"' in _stripped
-        or '"npc_reactions"' in _stripped
-        or '"speech"' in _stripped
+        '"dm_response"' in _stripped or '"npc_reactions"' in _stripped or '"speech"' in _stripped
     ):
         logger.warning("[RCE] JSON artifact detected, ignoring STM write.")
         return []
@@ -102,7 +100,7 @@ def extract_speech_events(
     if reactions:
         logger.debug(f"[RCE] {len(reactions)} speech event(s) → STM: {reactions[:3]}")
     else:
-        logger.debug(f"[RCE] no speech events extracted (no explicit quotes found)")
+        logger.debug("[RCE] no speech events extracted (no explicit quotes found)")
 
     return reactions
 
@@ -115,11 +113,7 @@ def _build_name_maps(
     id_to_name: Dict[str, str] = {}
     if all_npcs_raw:
         # Поддерживаем list[dict] (all_npcs_raw) и dict.values() (npc_positions)
-        _npc_list = (
-            all_npcs_raw
-            if isinstance(all_npcs_raw, list)
-            else list(all_npcs_raw.values())
-        )
+        _npc_list = all_npcs_raw if isinstance(all_npcs_raw, list) else list(all_npcs_raw.values())
         for npc in _npc_list:
             if not isinstance(npc, dict):
                 continue
@@ -184,17 +178,13 @@ def _resolve_speaker(
     # Берём текст после последней точки/восклицания/вопроса
     last_sentence = _last_sentence(context_before)
     if last_sentence:
-        found_name = _find_npc_in_text(
-            last_sentence, name_to_id, id_to_name, player_name
-        )
+        found_name = _find_npc_in_text(last_sentence, name_to_id, id_to_name, player_name)
         if found_name:
             return found_name
 
     # Стратегия 1.5: Поиск во всём контексте перед речью
     if context_before:
-        found_name = _find_npc_in_text(
-            context_before, name_to_id, id_to_name, player_name
-        )
+        found_name = _find_npc_in_text(context_before, name_to_id, id_to_name, player_name)
         if found_name:
             return found_name
 

@@ -3,21 +3,26 @@
 Подсистема 2: Логика кэширования LLM-ответов для Replay (Этап 2.3).
 Инкапсулирует хеширование промпта, чтобы избежать дублирования (DRY).
 """
+
 import hashlib
 import logging
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+
 def compute_prompt_hash(prompt: str, system_prompt: Optional[str] = None, params: Any = None) -> str:
     """Вычисляет стабильный SHA-256 хеш промпта для дедупликации (H-08 FIX)."""
     import json
+
     _params_str = json.dumps(params, default=str) if params else ""
     _hash_str = f"{prompt}|{system_prompt or ''}|{_params_str}"
-    return hashlib.sha256(_hash_str.encode('utf-8')).hexdigest()
+    return hashlib.sha256(_hash_str.encode("utf-8")).hexdigest()
+
 
 class LLMCache:
     """Read-through кэш, делегирующий чтение в ReplayStore."""
+
     def __init__(self, store: Any):
         self.store = store
 
@@ -26,7 +31,16 @@ class LLMCache:
         result: Optional[Dict[str, Any]] = self.store.get_llm_call(agent_name, _hash)
         return result
 
-    def record(self, session_id: str, tick_id: int, agent_name: str, prompt: str, response: str, model_name: str, latency_ms: int = 0) -> None:
+    def record(
+        self,
+        session_id: str,
+        tick_id: int,
+        agent_name: str,
+        prompt: str,
+        response: str,
+        model_name: str,
+        latency_ms: int = 0,
+    ) -> None:
         """Делегирует запись в ReplayStore."""
         self.store.record_llm_call(
             session_id=session_id,
@@ -35,5 +49,5 @@ class LLMCache:
             prompt=prompt,
             response=response,
             model_name=model_name,
-            latency_ms=latency_ms
+            latency_ms=latency_ms,
         )

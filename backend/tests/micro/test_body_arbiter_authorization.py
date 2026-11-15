@@ -58,9 +58,11 @@ def _store_avatar_intent(scene: dict, action: str = "approach", target: str = "f
 def _store_raw_avatar_intent(scene: dict, action: str, target: str = "x", tick: int = 1) -> None:
     """Store Avatar Intent directly in lifecycle (for unknown/invalid actions)."""
     from app.services.events.event_identity import intent_id_str, next_intent_identity
+
     lifecycle = scene.setdefault("intent_lifecycle", {})
     uuids_data = scene.get("identity_uuids", {})
     from app.domain.identity_uuids import IdentityUUIDs as IU
+
     uuids = IU.from_dict(uuids_data) if uuids_data else None
     owner = uuids.avatar_consciousness if uuids else "player"
     body = uuids.body if uuids else "player"
@@ -169,6 +171,7 @@ def test_unknown_does_not_fail_both():
     assert result.verdict == ArbitrationVerdict.DEFER_BOTH
     assert result.player_decision == AuthorizationDecision.DEFERRED
     assert result.avatar_decision == AuthorizationDecision.DEFERRED
+
 
 # ── CONDITIONAL / CONFLICT with different targets ─────────────────
 

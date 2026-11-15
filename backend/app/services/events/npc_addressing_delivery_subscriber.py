@@ -12,6 +12,7 @@ path: /project/backend/app/services/events/npc_addressing_delivery_subscriber.py
     app.services.events.event_types, app.services.events.tick_campaign_context
 Основные сущности: NpcAddressingDeliverySubscriber
 """
+
 from __future__ import annotations
 
 import logging
@@ -59,9 +60,7 @@ class NpcAddressingDeliverySubscriber:
 
     def _subscribe(self) -> None:
         """Подписывается на NPC_ADDRESSES_PLAYER."""
-        self._event_bus.subscribe(
-            EventType.NPC_ADDRESSES_PLAYER, self._on_event
-        )
+        self._event_bus.subscribe(EventType.NPC_ADDRESSES_PLAYER, self._on_event)
 
     def _on_event(self, event: EventDTO) -> Optional[EventDTO]:
         """Фаза 1: staging. Добавляет событие в staged_events контекста тика.

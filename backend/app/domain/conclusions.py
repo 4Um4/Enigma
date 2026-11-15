@@ -52,17 +52,17 @@ class ConclusionProposal:
     AG1-INV-TRACE-ONCE.
     """
 
-    owner_id: str              # кто сделал вывод (= owner опыта, ExperienceTrace.owner_id)
-    subject: str               # о ком/о чём вывод (обычно actor_id трейса)
+    owner_id: str  # кто сделал вывод (= owner опыта, ExperienceTrace.owner_id)
+    subject: str  # о ком/о чём вывод (обычно actor_id трейса)
     predicate: ConclusionPredicate
-    object: str                # объект суждения; "" для унарных предикатов (IS_DANGEROUS)
-    confidence: float          # предложенная уверенность; клампится гейтом [0..1]
+    object: str  # объект суждения; "" для унарных предикатов (IS_DANGEROUS)
+    confidence: float  # предложенная уверенность; клампится гейтом [0..1]
     evidence: Tuple[str, ...]  # event_ids → L1-адресуемость (append-only)
-    trace_id: str              # идентичность трейса источника (E1.0-паттерн)
-    causal_parent: str         # event.id источника (AG1-INV-TRACE-ONCE)
+    trace_id: str  # идентичность трейса источника (E1.0-паттерн)
+    causal_parent: str  # event.id источника (AG1-INV-TRACE-ONCE)
 
     source: str = CONCLUSION_SOURCE_DIRECT
-    rationale: str = ""        # лог/аудит, не для игры (паттерн StateDeltaProposal.rationale)
+    rationale: str = ""  # лог/аудит, не для игры (паттерн StateDeltaProposal.rationale)
 
 
 @dataclass(frozen=True)
@@ -79,17 +79,17 @@ class ConclusionRecord:
     не вторая память).
     """
 
-    owner_id: str              # чей вывод
-    subject: str               # о ком/о чём вывод
+    owner_id: str  # чей вывод
+    subject: str  # о ком/о чём вывод
     predicate: ConclusionPredicate
-    object: str                # "" для унарных предикатов
+    object: str  # "" для унарных предикатов
 
-    confidence: float = 0.5                    # [0..1]; уверенность != truth
-    evidence: Tuple[str, ...] = ()             # event_ids → L1
-    trace_id: str = ""                         # origin-трейс (первое формирование)
-    causal_parent: str = ""                    # event.id источника опыта
+    confidence: float = 0.5  # [0..1]; уверенность != truth
+    evidence: Tuple[str, ...] = ()  # event_ids → L1
+    trace_id: str = ""  # origin-трейс (первое формирование)
+    causal_parent: str = ""  # event.id источника опыта
     source: str = CONCLUSION_SOURCE_DIRECT
-    formed_tick: int = 0                       # тик формирования (якорь §14); ФОРК: при вето владельца — удалить одной строкой
+    formed_tick: int = 0  # тик формирования (якорь §14); ФОРК: при вето владельца — удалить одной строкой
 
     def conclusion_id(self) -> str:
         """Идентичность вывода: триплет + владелец + канал (без confidence).
@@ -97,7 +97,4 @@ class ConclusionRecord:
         Паттерн MemoryCrystal.crystal_id() (урок 9.6): одинаковые триплеты
         из разных каналов (DIRECT vs TESTIMONY) не схлопываются.
         """
-        return (
-            f"{self.owner_id}:{self.subject}:"
-            f"{self.predicate.value}:{self.object}:{self.source}"
-        )
+        return f"{self.owner_id}:{self.subject}:{self.predicate.value}:{self.object}:{self.source}"

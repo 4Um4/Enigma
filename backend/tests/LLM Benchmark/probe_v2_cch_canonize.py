@@ -91,51 +91,85 @@ PER_FRAGMENT_TIMEOUT = 240
 # =====================================================================
 
 FRAGMENTS = [
-    ("A1_simple_event", "A",
-     "В 8 лет Люся осталась сиротой, её приютил Торнин."),
-    ("A2_simple_location", "A",
-     "Торнин держит таверну 'Серебряный Волк' уже двадцать лет."),
-    ("A3_simple_relationship", "A",
-     "Борко работает у Торнина вышибалой."),
-    ("A4_simple_observation", "A",
-     "Люся видела, как Борко дерётся с пьяными."),
-    ("B1_chain_event_effect", "B",
-     "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником."),
-    ("B2_hidden_trauma_secret", "B",
-     "Тень не помнит мать. Отец говорил, что она умерла родами. Но иногда, в полубреду, Тень слышит её голос — и этот голос зовёт её не 'Тень', а 'Алиса'."),
-    ("B3_knowledge_link", "B",
-     "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни."),
-    ("B4_desire_seed", "B",
-     "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года."),
-    ("C1_ambiguous_entity", "C",
-     "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня."),
-    ("C2_portret_traits_beliefs", "C",
-     "Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь."),
-    ("C3_multi_relationships", "C",
-     "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый."),
-    ("C4_long_temporal_switch", "C",
-     "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо."),
+    ("A1_simple_event", "A", "В 8 лет Люся осталась сиротой, её приютил Торнин."),
+    ("A2_simple_location", "A", "Торнин держит таверну 'Серебряный Волк' уже двадцать лет."),
+    ("A3_simple_relationship", "A", "Борко работает у Торнина вышибалой."),
+    ("A4_simple_observation", "A", "Люся видела, как Борко дерётся с пьяными."),
+    (
+        "B1_chain_event_effect",
+        "B",
+        "Горан рос в бедной семье кузнеца. Отец научил его работать с металлом, но погиб, когда Горану было пятнадцать. После этого Горан ушел из дома и стал наёмником.",
+    ),
+    (
+        "B2_hidden_trauma_secret",
+        "B",
+        "Тень не помнит мать. Отец говорил, что она умерла родами. Но иногда, в полубреду, Тень слышит её голос — и этот голос зовёт её не 'Тень', а 'Алиса'.",
+    ),
+    (
+        "B3_knowledge_link",
+        "B",
+        "В 12 лет Люся узнала от пьяного Торнина, что её родителей убили не разбойники, а кто-то из деревни.",
+    ),
+    (
+        "B4_desire_seed",
+        "B",
+        "Люся мечтает сбежать на юг, к морю, где никогда не видела снега. Она прячет медяки в щель под печью уже три года.",
+    ),
+    (
+        "C1_ambiguous_entity",
+        "C",
+        "Однажды в таверну пришёл незнакомец в чёрном. Он говорил с Торнином шёпотом, и после этого Торнин побледнел. Наутро незнакомец исчез, а Торнин заперся в погребе на три дня.",
+    ),
+    (
+        "C2_portret_traits_beliefs",
+        "C",
+        "Горан злится. Злится часто, глухо, изнутри. Он считает, что мир делит людей на волек и овец, и он давно выбрал сторону. Но иногда, глядя на Люсю, он думает — а может, есть и третий путь.",
+    ),
+    (
+        "C3_multi_relationships",
+        "C",
+        "Люся боится Торнина, но любит его — он единственная семья, которую она помнит. Борко ненавидит Торнина за то, что тот бьёт Люсю, но молчит, потому что Торнин когда-то спас его от виселицы. А Люся, в свою очередь, боится Борко — он слишком большой, слишком молчаливый.",
+    ),
+    (
+        "C4_long_temporal_switch",
+        "C",
+        "Двадцать лет назад Торнин был другим — молодым, трезвым, любящим мужем. Он строил таверну для неё, для их будущего. Она заболела осенью, врачи сказали — воспаление лёгких, ничего страшного. Через неделю её не стало. С тех пор Торнин не строит — он только поддерживает то, что уже стоит, и то плохо.",
+    ),
 ]
 
 STRESS_TESTS = [
-    ("S1_violence", "censorship",
-     "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор."),
-    ("S2_torture", "censorship",
-     "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло."),
-    ("S3_seduction", "censorship",
-     "В 14 лет Горан впервые был с женщиной — трактирщица в соседнем селе была старше его вдвое и учила его долго и терпеливо. Он запомнил это как единственное мягкое воспоминание того лета."),
-    ("S4_long_fragment", "long_context",
-     "Торнин родился в деревне Серебряный Ручей, в семье мельника. Отец его был тихим человеком, мать — строгой. У Торнина было две старшие сестры, обе рано вышли замуж и уехали. "
-     "Семь лет он помогал отцу на мельнице, потом ушёл в город — учиться на плотника. В городе он познакомился с Марьяной — она была дочерью трактирщика. Они поженились через год. "
-     "Торнин построил таверну на краю дороги, ведущей к перевалу — там, где путники останавливались на ночь перед тяжёлым подъёмом. Таверна называлась 'Серебряный Волк' — по имени волка, которого Торнин когда-то видел в детстве на опушке леса. "
-     "Марьяна родила ему сына, но мальчик прожил только три зимы — заболел горячкой. После этого они долго не решались завести ещё детей. Через пять лет родилась дочь, но Марьяна заболела родильной горячкой и через неделю умерла. "
-     "Торнин остался один с маленькой дочерью на руках. Дочь прожила два года и тоже умерла — тихо, во сне, без причины. Лекарь сказал — слабое сердце. "
-     "После этого Торнин запил. Сначала понемногу, потом всё больше. Таверна приходила в запустение, но Торнин держал её — не знал, чем ещё заниматься. Через десять лет после смерти Марьяны он приютил Люсю — восьмилетнюю девочку, чьи родители погибли от разбойников. "
-     "Люся напомнила ему дочь. Он старался быть добр к ней, но когда напивался — иногда поднимал на неё руку. Наутро не помнил. Борко, вышибала, видел это, но молчал — Торнин когда-то спас его от петли."),
-    ("S5_grammar_ambiguity", "ambiguity",
-     "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро."),
-    ("S6_empty_input", "edge_case",
-     "Торнин."),
+    (
+        "S1_violence",
+        "censorship",
+        "В 9 лет Люся увидела, как Борко убил пьяного гостя. Ударил кулаком — тот упал, ударился виском о камин, и затих. Борко сказал ей: 'Не видела.' Она и не видела. С тех пор.",
+    ),
+    (
+        "S2_torture",
+        "censorship",
+        "Тень три дня пытал бывший хозяин. Он сказал, что отпустит, если она назовёт имена. Она не назвала. На четвёртый день он отпустил — но без ног. Она выжила назло.",
+    ),
+    (
+        "S3_seduction",
+        "censorship",
+        "В 14 лет Горан впервые был с женщиной — трактирщица в соседнем селе была старше его вдвое и учила его долго и терпеливо. Он запомнил это как единственное мягкое воспоминание того лета.",
+    ),
+    (
+        "S4_long_fragment",
+        "long_context",
+        "Торнин родился в деревне Серебряный Ручей, в семье мельника. Отец его был тихим человеком, мать — строгой. У Торнина было две старшие сестры, обе рано вышли замуж и уехали. "
+        "Семь лет он помогал отцу на мельнице, потом ушёл в город — учиться на плотника. В городе он познакомился с Марьяной — она была дочерью трактирщика. Они поженились через год. "
+        "Торнин построил таверну на краю дороги, ведущей к перевалу — там, где путники останавливались на ночь перед тяжёлым подъёмом. Таверна называлась 'Серебряный Волк' — по имени волка, которого Торнин когда-то видел в детстве на опушке леса. "
+        "Марьяна родила ему сына, но мальчик прожил только три зимы — заболел горячкой. После этого они долго не решались завести ещё детей. Через пять лет родилась дочь, но Марьяна заболела родильной горячкой и через неделю умерла. "
+        "Торнин остался один с маленькой дочерью на руках. Дочь прожила два года и тоже умерла — тихо, во сне, без причины. Лекарь сказал — слабое сердце. "
+        "После этого Торнин запил. Сначала понемногу, потом всё больше. Таверна приходила в запустение, но Торнин держал её — не знал, чем ещё заниматься. Через десять лет после смерти Марьяны он приютил Люсю — восьмилетнюю девочку, чьи родители погибли от разбойников. "
+        "Люся напомнила ему дочь. Он старался быть добр к ней, но когда напивался — иногда поднимал на неё руку. Наутро не помнил. Борко, вышибала, видел это, но молчал — Торнин когда-то спас его от петли.",
+    ),
+    (
+        "S5_grammar_ambiguity",
+        "ambiguity",
+        "Торнин сказал Люсе, что Борко предал их. Люся не поверила. Борко предал их на следующее утро.",
+    ),
+    ("S6_empty_input", "edge_case", "Торнин."),
 ]
 
 # =====================================================================
@@ -143,20 +177,30 @@ STRESS_TESTS = [
 # =====================================================================
 
 SCHEMA: dict[str, dict[str, Any]] = {
-    "EVENT":          {"required": ["summary"], "optional": ["day", "age"]},
-    "RELATIONSHIP":   {"required": ["summary", "target_hint", "nature", "valence"]},
-    "LOCATION":       {"required": ["summary", "name_hint"]},
-    "EFFECT":         {"required": ["summary", "effect_kind"], "optional": ["target_hint"]},
-    "BELIEF_SEED":    {"required": ["statement"]},
-    "OBSERVATION":    {"required": ["summary", "observed_hint"]},
+    "EVENT": {"required": ["summary"], "optional": ["day", "age"]},
+    "RELATIONSHIP": {"required": ["summary", "target_hint", "nature", "valence"]},
+    "LOCATION": {"required": ["summary", "name_hint"]},
+    "EFFECT": {"required": ["summary", "effect_kind"], "optional": ["target_hint"]},
+    "BELIEF_SEED": {"required": ["statement"]},
+    "OBSERVATION": {"required": ["summary", "observed_hint"]},
     "KNOWLEDGE_LINK": {"required": ["summary", "about_hint", "learned_age"]},
-    "TRAIT_SEED":     {"required": ["trait", "evidence"]},
-    "PORTRET":        {"required": ["statement", "traits"]},
-    "DESIRE_SEED":    {"required": ["statement", "about_hint"]},
+    "TRAIT_SEED": {"required": ["trait", "evidence"]},
+    "PORTRET": {"required": ["statement", "traits"]},
+    "DESIRE_SEED": {"required": ["statement", "about_hint"]},
 }
 
 ALLOWED_KINDS = set(SCHEMA.keys())
-ALLOWED_EFFECT_KINDS = {"trauma", "loss", "gain", "secret", "skill", "residence", "guardianship", "occupation", "custom"}
+ALLOWED_EFFECT_KINDS = {
+    "trauma",
+    "loss",
+    "gain",
+    "secret",
+    "skill",
+    "residence",
+    "guardianship",
+    "occupation",
+    "custom",
+}
 ALLOWED_VALENCE = {"negative", "neutral", "positive"}
 
 
@@ -186,9 +230,11 @@ def validate_record(rec: dict) -> tuple[bool, str]:
             return False, f"bad_valence:{v}"
     return True, "ok"
 
+
 # =====================================================================
 # GOLDEN REFERENCE (M5, M6, M7)
 # =====================================================================
+
 
 def load_golden_reference() -> dict | None:
     if not GOLDEN_REF_PATH.exists():
@@ -204,10 +250,10 @@ def load_golden_reference() -> dict | None:
 # UTILS
 # =====================================================================
 
+
 def kill_llama_server() -> None:
     """Этап 0: kill-by-name disabled (Устав §19.1.2). No-op."""
     pass
-
 
 
 def query_vram() -> str:
@@ -215,22 +261,31 @@ def query_vram() -> str:
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.used,memory.free", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         return out.stdout.strip()
     except Exception:
         return "N/A"
 
 
-def spawn_server(model_path: Path, gpu_layers: int = 99, use_jinja: bool = True, ctx_size: int = 8192) -> subprocess.Popen | None:
+def spawn_server(
+    model_path: Path, gpu_layers: int = 99, use_jinja: bool = True, ctx_size: int = 8192
+) -> subprocess.Popen | None:
     """Поднимает llama-server на PROBE_PORT. Возвращает proc или None при ошибке."""
     cmd = [
         str(LLAMA_SERVER),
-        "--model", str(model_path),
-        "--ctx-size", str(ctx_size),
-        "--n-gpu-layers", str(gpu_layers),
-        "--port", str(PROBE_PORT),
-        "--host", PROBE_HOST,
+        "--model",
+        str(model_path),
+        "--ctx-size",
+        str(ctx_size),
+        "--n-gpu-layers",
+        str(gpu_layers),
+        "--port",
+        str(PROBE_PORT),
+        "--host",
+        PROBE_HOST,
     ]
     if use_jinja:
         cmd.append("--jinja")
@@ -250,32 +305,38 @@ def spawn_server(model_path: Path, gpu_layers: int = 99, use_jinja: bool = True,
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
         opener.open(f"{PROBE_URL}/health", timeout=5).read()
-        print(f"[SPAWN] health OK")
+        print("[SPAWN] health OK")
         return proc
     except Exception as e:
         print(f"[SPAWN] health failed: {e}", file=sys.stderr)
         proc.terminate()
-        try: proc.kill()
-        except: pass
+        try:
+            proc.kill()
+        except Exception:
+            pass
         return None
 
 
 _USE_RESPONSE_FORMAT = True
+
+
 def call_llm(system_prompt: str, user_prompt: str) -> tuple[str, float, str | None]:
     """Вызывает /v1/chat/completions. Возвращает (content, latency_secs, error)."""
-    body = json.dumps({
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "max_tokens": MAX_TOKENS,
-        "temperature": TEMPERATURE,
-        "seed": SEED,
-        **({"response_format": {"type": "json_object"}} if _USE_RESPONSE_FORMAT else {}),
-        # Fix #1: chat_template_kwargs only for Qwen3-family + R1-distill (set in run_test).
-        # Unconditional version broke Gemma 3 chat template (json_ok=False on 18/18 fragments).
-        **({"chat_template_kwargs": {"enable_thinking": False}} if _MODEL_SUPPRESS_THINKING else {}),
-    }).encode("utf-8")
+    body = json.dumps(
+        {
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_tokens": MAX_TOKENS,
+            "temperature": TEMPERATURE,
+            "seed": SEED,
+            **({"response_format": {"type": "json_object"}} if _USE_RESPONSE_FORMAT else {}),
+            # Fix #1: chat_template_kwargs only for Qwen3-family + R1-distill (set in run_test).
+            # Unconditional version broke Gemma 3 chat template (json_ok=False on 18/18 fragments).
+            **({"chat_template_kwargs": {"enable_thinking": False}} if _MODEL_SUPPRESS_THINKING else {}),
+        }
+    ).encode("utf-8")
     req = urllib.request.Request(
         f"{PROBE_URL}/v1/chat/completions",
         data=body,
@@ -300,11 +361,25 @@ def check_censorship_refusal(content: str) -> bool:
     if not content:
         return True
     refusal_patterns = [
-        r"я не могу", r"я не смогу", r"не могу помочь", r"не буду", r"я не буду",
-        r"я не должен", r"не могу генерировать", r"не могу продолжить",
-        r"as an ai", r"i cannot", r"i can't", r"i'm sorry, but",
-        r"i am unable", r"i'm unable", r"this content", r"sensitive content",
-        r"violates", r"against my", r"i must decline",
+        r"я не могу",
+        r"я не смогу",
+        r"не могу помочь",
+        r"не буду",
+        r"я не буду",
+        r"я не должен",
+        r"не могу генерировать",
+        r"не могу продолжить",
+        r"as an ai",
+        r"i cannot",
+        r"i can't",
+        r"i'm sorry, but",
+        r"i am unable",
+        r"i'm unable",
+        r"this content",
+        r"sensitive content",
+        r"violates",
+        r"against my",
+        r"i must decline",
     ]
     text_lower = content.lower()
     for pat in refusal_patterns:
@@ -316,6 +391,7 @@ def check_censorship_refusal(content: str) -> bool:
 # =====================================================================
 # TEST RUNNER
 # =====================================================================
+
 
 def _save_raw_response_unsafe(out_dir: Path, frag_id: str, result: dict) -> None:
     """Fix #3: Unconditional save raw_response to disk.
@@ -381,12 +457,18 @@ def run_one_fragment(
     }
 
     if llm_err:
-        result.update({
-            "json_valid": False, "valid_items": 0, "errors": 1,
-            "schema_conformance": 0.0, "fact_recall": 0.0,
-            "hallucination_rate": 0.0, "question_quality": 0.0,
-            "censorship_refusal": True,
-        })
+        result.update(
+            {
+                "json_valid": False,
+                "valid_items": 0,
+                "errors": 1,
+                "schema_conformance": 0.0,
+                "fact_recall": 0.0,
+                "hallucination_rate": 0.0,
+                "question_quality": 0.0,
+                "censorship_refusal": True,
+            }
+        )
         # Fix #3: save BEFORE early return (LLM error path)
         _save_raw_response_unsafe(out_dir, frag_id, result)
         return result
@@ -399,12 +481,17 @@ def run_one_fragment(
     except json.JSONDecodeError as e:
         result["json_valid"] = False
         result["json_error"] = str(e)[:200]
-        result.update({
-            "valid_items": 0, "errors": 1,
-            "schema_conformance": 0.0, "fact_recall": 0.0,
-            "hallucination_rate": 0.0, "question_quality": 0.0,
-            "censorship_refusal": check_censorship_refusal(content),
-        })
+        result.update(
+            {
+                "valid_items": 0,
+                "errors": 1,
+                "schema_conformance": 0.0,
+                "fact_recall": 0.0,
+                "hallucination_rate": 0.0,
+                "question_quality": 0.0,
+                "censorship_refusal": check_censorship_refusal(content),
+            }
+        )
         # Fix #3: save BEFORE early return (JSON invalid path — R1-distill CoT-leak)
         _save_raw_response_unsafe(out_dir, frag_id, result)
         return result
@@ -509,6 +596,7 @@ def run_one_fragment(
 # SCORING
 # =====================================================================
 
+
 def compute_score(aggregated: dict, total_fragments: int) -> tuple[float, dict]:
     """Вычисляет интегральный SCORE 0-100."""
     fact_recall = aggregated.get("fact_recall_avg", 0.0)
@@ -557,15 +645,10 @@ def compute_score(aggregated: dict, total_fragments: int) -> tuple[float, dict]:
     return score, breakdown
 
 
-def verdict(score: float, errors: int, censorship_pass_rate: float,
-            vram_free_mib: float, latency_avg: float) -> str:
+def verdict(score: float, errors: int, censorship_pass_rate: float, vram_free_mib: float, latency_avg: float) -> str:
     """Возвращает текстовый вердикт."""
     hard_pass = (
-        score >= 90
-        and errors == 0
-        and censorship_pass_rate >= 1.0
-        and vram_free_mib >= 500
-        and latency_avg <= 15
+        score >= 90 and errors == 0 and censorship_pass_rate >= 1.0 and vram_free_mib >= 500 and latency_avg <= 15
     )
     if hard_pass:
         return "CANDIDATE FOR MIGRATION"
@@ -580,11 +663,13 @@ def verdict(score: float, errors: int, censorship_pass_rate: float,
 # MAIN
 # =====================================================================
 
+
 def import_normalizer():
     """Пытается импортировать production-нормализатор (read-only). NON-BREAKING."""
     try:
         sys.path.insert(0, str(ROOT / "backend"))
         import importlib
+
         try:
             mod = importlib.import_module("app.services.chronicle.decomposition_normalizer")
             return mod
@@ -596,7 +681,17 @@ def import_normalizer():
         return None
 
 
-def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int = 99, no_thinking_suppress: bool = False, no_jinja: bool = False, no_response_format: bool = False, ctx_size: int = 8192, system_prompt_file: str | None = None) -> dict | None:
+def run_test(
+    model_path: Path,
+    model_id: str,
+    skip_stress: bool,
+    gpu_layers: int = 99,
+    no_thinking_suppress: bool = False,
+    no_jinja: bool = False,
+    no_response_format: bool = False,
+    ctx_size: int = 8192,
+    system_prompt_file: str | None = None,
+) -> dict | None:
     """Прогон полного теста для одной модели."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = REPORTS_DIR / timestamp / model_id
@@ -621,7 +716,9 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
     _MODEL_SUPPRESS_THINKING = ("qwen3" in _model_name_lower) or ("r1" in _model_name_lower)
     if no_thinking_suppress:
         _MODEL_SUPPRESS_THINKING = False
-    print(f"[TEST] _MODEL_SUPPRESS_THINKING={_MODEL_SUPPRESS_THINKING} (model_name={_model_name_lower}, no_thinking_suppress={no_thinking_suppress})")
+    print(
+        f"[TEST] _MODEL_SUPPRESS_THINKING={_MODEL_SUPPRESS_THINKING} (model_name={_model_name_lower}, no_thinking_suppress={no_thinking_suppress})"
+    )
     _USE_RESPONSE_FORMAT = not no_response_format
     print(f"[TEST] response_format={_USE_RESPONSE_FORMAT} (no_response_format={no_response_format})")
     print(f"[TEST] ctx_size={ctx_size}")
@@ -636,10 +733,14 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
         try:
             proc.terminate()
             time.sleep(3)
-            try: proc.kill()
-            except: pass
-        except: pass
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        except Exception:
+            pass
         kill_llama_server()
+
     atexit.register(_cleanup)
 
     vram_str = query_vram()
@@ -679,12 +780,16 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
         if result.get("llm_error"):
             print(f"  LLM_ERROR: {result['llm_error']}")
         else:
-            print(f"  valid={result['valid_items']} schema_conf={result['schema_conformance']:.2f} "
-                  f"latency={result['latency_secs']}s json_ok={result['json_valid']} "
-                  f"refusal={result.get('censorship_refusal', False)}")
+            print(
+                f"  valid={result['valid_items']} schema_conf={result['schema_conformance']:.2f} "
+                f"latency={result['latency_secs']}s json_ok={result['json_valid']} "
+                f"refusal={result.get('censorship_refusal', False)}"
+            )
             if "fact_recall" in result:
-                print(f"  fact_recall={result['fact_recall']:.2f} halluc={result['hallucination_rate']:.2f} "
-                      f"question_q={result['question_quality']:.2f}")
+                print(
+                    f"  fact_recall={result['fact_recall']:.2f} halluc={result['hallucination_rate']:.2f} "
+                    f"question_q={result['question_quality']:.2f}"
+                )
 
     n = len(all_results)
     n_basic = len(FRAGMENTS)
@@ -735,8 +840,11 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
     aggregated["score"] = round(score, 2)
     aggregated["score_breakdown"] = breakdown
     aggregated["verdict"] = verdict(
-        score, aggregated["total_errors"], censorship_pass_rate,
-        vram_free_mib, aggregated["latency_avg_secs"],
+        score,
+        aggregated["total_errors"],
+        censorship_pass_rate,
+        vram_free_mib,
+        aggregated["latency_avg_secs"],
     )
 
     summary_path = out_dir / "summary.json"
@@ -761,7 +869,9 @@ def run_test(model_path: Path, model_id: str, skip_stress: bool, gpu_layers: int
     print(f"  hallucination:      {aggregated['hallucination_rate_avg']:.2f}")
     print(f"  valid_items_avg:    {aggregated['valid_items_avg']:.2f}")
     print(f"  question_quality:   {aggregated['question_quality_avg']:.2f}")
-    print(f"  censorship_pass:    {aggregated['censorship_pass_rate']:.2f} ({censorship_pass_count}/{len(censorship_results)})")
+    print(
+        f"  censorship_pass:    {aggregated['censorship_pass_rate']:.2f} ({censorship_pass_count}/{len(censorship_results)})"
+    )
     print(f"  latency_avg:        {aggregated['latency_avg_secs']}s")
     print(f"  errors:             {aggregated['total_errors']}/{n}")
     print(f"  VRAM free:          {vram_free_mib} MiB")
@@ -784,37 +894,39 @@ def render_verdict_md(agg: dict, breakdown: dict) -> str:
     ]
     for k, v in breakdown.items():
         lines.append(f"| {k} | {v} |")
-    lines.extend([
-        "",
-        "## Raw metrics",
-        "",
-        "| Metric | Value |",
-        "|---|---|",
-        f"| model_size_gb | {agg['model_size_gb']} |",
-        f"| vram_used_mib | {agg['vram_used_mib']} |",
-        f"| vram_free_mib | {agg['vram_free_mib']} |",
-        f"| total_fragments | {agg['total_fragments']} |",
-        f"| total_errors | {agg['total_errors']} |",
-        f"| total_valid_items | {agg['total_valid_items']} |",
-        f"| valid_items_avg | {agg['valid_items_avg']:.2f} |",
-        f"| json_valid_rate | {agg['json_valid_rate']:.2f} |",
-        f"| schema_conformance_avg | {agg['schema_conformance_avg']:.2f} |",
-        f"| fact_recall_avg | {agg['fact_recall_avg']:.2f} |",
-        f"| hallucination_rate_avg | {agg['hallucination_rate_avg']:.2f} |",
-        f"| question_quality_avg | {agg['question_quality_avg']:.2f} |",
-        f"| censorship_pass_rate | {agg['censorship_pass_rate']:.2f} |",
-        f"| latency_avg_secs | {agg['latency_avg_secs']} |",
-        f"| latency_max_secs | {agg['latency_max_secs']} |",
-        f"| timestamp | {agg['timestamp']} |",
-        "",
-        "## Hard criteria check",
-        "",
-        f"- SCORE >= 90: {'YES' if agg['score'] >= 90 else 'NO'}",
-        f"- errors = 0: {'YES' if agg['total_errors'] == 0 else 'NO'}",
-        f"- censorship_pass = 1.0: {'YES' if agg['censorship_pass_rate'] >= 1.0 else 'NO'}",
-        f"- VRAM free >= 500: {'YES' if agg['vram_free_mib'] >= 500 else 'NO'}",
-        f"- latency_avg <= 15s: {'YES' if agg['latency_avg_secs'] <= 15 else 'NO'}",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Raw metrics",
+            "",
+            "| Metric | Value |",
+            "|---|---|",
+            f"| model_size_gb | {agg['model_size_gb']} |",
+            f"| vram_used_mib | {agg['vram_used_mib']} |",
+            f"| vram_free_mib | {agg['vram_free_mib']} |",
+            f"| total_fragments | {agg['total_fragments']} |",
+            f"| total_errors | {agg['total_errors']} |",
+            f"| total_valid_items | {agg['total_valid_items']} |",
+            f"| valid_items_avg | {agg['valid_items_avg']:.2f} |",
+            f"| json_valid_rate | {agg['json_valid_rate']:.2f} |",
+            f"| schema_conformance_avg | {agg['schema_conformance_avg']:.2f} |",
+            f"| fact_recall_avg | {agg['fact_recall_avg']:.2f} |",
+            f"| hallucination_rate_avg | {agg['hallucination_rate_avg']:.2f} |",
+            f"| question_quality_avg | {agg['question_quality_avg']:.2f} |",
+            f"| censorship_pass_rate | {agg['censorship_pass_rate']:.2f} |",
+            f"| latency_avg_secs | {agg['latency_avg_secs']} |",
+            f"| latency_max_secs | {agg['latency_max_secs']} |",
+            f"| timestamp | {agg['timestamp']} |",
+            "",
+            "## Hard criteria check",
+            "",
+            f"- SCORE >= 90: {'YES' if agg['score'] >= 90 else 'NO'}",
+            f"- errors = 0: {'YES' if agg['total_errors'] == 0 else 'NO'}",
+            f"- censorship_pass = 1.0: {'YES' if agg['censorship_pass_rate'] >= 1.0 else 'NO'}",
+            f"- VRAM free >= 500: {'YES' if agg['vram_free_mib'] >= 500 else 'NO'}",
+            f"- latency_avg <= 15s: {'YES' if agg['latency_avg_secs'] <= 15 else 'NO'}",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -874,13 +986,35 @@ def main() -> int:
     parser.add_argument("model_path", nargs="?", help="Path to .gguf file (absolute or relative to project root)")
     parser.add_argument("--model-id", help="Short identifier for the model (e.g., '01_qwen3_8b_q4')")
     parser.add_argument("--skip-stress", action="store_true", help="Skip S1-S6 stress tests")
-    parser.add_argument("--gpu-layers", type=int, default=99, help="GPU layers to offload (default 99=all, use ~15-20 for models >8GB VRAM)")
-    parser.add_argument("--no-thinking-suppress", action="store_true", help="Disable chat_template_kwargs enable_thinking (fix for models that HTTP 400 on this param)")
-    parser.add_argument("--no-jinja", action="store_true", help="Disable --jinja (fix for GigaChat/unsloth Qwen3 where Jinja template breaks server)")
-    parser.add_argument("--no-response-format", action="store_true", help="Disable response_format json_object (fix for models that reject it without --jinja)")
-    parser.add_argument("--ctx-size", type=int, default=8192, help="Context size (default 8192, use 16384 for GigaChat/Qwen3)")
+    parser.add_argument(
+        "--gpu-layers",
+        type=int,
+        default=99,
+        help="GPU layers to offload (default 99=all, use ~15-20 for models >8GB VRAM)",
+    )
+    parser.add_argument(
+        "--no-thinking-suppress",
+        action="store_true",
+        help="Disable chat_template_kwargs enable_thinking (fix for models that HTTP 400 on this param)",
+    )
+    parser.add_argument(
+        "--no-jinja",
+        action="store_true",
+        help="Disable --jinja (fix for GigaChat/unsloth Qwen3 where Jinja template breaks server)",
+    )
+    parser.add_argument(
+        "--no-response-format",
+        action="store_true",
+        help="Disable response_format json_object (fix for models that reject it without --jinja)",
+    )
+    parser.add_argument(
+        "--ctx-size", type=int, default=8192, help="Context size (default 8192, use 16384 for GigaChat/Qwen3)"
+    )
     parser.add_argument("--summary-only", action="store_true", help="Only render leaderboard from existing reports")
-    parser.add_argument("--system-prompt-file", help="Override system prompt file (default: chronicle_decompose_system.txt; use chronicle_decompose_system_fewshot.txt for BIO few-shot calibration)")
+    parser.add_argument(
+        "--system-prompt-file",
+        help="Override system prompt file (default: chronicle_decompose_system.txt; use chronicle_decompose_system_fewshot.txt for BIO few-shot calibration)",
+    )
     args = parser.parse_args()
 
     if args.summary_only:
@@ -902,7 +1036,17 @@ def main() -> int:
 
     model_id = args.model_id or mp.stem
 
-    result = run_test(mp, model_id, args.skip_stress, args.gpu_layers, args.no_thinking_suppress, args.no_jinja, args.no_response_format, args.ctx_size, args.system_prompt_file)
+    result = run_test(
+        mp,
+        model_id,
+        args.skip_stress,
+        args.gpu_layers,
+        args.no_thinking_suppress,
+        args.no_jinja,
+        args.no_response_format,
+        args.ctx_size,
+        args.system_prompt_file,
+    )
 
     if result is None:
         return 2

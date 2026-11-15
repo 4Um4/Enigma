@@ -10,6 +10,7 @@ S371.3-GBNF unit-тесты: endpoint branching, grammar payload, error handling
 6. Все EntryKind представлены в грамматике (static check)
 7. Грамматика не маскирует невалидный JSON (static: root требует closing })
 """
+
 from __future__ import annotations
 
 import json
@@ -32,13 +33,21 @@ _GBNF_PATH = _ROOT / "config" / "chronicle_decompose.gbnf"
 @contextmanager
 def _mock_http_response(captured: dict, response_content: str = '{"items": []}', endpoint: str = "completion"):
     """Перехватывает urllib.request.build_opener, возвращает mock opener."""
-    fake_response_bytes = json.dumps({
-        "content": response_content,
-        "tokens_predicted": len(response_content.split()),
-    }).encode("utf-8") if endpoint == "completion" else json.dumps({
-        "choices": [{"message": {"content": response_content}}],
-        "usage": {"completion_tokens": len(response_content.split())},
-    }).encode("utf-8")
+    fake_response_bytes = (
+        json.dumps(
+            {
+                "content": response_content,
+                "tokens_predicted": len(response_content.split()),
+            }
+        ).encode("utf-8")
+        if endpoint == "completion"
+        else json.dumps(
+            {
+                "choices": [{"message": {"content": response_content}}],
+                "usage": {"completion_tokens": len(response_content.split())},
+            }
+        ).encode("utf-8")
+    )
 
     class _FakeCtx:
         def __enter__(self):
@@ -74,6 +83,7 @@ def _make_provider() -> LlamaCppProvider:
 
 # ── Тест 1: GBNF передаётся в /completion ────────────────────────────────────
 
+
 def test_grammar_uses_completion_endpoint():
     """params.grammar задан → POST /completion (не /v1/chat/completions)."""
     captured: dict = {}
@@ -104,6 +114,7 @@ def test_grammar_in_payload():
 
 # ── Тест 2: Ответ /completion разбирается корректно ──────────────────────────
 
+
 def test_completion_response_parsed():
     """body['content'] извлекается из /completion ответа."""
     captured: dict = {}
@@ -119,6 +130,7 @@ def test_completion_response_parsed():
 
 
 # ── Тест 3: Запрос без GBNF → прежний endpoint ───────────────────────────────
+
 
 def test_no_grammar_uses_chat_endpoint():
     """params.grammar=None → POST /v1/chat/completions (прежний endpoint)."""
@@ -148,6 +160,7 @@ def test_no_grammar_no_grammar_field():
 
 # ── Тест 5: HTTP-ошибка → RuntimeError ───────────────────────────────────────
 
+
 def test_http_error_raises_runtime_error():
     """HTTP-ошибка → RuntimeError с диагностикой (после retry)."""
     provider = _make_provider()
@@ -165,6 +178,7 @@ def test_http_error_raises_runtime_error():
 
 
 # ── Тест 6: Все EntryKind представлены в грамматике ──────────────────────────
+
 
 def test_grammar_file_exists():
     """config/chronicle_decompose.gbnf существует."""
@@ -187,10 +201,11 @@ def test_grammar_all_entrykinds_represented():
     assert "root" in grammar, "Grammar missing root rule"
 
     # root должен требовать items (форма {"items": [...]})
-    assert '"items"' in grammar or '"\\\"items\\\""' in grammar, "Grammar missing items key in root"
+    assert '"items"' in grammar or '"\\"items\\""' in grammar, "Grammar missing items key in root"
 
 
 # ── Тест 7: Грамматика не маскирует невалидный JSON ──────────────────────────
+
 
 def test_grammar_requires_closing_brace():
     """root правило требует closing } — LLM не может остановиться на ] без }.

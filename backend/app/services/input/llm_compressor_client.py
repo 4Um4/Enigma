@@ -20,7 +20,9 @@ class LLMCompressorClient(Protocol):
     """Интерфейс компрессора. LLM = Voice, но здесь она Semantic Parser."""
 
     async def compress_intent(
-        self, raw_text: str, scene_context: Dict[str, Any],
+        self,
+        raw_text: str,
+        scene_context: Dict[str, Any],
         dialogue_session: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]: ...
 
@@ -31,15 +33,19 @@ class LlamaCppCompressorClient:
     def __init__(self, base_url: Optional[str] = None):
         # NEW-DLG-002 FIX: Использование settings.llama_cpp_server_url вместо хардкода.
         from app.core.config import settings
+
         self.base_url = base_url or settings.llama_cpp_server_url
 
     async def compress_intent(
         self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None
     ) -> Optional[Dict[str, Any]]:
         import asyncio
+
         return await asyncio.to_thread(self._sync_compress, raw_text, scene_context, dialogue_session)
 
-    def _sync_compress(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+    def _sync_compress(
+        self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
         """Синхронная реализация через urllib (обходит баги прокси и httpx)."""
         import re
 
@@ -56,9 +62,8 @@ class LlamaCppCompressorClient:
         # (llama_cpp_provider:163-165), не второй механизм. Только этот
         # путь: DM/вербализация (temperature=0.9) не трогаются.
         from app.services.npc.kernel_rng import KernelRNG
-        _seed = KernelRNG(tick=0, npc_id="intent_compressor", salt=user_prompt).randint(
-            0, 2**31 - 1
-        )
+
+        _seed = KernelRNG(tick=0, npc_id="intent_compressor", salt=user_prompt).randint(0, 2**31 - 1)
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
@@ -66,7 +71,7 @@ class LlamaCppCompressorClient:
             ],
             "temperature": 0.0,
             "seed": _seed,
-            "response_format": {"type": "json_object"}, # Принудительный JSON Mode
+            "response_format": {"type": "json_object"},  # Принудительный JSON Mode
             # Qwen3.5-9B (thinking-модель): отключаем thinking-блок для JSON-режима.
             # Для Qwen2.5-7B (без thinking) — no-op: chat template игнорирует kwargs.
             "chat_template_kwargs": {"enable_thinking": False},
@@ -110,7 +115,7 @@ class LlamaCppCompressorClient:
                     )
 
                 # Очистка от markdown разметки (Qwen любит оборачивать в ```json ... ```)
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                json_match = re.search(r"\{.*\}", content, re.DOTALL)
                 if json_match:
                     content = json_match.group(0)
 
@@ -133,16 +138,15 @@ class LlamaCppCompressorClient:
             # §1.2: код статуса читается только у HTTPError — пустой
             # getattr-дефолт больше не маскирует отсутствие атрибута.
             _code = e.code if isinstance(e, urllib.error.HTTPError) else ""
-            logger.error(
-                f"[LLM_COMPRESSOR] request failed: {type(e).__name__} "
-                f"code={_code} | SERVER BODY: {_body}"
-            )
+            logger.error(f"[LLM_COMPRESSOR] request failed: {type(e).__name__} code={_code} | SERVER BODY: {_body}")
             return None
         except Exception as e:
             logger.error(f"[LLM_COMPRESSOR] Unexpected error: {e}")
             return None
 
-    def _build_prompts(self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None) -> tuple[str, str]:
+    def _build_prompts(
+        self, raw_text: str, scene_context: Dict[str, Any], dialogue_session: Optional[Any] = None
+    ) -> tuple[str, str]:
         # Извлекаем имена NPC для подсказки модели
         npc_names = []
         if isinstance(scene_context, dict):
@@ -184,7 +188,9 @@ class LlamaCppCompressorClient:
         )
         _prov_class_block = ""
         if os.environ.get("ENIGMA_PROV_X2") == "1":
-            _prov_enum_tail = ', "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). ' + _prov_boundary_text
+            _prov_enum_tail = (
+                ', "ASK_PROVENANCE" (params: {"about": "о чём спрашивают происхождение"}). ' + _prov_boundary_text
+            )
         if os.environ.get("ENIGMA_PROV_XCLEAN") == "1":
             _prov_enum_tail = ""
             _prov_class_block = (
@@ -211,7 +217,7 @@ class LlamaCppCompressorClient:
         # отброшен; гейт исполнения Блока 3 закрывает действие).
         _per_act_contract = (
             "\n- Каждый акт может нести необязательные признаки (НЕ уверены — опустите ключ):\n"
-            '  negated: true — акт есть ЗАПРЕТ/отрицание иллкюции («не говори», «не бей»); опущено = приказ/просьба утверждены.\n'
+            "  negated: true — акт есть ЗАПРЕТ/отрицание иллкюции («не говори», «не бей»); опущено = приказ/просьба утверждены.\n"
             '  modality: "HYPOTHETICAL" | "CONDITIONAL" | "DESIRED" | "REALIS" — статус акта: гипотеза («а если предложу»), условие, желание или реальное действие.\n'
             "  quoted: true — акт находится ВНУТРИ чужой прямой речи («он сказал: „…“»); процитированные команды не являются намерением говорящего.\n"
             "  quoted_speaker_hint: кем предположительно произнесена цитата (NPC из сцены).\n"
@@ -273,18 +279,16 @@ class LlamaCppCompressorClient:
             # 0..1 модуль по gold-меткам, пустой срез (ноль модулей) =
             # байт-состояние A (замок test_semlib_router: ON+NONE == golden A).
             from app.services.input import semantic_router
+
             _sem_mods = semantic_router.select_modules(
                 raw_text,
-                csv_names=os.environ.get(
-                    "ENIGMA_SEM_LIB_MODULES", "dialogue_provenance"
-                ),
+                csv_names=os.environ.get("ENIGMA_SEM_LIB_MODULES", "dialogue_provenance"),
             )
             _sem_tails = [m.enum_tail for m in _sem_mods if m.enum_tail is not None]
             if len(_sem_tails) > 1:
                 from app.services.input.semantic_library import SemanticLibraryError
-                raise SemanticLibraryError(
-                    f"конфликт среза: {len(_sem_tails)} модулей заменяют enum-tail"
-                )
+
+                raise SemanticLibraryError(f"конфликт среза: {len(_sem_tails)} модулей заменяют enum-tail")
             if _sem_tails:
                 _prov_enum_tail = _sem_tails[0]
             _prov_class_block = ""
@@ -390,9 +394,6 @@ class LlamaCppCompressorClient:
                 dialogue_context_str += f"- Последняя реплика ({last_turn.speaker}): {last_turn.text}\n"
             dialogue_context_str += "Если игрок пишет 'продолжай', 'ну?', 'и?', 'а что?' — интерпретируй как CONTINUE относительно последней реплики NPC.\n"
 
-
-
-
         # F-B (директива Understanding Layer, п.1): компактный контекст семантического
         # разбора вместо дампа мира. Замер [DIAG-PROMPT]: 49-50K chars из 50K user_prompt
         # — нерелевантный дамп (commitment_history/world_objects/geometry/epistemic);
@@ -411,10 +412,6 @@ class LlamaCppCompressorClient:
                     _name = _np.get("name") or _np.get("display_name") or _nid
                     _compact_lines.append(f"- {_nid} ({_name})")
         _compact_ctx = "\n".join(_compact_lines) if _compact_lines else "нет"
-        user_prompt = (
-            f"Ввод: \"{raw_text}\"\n"
-            f"Доступные персонажи (id — имя):\n{_compact_ctx}"
-            f"{dialogue_context_str}"
-        )
+        user_prompt = f'Ввод: "{raw_text}"\nДоступные персонажи (id — имя):\n{_compact_ctx}{dialogue_context_str}'
 
         return system_prompt, user_prompt

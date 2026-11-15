@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/calibration_lab/e1_intent_liveness_check.py
 [GC-I01-E1] Acceptance: intent projection liveness on golden run.
 (1) NPC with intent per tick [WAS=0, S213 verdict]; (2) max intent_duration
@@ -6,6 +6,7 @@ path: backend/tests/calibration_lab/e1_intent_liveness_check.py
 "change" -> duration stuck at 0; >1 = inertia alive].
 Run: cd backend; python tests/calibration_lab/e1_intent_liveness_check.py [ticks]; cd ..
 """
+
 from __future__ import annotations
 
 import sys
@@ -24,16 +25,11 @@ def main() -> None:
 
     result = ExperimentRunner().run(
         ExperimentConfig(
-            preset_path=str(
-                _REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"
-            ),
+            preset_path=str(_REPO_ROOT / "config" / "calibration" / "test_presets" / "enigma_golden.yaml"),
             duration_ticks=ticks,
         )
     )
-    per_tick = [
-        sum(1 for n in tick if n.get("intent") is not None)
-        for tick in result.npc_captures
-    ]
+    per_tick = [sum(1 for n in tick if n.get("intent") is not None) for tick in result.npc_captures]
     total = sum(per_tick)
     max_dur = 0
     dur_owner = ""

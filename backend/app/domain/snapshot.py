@@ -4,6 +4,7 @@ path: backend/app/domain/snapshot.py
 Зависимости: dataclasses, typing, uuid.UUID
 Основные сущности: WorldSnapshotDTO, NPCPositionDTO, VisibleEventDTO
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -46,25 +47,17 @@ class AvatarStateDTO:
 
     # Феноменологические скаляры (Бэкенд вычисляет давление, Фронтенд генерирует кино)
     perceptual_stability: float = 1.0  # 0.0-1.0 (1.0 = кристально чистое восприятие)
-    cognitive_coherence: float = (
-        1.0  # 0.0-1.0 (0.0 = диссоциация, потеря связи "я-здесь")
-    )
+    cognitive_coherence: float = 1.0  # 0.0-1.0 (0.0 = диссоциация, потеря связи "я-здесь")
     sensory_noise: float = 0.0  # 0.0-1.0 (звон, пятна, глушение)
     motor_disruption: float = 0.0  # 0.0-1.0 (тремор, замедление моторики аватара)
-    perceptual_latency: float = (
-        0.0  # 0.0-1.0, задержка сборки реальности (шок, диссоциация)
-    )
-    reality_reconciliation_rate: float = (
-        1.0  # 0.0-1.0, скорость восстановления когерентности
-    )
+    perceptual_latency: float = 0.0  # 0.0-1.0, задержка сборки реальности (шок, диссоциация)
+    reality_reconciliation_rate: float = 1.0  # 0.0-1.0, скорость восстановления когерентности
 
     # Аудио и моторные маркеры для рендера
     blood_visibility: float = 0.0  # 0.0-1.0, кровь на экране/персонаже
     breathing_profile: str = "calm"  # calm, heavy, gasping, hyperventilating
     posture_state: str = "upright"  # upright, hunched, collapsed
-    life_status: str = (
-        "ALIVE"  # ADR-127: "ALIVE" или "DEAD" — feedback смерти для фронтенда
-    )
+    life_status: str = "ALIVE"  # ADR-127: "ALIVE" или "DEAD" — feedback смерти для фронтенда
     # ADR-039: Embodied Will Friction
     will_resistance: float = 0.0  # Сила сопротивления (0.0 - 1.0)
     embodied_vector: Optional[str] = None  # Моторный импульс (AVOIDANCE, FREEZE)
@@ -81,19 +74,13 @@ class NPCPositionDTO:
     local_position: Dict[str, float]  # Вложенный словарь {"x": float, "y": float}
     location_id: str
     facing: str = "south"  # 'north', 'south', 'east', 'west' (DEPRECATED: legacy 4-dir)
-    body_heading: float = (
-        1.5708  # ADR-O-315: Непрерывный угол ориентации тела (рад). Pi/2 = Юг.
-    )
+    body_heading: float = 1.5708  # ADR-O-315: Непрерывный угол ориентации тела (рад). Pi/2 = Юг.
     head_yaw: float = 0.0  # NEW-ORIENT-003 FIX: Ориентация головы (offset от body_heading, [-pi, pi])
-    activity: str = (
-        "idle"  # 'idle', 'walking', 'talking', 'working' (переименовано с action)
-    )
+    activity: str = "idle"  # 'idle', 'walking', 'talking', 'working' (переименовано с action)
     name: str = ""  # Истинное имя (для DM и логики)
     display_name: str = "Незнакомец"  # ADR-O-319: Имя для UI (зависит от RecognitionMemory)
     recognition_confidence: float = 0.0  # ADR-O-319: Уверенность распознавания (0.0-1.0)
-    initiative_suppression: float = (
-        0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
-    )
+    initiative_suppression: float = 0.0  # Спринт 30: Cognitive Freeze (0.0-1.0), паралич воли
     velocity: Tuple[float, float] = (
         0.0,
         0.0,
@@ -175,9 +162,7 @@ class ManifestationDTO:
     Multi-manifest: NPC может быть одновременно напряжён И неуверен."""
 
     npc_id: str
-    tags: List[str] = field(
-        default_factory=list
-    )  # ["MANIFEST_TENSE", "MANIFEST_ALERT"]
+    tags: List[str] = field(default_factory=list)  # ["MANIFEST_TENSE", "MANIFEST_ALERT"]
 
 
 @dataclass(frozen=True)
@@ -241,35 +226,23 @@ class WorldSnapshotDTO:
     active_traversals: Dict[str, Dict[str, Any]] = field(
         default_factory=dict
     )  # ADR-019, CEI-2: Dict[npc_id, data] — синхронно с scene_state
-    avatar_state: Optional[AvatarStateDTO] = (
-        None  # ADR-035: Феноменологическая проекция
-    )
-    ambient_phenomenology: Optional[Dict[str, float]] = (
-        None  # ADR-037: Средовое давление (температура, плотность)
-    )
+    avatar_state: Optional[AvatarStateDTO] = None  # ADR-035: Феноменологическая проекция
+    ambient_phenomenology: Optional[Dict[str, float]] = None  # ADR-037: Средовое давление (температура, плотность)
     # Phase 8.2: Эпистемическая проекция убеждений игрока (UI DOCTRINE §IV, §XII)
     # Содержит только убеждения observer_id="player" для вкладки "Мои убеждения".
     player_beliefs: list[Any] = field(default_factory=list)
     # G3-B: witness-канал — убеждения NPC об игроке (наблюдаемая
     # эпистемика окружения; аддитивно, M7)
     npc_beliefs_about_player: list[Any] = field(default_factory=list)
-    player_perception: Optional[PlayerPerceptionDTO] = (
-        None  # ТЗ EMBODIED UI: Симметричная онтология восприятия
-    )
+    player_perception: Optional[PlayerPerceptionDTO] = None  # ТЗ EMBODIED UI: Симметричная онтология восприятия
     recent_dialogues: List["RecentDialogueDTO"] = field(
         default_factory=list
     )  # ADR-O-313: Труба диалогов для Speech Bubbles
 
     # ТЗ Presentation v2.0: Физика Восприятия и Инвентарь
-    player_body_topology: Optional[Dict[str, Any]] = (
-        None  # BodyTopology аватара игрока для UI (сериализованная)
-    )
-    visual_dto: Optional[Dict[str, Any]] = (
-        None  # Канал визуальной презентации (NPC проявления, экипировка)
-    )
-    audible_dto: Optional[Dict[str, Any]] = (
-        None  # Канал аудио презентации (голос, дыхание, шаги)
-    )
+    player_body_topology: Optional[Dict[str, Any]] = None  # BodyTopology аватара игрока для UI (сериализованная)
+    visual_dto: Optional[Dict[str, Any]] = None  # Канал визуальной презентации (NPC проявления, экипировка)
+    audible_dto: Optional[Dict[str, Any]] = None  # Канал аудио презентации (голос, дыхание, шаги)
     embodied_status: Optional[EmbodiedStatusDTO] = (
         None  # S151: Текстовый статус аватара (золото, еда, вес, потребности)
     )

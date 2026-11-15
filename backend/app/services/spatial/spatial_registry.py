@@ -85,9 +85,7 @@ class SpatialRegistry:
         self._campaign_id = campaign_id
 
         # Индексы для O(1) lookup
-        self._chunks_by_id: dict[str, ChunkDescriptor] = {
-            c.location_id: c for c in chunks
-        }
+        self._chunks_by_id: dict[str, ChunkDescriptor] = {c.location_id: c for c in chunks}
         self._adjacency_by_location: dict[str, List[AdjacencyEntry]] = {}
         for entry in adjacency:
             self._adjacency_by_location.setdefault(entry.location_a, []).append(entry)
@@ -140,13 +138,7 @@ class SpatialRegistry:
         # слеп к реестру (глобальный тик по локациям и Spatial Oracle
         # молча отключены; находка аудита 2026-10-15, подтверждена live-прогоном).
         candidate_editor = (
-            project_root
-            / "frontend"
-            / "map_editor"
-            / "campaigns"
-            / campaign_id
-            / "compiled"
-            / "spatial_registry.json"
+            project_root / "frontend" / "map_editor" / "campaigns" / campaign_id / "compiled" / "spatial_registry.json"
         ).resolve()
         if candidate_editor.exists():
             return candidate_editor
@@ -202,9 +194,7 @@ class SpatialRegistry:
                 result.append(chunk)
         return result
 
-    def resolve_primary(
-        self, world_x: float, world_y: float
-    ) -> Optional[ChunkDescriptor]:
+    def resolve_primary(self, world_x: float, world_y: float) -> Optional[ChunkDescriptor]:
         """Детерминированный primary-чанк для точки (D.2, ROADMAP §P2-01).
 
         Заменяет зависимость от порядка артефакта у [0]-потребителей.
@@ -243,9 +233,7 @@ class SpatialRegistry:
         )
         return winner
 
-    def find_nearby(
-        self, world_x: float, world_y: float, radius: float
-    ) -> List[ChunkDescriptor]:
+    def find_nearby(self, world_x: float, world_y: float, radius: float) -> List[ChunkDescriptor]:
         """Чанки в радиусе от точки (метры)."""
         result = []
         for chunk in self._chunks:
@@ -300,9 +288,7 @@ class SpatialRegistry:
         """Границы всего мира. Сдвигаются при расширении карты."""
         return self._world_bounds
 
-    def is_world_edge(
-        self, world_x: float, world_y: float, margin: float = 2.0
-    ) -> bool:
+    def is_world_edge(self, world_x: float, world_y: float, margin: float = 2.0) -> bool:
         """Находится ли точка у края мира (для Civilizational Horizon)."""
         wb = self._world_bounds
         return (

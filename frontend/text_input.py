@@ -64,9 +64,7 @@ class TextInput:
         # Resistance Medium: Заражение ввода (Embodied Will Friction)
         self._is_possessed: bool = False  # Аватар навязывает свою волю
         self._intrusive_text: str = ""  # Текст навязанного импульса
-        self._rejection_flash_end: int = (
-            0  # Таймер красной пульсации (Input Rejection Flash)
-        )
+        self._rejection_flash_end: int = 0  # Таймер красной пульсации (Input Rejection Flash)
 
         # История команд
         self._history: list[str] = []
@@ -341,9 +339,7 @@ class TextInput:
             self._delete_selection()
         if len(self._text) + len(text) > self.MAX_LENGTH:
             text = text[: self.MAX_LENGTH - len(self._text)]
-        self._text = (
-            self._text[: self._cursor_pos] + text + self._text[self._cursor_pos :]
-        )
+        self._text = self._text[: self._cursor_pos] + text + self._text[self._cursor_pos :]
         self._cursor_pos += len(text)
         self._selection_start = None
         self._update_scroll()
@@ -528,18 +524,14 @@ class TextInput:
             self._delete_selection()
         elif self._cursor_pos > 0:
             self._cursor_pos -= 1
-            self._text = (
-                self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
-            )
+            self._text = self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
         self._update_scroll()
 
     def _do_delete(self) -> None:
         if self._selection_start is not None:
             self._delete_selection()
         elif self._cursor_pos < len(self._text):
-            self._text = (
-                self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
-            )
+            self._text = self._text[: self._cursor_pos] + self._text[self._cursor_pos + 1 :]
         self._update_scroll()
 
     # ── Отрисовка ──────────────────────────────────────────────────────
@@ -550,9 +542,7 @@ class TextInput:
         pygame.draw.rect(surface, self.colors["bg"], self.rect, border_radius=6)
 
         # Рамка
-        border_color = (
-            self.colors["border_active"] if self._focused else self.colors["border"]
-        )
+        border_color = self.colors["border_active"] if self._focused else self.colors["border"]
         pygame.draw.rect(surface, border_color, self.rect, 1, border_radius=6)
 
         # Область текста с отступом
@@ -593,9 +583,7 @@ class TextInput:
         # Рисуем IME текст (если есть)
         if self._ime_text:
             ime_surf = self.font.render(self._ime_text, True, (180, 180, 180))
-            surface.blit(
-                ime_surf, (text_area.x + len(visible_text) * char_w, text_area.y)
-            )
+            surface.blit(ime_surf, (text_area.x + len(visible_text) * char_w, text_area.y))
 
         # Рисуем курсор (мигает только при фокусе)
         if self._focused:
@@ -603,10 +591,6 @@ class TextInput:
             # Resistance Medium: Тремор курсора при конфликте воли
             jitter_x = random.randint(-2, 2) if self._is_possessed else 0
             jitter_y = random.randint(-1, 1) if self._is_possessed else 0
-            cursor_color = (
-                (255, 50, 50) if self._is_possessed else self.colors["cursor"]
-            )
-            cursor_rect = pygame.Rect(
-                cursor_x + jitter_x, text_area.y + 2 + jitter_y, 2, text_area.height - 4
-            )
+            cursor_color = (255, 50, 50) if self._is_possessed else self.colors["cursor"]
+            cursor_rect = pygame.Rect(cursor_x + jitter_x, text_area.y + 2 + jitter_y, 2, text_area.height - 4)
             pygame.draw.rect(surface, cursor_color, cursor_rect)

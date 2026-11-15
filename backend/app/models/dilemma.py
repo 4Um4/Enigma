@@ -18,17 +18,21 @@ class DilemmaChoice(str, Enum):
     SIDE_B = "SIDE_B"
     SIDE_C = "SIDE_C"
 
+
 @dataclass(frozen=True)
 class FateConsequence:
     """Судьбинное последствие выбора игрока."""
+
     npc_id: str
     outcome: FateOutcome
     description: str
     tick_delay: int
 
+
 @dataclass(frozen=True)
 class DilemmaSide:
     """Одна сторона дилеммы (выбор)."""
+
     label: str
     description: str
     npcs_affected: List[str]
@@ -36,17 +40,21 @@ class DilemmaSide:
     moral_weight: float
     consequences: List[FateConsequence]
 
+
 @dataclass(frozen=True)
 class MoralDilemma:
     """Моральная дилемма, возникающая из каузальной сети."""
+
     dilemma_id: str
     trigger_condition: str
     sides: Dict[DilemmaChoice, DilemmaSide]
     philosophical_question: str
 
+
 @dataclass(frozen=True)
 class DilemmaResolution:
     """Зафиксированный результат выбора игрока (каузальное событие)."""
+
     dilemma_id: str
     choice: DilemmaChoice
     tick: int

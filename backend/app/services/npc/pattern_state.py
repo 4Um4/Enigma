@@ -142,9 +142,7 @@ class WatermarkState:
     def update(self, events: Iterable[TraitDriftEvent]) -> None:
         for ev in events:
             if ev.source_id in _INVALID_SOURCES:
-                raise ValueError(
-                    f"Нарушение ADR-O-305: Событие с невалидным source_id='{ev.source_id}'"
-                )
+                raise ValueError(f"Нарушение ADR-O-305: Событие с невалидным source_id='{ev.source_id}'")
             st = self._sources.get(ev.source_id)
             if st is None:
                 st = SourceStats(first_seen=len(self._sources))
@@ -156,15 +154,15 @@ class WatermarkState:
         for sid, st in sorted(self._sources.items(), key=lambda kv: kv[1].first_seen):
             if st.n < MIN_EVENTS_FOR_PERSISTENCE:
                 continue
-            out.append(EvidenceOfPersistence(
-                source_id=sid,
-                # финал Ноймайера — только когда он накапливался (3.12+);
-                # на 3.11 comp всегда 0.0, а x + 0.0 изменил бы знак -0.0
-                cumulative_effect=(
-                    st.cumulative + st._comp if _SUM_USES_NEUMAIER else st.cumulative
-                ),
-                behavior_variance=st.behavior_variance() * st.temporal_instability(),
-            ))
+            out.append(
+                EvidenceOfPersistence(
+                    source_id=sid,
+                    # финал Ноймайера — только когда он накапливался (3.12+);
+                    # на 3.11 comp всегда 0.0, а x + 0.0 изменил бы знак -0.0
+                    cumulative_effect=(st.cumulative + st._comp if _SUM_USES_NEUMAIER else st.cumulative),
+                    behavior_variance=st.behavior_variance() * st.temporal_instability(),
+                )
+            )
         return out
 
     def to_dict(self) -> dict:

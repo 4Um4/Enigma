@@ -45,22 +45,12 @@ def main() -> None:
                     _report(f"RAM:{loc}", sc)
 
         # Источник 2: get_scene_state (путь production-чтения)
-        ss = (
-            lab._scene_manager.get_scene_state(
-                lab.config.campaign_id, lab.config.location_id
-            )
-            or {}
-        )
+        ss = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
         _report("GET", ss)
 
         print("=== TICK 2 (round-trip проверка: реестр выживает между тиками?) ===")
         lab._run_idle_tick_direct()
-        ss = (
-            lab._scene_manager.get_scene_state(
-                lab.config.campaign_id, lab.config.location_id
-            )
-            or {}
-        )
+        ss = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
         _report("GET", ss)
         for loc, sc in (tick_scenes or {}).items():
             if isinstance(sc, dict):

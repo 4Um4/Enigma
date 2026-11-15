@@ -31,12 +31,12 @@ class AvatarIntentRecord:
     авторизовать исполнение или отклонить.
     """
 
-    intent: Intent                          # существующий enum (APPROACH, TRADE, etc.)
-    identity: IntentIdentity                # for_avatar_initiative ("player")
-    desire_ref: str                         # desire_id породившего Desire
-    target: Optional[str]                   # intent_target (who/what)
-    formed_tick: int                        # когда сформирован
-    urgency: float                          # из Desire.urgency (0.0-1.0)
+    intent: Intent  # существующий enum (APPROACH, TRADE, etc.)
+    identity: IntentIdentity  # for_avatar_initiative ("player")
+    desire_ref: str  # desire_id породившего Desire
+    target: Optional[str]  # intent_target (who/what)
+    formed_tick: int  # когда сформирован
+    urgency: float  # из Desire.urgency (0.0-1.0)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialization для scene_state round-trip."""
@@ -58,15 +58,14 @@ class AvatarIntentRecord:
     def from_dict(cls, data: dict[str, Any]) -> "AvatarIntentRecord":
         """Deserialization из scene_state."""
         from app.domain.control_source import ControlSource
+
         return cls(
             intent=Intent(data.get("intent", "idle")),
             identity=IntentIdentity(
                 intent_owner=data.get("identity", {}).get("intent_owner", ""),
                 actor_id=data.get("identity", {}).get("actor_id", ""),
                 body_id=data.get("identity", {}).get("body_id", ""),
-                control_source=ControlSource(
-                    data.get("identity", {}).get("control_source", "avatar_initiative")
-                ),
+                control_source=ControlSource(data.get("identity", {}).get("control_source", "avatar_initiative")),
             ),
             desire_ref=data.get("desire_ref", ""),
             target=data.get("target"),

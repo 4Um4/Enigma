@@ -25,20 +25,18 @@ class SpanType(str, Enum):
 
 
 class SpanCreator(str, Enum):
-    GROUNDING = "grounding"   # детерминированный код
-    LLM = "llm"               # кандидат (Acceptance Gate — будущее)
-    PLAYER = "player"         # ручная привязка (доска — будущее)
+    GROUNDING = "grounding"  # детерминированный код
+    LLM = "llm"  # кандидат (Acceptance Gate — будущее)
+    PLAYER = "player"  # ручная привязка (доска — будущее)
 
 
 class SpanStatus(str, Enum):
-    PROPOSED = "proposed"     # ожидает гейта приёмки
-    ACCEPTED = "accepted"     # принят кодом (детерминированные — сразу)
-    REJECTED = "rejected"     # отклонён гейтом (сохраняется с причиной)
+    PROPOSED = "proposed"  # ожидает гейта приёмки
+    ACCEPTED = "accepted"  # принят кодом (детерминированные — сразу)
+    REJECTED = "rejected"  # отклонён гейтом (сохраняется с причиной)
 
 
-def make_span_id(
-    source_event_id: str, start: int, end: int, span_type: str
-) -> str:
+def make_span_id(source_event_id: str, start: int, end: int, span_type: str) -> str:
     """Детерминированный span_id (зеркало commitment_id-паттерна ADR-O-363).
     Дочерний идентичности: span_id НЕ является event identity; связь с
     событием — через source_event_id (одно событие → N спанов)."""
@@ -57,11 +55,11 @@ class SemanticSpan:
     """
 
     span_id: str
-    source_event_id: str          # сквозной event identity (ADR-O-404)
+    source_event_id: str  # сквозной event identity (ADR-O-404)
     start: int
     end: int
     span_type: SpanType
-    semantic_id: str              # на что указывает (npc_id / ... )
+    semantic_id: str  # на что указывает (npc_id / ... )
     confidence: float
     creator: SpanCreator
     status: SpanStatus

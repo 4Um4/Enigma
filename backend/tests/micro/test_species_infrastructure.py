@@ -12,6 +12,7 @@ NPCState (species в L0, не копируется без архитектурн
 ancestry (1/4 human через бабушку 1678 лет назад) — отдельная задача, не сводится
 к species. species='gnome' фиксирует основной вид; происхождение живёт отдельно.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,9 +36,7 @@ def test_npc_profile_without_species_defaults_to_empty():
         psyche_base={"willpower": 50, "breakpoint": 70, "loyalty_true": 50.0},
         voice_profile="neutral",
     )
-    assert profile.species == "", (
-        "отсутствие species должно быть UNKNOWN (''), не 'human'"
-    )
+    assert profile.species == "", "отсутствие species должно быть UNKNOWN (''), не 'human'"
 
 
 def test_npc_loader_reads_species_from_orm_json():
@@ -80,8 +79,11 @@ def test_other_npcs_keep_unknown_species():
     """
     individuals_dir = _REPO_ROOT / "config" / "npc" / "individuals"
     npc_files = [
-        "borko.json", "goran.json", "lusya.json",
-        "shadow.json", "tornin.json",
+        "borko.json",
+        "goran.json",
+        "lusya.json",
+        "shadow.json",
+        "tornin.json",
     ]
     for fname in npc_files:
         path = individuals_dir / fname

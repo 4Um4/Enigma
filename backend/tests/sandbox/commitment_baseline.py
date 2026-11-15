@@ -49,12 +49,7 @@ def main() -> None:
     print("[COMMITMENT_BASELINE] setup (production-стек, изолированный temp-dir)")
     lab._setup()
     try:
-        scene = (
-            lab._scene_manager.get_scene_state(
-                lab.config.campaign_id, lab.config.location_id
-            )
-            or {}
-        )
+        scene = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
         before = _snapshot_positions(scene)
 
         print(f"[COMMITMENT_BASELINE] running {TICKS} idle ticks...")
@@ -67,12 +62,7 @@ def main() -> None:
             except Exception as e:  # real crash — не ground-truth-шум валидатора
                 real_errors += 1
                 print(f"  [BASELINE] idle_tick error: {type(e).__name__}: {e}")
-            scene = (
-                lab._scene_manager.get_scene_state(
-                    lab.config.campaign_id, lab.config.location_id
-                )
-                or {}
-            )
+            scene = lab._scene_manager.get_scene_state(lab.config.campaign_id, lab.config.location_id) or {}
             travs = scene.get("active_traversals") or {}
             if travs:
                 ticks_with_traversals += 1
@@ -81,15 +71,11 @@ def main() -> None:
         after = _snapshot_positions(scene)
         moved = sorted(n for n in before if before[n] != after.get(n))
 
-        terminals = [
-            t for bucket in (scene.get("commitment_history") or {}).values() for t in bucket
-        ]
+        terminals = [t for bucket in (scene.get("commitment_history") or {}).values() for t in bucket]
         actives = scene.get("active_commitments") or {}
 
         status_counts = Counter(t.get("status") for t in terminals)
-        reason_counts = Counter(
-            t.get("interrupt_reason") for t in terminals if t.get("interrupt_reason")
-        )
+        reason_counts = Counter(t.get("interrupt_reason") for t in terminals if t.get("interrupt_reason"))
         cause_counts = Counter(t.get("cause") for t in terminals)
         superseded = reason_counts.get("SUPERSEDED_BY_NEW_MATERIALIZATION", 0)
         vanished = reason_counts.get("TRAVERSAL_VANISHED", 0)
@@ -109,7 +95,9 @@ def main() -> None:
 
         print("\n" + "=" * 60)
         print(f"[BASELINE] N={TICKS} | real_errors={real_errors}")
-        print(f"[BASELINE] ДВИЖЕНИЕ: moved={moved or 'нет'} | ticks_with_traversals={ticks_with_traversals} | max_concurrent={max_trav}")
+        print(
+            f"[BASELINE] ДВИЖЕНИЕ: moved={moved or 'нет'} | ticks_with_traversals={ticks_with_traversals} | max_concurrent={max_trav}"
+        )
         print(f"[BASELINE] VERDICT: {verdict}")
         print("=" * 60)
         print(f"terminals={len(terminals)} actives={len(actives)} switch_rate={switch_rate:.4f}")
@@ -137,7 +125,7 @@ def main() -> None:
         # UX: крупная ссылка на отчёт в конце прогона — чтобы отчёт не терялся
         print("\n" + "█" * 60)
         print(f"📄 ОТЧЁТ СОХРАНЁН: {report_path.resolve()}")
-        print(f"   Открыть в PowerShell: Invoke-Item \"{report_path.resolve()}\"")
+        print(f'   Открыть в PowerShell: Invoke-Item "{report_path.resolve()}"')
         print("█" * 60)
     finally:
         lab._teardown()

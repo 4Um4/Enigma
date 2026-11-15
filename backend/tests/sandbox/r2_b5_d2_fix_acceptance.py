@@ -14,6 +14,7 @@ Plus full B5-D2 chain test:
 
 Run AFTER applying the B5-D2 fix to dialogue_executor.py.
 """
+
 from __future__ import annotations
 
 import os
@@ -219,7 +220,7 @@ def main() -> int:
         store = getattr(sub, "_store", None) if sub else None
 
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         # =====================================================================
         # SCENARIO: Full B5-D2 chain (publish PLAYER_INSULTS + idle_tick)
@@ -245,9 +246,9 @@ def main() -> int:
             persistence_level="working",
         )
         bus.publish(evt)
-        print(f"  PLAYER_INSULTS published")
+        print("  PLAYER_INSULTS published")
 
-        expected_prop = Proposition(
+        Proposition(
             subject_id="player",
             predicate=Predicate.INSULTED,
             object_id="tavern_keeper_tornin",
@@ -266,10 +267,12 @@ def main() -> int:
         _reset_log_capture()
 
         # Run idle_tick
-        print(f"\n  Running idle_tick...")
+        print("\n  Running idle_tick...")
         try:
             result = loop.idle_tick("Open_road", "tavern")
-            print(f"  idle_tick returned: {type(result).__name__}, status={result.get('status') if isinstance(result, dict) else 'N/A'}")
+            print(
+                f"  idle_tick returned: {type(result).__name__}, status={result.get('status') if isinstance(result, dict) else 'N/A'}"
+            )
         except Exception as e:
             print(f"  idle_tick ERROR: {type(e).__name__}: {e}")
             traceback.print_exc()
@@ -282,11 +285,15 @@ def main() -> int:
         print(f"  NPC_SPOKE events: {len(npc_spoke_events)}")
         for i, ev in enumerate(npc_spoke_events):
             p = getattr(ev, "payload", {}) or {}
-            print(f"    [{i}] source={getattr(ev, 'source', '?')} target={p.get('target_id')} intent={p.get('intent_type')}")
+            print(
+                f"    [{i}] source={getattr(ev, 'source', '?')} target={p.get('target_id')} intent={p.get('intent_type')}"
+            )
             if p.get("text"):
                 print(f"         text: {p['text'][:200]}")
         check1_pass = len(npc_spoke_events) >= 1
-        print(f"\n  CHECK 1: {'PASS' if check1_pass else 'FAIL'} — {'≥1 NPC_SPOKE published' if check1_pass else 'NO NPC_SPOKE'}")
+        print(
+            f"\n  CHECK 1: {'PASS' if check1_pass else 'FAIL'} — {'≥1 NPC_SPOKE published' if check1_pass else 'NO NPC_SPOKE'}"
+        )
 
         # =====================================================================
         # CHECK 2: COMMUNICATION_CLAIM published
@@ -300,7 +307,9 @@ def main() -> int:
             if p.get("proposition"):
                 print(f"         proposition: {str(p['proposition'])[:200]}")
         check2_pass = len(comm_claim_events) >= 1
-        print(f"\n  CHECK 2: {'PASS' if check2_pass else 'FAIL'} — {'≥1 COMMUNICATION_CLAIM published' if check2_pass else 'NO COMMUNICATION_CLAIM'}")
+        print(
+            f"\n  CHECK 2: {'PASS' if check2_pass else 'FAIL'} — {'≥1 COMMUNICATION_CLAIM published' if check2_pass else 'NO COMMUNICATION_CLAIM'}"
+        )
 
         # =====================================================================
         # CHECK 3: Tornin belief with source_id=guard_borko
@@ -317,16 +326,13 @@ def main() -> int:
                 print(f"    prop={str(prop)[:80]}")
                 print(f"      conf={conf} source_id={source_id} orig={orig}")
 
-            borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                for r in tornin_after
-            )
+            borko_belief = any(getattr(r, "source_id", None) == "guard_borko" for r in tornin_after)
             print(f"\n  Tornin has belief with source_id='guard_borko': {borko_belief}")
             check3_pass = borko_belief
             print(f"  CHECK 3: {'PASS' if check3_pass else 'FAIL'}")
         else:
             check3_pass = False
-            print(f"  CHECK 3: FAIL — no store")
+            print("  CHECK 3: FAIL — no store")
 
         # =====================================================================
         # CHECK 4: original_source_id=player
@@ -334,8 +340,7 @@ def main() -> int:
         _print_section("CHECK 4: original_source_id=player")
         if store:
             player_orig = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"  Tornin has belief with source_id='guard_borko' AND original_source_id='player': {player_orig}")
@@ -343,7 +348,7 @@ def main() -> int:
             print(f"  CHECK 4: {'PASS' if check4_pass else 'FAIL'}")
         else:
             check4_pass = False
-            print(f"  CHECK 4: FAIL — no store")
+            print("  CHECK 4: FAIL — no store")
 
         # =====================================================================
         # CHECK 5: No duplicate task execution on second idle_tick
@@ -353,12 +358,14 @@ def main() -> int:
         _reset_log_capture()
 
         # Count NPC_SPOKE before second tick
-        npc_spoke_before_second = len(npc_spoke_events)
+        len(npc_spoke_events)
 
         # Run second idle_tick
         try:
             result2 = loop.idle_tick("Open_road", "tavern")
-            print(f"  Second idle_tick returned: status={result2.get('status') if isinstance(result2, dict) else 'N/A'}")
+            print(
+                f"  Second idle_tick returned: status={result2.get('status') if isinstance(result2, dict) else 'N/A'}"
+            )
         except Exception as e:
             print(f"  Second idle_tick ERROR: {type(e).__name__}: {e}")
 
@@ -376,7 +383,9 @@ def main() -> int:
         )
         print(f"  Duplicate spread_rumor NPC_SPOKE (guard_borko→tavern_keeper_tornin): {duplicate_spread_rumor}")
         check5_pass = not duplicate_spread_rumor
-        print(f"  CHECK 5: {'PASS' if check5_pass else 'FAIL'} — {'no duplicate' if check5_pass else 'DUPLICATE found'}")
+        print(
+            f"  CHECK 5: {'PASS' if check5_pass else 'FAIL'} — {'no duplicate' if check5_pass else 'DUPLICATE found'}"
+        )
 
         # =====================================================================
         # CHECK 6: Fallback observability
@@ -397,7 +406,9 @@ def main() -> int:
             print(f"    {l[:200]}")
 
         check6_pass = len(de_fallback_logs) > 0 or len(fallback_logs) > 0
-        print(f"  CHECK 6: {'PASS' if check6_pass else 'INCONCLUSIVE'} — fallback observability {'found' if check6_pass else 'not found in logs (may be in jsonl file)'}")
+        print(
+            f"  CHECK 6: {'PASS' if check6_pass else 'INCONCLUSIVE'} — fallback observability {'found' if check6_pass else 'not found in logs (may be in jsonl file)'}"
+        )
 
         # =====================================================================
         # FINAL SUMMARY
@@ -421,13 +432,15 @@ def main() -> int:
         print(f"\n  {passed_count}/{total} checks passed")
 
         if passed_count == total:
-            print(f"\n  >>> B5-D2 FIX ACCEPTED — all checks passed")
-            print(f"  >>> Chain: PLAYER_INSULTS → guard_borko SPREAD_RUMOR → NPC_SPOKE → COMMUNICATION_CLAIM → Tornin belief")
-            print(f"  >>> Provenance: player → guard_borko → tavern_keeper_tornin")
+            print("\n  >>> B5-D2 FIX ACCEPTED — all checks passed")
+            print(
+                "  >>> Chain: PLAYER_INSULTS → guard_borko SPREAD_RUMOR → NPC_SPOKE → COMMUNICATION_CLAIM → Tornin belief"
+            )
+            print("  >>> Provenance: player → guard_borko → tavern_keeper_tornin")
         elif check1_pass and check2_pass and check3_pass and check4_pass:
-            print(f"\n  >>> B5-D2 FIX ACCEPTED (core chain works, observability check inconclusive)")
+            print("\n  >>> B5-D2 FIX ACCEPTED (core chain works, observability check inconclusive)")
         else:
-            print(f"\n  >>> B5-D2 FIX NEEDS ATTENTION — some checks failed")
+            print("\n  >>> B5-D2 FIX NEEDS ATTENTION — some checks failed")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()
@@ -439,6 +452,7 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
 
     except Exception as e:

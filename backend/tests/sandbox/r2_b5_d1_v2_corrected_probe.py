@@ -23,6 +23,7 @@ This probe corrects both:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -130,9 +131,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -203,19 +202,19 @@ def stage_a_provider_source() -> Dict[str, Any]:
     bounds = _find_function_bounds(src, "_get_spatial_query_for_subscriber")
     if bounds:
         s, e = bounds
-        print(f"  _get_spatial_query_for_subscriber at L{s+1}..L{e}:")
+        print(f"  _get_spatial_query_for_subscriber at L{s + 1}..L{e}:")
         for j in range(s, e):
-            print(f"  L{j+1:4d}: {lines_arr[j]}")
+            print(f"  L{j + 1:4d}: {lines_arr[j]}")
     else:
         print("  [function not found]")
 
     # Print ClaimEventSubscriber constructor context (L605–L625)
-    print(f"\n  --- ClaimEventSubscriber construction (L605..L625) ---")
+    print("\n  --- ClaimEventSubscriber construction (L605..L625) ---")
     for j in range(604, min(625, len(lines_arr))):
-        print(f"  L{j+1:4d}: {lines_arr[j]}")
+        print(f"  L{j + 1:4d}: {lines_arr[j]}")
 
     # Print all _bus.subscribe lines involving ClaimEventSubscriber methods
-    print(f"\n  --- All _bus.subscribe lines in game_loop.py ---")
+    print("\n  --- All _bus.subscribe lines in game_loop.py ---")
     for i, line in enumerate(lines_arr, 1):
         if "_bus.subscribe" in line or "bus.subscribe" in line:
             print(f"  L{i}: {line.rstrip()}")
@@ -244,23 +243,23 @@ def stage_b_perceptual_kernel() -> Dict[str, Any]:
     bounds = _find_function_bounds(src, "can_observe")
     if bounds:
         s, e = bounds
-        print(f"  can_observe at L{s+1}..L{e}:")
+        print(f"  can_observe at L{s + 1}..L{e}:")
         for j in range(s, e):
-            print(f"  L{j+1:4d}: {lines_arr[j]}")
+            print(f"  L{j + 1:4d}: {lines_arr[j]}")
     else:
         print("  [can_observe not found]")
 
     # Confirm: uses event.radius, NOT HEARING_RADIUS
-    print(f"\n  --- HEARING_RADIUS references in npc_state.py ---")
+    print("\n  --- HEARING_RADIUS references in npc_state.py ---")
     for i, line in enumerate(lines_arr, 1):
         if "HEARING_RADIUS" in line:
             print(f"  L{i}: {line.rstrip()}")
 
-    print(f"\n  SEMANTICS CONFIRMED:")
-    print(f"    - can_observe uses event.radius (NOT HEARING_RADIUS)")
-    print(f"    - For visibility='public': return bool(distance <= event.radius)")
-    print(f"    - event.radius = 999.0 in PLAYER_INSULTS → distance 10.086m is WITHIN range")
-    print(f"    - maid_lusya CAN observe if she is in listeners list")
+    print("\n  SEMANTICS CONFIRMED:")
+    print("    - can_observe uses event.radius (NOT HEARING_RADIUS)")
+    print("    - For visibility='public': return bool(distance <= event.radius)")
+    print("    - event.radius = 999.0 in PLAYER_INSULTS → distance 10.086m is WITHIN range")
+    print("    - maid_lusya CAN observe if she is in listeners list")
 
     result["pass"] = True
     return result
@@ -355,11 +354,11 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
             sub = list(seen_subscriber_ids.values())[0]
             print(f"\n  Fallback: using first subscriber id={id(sub)}")
         else:
-            print(f"\n  >>> PLAYER_INSULTS handler identified:")
+            print("\n  >>> PLAYER_INSULTS handler identified:")
             print(f"      event_type: {player_insults_handler['event_type']}")
             print(f"      handler_method: {player_insults_handler['handler_method']}")
             print(f"      subscriber_id: {player_insults_handler['subscriber_id']}")
-            sub = seen_subscriber_ids[player_insults_handler['subscriber_id']]
+            sub = seen_subscriber_ids[player_insults_handler["subscriber_id"]]
 
         # ---- C.1: DIRECTLY inspect sub._get_spatial_query (NOT via spy) ----
         print("\n--- C.1: DIRECT inspection of sub._get_spatial_query ---")
@@ -398,7 +397,7 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
 
             # Actually CALL the provider
             if provider_callable_direct:
-                print(f"\n  --- Calling provider directly ---")
+                print("\n  --- Calling provider directly ---")
                 try:
                     sq = direct_provider()
                     print(f"  Result: {sq!r}")
@@ -431,13 +430,13 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
             bounds = _find_function_bounds(ces_src, handler_method_name)
             if bounds:
                 s, e = bounds
-                print(f"  {handler_method_name} at L{s+1}..L{e}:")
+                print(f"  {handler_method_name} at L{s + 1}..L{e}:")
                 for j in range(s, e):
-                    print(f"  L{j+1:4d}: {ces_lines[j]}")
+                    print(f"  L{j + 1:4d}: {ces_lines[j]}")
             else:
                 print(f"  [method {handler_method_name} not found in claim_event_subscriber.py]")
                 # List all methods
-                print(f"  Available methods:")
+                print("  Available methods:")
                 for i, line in enumerate(ces_lines, 1):
                     stripped = line.lstrip()
                     if stripped.startswith("def "):
@@ -445,22 +444,22 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
 
         # ---- C.2b: Also read on_player_spoke if different from handler ----
         if handler_method_name != "on_player_spoke":
-            print(f"\n  --- Also reading on_player_spoke (for reference) ---")
+            print("\n  --- Also reading on_player_spoke (for reference) ---")
             bounds = _find_function_bounds(ces_src, "on_player_spoke")
             if bounds:
                 s, e = bounds
-                print(f"  on_player_spoke at L{s+1}..L{e}:")
+                print(f"  on_player_spoke at L{s + 1}..L{e}:")
                 for j in range(s, e):
-                    print(f"  L{j+1:4d}: {ces_lines[j]}")
+                    print(f"  L{j + 1:4d}: {ces_lines[j]}")
 
         # ---- C.2c: Read on_claim_event too (for comparison) ----
-        print(f"\n  --- Also reading on_claim_event (for comparison) ---")
+        print("\n  --- Also reading on_claim_event (for comparison) ---")
         bounds = _find_function_bounds(ces_src, "on_claim_event")
         if bounds:
             s, e = bounds
-            print(f"  on_claim_event at L{s+1}..L{e}:")
+            print(f"  on_claim_event at L{s + 1}..L{e}:")
             for j in range(s, e):
-                print(f"  L{j+1:4d}: {ces_lines[j]}")
+                print(f"  L{j + 1:4d}: {ces_lines[j]}")
 
         # ---- C.3: Attach spy to the CORRECT handler method ----
         print(f"\n--- C.3: Attach spy to {handler_method_name} + BeliefRevisionEngine ---")
@@ -485,13 +484,13 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
                                     args_repr.append(repr(a)[:300])
                                 except Exception:
                                     args_repr.append("<unrepr>")
-                            engine_calls.append(
-                                {"method": name, "args": args_repr}
-                            )
+                            engine_calls.append({"method": name, "args": args_repr})
                         except Exception:
                             pass
                         return orig(*args, **kwargs)
+
                     return _spy
+
                 try:
                     setattr(engine, method_name, _make_spy(orig_method, method_name))
                     print(f"  spy attached: engine.{method_name}")
@@ -519,7 +518,9 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
                         except Exception:
                             pass
                         return orig(*args, **kwargs)
+
                     return _spy
+
                 try:
                     setattr(store, method_name, _make_store_spy(orig_method, method_name))
                     print(f"  spy attached: store.{method_name}")
@@ -585,7 +586,12 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
                         # can_observe
                         try:
                             from app.models.npc_state import PerceptualKernel
-                            dist_val = captured.get("runtime_distance_player_lusya") or captured.get("manual_distance") or 999.0
+
+                            dist_val = (
+                                captured.get("runtime_distance_player_lusya")
+                                or captured.get("manual_distance")
+                                or 999.0
+                            )
                             captured["can_observe_maid_lusya"] = PerceptualKernel.can_observe(
                                 event, dist_val, "maid_lusya", payload.get("target_id")
                             )
@@ -623,11 +629,13 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
                     captured["lusya_records_sample"] = []
                     for r in lusya_records[:3]:
                         try:
-                            captured["lusya_records_sample"].append({
-                                "proposition": str(getattr(r, "proposition", "?")),
-                                "confidence": getattr(r, "confidence", "?"),
-                                "source_id": getattr(r, "source_id", "?"),
-                            })
+                            captured["lusya_records_sample"].append(
+                                {
+                                    "proposition": str(getattr(r, "proposition", "?")),
+                                    "confidence": getattr(r, "confidence", "?"),
+                                    "source_id": getattr(r, "source_id", "?"),
+                                }
+                            )
                         except Exception:
                             captured["lusya_records_sample"].append({"repr": repr(r)[:200]})
                 except Exception as e:
@@ -639,8 +647,8 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
         print(f"  spy attached: sub.{handler_method_name}")
 
         # ---- C.4: DO NOT clear bus — preserve subscriber registrations ----
-        print(f"\n--- C.4: Preserving EventBus subscribers (NOT clearing) ---")
-        print(f"  bus._handlers keys (before publish): ", end="")
+        print("\n--- C.4: Preserving EventBus subscribers (NOT clearing) ---")
+        print("  bus._handlers keys (before publish): ", end="")
         try:
             keys = list(getattr(bus, "_handlers", {}).keys())
             print(f"{len(keys)} event types")
@@ -650,7 +658,7 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
             print(f"error: {e}")
 
         # ---- C.5: Publish PLAYER_INSULTS ----
-        print(f"\n--- C.5: Publishing PLAYER_INSULTS ---")
+        print("\n--- C.5: Publishing PLAYER_INSULTS ---")
         payload = {
             "action_type": "player_insults",
             "target_id": "tavern_keeper_tornin",
@@ -673,13 +681,13 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
         print(f"  event.type={getattr(evt, 'type', '?')}")
 
         bus.publish(evt)
-        print(f"  Published.")
+        print("  Published.")
 
         # Restore original handler
         setattr(sub, handler_method_name, orig_handler)
 
         # ---- C.6: Print captured values ----
-        print(f"\n--- C.6: Captured runtime values ---")
+        print("\n--- C.6: Captured runtime values ---")
         if not captured:
             print("  [captured dict is EMPTY — spy did not fire]")
             print("  >>> This means the handler method was NOT called by EventBus")
@@ -723,7 +731,7 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
                     print(f"  {label}: {val}")
 
         # ---- C.7: All engine_calls ----
-        print(f"\n--- C.7: ALL engine_calls during PLAYER_INSULTS ---")
+        print("\n--- C.7: ALL engine_calls during PLAYER_INSULTS ---")
         for i, call in enumerate(engine_calls):
             print(f"  [{i}] method={call.get('method')}")
             for arg in call.get("args", [])[:3]:
@@ -732,7 +740,7 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
             print("  (none — BeliefRevisionEngine was NOT called)")
 
         # ---- C.8: All store_calls ----
-        print(f"\n--- C.8: ALL store_calls during PLAYER_INSULTS ---")
+        print("\n--- C.8: ALL store_calls during PLAYER_INSULTS ---")
         for i, call in enumerate(store_calls):
             print(f"  [{i}] method={call.get('method')}")
             for arg in call.get("args", [])[:3]:
@@ -749,14 +757,16 @@ def stage_c_corrected_runtime() -> Dict[str, Any]:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
         result["pass"] = True
         result["captured"] = captured
-        result["direct_provider_is_none"] = provider_is_none if 'provider_is_none' in dir() else None
-        result["direct_provider_callable"] = provider_callable_direct if 'provider_callable_direct' in dir() else None
+        result["direct_provider_is_none"] = provider_is_none if "provider_is_none" in dir() else None
+        result["direct_provider_callable"] = provider_callable_direct if "provider_callable_direct" in dir() else None
         result["handler_method_name"] = handler_method_name
         result["all_registrations"] = all_registrations
         return result
@@ -781,13 +791,13 @@ def stage_d_verdict(stage_a: Dict, stage_b: Dict, stage_c: Dict) -> Dict[str, An
     handler_method_name = stage_c.get("handler_method_name", "?")
     all_registrations = stage_c.get("all_registrations", [])
 
-    print(f"\n  FACTS (from direct inspection, NOT spy):")
+    print("\n  FACTS (from direct inspection, NOT spy):")
     print(f"    Direct _get_spatial_query is None: {direct_provider_is_none}")
     print(f"    Direct _get_spatial_query callable: {direct_provider_callable}")
     print(f"    Handler method for PLAYER_INSULTS: {handler_method_name}")
     print(f"    Total ClaimEventSubscriber registrations: {len(all_registrations)}")
 
-    print(f"\n  FACTS (from spy, if fired):")
+    print("\n  FACTS (from spy, if fired):")
     print(f"    Spy fired: {bool(captured)}")
     if captured:
         print(f"    provider_is_none (runtime): {captured.get('provider_is_none')}")
@@ -826,13 +836,15 @@ def stage_d_verdict(stage_a: Dict, stage_b: Dict, stage_c: Dict) -> Dict[str, An
         else:
             # Spy fired — check what it captured
             runtime_provider_is_none = captured.get("provider_is_none", True)
-            runtime_provider_callable = captured.get("provider_callable", False)
+            captured.get("provider_callable", False)
             engine_calls_delta = captured.get("engine_calls_delta", 0)
             epistemic_records = captured.get("epistemic_records_for_lusya_after", 0)
 
             if runtime_provider_is_none:
                 verdict = "1. PROVIDER RETURNS None at handler-call time"
-                rationale = "Provider was callable during direct inspection but returned None when called during handler."
+                rationale = (
+                    "Provider was callable during direct inspection but returned None when called during handler."
+                )
             elif engine_calls_delta == 0:
                 verdict = "4. OTHER — provider OK, but BeliefRevisionEngine NOT called"
                 rationale = (
@@ -849,28 +861,27 @@ def stage_d_verdict(stage_a: Dict, stage_b: Dict, stage_c: Dict) -> Dict[str, An
     else:
         verdict = "4. OTHER — could not determine provider state"
         rationale = (
-            "Direct inspection returned an unexpected value. "
-            "Check Stage C.1 output for the actual getattr result."
+            "Direct inspection returned an unexpected value. Check Stage C.1 output for the actual getattr result."
         )
 
     print(f"\n  >>> VERDICT: {verdict}")
     print(f"  >>> RATIONALE: {rationale}")
 
-    print(f"\n  >>> MINIMAL FIX PLAN:")
+    print("\n  >>> MINIMAL FIX PLAN:")
     if verdict.startswith("1."):
-        print(f"    - The runtime instance lacks the provider despite L613 wiring")
-        print(f"    - Search for OTHER ClaimEventSubscriber constructor calls (without provider)")
-        print(f"    - OR check if _get_spatial_query is reset somewhere after construction")
+        print("    - The runtime instance lacks the provider despite L613 wiring")
+        print("    - Search for OTHER ClaimEventSubscriber constructor calls (without provider)")
+        print("    - OR check if _get_spatial_query is reset somewhere after construction")
     elif verdict.startswith("4.") and "spy didn't fire" in rationale:
-        print(f"    - Provider is correctly wired (confirmed by direct inspection)")
-        print(f"    - Investigate why EventBus.publish(PLAYER_INSULTS) doesn't dispatch to handler")
-        print(f"    - Check if PLAYER_INSULTS uses async dispatch or a different bus mechanism")
+        print("    - Provider is correctly wired (confirmed by direct inspection)")
+        print("    - Investigate why EventBus.publish(PLAYER_INSULTS) doesn't dispatch to handler")
+        print("    - Check if PLAYER_INSULTS uses async dispatch or a different bus mechanism")
     elif verdict.startswith("4.") and "BeliefRevisionEngine NOT called" in rationale:
-        print(f"    - Provider works correctly")
-        print(f"    - The handler method has its own listener-gathering logic")
-        print(f"    - Read handler source (Stage C.2) to find why maid_lusya is excluded")
+        print("    - Provider works correctly")
+        print("    - The handler method has its own listener-gathering logic")
+        print("    - Read handler source (Stage C.2) to find why maid_lusya is excluded")
     else:
-        print(f"    - Investigate downstream consumers")
+        print("    - Investigate downstream consumers")
 
     result["verdict"] = verdict
     result["rationale"] = rationale

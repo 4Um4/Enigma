@@ -1,6 +1,7 @@
 # backend/scripts/patch_prompt_d1_d4.py
 # Идемпотентный патчер chronicle_decompose_system.txt — добавляет D1-D4
-import io, sys, pathlib
+import pathlib
+import sys
 
 PROMPT_PATH = pathlib.Path("backend/prompts/chronicle_decompose_system.txt")
 MARKER = "D1. age_anchors ↔ items"  # маркер уже применённого патча
@@ -100,6 +101,7 @@ TRAIT_SEED — это УСТОЙЧИВАЯ ЧЕРТА ХАРАКТЕРА/ПОВ�
 
 """
 
+
 def main():
     if not PROMPT_PATH.exists():
         print(f"ERROR: prompt file not found: {PROMPT_PATH}", file=sys.stderr)
@@ -121,6 +123,7 @@ def main():
     PROMPT_PATH.write_text(new_text, encoding="utf-8")
     print(f"[ok] D1-D4 inserted into {PROMPT_PATH}")
     print(f"     size: {len(text)} -> {len(new_text)} bytes")
+
 
 if __name__ == "__main__":
     main()

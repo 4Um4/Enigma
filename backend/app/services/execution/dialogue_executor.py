@@ -206,7 +206,7 @@ class DialogueExecutor:
                     except Exception:
                         logger.debug("[OBS] spread_rumor_fallback_used observability skipped (non-critical)")
                     logger.warning(
-                        f"[DIALOGUE_EXEC] LLM failed for spread_rumor, " f"falling back to deterministic stub: {e}"
+                        f"[DIALOGUE_EXEC] LLM failed for spread_rumor, falling back to deterministic stub: {e}"
                     )
                     text = f"[spread_rumor] {task.owner_id} -> {req.target_id}: {req.topic}"
                     # Don't return — continue to yield SUCCESS Artifact (L269-283)
@@ -425,7 +425,7 @@ class DialogueExecutor:
             _delta = float(entry.get("delta", 0.0) or 0.0)
             _tick = entry.get("tick", 0)
             _sign = "+" if _delta > 0 else ""
-            lines.append(f"  • {_field_text} изменилось на {_sign}{_delta:.1f} " f"(причина: {_source}, тик: {_tick})")
+            lines.append(f"  • {_field_text} изменилось на {_sign}{_delta:.1f} (причина: {_source}, тик: {_tick})")
         if lines:
             return "[Причины изменений твоего состояния]:\n" + "\n".join(lines)
         return ""
@@ -596,7 +596,7 @@ class DialogueExecutor:
             _claim_block = f"[Факт, которым ты делишься]: {_subj_name} {_pred_text} {_obj_name}. Передай это собеседнику своими словами.\n"
 
         # Динамическая часть (добавляется всегда, так как STM и beliefs могли измениться)
-        user_prompt += f"Ты обращаешься к: {_target_name}. " f"{_beliefs_text}" f"{_history_text}" f"{_claim_block}"
+        user_prompt += f"Ты обращаешься к: {_target_name}. {_beliefs_text}{_history_text}{_claim_block}"
 
         # COGNITIVE-CONTINUITY-01: cognition block — what NPC knows (beliefs + provenance)
         # Same CognitionContextResolver that feeds DMFrame — one mechanism, all consumers.

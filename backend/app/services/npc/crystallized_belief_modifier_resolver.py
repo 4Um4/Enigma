@@ -12,6 +12,7 @@ from app.models.npc_state import Intent
 
 _FEAR_MOD_CAP: float = 0.4  # RT-LLM-02: cap accumulated fear on FLEE (was unbounded)
 
+
 class CrystallizedBeliefModifierResolver:
     """
     Переводит CrystallizedBelief (source_id, trait, weight)

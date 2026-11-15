@@ -64,12 +64,14 @@ COMMITMENT_TERMINAL_STATUSES: frozenset[str] = frozenset(
 # NPC свободным (защита от commitment race). PROPOSED — превентивно: кандидат
 # в рассмотрении тоже занимает владельца (появится в S203.3/4; зеркала его не
 # создают). Терминалы в ACTIVE не входят по построению.
-ACTIVE_COMMITMENT_STATUSES: frozenset[str] = frozenset({
-    "PROPOSED",
-    "COMMITTED",
-    "EXECUTING",
-    "BLOCKED",
-})
+ACTIVE_COMMITMENT_STATUSES: frozenset[str] = frozenset(
+    {
+        "PROPOSED",
+        "COMMITTED",
+        "EXECUTING",
+        "BLOCKED",
+    }
+)
 
 # Bounded retention терминальной истории на NPC (решение Мастера №1).
 # Прецедент: causal_ledger — bounded runtime history.
@@ -138,9 +140,7 @@ def build_commitment_dict(
     из прерванного" (C2 произошёл из C1, а не "продолжает" его).
     """
     if initial_status not in COMMITMENT_STATUSES:
-        raise ValueError(
-            f"build_commitment_dict: unknown initial_status '{initial_status}'"
-        )
+        raise ValueError(f"build_commitment_dict: unknown initial_status '{initial_status}'")
     if not cause:
         # Обязательство без причины возникновения запрещено (каузальная гигиена).
         raise ValueError("build_commitment_dict: empty cause is forbidden")

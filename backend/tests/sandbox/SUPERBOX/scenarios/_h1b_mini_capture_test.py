@@ -9,6 +9,7 @@ H1b-mini минимальная проверка захвата components_trace
 Запуск:
     python backend/tests/sandbox/SUPERBOX/scenarios/_h1b_mini_capture_test.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -42,6 +43,7 @@ def test_h1b_capture_in_components_trace():
     # 2. Импортировать DecisionHub ПОСЛЕ патча (получить пропатченный класс)
     print("--- Step 2: import DecisionHub (after patch) ---")
     from app.services.npc.decision_hub import DecisionHub
+
     print(f"  DecisionHub imported: {DecisionHub}")
     print()
 
@@ -96,8 +98,14 @@ def test_h1b_capture_in_components_trace():
     print("--- Step 5: call _score_all ---")
     try:
         scores, components_trace = dh._score_all(
-            state, personality, event, possible, opportunity,
-            active_traits, decision_ctx=None, effective_drives=None,
+            state,
+            personality,
+            event,
+            possible,
+            opportunity,
+            active_traits,
+            decision_ctx=None,
+            effective_drives=None,
         )
         print(f"  scores keys: {list(scores.keys())}")
         print(f"  components_trace keys: {list(components_trace.keys())}")
@@ -105,6 +113,7 @@ def test_h1b_capture_in_components_trace():
     except Exception as e:
         print(f"  FAIL: _score_all raised: {type(e).__name__}: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -141,7 +150,9 @@ def test_h1b_capture_in_components_trace():
         if attack_comps["_h1b_mask_application_enabled"] is True:
             print("  PASS: mask_application_enabled=True (ON mode)")
         else:
-            print(f"  FAIL: mask_application_enabled should be True for ON, got {attack_comps['_h1b_mask_application_enabled']}")
+            print(
+                f"  FAIL: mask_application_enabled should be True for ON, got {attack_comps['_h1b_mask_application_enabled']}"
+            )
             return 1
 
         # Проверить: base_after = base_before * mask_mod (если base_before != 0)
@@ -156,7 +167,9 @@ def test_h1b_capture_in_components_trace():
                 print(f"  FAIL: base_after ({ba}) != base_before ({bb}) * mask_mod ({mm}) = {expected}")
                 return 1
         else:
-            print("  NOTE: base_before=0, cannot verify multiplication (but mask_application_enabled=True confirms application)")
+            print(
+                "  NOTE: base_before=0, cannot verify multiplication (but mask_application_enabled=True confirms application)"
+            )
 
         return 0
     else:
@@ -173,6 +186,7 @@ def main() -> int:
         print("--- Cleanup: reload decision_hub module ---")
         import importlib
         import app.services.npc.decision_hub
+
         importlib.reload(app.services.npc.decision_hub)
         print("  module reloaded (patch cleared)")
 

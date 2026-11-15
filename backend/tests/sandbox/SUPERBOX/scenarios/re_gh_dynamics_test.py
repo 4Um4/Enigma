@@ -75,11 +75,13 @@ def run_treatment() -> _GroupResult:
             p_after = level.current_intensity if level else 0.0
             if not (0.0 < p_after <= 1.0):
                 return _GroupResult(
-                    "treatment_flag_on", False,
+                    "treatment_flag_on",
+                    False,
                     f"sexual.pressure={p_after} — gen_rate-канал не вырос/вне [0,1]",
                 )
             return _GroupResult(
-                "treatment_flag_on", True,
+                "treatment_flag_on",
+                True,
                 f"mark={mark}, p_sexual={p_after:.4f} (>0, клампы живы)",
             )
         finally:

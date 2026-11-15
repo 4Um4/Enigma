@@ -20,6 +20,7 @@ from app.services.npc.epistemic_store import EpistemicStore
 @dataclass(frozen=True)
 class MockEvent:
     """Минимальный mock EventDTO для тестов (frozen — dataclasses.replace работает)."""
+
     id: str
     type: str
     source: str
@@ -29,6 +30,7 @@ class MockEvent:
 
 class MockReliabilityProvider:
     """Фиксированная reliability=0.5 для детерминированных тестов."""
+
     def get_reliability(self, observer: str, source: str, context: Any = None) -> float:
         return 0.5
 

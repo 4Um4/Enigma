@@ -11,13 +11,16 @@ def test_t07_phrase_how_are_you():
     topic = extract_topic(event_type="player_interacts", raw_input="Люся, как дела?")
     assert topic == "самочувствие", f"Ожидалось 'самочувствие', получено '{topic}'"
 
+
 def test_t07_phrase_who_are_you():
     topic = extract_topic(event_type="player_interacts", raw_input="расскажи о себе")
     assert topic == "биография", f"Ожидалось 'биография', получено '{topic}'"
 
+
 def test_t07_keyword_still_works():
     topic = extract_topic(event_type="player_interacts", raw_input="хочу купить меч")
     assert topic == "торговля", f"Ожидалось 'торговля', получено '{topic}'"
+
 
 def test_t07_fallback_to_observation():
     topic = extract_topic(event_type="player_interacts", raw_input="ыыы")

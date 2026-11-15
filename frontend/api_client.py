@@ -105,12 +105,7 @@ class GameGateway(Protocol):
         """Проверка здоровья backend."""
         ...
 
-    def new_game(
-        self,
-        campaign_id: str,
-        continuity_mode: str = "isolated",
-        source_campaign_id: str = ""
-    ) -> dict:
+    def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static. Опционально применяет WorldStateDiff."""
         ...
 
@@ -177,9 +172,7 @@ class HttpClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_sec = timeout_sec
 
-    def post(
-        self, path: str, payload: dict | None = None, timeout_sec: int | None = None
-    ) -> dict:
+    def post(self, path: str, payload: dict | None = None, timeout_sec: int | None = None) -> dict:
         """POST запрос → распарсенный JSON (timeout_sec: per-call override)."""
         url = self.base_url + path
         data = json.dumps(payload).encode("utf-8") if payload else b"{}"
@@ -201,9 +194,7 @@ class HttpClient:
         req = urllib.request.Request(url, method="GET")
         return self._execute(req)
 
-    def _execute(
-        self, req: urllib.request.Request, timeout_sec: int | None = None
-    ) -> dict:
+    def _execute(self, req: urllib.request.Request, timeout_sec: int | None = None) -> dict:
         """Выполняет запрос, возвращает dict. При ошибке — BackendError."""
         try:
             _timeout = timeout_sec if timeout_sec is not None else self.timeout_sec
@@ -214,17 +205,13 @@ class HttpClient:
             try:
                 body = e.read().decode("utf-8", errors="replace")
             except Exception as e:
-                logger.warning(
-                    f"[B5-FIX] silent failure suppressed: {e}"
-                )  # не удалось прочитать тело ошибки HTTP
+                logger.warning(f"[B5-FIX] silent failure suppressed: {e}")  # не удалось прочитать тело ошибки HTTP
             raise BackendError(
                 f"HTTP {e.code}: {body}",
                 status_code=e.code,
             ) from e
         except urllib.error.URLError as e:
-            raise BackendError(
-                f"Backend недоступен ({self.base_url}): {e.reason}"
-            ) from e
+            raise BackendError(f"Backend недоступен ({self.base_url}): {e.reason}") from e
 
 
 # COV-2/D61: таймаут HTTP-транспорта для рестарта llama-server.
@@ -297,9 +284,7 @@ class BackendContract:
         ложный FAILED при штатно долгом рестарте (доктрина №4 — только
         честные причины провала).
         """
-        return self._t.post(
-            "/api/llm/restart", {}, timeout_sec=_LLM_RESTART_TIMEOUT_SEC
-        )
+        return self._t.post("/api/llm/restart", {}, timeout_sec=_LLM_RESTART_TIMEOUT_SEC)
 
     def create_player_session(self, campaign_id: str, player_name: str) -> dict:
         return self._t.post(
@@ -348,7 +333,6 @@ class BackendContract:
     def get_autonomous_simulation_status(self, campaign_id: str) -> dict:
         return self._contract.get_autonomous_simulation_status(campaign_id)
 
-
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         """B1.4-FIX: push scene_state to backend via HTTP."""
         try:
@@ -371,7 +355,10 @@ class BackendContract:
         return self._t.get(f"/api/board/{campaign_id}")
 
     def board_card_add(
-        self, campaign_id: str, ref_type: str, ref_id: str,
+        self,
+        campaign_id: str,
+        ref_type: str,
+        ref_id: str,
         pos: list | None = None,
     ) -> dict:
         _payload: dict = {"op": "add", "ref_type": ref_type, "ref_id": ref_id}
@@ -380,12 +367,14 @@ class BackendContract:
         return self._t.post(f"/api/board/{campaign_id}/cards", _payload)
 
     def board_card_move(
-        self, campaign_id: str, card_id: str, pos: list,
+        self,
+        campaign_id: str,
+        card_id: str,
+        pos: list,
     ) -> dict:
         return self._t.post(
             f"/api/board/{campaign_id}/cards",
-            {"op": "move", "card_id": card_id,
-             "pos": [float(pos[0]), float(pos[1])]},
+            {"op": "move", "card_id": card_id, "pos": [float(pos[0]), float(pos[1])]},
         )
 
     def board_card_remove(self, campaign_id: str, card_id: str) -> dict:
@@ -395,19 +384,25 @@ class BackendContract:
         )
 
     def board_link(
-        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        self,
+        campaign_id: str,
+        from_id: str,
+        to_id: str,
+        kind: str,
         unlink_op: bool = False,
     ) -> dict:
         # Ключи "from"/"to" — JSON-схема доски (Pydantic alias на бэкенде)
         return self._t.post(
             f"/api/board/{campaign_id}/links",
-            {"op": "unlink" if unlink_op else "link",
-             "from": from_id, "to": to_id, "kind": kind},
+            {"op": "unlink" if unlink_op else "link", "from": from_id, "to": to_id, "kind": kind},
         )
 
     def board_hypothesis(
-        self, campaign_id: str, op: str,
-        hyp_id: str | None = None, text: str | None = None,
+        self,
+        campaign_id: str,
+        op: str,
+        hyp_id: str | None = None,
+        text: str | None = None,
         status: str | None = None,
     ) -> dict:
         _payload: dict = {"op": op}
@@ -422,8 +417,7 @@ class BackendContract:
     def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
         """ADR-O-409 PLAYER_LINK: ассоциация имя↔лицо — решение игрока,
         не системы (канал player_link → NameKnowledge confirmed)."""
-        return self._t.post(f"/api/avatar/{campaign_id}/names/link",
-                            {"npc_id": npc_id, "name": name})
+        return self._t.post(f"/api/avatar/{campaign_id}/names/link", {"npc_id": npc_id, "name": name})
 
     @staticmethod
     def _map_action_response(raw: dict) -> GameActionResponse:
@@ -475,19 +469,12 @@ class HttpGameGateway:
         world_x: float | None = None,
         world_y: float | None = None,
     ) -> GameActionResponse:
-        return self._contract.send_action(
-            campaign_id, player_name, action_text, player_x, player_y, world_x, world_y
-        )
+        return self._contract.send_action(campaign_id, player_name, action_text, player_x, player_y, world_x, world_y)
 
     def health(self) -> dict:
         return self._contract.health()
 
-    def new_game(
-        self,
-        campaign_id: str,
-        continuity_mode: str = "isolated",
-        source_campaign_id: str = ""
-    ) -> dict:
+    def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         return self._contract.new_game(campaign_id, continuity_mode, source_campaign_id)
 
@@ -551,15 +538,11 @@ class HttpGameGateway:
             )
         raise NotImplementedError("SSE streaming is not supported by this contract.")
 
-    def get_world_state(
-        self, campaign_id: str, after_tick: int | None = None
-    ) -> dict | None:
+    def get_world_state(self, campaign_id: str, after_tick: int | None = None) -> dict | None:
         """B3-FIX: Read-only запрос состояния мира для polling'а.
         Не продвигает симуляцию (не выполняет tick).
         """
-        return get_world_state(
-            campaign_id, after_tick, base_url=self._contract._t.base_url
-        )
+        return get_world_state(campaign_id, after_tick, base_url=self._contract._t.base_url)
 
     def save_scene_state(self, campaign_id: str, scene_state: dict) -> None:
         return self._contract.save_scene_state(campaign_id, scene_state)
@@ -573,7 +556,10 @@ class HttpGameGateway:
         return self._contract.get_board(campaign_id)
 
     def board_card_add(
-        self, campaign_id: str, ref_type: str, ref_id: str,
+        self,
+        campaign_id: str,
+        ref_type: str,
+        ref_id: str,
         pos: list | None = None,
     ) -> dict:
         return self._contract.board_card_add(campaign_id, ref_type, ref_id, pos)
@@ -585,20 +571,35 @@ class HttpGameGateway:
         return self._contract.board_card_remove(campaign_id, card_id)
 
     def board_link(
-        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        self,
+        campaign_id: str,
+        from_id: str,
+        to_id: str,
+        kind: str,
         unlink_op: bool = False,
     ) -> dict:
         return self._contract.board_link(
-            campaign_id, from_id, to_id, kind, unlink_op,
+            campaign_id,
+            from_id,
+            to_id,
+            kind,
+            unlink_op,
         )
 
     def board_hypothesis(
-        self, campaign_id: str, op: str,
-        hyp_id: str | None = None, text: str | None = None,
+        self,
+        campaign_id: str,
+        op: str,
+        hyp_id: str | None = None,
+        text: str | None = None,
         status: str | None = None,
     ) -> dict:
         return self._contract.board_hypothesis(
-            campaign_id, op, hyp_id, text, status,
+            campaign_id,
+            op,
+            hyp_id,
+            text,
+            status,
         )
 
     def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
@@ -673,42 +674,28 @@ class DirectGameGateway:
         )
         # ADR-075 DIAG: Диагностический след. Показывает, дошли ли данные до шлюза.
         if hasattr(result, "will_conflict_data"):
-            logger.debug(
-                f"[PIPELINE][EMBODIMENT] gateway received={result.will_conflict_data is not None}"
-            )
+            logger.debug(f"[PIPELINE][EMBODIMENT] gateway received={result.will_conflict_data is not None}")
         else:
             logger.debug("[EMBODIMENT_PIPELINE] field missing on result")
 
     def health(self) -> dict:
         return {"status": "ok", "mode": "direct"}
 
-    def new_game(
-        self,
-        campaign_id: str,
-        continuity_mode: str = "isolated",
-        source_campaign_id: str = ""
-    ) -> dict:
+    def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
             import importlib
 
             from game_loop_bridge import get_game_loop_bridge
+
             WorldContinuityMode = importlib.import_module("app.models.world_continuity").WorldContinuityMode
 
             _bridge = get_game_loop_bridge()
             mode = WorldContinuityMode(continuity_mode)
             src = source_campaign_id if source_campaign_id else None
-            
-            if (
-                _bridge.ready
-                and hasattr(_bridge, "_loop")
-                and hasattr(_bridge._loop, "new_game")
-            ):
-                result = _bridge._loop.new_game(
-                    campaign_id=campaign_id,
-                    continuity_mode=mode,
-                    source_campaign_id=src
-                )
+
+            if _bridge.ready and hasattr(_bridge, "_loop") and hasattr(_bridge._loop, "new_game"):
+                result = _bridge._loop.new_game(campaign_id=campaign_id, continuity_mode=mode, source_campaign_id=src)
                 if not isinstance(result, dict):
                     raise RuntimeError(f"GameLoop.new_game returned non-dict: {result}")
                 return result
@@ -782,6 +769,7 @@ class DirectGameGateway:
         if _gl is None or not hasattr(_gl, "world_scheduler"):
             return {"status": "unavailable", "is_running": False}
         import asyncio as _asyncio
+
         _sched = _gl.world_scheduler
         try:
             _loop = _asyncio.get_event_loop()
@@ -798,6 +786,7 @@ class DirectGameGateway:
         if _gl is None or not hasattr(_gl, "world_scheduler"):
             return {"status": "unavailable", "is_running": False}
         import asyncio as _asyncio
+
         _sched = _gl.world_scheduler
         try:
             _loop = _asyncio.get_event_loop()
@@ -824,9 +813,7 @@ class DirectGameGateway:
         """B3-FIX: SSE не поддерживается в Direct mode (нет HTTP-сервера)."""
         raise NotImplementedError("SSE streaming is not supported in Direct mode.")
 
-    def get_world_state(
-        self, campaign_id: str, after_tick: int | None = None
-    ) -> dict | None:
+    def get_world_state(self, campaign_id: str, after_tick: int | None = None) -> dict | None:
         """B3-FIX: Возвращает текущий WorldSnapshot из GameLoop без выполнения тика."""
         from game_loop_bridge import get_game_loop_bridge
 
@@ -902,57 +889,58 @@ class FallbackGateway:
     def get_board(self, campaign_id: str) -> dict:
         if self._primary and hasattr(self._primary, "get_board"):
             return self._primary.get_board(campaign_id)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def board_card_add(
-        self, campaign_id: str, ref_type: str, ref_id: str,
+        self,
+        campaign_id: str,
+        ref_type: str,
+        ref_id: str,
         pos: list | None = None,
     ) -> dict:
         if self._primary and hasattr(self._primary, "board_card_add"):
             return self._primary.board_card_add(campaign_id, ref_type, ref_id, pos)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def board_card_move(self, campaign_id: str, card_id: str, pos: list) -> dict:
         if self._primary and hasattr(self._primary, "board_card_move"):
             return self._primary.board_card_move(campaign_id, card_id, pos)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def board_card_remove(self, campaign_id: str, card_id: str) -> dict:
         if self._primary and hasattr(self._primary, "board_card_remove"):
             return self._primary.board_card_remove(campaign_id, card_id)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def board_link(
-        self, campaign_id: str, from_id: str, to_id: str, kind: str,
+        self,
+        campaign_id: str,
+        from_id: str,
+        to_id: str,
+        kind: str,
         unlink_op: bool = False,
     ) -> dict:
         if self._primary and hasattr(self._primary, "board_link"):
-            return self._primary.board_link(
-                campaign_id, from_id, to_id, kind, unlink_op)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+            return self._primary.board_link(campaign_id, from_id, to_id, kind, unlink_op)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def board_hypothesis(
-        self, campaign_id: str, op: str,
-        hyp_id: str | None = None, text: str | None = None,
+        self,
+        campaign_id: str,
+        op: str,
+        hyp_id: str | None = None,
+        text: str | None = None,
         status: str | None = None,
     ) -> dict:
         if self._primary and hasattr(self._primary, "board_hypothesis"):
-            return self._primary.board_hypothesis(
-                campaign_id, op, hyp_id, text, status)
-        raise BackendError("Board недоступна: primary gateway offline",
-                           status_code=None)
+            return self._primary.board_hypothesis(campaign_id, op, hyp_id, text, status)
+        raise BackendError("Board недоступна: primary gateway offline", status_code=None)
 
     def player_link_name(self, campaign_id: str, npc_id: str, name: str) -> dict:
         """ADR-O-409 PLAYER_LINK — fallback-слой (канон board-методов)."""
         if self._primary and hasattr(self._primary, "player_link_name"):
             return self._primary.player_link_name(campaign_id, npc_id, name)
-        raise BackendError("PLAYER_LINK недоступна: primary gateway offline",
-                           status_code=None)
+        raise BackendError("PLAYER_LINK недоступна: primary gateway offline", status_code=None)
 
     """
     HTTP приоритет, Direct fallback при обрыве.
@@ -1043,12 +1031,7 @@ class FallbackGateway:
             self._primary_healthy = False
             return {"status": "degraded", "mode": "direct_fallback"}
 
-    def new_game(
-        self,
-        campaign_id: str,
-        continuity_mode: str = "isolated",
-        source_campaign_id: str = ""
-    ) -> dict:
+    def new_game(self, campaign_id: str, continuity_mode: str = "isolated", source_campaign_id: str = "") -> dict:
         """ADR-O-146: Сброс runtime мира к чистому static."""
         try:
             print(f"[DIAG_CLIENT] Calling primary.new_game... (type: {type(self._primary).__name__})", flush=True)
@@ -1089,7 +1072,7 @@ class FallbackGateway:
         except Exception:
             self._primary_healthy = False
             return self._fallback.get_end_screen(campaign_id)
-        
+
     def get_characters(self, campaign_id: str) -> list[dict]:
         if self._primary_healthy is False:
             return self._fallback.get_characters(campaign_id)
@@ -1291,8 +1274,7 @@ class ActionQueue:
                 action_id=action_id,
                 campaign_id=campaign_id,
                 player_name=player_name,
-                action_text=action_text
-                or "[TELEGRAPH: мир живёт, опиши что делают NPC]",
+                action_text=action_text or "[TELEGRAPH: мир живёт, опиши что делают NPC]",
                 submitted_at=time.monotonic(),
                 player_x=player_x,
                 player_y=player_y,
@@ -1376,6 +1358,7 @@ def create_game_gateway(
     """AUDIT #22/#5: без явного base_url берём ENIGMA_BACKEND_URL из окружения."""
     if base_url is None:
         import os
+
         base_url = os.environ.get("ENIGMA_BACKEND_URL", "http://127.0.0.1:8000")
     """
     Создаёт gateway с fallback: HTTP приоритет, Direct при обрыве.

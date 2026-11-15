@@ -38,6 +38,7 @@ def _restore_dir(root: Path, snap: Optional[Dict[Path, bytes]]) -> None:
         _f.parent.mkdir(parents=True, exist_ok=True)
         _f.write_bytes(_data)
 
+
 _CAMPAIGN = "Open_road"
 # S299: расхождение диагностировано — канонический ключ мира "tavern"
 # (constants.py:160 DEFAULT_LOCATION_ID; подтверждено state_kv/_tick_scenes).
@@ -48,10 +49,23 @@ _PLAYER = "Tester"
 # Пассивный tap-набор (зеркало ObservabilityTap; getattr-фильтр защищает
 # от отсутствующих членов EventType). Отказ наблюдателя не роняет поток.
 _TAP_EVENT_NAMES = (
-    "NPC_SPOKE", "NPC_MOVED", "NPC_PROXIMITY_CLOSE", "NPC_PROXIMITY_LEAVE",
-    "SOCIAL_ACTION", "COMMUNICATION_CLAIM", "OFFER_JOB", "REQUEST_SERVICE",
-    "SPREAD_RUMOR", "CALL_FOR_HELP", "CHANGE_ROLE", "WARN", "TRADE",
-    "REPORT", "THEFT", "COMBAT", "FATE_EVENT",
+    "NPC_SPOKE",
+    "NPC_MOVED",
+    "NPC_PROXIMITY_CLOSE",
+    "NPC_PROXIMITY_LEAVE",
+    "SOCIAL_ACTION",
+    "COMMUNICATION_CLAIM",
+    "OFFER_JOB",
+    "REQUEST_SERVICE",
+    "SPREAD_RUMOR",
+    "CALL_FOR_HELP",
+    "CHANGE_ROLE",
+    "WARN",
+    "TRADE",
+    "REPORT",
+    "THEFT",
+    "COMBAT",
+    "FATE_EVENT",
 )
 
 
@@ -154,9 +168,7 @@ class TavernGameplayHarness:
 
             _bus = get_event_bus()
             self._tap_events = [
-                _et for _et in
-                (getattr(EventType, _n, None) for _n in _TAP_EVENT_NAMES)
-                if _et is not None
+                _et for _et in (getattr(EventType, _n, None) for _n in _TAP_EVENT_NAMES) if _et is not None
             ]
             for _et in self._tap_events:
                 _bus.subscribe(_et, self.counters.on_event)
@@ -188,16 +200,13 @@ class TavernGameplayHarness:
         )
         self._init_avatar_body()
 
-
-
     def _init_avatar_body(self) -> None:
         """Аватар через production-фабрику avatar_service.load_state (§13.4:
         фабрика вместо конструктора-мечты; пишет канонический объект с
         каноническими дефолтами; ADR-WRITE-GUARD не задет — writing не нужен)."""
         _avatar = self.game_loop.avatar_service.load_state(_CAMPAIGN, _PLAYER)
         logger.info(
-            f"[GC00-SETUP] avatar loaded: id={_avatar.npc_id} "
-            f"hp={_avatar.body_state.get('current_hp', 'MISSING')}"
+            f"[GC00-SETUP] avatar loaded: id={_avatar.npc_id} hp={_avatar.body_state.get('current_hp', 'MISSING')}"
         )
         # Тестовый слой не мутирует NPCState (guard). Характер/дефолты
         # поставляет сама фабрика; специфичные профили — через штатные
@@ -299,9 +308,7 @@ class TavernGameplayHarness:
         # вторая ссылка, после switch указывающая на иной/устаревший инстанс
         # (STEP-2 Vacuum при живой паре trust=2.0). Читаем канонический
         # объект напрямую, fallback на вторую ссылку только для legacy-смоуков.
-        _store = getattr(
-            getattr(self.game_loop, "memory_manager", None), "_relationships", None
-        )
+        _store = getattr(getattr(self.game_loop, "memory_manager", None), "_relationships", None)
         if _store is None:
             _store = getattr(self.game_loop, "_rel_store", None)
         if _store is None:
@@ -328,8 +335,12 @@ class TavernGameplayHarness:
         _flat = {
             k: _n[k]
             for k in (
-                "energy", "fatigue", "hydration", "nutrition",
-                "sleep_pressure", "coupling_mode",
+                "energy",
+                "fatigue",
+                "hydration",
+                "nutrition",
+                "sleep_pressure",
+                "coupling_mode",
             )
             if k in _n
         }
@@ -378,16 +389,12 @@ class TavernGameplayHarness:
                 _live_loc = self._last_tick_scene.get("location_id")
                 if isinstance(_live_loc, str) and _live_loc:
                     _loc = _live_loc
-            _scene = self.game_loop.scene_manager.get_scene_state(
-                _CAMPAIGN, _loc
-            )
+            _scene = self.game_loop.scene_manager.get_scene_state(_CAMPAIGN, _loc)
             if not isinstance(_scene, dict):
                 return False
             from app.services.world.world_object_store import WorldObjectStore
 
-            WorldObjectStore.spawn(
-                _scene, object_id, archetype, self.location, position, state=state
-            )
+            WorldObjectStore.spawn(_scene, object_id, archetype, self.location, position, state=state)
             self.game_loop.scene_manager.save_scene_state(_CAMPAIGN, _scene)
             return True
         except Exception as e:

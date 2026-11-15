@@ -34,17 +34,13 @@ class PhysicsValidator:
         # === МАГИЯ И СВЕРХЪЕСТЕСТВЕННОЕ ===
         (
             r"лета|полет|полёт|левитир|взлета|парю|парю в воздухе",
-            lambda char, _: any(
-                s.lower() in ["полёт", "fly", "левитация"]
-                for s in char.get("spells", [])
-            ),
+            lambda char, _: any(s.lower() in ["полёт", "fly", "левитация"] for s in char.get("spells", [])),
             "Нельзя летать без заклинания «Полёт» (или аналогичного)",
         ),
         (
             r"телепорт|перемещ|мгновенно перемещ|появляюсь в",
             lambda char, _: any(
-                s.lower()
-                in ["телепортация", "misty step", "dimension door", "перемещение"]
+                s.lower() in ["телепортация", "misty step", "dimension door", "перемещение"]
                 for s in char.get("spells", [])
             ),
             "Телепортация требует заклинания (Misty Step / Dimension Door / Teleport)",
@@ -52,8 +48,7 @@ class PhysicsValidator:
         (
             r"вижу сквозь стен|сквозь стену|рентген|через стены",
             lambda char, _: any(
-                ab.lower()
-                in ["темновидение", "darkvision", "истинное зрение", "true sight"]
+                ab.lower() in ["темновидение", "darkvision", "истинное зрение", "true sight"]
                 for ab in char.get("abilities", [])
             ),
             "Нельзя видеть сквозь стены без способности Темновидение или Истинное зрение",
@@ -84,26 +79,18 @@ class PhysicsValidator:
         ),
         (
             r"поднимаю 500 кг|поднимаю полтонны|несу тонну",
-            lambda char, _: (
-                char.get("strength", 10) * 15 >= 1102
-            ),  # 500 кг ≈ 1102 фунта
+            lambda char, _: char.get("strength", 10) * 15 >= 1102,  # 500 кг ≈ 1102 фунта
             "Невозможно поднять 500 кг без сверхъестественной силы",
         ),
         # === ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА (можно расширять) ===
         (
             r"дыхание под водой|дышу под водой без заклинания",
-            lambda char, _: any(
-                s.lower() in ["water breathing", "дыхание под водой"]
-                for s in char.get("spells", [])
-            ),
+            lambda char, _: any(s.lower() in ["water breathing", "дыхание под водой"] for s in char.get("spells", [])),
             "Дыхание под водой требует заклинания",
         ),
         (
             r"становлюсь невидимым|исчезаю|становлюсь невидим",
-            lambda char, _: any(
-                s.lower() in ["невидимость", "invisibility"]
-                for s in char.get("spells", [])
-            ),
+            lambda char, _: any(s.lower() in ["невидимость", "invisibility"] for s in char.get("spells", [])),
             "Невидимость требует заклинания",
         ),
     ]
@@ -142,12 +129,8 @@ class PhysicsValidator:
 
                 if not can_bypass:
                     alt = self._suggest_alternative(pattern, character)
-                    logger.debug(
-                        f"PHYSICS VIOLATION: {explanation} | action: {action[:60]}..."
-                    )
-                    return ValidationResult(
-                        valid=False, reason=explanation, alternative=alt
-                    )
+                    logger.debug(f"PHYSICS VIOLATION: {explanation} | action: {action[:60]}...")
+                    return ValidationResult(valid=False, reason=explanation, alternative=alt)
 
         # Всё в порядке
         return ValidationResult(valid=True)

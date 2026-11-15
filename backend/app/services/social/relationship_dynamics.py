@@ -30,8 +30,12 @@ from app.services.social.relationship_state_store import RelationshipStateStore
 # default OFF = полный no-op, байт-идентичный baseline.
 def relationship_dynamics_enabled() -> bool:
     return os.environ.get("RELATIONSHIP_DYNAMICS_ENABLED", "").strip().lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
+
 
 # Квант вычисления — ТЕХНИЧЕСКАЯ дискретизация (вердикт Мастера G/H):
 # не онтология («физиология меняется раз в час» — запрещённая интерпретация);
@@ -55,10 +59,9 @@ def _ensure_dict(parent: Dict[str, Any], key: str) -> Dict[str, Any]:
         value = {}
         parent[key] = value
     if not isinstance(value, dict):
-        raise ContractValidationError(
-            f"relationship_dynamics: '{key}' в scene_state не dict ({type(value).__name__})"
-        )
+        raise ContractValidationError(f"relationship_dynamics: '{key}' в scene_state не dict ({type(value).__name__})")
     return value
+
 
 def need_dynamics_mark(scene_state: Dict[str, Any]) -> Dict[str, Any]:
     """Доступ к книге контура: ленивое создание, возвращает dict (mutable).
@@ -100,8 +103,7 @@ def compute_time_driven_deltas(
     if _root is not None:
         if not isinstance(_root, dict):
             raise ContractValidationError(
-                f"relationship_dynamics: scene_state['relationship_state'] "
-                f"не dict ({type(_root).__name__})"
+                f"relationship_dynamics: scene_state['relationship_state'] не dict ({type(_root).__name__})"
             )
         _book = _root.get(RELATIONSHIP_DYNAMICS_STATE_KEY)
         if _book is not None:
@@ -145,9 +147,7 @@ def compute_time_driven_deltas(
             df_eff = new_f - level.frustration
             if dp_eff == 0.0 and df_eff == 0.0:
                 continue
-            cause = uuid.uuid5(
-                uuid.NAMESPACE_URL, f"rel_dynamics:{tick_number}:{npc_id}:{need_id}"
-            )
+            cause = uuid.uuid5(uuid.NAMESPACE_URL, f"rel_dynamics:{tick_number}:{npc_id}:{need_id}")
             deltas.append(
                 StateDeltas(
                     npc_id=npc_id,
@@ -165,9 +165,7 @@ def compute_time_driven_deltas(
     return deltas
 
 
-def wake_transition_deltas(
-    npc: Dict[str, Any], tick: int
-) -> List[StateDeltas]:
+def wake_transition_deltas(npc: Dict[str, Any], tick: int) -> List[StateDeltas]:
     """Механизм 3 (вердикт Мастера G/H): SLEEP→WAKE = граница личного цикла.
 
     В G/H — no-op: формы «что сохраняется через сон / что сбрасывается
@@ -195,7 +193,10 @@ def satisfaction_of(p_i: float, target_i: float) -> float:
 
 
 def relief_of(
-    relief_capacity: float, quality: float, substitutability: float, p_i: float,
+    relief_capacity: float,
+    quality: float,
+    substitutability: float,
+    p_i: float,
     own_source: bool = True,
 ) -> float:
     """Ф3/Ф4 (раунд 8): relief = relief_capacity × quality × S с ПОТОЛКОМ p_i.

@@ -8,6 +8,7 @@ Local LLM inference using llama.cpp server or CLI
   Модель видит "думать уже закончил" и сразу даёт ответ на русском.
   Это официальный способ отключения thinking в Qwen3 через llama.cpp.
 """
+
 from __future__ import annotations
 
 import json
@@ -206,15 +207,11 @@ class LlamaCppProvider(StreamingLlmProvider):
             try:
                 # S97 FIX: Обход прокси (Throne), который рвёт соединения к localhost
                 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                with _opener.open(
-                    req, timeout=settings.llama_cpp_timeout_sec
-                ) as resp:
+                with _opener.open(req, timeout=settings.llama_cpp_timeout_sec) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
                     return cast(
                         str,
-                        body.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", ""),
+                        body.get("choices", [{}])[0].get("message", {}).get("content", ""),
                     )
             except (
                 urllib.error.URLError,
@@ -230,9 +227,7 @@ class LlamaCppProvider(StreamingLlmProvider):
                     )
                     time.sleep(delay)
                 else:
-                    logger.error(
-                        f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
-                    )
+                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
 
         raise RuntimeError(
             f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
@@ -295,9 +290,7 @@ class LlamaCppProvider(StreamingLlmProvider):
         for attempt in range(max_retries):
             try:
                 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                with _opener.open(
-                    req, timeout=settings.llama_cpp_timeout_sec
-                ) as resp:
+                with _opener.open(req, timeout=settings.llama_cpp_timeout_sec) as resp:
                     body = json.loads(resp.read().decode("utf-8"))
                     return cast(str, body.get("content", ""))
             except (
@@ -373,9 +366,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             if len(prompt) > 8000:
                 import tempfile
 
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".txt", delete=False, encoding="utf-8"
-                ) as f:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
                     f.write(prompt)
                     tmp_path = f.name
                 cmd.extend(["-f", tmp_path])
@@ -404,9 +395,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             errors="replace",
         )
         try:
-            stdout, stderr = self._cli_process.communicate(
-                timeout=settings.llama_cpp_timeout_sec
-            )
+            stdout, stderr = self._cli_process.communicate(timeout=settings.llama_cpp_timeout_sec)
             # C-13 FIX: Проверяем код возврата. Если процесс упал или stdout пуст — raise.
             if self._cli_process.returncode != 0 or not stdout.strip():
                 raise RuntimeError(
@@ -415,9 +404,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             return stdout.strip()
         except subprocess.TimeoutExpired:
             self._kill_cli_process()
-            raise RuntimeError(
-                f"llama-cli завис и был убит (таймаут {settings.llama_cpp_timeout_sec}с)"
-            )
+            raise RuntimeError(f"llama-cli завис и был убит (таймаут {settings.llama_cpp_timeout_sec}с)")
 
     def _kill_cli_process(self) -> None:
         """Жёсткое убийство CLI-процесса — освобождает VRAM."""
@@ -492,9 +479,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             try:
                 # S97 FIX: Обход прокси (Throne)
                 _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                with _opener.open(
-                    req, timeout=settings.llama_cpp_timeout_sec
-                ) as resp:
+                with _opener.open(req, timeout=settings.llama_cpp_timeout_sec) as resp:
                     while True:
                         line = resp.readline()
                         if not line:
@@ -540,9 +525,7 @@ class LlamaCppProvider(StreamingLlmProvider):
                     )
                     time.sleep(delay)
                 else:
-                    logger.error(
-                        f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}"
-                    )
+                    logger.error(f"[LLM_RETRY] all {max_retries} attempts failed. Last error: {type(e).__name__}: {e}")
                     raise RuntimeError(
                         f"Не удалось подключиться к llama-server ({self.server_url}) после {max_retries} попыток. "
                         f"Последняя ошибка: {type(last_error).__name__}: {last_error}"
@@ -596,9 +579,7 @@ class LlamaCppProvider(StreamingLlmProvider):
         try:
             # S97 FIX: Обход прокси (Throne)
             _opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-            with _opener.open(
-                req, timeout=settings.llama_cpp_timeout_sec
-            ) as resp:
+            with _opener.open(req, timeout=settings.llama_cpp_timeout_sec) as resp:
                 while True:
                     line = resp.readline()
                     if not line:
@@ -672,9 +653,7 @@ class LlamaCppProvider(StreamingLlmProvider):
         logger.debug("[LLAMA_DEBUG] _check_server: all endpoints failed, returning False")
         return False
 
-    def check_server_with_retry(
-        self, max_retries: int = 5, interval_sec: int = 2
-    ) -> tuple[bool, str]:
+    def check_server_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> tuple[bool, str]:
         import time
 
         for attempt in range(1, max_retries + 1):
@@ -687,9 +666,7 @@ class LlamaCppProvider(StreamingLlmProvider):
             f"LLM server недоступен после {max_retries} попыток: {self.server_url}",
         )
 
-    def is_available_with_retry(
-        self, max_retries: int = 5, interval_sec: int = 2
-    ) -> bool:
+    def is_available_with_retry(self, max_retries: int = 5, interval_sec: int = 2) -> bool:
         # CLI-режим: проверяем наличие файлов (без retry — нет сети)
         if not self._use_server:
             return self.is_available()

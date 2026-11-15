@@ -17,6 +17,7 @@ path: /project/backend/app/services/game_loop/idle_event_projection.py
 Основные сущности: idle_events_projection_enabled, PROJECTION_EVENT_TYPES,
     EXCLUDED_EVENT_TYPES, IdleEventTap, project_idle_events
 """
+
 from __future__ import annotations
 
 import logging
@@ -51,9 +52,7 @@ _DEFAULT_ENABLED = "1"
 
 def idle_events_projection_enabled() -> bool:
     """Env-флаг IDLE_EVENTS_PROJECTION_ENABLED (ON default — вердикт В4, коммит D; OFF только явным env)."""
-    return os.environ.get(
-        "IDLE_EVENTS_PROJECTION_ENABLED", _DEFAULT_ENABLED
-    ).strip().lower() in ("1", "true", "yes")
+    return os.environ.get("IDLE_EVENTS_PROJECTION_ENABLED", _DEFAULT_ENABLED).strip().lower() in ("1", "true", "yes")
 
 
 # ── v1-словарь: экстракторы наблюдаемой сути payload ───────────────────
@@ -232,9 +231,7 @@ def _player_perceives(event: EventDTO, sq: SpatialQueryService) -> bool:
         return False
 
 
-def project_idle_events(
-    captured: List[EventDTO], scene_state: Dict[str, Any]
-) -> List[IdleEventProjection]:
+def project_idle_events(captured: List[EventDTO], scene_state: Dict[str, Any]) -> List[IdleEventProjection]:
     """Pure-проекция захваченных событий в наблюдаемые {cause, target, value}.
 
     Read-only: входы не мутируются (EventDTO frozen; scene_state только
@@ -261,9 +258,7 @@ def project_idle_events(
         except ValueError:
             # Окно подписано только на словарь; чужой тип = контрактный
             # разрыв — деградация наблюдателя (лог + пропуск), не крах тика.
-            logger.error(
-                f"[IDLE_PROJECTION] неизвестный тип в окне: {_event.type!r}"
-            )
+            logger.error(f"[IDLE_PROJECTION] неизвестный тип в окне: {_event.type!r}")
             continue
         _extractor = PROJECTION_EVENT_TYPES.get(_event_key)
         if _extractor is None:
@@ -275,7 +270,5 @@ def project_idle_events(
             continue
         if not _player_perceives(_event, _sq):
             continue
-        _projections.append(
-            IdleEventProjection(cause=_event.type, target=_event.source, value=_value)
-        )
+        _projections.append(IdleEventProjection(cause=_event.type, target=_event.source, value=_value))
     return _projections

@@ -20,6 +20,7 @@ path: backend/tests/sandbox/SUPERBOX/scenarios/bm_cell_a_repeat.py
     python backend/tests/sandbox/SUPERBOX/scenarios/bm_cell_a_repeat.py
     python backend/tests/sandbox/SUPERBOX/scenarios/bm_cell_a_repeat.py --output reports/cell_a_repeat.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -51,6 +52,7 @@ EXPECTED_MASK_TICKS = 0  # клетка A — без маски (fear=0, trust=-
 
 # ─── Log Capture Handler ────────────────────────────────────────────────────
 
+
 class LogCaptureHandler(logging.Handler):
     """Перехватывает логи для последующего анализа.
 
@@ -71,14 +73,16 @@ class LogCaptureHandler(logging.Handler):
         msg_lower = str(msg).lower()
         for pat in self._patterns:
             if pat in msg_lower:
-                self.records.append({
-                    "timestamp": datetime.datetime.fromtimestamp(
-                        record.created, tz=datetime.timezone.utc
-                    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "level": record.levelname,
-                    "logger": record.name,
-                    "message": str(msg),
-                })
+                self.records.append(
+                    {
+                        "timestamp": datetime.datetime.fromtimestamp(record.created, tz=datetime.timezone.utc).strftime(
+                            "%Y-%m-%dT%H:%M:%S.%fZ"
+                        ),
+                        "level": record.levelname,
+                        "logger": record.name,
+                        "message": str(msg),
+                    }
+                )
                 break
 
 
@@ -128,6 +132,7 @@ def detach_log_capture(handler: LogCaptureHandler, installed: List[Any]) -> None
 
 # ─── Утилиты ────────────────────────────────────────────────────────────────
 
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
@@ -136,7 +141,10 @@ def git_head() -> str:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, check=True, cwd=_BACKEND.parent,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=_BACKEND.parent,
         )
         return r.stdout.strip()
     except Exception:
@@ -147,7 +155,10 @@ def git_branch() -> str:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, check=True, cwd=_BACKEND.parent,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=_BACKEND.parent,
         )
         return r.stdout.strip()
     except Exception:
@@ -164,6 +175,7 @@ def check_result(check_id: str, passed: bool, details: str = "") -> Dict[str, An
 
 # ─── Pre-flight checks ──────────────────────────────────────────────────────
 
+
 def pre_flight_checks() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Проверки до запуска: файлы существуют, хеши зафиксированы."""
     checks: List[Dict[str, Any]] = []
@@ -171,12 +183,15 @@ def pre_flight_checks() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 
     # 1. spatial_registry.json существует (через find_artifact)
     from app.services.spatial.spatial_registry import SpatialRegistry
+
     artifact_path = SpatialRegistry.find_artifact(CAMPAIGN_ID)
-    checks.append(check_result(
-        "spatial_registry_artifact_found",
-        artifact_path is not None,
-        f"path={artifact_path}" if artifact_path else "find_artifact returned None",
-    ))
+    checks.append(
+        check_result(
+            "spatial_registry_artifact_found",
+            artifact_path is not None,
+            f"path={artifact_path}" if artifact_path else "find_artifact returned None",
+        )
+    )
     if artifact_path:
         context["spatial_registry_path"] = str(artifact_path)
         context["spatial_registry_sha256"] = sha256_file(artifact_path)
@@ -184,11 +199,13 @@ def pre_flight_checks() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 
     # 2. preset golden_fear_f0.yaml существует + sha256
     preset_path = _BACKEND.parent / CELL_A_PRESET
-    checks.append(check_result(
-        "preset_exists",
-        preset_path.exists(),
-        f"path={preset_path}" if preset_path.exists() else "preset file not found",
-    ))
+    checks.append(
+        check_result(
+            "preset_exists",
+            preset_path.exists(),
+            f"path={preset_path}" if preset_path.exists() else "preset file not found",
+        )
+    )
     if preset_path.exists():
         context["preset_path"] = str(preset_path)
         context["preset_sha256"] = sha256_file(preset_path)
@@ -197,19 +214,23 @@ def pre_flight_checks() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     # 3. git HEAD + branch
     context["git_head"] = git_head()
     context["git_branch"] = git_branch()
-    checks.append(check_result(
-        "git_head_available",
-        context["git_head"] != "unavailable",
-        f"HEAD={context['git_head'][:12]}... branch={context['git_branch']}",
-    ))
+    checks.append(
+        check_result(
+            "git_head_available",
+            context["git_head"] != "unavailable",
+            f"HEAD={context['git_head'][:12]}... branch={context['git_branch']}",
+        )
+    )
 
     # 4. donor file (behavior_mask_closure_test.py) sha256
     donor_path = _HERE / "behavior_mask_closure_test.py"
-    checks.append(check_result(
-        "donor_exists",
-        donor_path.exists(),
-        f"path={donor_path}" if donor_path.exists() else "donor file not found",
-    ))
+    checks.append(
+        check_result(
+            "donor_exists",
+            donor_path.exists(),
+            f"path={donor_path}" if donor_path.exists() else "donor file not found",
+        )
+    )
     if donor_path.exists():
         context["donor_sha256"] = sha256_file(donor_path)
         context["donor_bytes"] = donor_path.stat().st_size
@@ -218,6 +239,7 @@ def pre_flight_checks() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 
 
 # ─── Runtime checks (до прогона) ────────────────────────────────────────────
+
 
 def runtime_checks_registry() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Проверки реестра: find_artifact, get_or_load, chunks.
@@ -238,44 +260,54 @@ def runtime_checks_registry() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 
     # 1. find_artifact возвращает путь
     artifact_path = SpatialRegistry.find_artifact(CAMPAIGN_ID)
-    checks.append(check_result(
-        "find_artifact_returns_path",
-        artifact_path is not None,
-        f"path={artifact_path}" if artifact_path else "None",
-    ))
+    checks.append(
+        check_result(
+            "find_artifact_returns_path",
+            artifact_path is not None,
+            f"path={artifact_path}" if artifact_path else "None",
+        )
+    )
 
     # 2. get_or_load возвращает registry (cold load → лог перехвачен)
     registry = SpatialRegistry.get_or_load(CAMPAIGN_ID) if artifact_path else None
-    checks.append(check_result(
-        "get_or_load_returns_registry",
-        registry is not None,
-        "registry loaded" if registry else "None",
-    ))
+    checks.append(
+        check_result(
+            "get_or_load_returns_registry",
+            registry is not None,
+            "registry loaded" if registry else "None",
+        )
+    )
 
     if registry:
         # 3. chunks count + names
         chunks = registry.get_chunks()
         chunk_ids = {c.location_id for c in chunks}
-        checks.append(check_result(
-            "chunks_count_is_3",
-            len(chunks) == 3,
-            f"count={len(chunks)} chunks={sorted(chunk_ids)}",
-        ))
-        checks.append(check_result(
-            "chunks_match_expected",
-            chunk_ids == EXPECTED_CHUNKS,
-            f"expected={sorted(EXPECTED_CHUNKS)} actual={sorted(chunk_ids)}",
-        ))
+        checks.append(
+            check_result(
+                "chunks_count_is_3",
+                len(chunks) == 3,
+                f"count={len(chunks)} chunks={sorted(chunk_ids)}",
+            )
+        )
+        checks.append(
+            check_result(
+                "chunks_match_expected",
+                chunk_ids == EXPECTED_CHUNKS,
+                f"expected={sorted(EXPECTED_CHUNKS)} actual={sorted(chunk_ids)}",
+            )
+        )
         context["chunks"] = sorted(chunk_ids)
         context["chunks_count"] = len(chunks)
 
         # 4. get_all_location_ids (используется в game_loop для глобального тика)
         all_locs = registry.get_all_location_ids() if hasattr(registry, "get_all_location_ids") else None
-        checks.append(check_result(
-            "get_all_location_ids_available",
-            all_locs is not None and len(all_locs) > 0,
-            f"locations={all_locs}" if all_locs else "method missing or empty",
-        ))
+        checks.append(
+            check_result(
+                "get_all_location_ids_available",
+                all_locs is not None and len(all_locs) > 0,
+                f"locations={all_locs}" if all_locs else "method missing or empty",
+            )
+        )
         if all_locs:
             context["all_location_ids"] = sorted(all_locs)
 
@@ -289,6 +321,7 @@ def runtime_checks_registry() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 
 # ─── Run cell A ─────────────────────────────────────────────────────────────
 
+
 def run_cell_a(
     log_handler: LogCaptureHandler,
 ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Optional[str]]:
@@ -298,6 +331,7 @@ def run_cell_a(
     """
     try:
         import behavior_mask_closure_test as _donor
+
         rec, fin = _donor._run_leg(CELL_A_RUN_ID, CELL_A_PRESET, True)
         return rec, fin, None
     except Exception as e:
@@ -305,6 +339,7 @@ def run_cell_a(
 
 
 # ─── Post-run checks ────────────────────────────────────────────────────────
+
 
 def post_run_checks(
     rec: Optional[Dict[str, Any]],
@@ -322,11 +357,13 @@ def post_run_checks(
     # intent_seq в rec от _run_leg нет (только intent_final/scores_per_tick) —
     # сверяем длину трека через scores_per_tick (метрики донора _cell_metrics)
     scores_per_tick = rec.get("scores_per_tick") or []
-    checks.append(check_result(
-        "scores_per_tick_length",
-        len(scores_per_tick) >= 1,
-        f"length={len(scores_per_tick)} (expected >= 1)",
-    ))
+    checks.append(
+        check_result(
+            "scores_per_tick_length",
+            len(scores_per_tick) >= 1,
+            f"length={len(scores_per_tick)} (expected >= 1)",
+        )
+    )
     context["scores_per_tick_length"] = len(scores_per_tick)
 
     # 2. mask_ticks == 0 (клетка A — без маски)
@@ -334,32 +371,37 @@ def post_run_checks(
     mask_ticks_present = rec.get("mask_ticks_present")
     if mask_ticks_present is None and mask_per_tick:
         mask_ticks_present = sum(1 for m in mask_per_tick if m not in (None, "none"))
-    checks.append(check_result(
-        "mask_ticks_is_zero",
-        mask_ticks_present == EXPECTED_MASK_TICKS,
-        f"mask_ticks_present={mask_ticks_present} (expected {EXPECTED_MASK_TICKS})",
-    ))
+    checks.append(
+        check_result(
+            "mask_ticks_is_zero",
+            mask_ticks_present == EXPECTED_MASK_TICKS,
+            f"mask_ticks_present={mask_ticks_present} (expected {EXPECTED_MASK_TICKS})",
+        )
+    )
     context["mask_ticks_present"] = mask_ticks_present
     context["mask_per_tick_length"] = len(mask_per_tick)
 
     # 3. intent_final захвачен
     intent_final = rec.get("intent_final")
-    checks.append(check_result(
-        "intent_final_captured",
-        intent_final is not None,
-        f"intent_final={intent_final}",
-    ))
+    checks.append(
+        check_result(
+            "intent_final_captured",
+            intent_final is not None,
+            f"intent_final={intent_final}",
+        )
+    )
     context["intent_final"] = intent_final
 
     # 4. captured logs: [SPATIAL_REGISTRY] Loaded
     registry_logs = [r for r in log_handler.records if "[SPATIAL_REGISTRY]" in r["message"]]
-    checks.append(check_result(
-        "spatial_registry_loaded_in_runtime",
-        len(registry_logs) > 0,
-        f"logs_count={len(registry_logs)}" + (
-            f" first={registry_logs[0]['message'][:80]}" if registry_logs else ""
-        ),
-    ))
+    checks.append(
+        check_result(
+            "spatial_registry_loaded_in_runtime",
+            len(registry_logs) > 0,
+            f"logs_count={len(registry_logs)}"
+            + (f" first={registry_logs[0]['message'][:80]}" if registry_logs else ""),
+        )
+    )
     context["spatial_registry_logs"] = registry_logs[:3]  # первые 3 для отчёта
 
     # 5. captured logs: [SPATIAL_ORACLE] (любое сообщение)
@@ -367,18 +409,24 @@ def post_run_checks(
     # Spatial Oracle может не срабатывать, если player_world_x/y не сохранены.
     # Это не FAIL — Oracle активен только при наличии координат. Логируем как info.
     context["spatial_oracle_logs"] = oracle_logs[:3]
-    checks.append(check_result(
-        "spatial_oracle_logged",
-        len(oracle_logs) > 0,
-        f"logs_count={len(oracle_logs)}" + (
-            f" first={oracle_logs[0]['message'][:80]}" if oracle_logs else " (no Oracle corrections — may be expected if no player coords)"
-        ),
-    ))
+    checks.append(
+        check_result(
+            "spatial_oracle_logged",
+            len(oracle_logs) > 0,
+            f"logs_count={len(oracle_logs)}"
+            + (
+                f" first={oracle_logs[0]['message'][:80]}"
+                if oracle_logs
+                else " (no Oracle corrections — may be expected if no player coords)"
+            ),
+        )
+    )
 
     return checks, context
 
 
 # ─── Главный runner ─────────────────────────────────────────────────────────
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(
@@ -428,11 +476,13 @@ def main() -> int:
     # 2. Runtime checks (registry) — log handler ДО registry checks,
     # чтобы первая загрузка реестра перехватилась (иначе cache hit не логирует)
     print("\n[2/4] runtime checks (registry)...", file=sys.stderr)
-    log_handler, installed_loggers = attach_log_capture([
-        "[SPATIAL_REGISTRY]",
-        "[SPATIAL_ORACLE",
-        "[IDLE_TICK]",
-    ])
+    log_handler, installed_loggers = attach_log_capture(
+        [
+            "[SPATIAL_REGISTRY]",
+            "[SPATIAL_ORACLE",
+            "[IDLE_TICK]",
+        ]
+    )
     try:
         rt_checks, rt_context = runtime_checks_registry()
     finally:
@@ -478,8 +528,7 @@ def main() -> int:
     # Если только он FAIL — overall = PASS_WITH_NOTE
     critical_failures = [c["id"] for c in all_checks if c["status"] == "FAIL" and c["id"] != "spatial_oracle_logged"]
     oracle_only_fail = (
-        any(c["id"] == "spatial_oracle_logged" and c["status"] == "FAIL" for c in all_checks)
-        and not critical_failures
+        any(c["id"] == "spatial_oracle_logged" and c["status"] == "FAIL" for c in all_checks) and not critical_failures
     )
 
     if not critical_failures and not oracle_only_fail:

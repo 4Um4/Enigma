@@ -55,7 +55,9 @@ _KEY_CONSTRAINT_ID: Final[str] = "constraint_id"
 _KEY_NECESSITY: Final[str] = "necessity"
 _KEY_VIOLATION_COST: Final[str] = "violation_cost"
 _KEY_NEGOTIABILITY: Final[str] = "negotiability"
-_KEY_HC_SUBSTITUTABILITY: Final[str] = "substitutability"  # HardConstraint (значение совпадает со слотом — ключ отдельный)
+_KEY_HC_SUBSTITUTABILITY: Final[str] = (
+    "substitutability"  # HardConstraint (значение совпадает со слотом — ключ отдельный)
+)
 _KEY_SCOPE: Final[str] = "scope"
 _KEY_NEEDS: Final[str] = "needs"
 _KEY_PREFERENCES: Final[str] = "preferences"
@@ -203,9 +205,7 @@ class NeedLevel:
 
     def __post_init__(self) -> None:
         if self.need_id not in RE_NEED_SLOTS:
-            raise ContractValidationError(
-                f"NeedLevel.need_id '{self.need_id}' вне закрытого реестра M1a"
-            )
+            raise ContractValidationError(f"NeedLevel.need_id '{self.need_id}' вне закрытого реестра M1a")
         _require_unit(self.current_intensity, "current_intensity")
         _require_unit(self.satiation, "satiation")
         _require_unit(self.frustration, "frustration")

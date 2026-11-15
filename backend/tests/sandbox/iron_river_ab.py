@@ -11,6 +11,7 @@ path: /project/backend/tests/sandbox/iron_river_ab.py
 Основные сущности: _RUNNER (код подпроцесса), main
 Запуск: cd backend; python tests/sandbox/iron_river_ab.py
 """
+
 import os
 import subprocess
 import sys
@@ -73,6 +74,7 @@ def canon(o):
 print("HASH " + hashlib.sha256(json.dumps(canon(scene), sort_keys=True, default=str).encode()).hexdigest())
 """
 
+
 def main() -> int:
     hashes = []
     for i in range(2):
@@ -91,7 +93,10 @@ def main() -> int:
         )
         r = subprocess.run(
             [sys.executable, "-c", _RUNNER],
-            capture_output=True, text=True, cwd=".", env=_env,
+            capture_output=True,
+            text=True,
+            cwd=".",
+            env=_env,
         )
         # WIN-урок (48 утечек): подпроцессный atexit+rmtree не справляется
         # с открытыми SQLite-хэндлами на Windows — родитель дочищает
@@ -99,23 +104,22 @@ def main() -> int:
         import glob
         import shutil as _sh
 
-        for _p in glob.glob(
-            os.path.join(os.environ.get("TEMP", "."), "ab_f4_data_*")
-        ):
+        for _p in glob.glob(os.path.join(os.environ.get("TEMP", "."), "ab_f4_data_*")):
             _sh.rmtree(_p, ignore_errors=True)
         line = next((l for l in r.stdout.splitlines() if l.startswith("HASH ")), "")
         if not line:
-            print(f"RUN{i+1}: ERR")
+            print(f"RUN{i + 1}: ERR")
             print("STDERR tail:", r.stderr.strip().splitlines()[-3:])
             hashes.append(None)
         else:
             hashes.append(line[5:])
-            print(f"RUN{i+1}: {line[5:]}")
+            print(f"RUN{i + 1}: {line[5:]}")
     if hashes[0] and hashes[0] == hashes[1]:
         print("VERDICT: MATCH")
         return 0
     print("VERDICT: MISMATCH")
     return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

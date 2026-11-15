@@ -14,14 +14,17 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(order=True)
 class QueuedDialogue:
     """Задача на LLM-генерацию реплики. Сортируется по priority (desc)."""
-    priority: int                          # 0-15, выше = важнее
-    enqueued_at: float                     # timestamp
+
+    priority: int  # 0-15, выше = важнее
+    enqueued_at: float  # timestamp
     task_type: str = field(compare=False)  # canonical, eavesdrop, culmination, dm_response, ...
-    payload: dict = field(compare=False)   # данные для LLM-вызова
+    payload: dict = field(compare=False)  # данные для LLM-вызова
     task_id: str = field(compare=False)
+
 
 class DialogueQueue:
     """Единая очередь LLM-вызовов с приоритетами.
@@ -39,7 +42,7 @@ class DialogueQueue:
     """
 
     MAX_RATE_PER_MINUTE = 20  # 20 LLM-вызовов в минуту максимум
-    COOLDOWN_PER_NPC_SEC = 30 # Один NPC говорит раз в 30 сек
+    COOLDOWN_PER_NPC_SEC = 30  # Один NPC говорит раз в 30 сек
     # ENIGMA-ARCH-027: Базовый эксплуатационный лимит размера очереди.
     # В будущем выносится в CalibrationProfile.
     MAX_PENDING_TASKS = 20
@@ -56,9 +59,7 @@ class DialogueQueue:
         # ADR-O-399: монотонный ordering-counter для детерминированных task_id
         self._dlg_seq: int = 0
         if not (0.0 < backpressure_ratio <= 1.0):
-            raise ValueError(
-                f"backpressure_ratio must be in (0, 1], got {backpressure_ratio}"
-            )
+            raise ValueError(f"backpressure_ratio must be in (0, 1], got {backpressure_ratio}")
         self._backpressure_ratio = backpressure_ratio
 
     def enqueue(self, task_type: str, payload: dict, priority: int, game_time_seconds: float) -> str:
@@ -84,7 +85,7 @@ class DialogueQueue:
             task_id=task_id,
         )
 
-        is_canonical = (task_type == "canonical")
+        is_canonical = task_type == "canonical"
         current_size = len(self._heap)
 
         # BUG-05 backpressure (мягкий порог, аудит релиза): при заполнении
@@ -131,9 +132,7 @@ class DialogueQueue:
                 )
 
         heapq.heappush(self._heap, task)
-        logger.info(
-            f"[DLG_QUEUE] enqueued task_id={task_id} type={task_type} priority={priority}"
-        )
+        logger.info(f"[DLG_QUEUE] enqueued task_id={task_id} type={task_type} priority={priority}")
         return task_id
 
     def dequeue_next(self, game_time_seconds: float) -> Optional[QueuedDialogue]:

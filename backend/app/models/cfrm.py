@@ -30,9 +30,7 @@ if TYPE_CHECKING:
 
 
 # ── Типы идентификаторов ─────────────────────────────────────────────
-ClusterID = (
-    str  # Совпадает с canonical_id макро-узла (напр. "tavern_silver_wolf:main_hall")
-)
+ClusterID = str  # Совпадает с canonical_id макро-узла (напр. "tavern_silver_wolf:main_hall")
 
 
 # ── Пространственная декомпозиция мира ───────────────────────────────
@@ -137,9 +135,7 @@ class EventBuffer:
 
     def drain(
         self,
-    ) -> Tuple[
-        List["FieldDisturbance"], List["FieldDisturbance"], List["FieldDisturbance"]
-    ]:
+    ) -> Tuple[List["FieldDisturbance"], List["FieldDisturbance"], List["FieldDisturbance"]]:
         """Извлекает ВСЕ возмущения и очищает буфер.
 
         Вызывается редюсером. После drain буфер пуст для следующего тика.
@@ -242,9 +238,7 @@ def classify_event(event_type: str) -> ClassificationResult:
             source=ClassificationSource.HARD_RULE,
         )
     # Неизвестные события: не убиваем, но даём сигнал downstream о сомнительности
-    return ClassificationResult(
-        axis=CausalAxis.COGNITIVE, confidence=0.2, source=ClassificationSource.FALLBACK
-    )
+    return ClassificationResult(axis=CausalAxis.COGNITIVE, confidence=0.2, source=ClassificationSource.FALLBACK)
 
 
 # ── Spatial Index: Вмещаемость кластеров ─────────────────────────────
@@ -320,9 +314,7 @@ class FieldDisturbance:
     magnitude: float
     vectors: Tuple[DisturbanceVector, ...]
     source_entity: str
-    semantic_seed: Optional[str] = (
-        None  # Геном нарратива: "удар", "кража", "крик". Для SOCIAL/COGNITIVE — обязателен.
-    )
+    semantic_seed: Optional[str] = None  # Геном нарратива: "удар", "кража", "крик". Для SOCIAL/COGNITIVE — обязателен.
 
 
 class ProjectionPolicy(Protocol):
@@ -347,9 +339,7 @@ class PerceivedPhenomenon:
     perceived_intensity: float
     perceived_archetype: str  # Реконструированный смысл: "драка", "чистки", "угроза"
     mutation_stage: int  # Стадия искажения: 0=глазами, 1=с чужих слов, 2=слух
-    distortion_nature: (
-        str  # Тип трансформации: "energy_loss", "dramatization", "paranoid_inference"
-    )
+    distortion_nature: str  # Тип трансформации: "energy_loss", "dramatization", "paranoid_inference"
     phenomenon_type: CausalAxis
 
 
@@ -370,6 +360,4 @@ class PsychologicalPressure:
     uncertainty: float = 0.0
     aggression_trigger: float = 0.0
     dominance_shift: float = 0.0
-    directive_obedience: float = (
-        0.0  # ADR-036: Давление подчинения речевому акту (физика власти)
-    )
+    directive_obedience: float = 0.0  # ADR-036: Давление подчинения речевому акту (физика власти)

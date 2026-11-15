@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 # Горячее/холодное разделение (CS15): тот же порог, что THREAT_GATE R5
 HOT_THREAT_GATE: float = 0.35
 # Глубина вреда: trust ≤ -12 (одна угроза -8 не обида; предательство -20+ — да)
-HARM_GATE: float = 0.3          # harm = clamp01((-trust)/40)
-VIABILITY_GATE: float = 0.1     # все способы мертвы → жертва молчит (CS16)
+HARM_GATE: float = 0.3  # harm = clamp01((-trust)/40)
+VIABILITY_GATE: float = 0.1  # все способы мертвы → жертва молчит (CS16)
 
 
 def _clamp01(v: float) -> float:
@@ -84,17 +84,12 @@ class GrievanceDesiredChangeProducer:
             # ── Способы: именованные факторы (контрольный вопрос Тай) ──
             w: Dict[str, float] = {}
             # прямое противостояние: контроль × вред × храбрость × тело
-            w["intimidate"] = round(
-                control_d * harm * (1.0 - fear_d) * (0.5 + _disp_intim)
-                * (0.5 + 0.5 * hp), 4
-            )
+            w["intimidate"] = round(control_d * harm * (1.0 - fear_d) * (0.5 + _disp_intim) * (0.5 + 0.5 * hp), 4)
             # публичное предупреждение: значимость × натура × вред
             w["warn"] = round(signif_d * _disp_warn * harm * 0.5, 4)
             # непрямой путь трусливых — репутационная месть: вред ×
             # бессилие контроля × социальная храбрость (не страх)
-            w["spread_rumor"] = round(
-                harm * (1.0 - control_d) * (1.0 - fear_d), 4
-            )
+            w["spread_rumor"] = round(harm * (1.0 - control_d) * (1.0 - fear_d), 4)
             # привлечение силы: страх × значимость × союзники × вред.
             # Контрфакт Тай §2 (S265-cf): БЕЗ союзников метод ЧЕСТНО
             # отсутствует (вес 0 = «позвать некого» — смена набора
@@ -102,9 +97,7 @@ class GrievanceDesiredChangeProducer:
             # кто услышит» делала метод вечно-живым). Производственный
             # эффект: при DEBT-R5-ALLIES (allies=0 в проводке) вес = 0 —
             # метод вернётся в набор только с проводкой союзников.
-            w["call_for_help"] = round(
-                fear_d * signif_d * allies_factor * harm, 4
-            )
+            w["call_for_help"] = round(fear_d * signif_d * allies_factor * harm, 4)
 
             _sum = sum(w.values())
             if _sum > 1.0:

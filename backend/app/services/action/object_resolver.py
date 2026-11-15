@@ -117,10 +117,7 @@ def resolve_object(
             best_match_id = obj_id
 
     if best_match_id and best_score > 0:
-        logger.debug(
-            f"[OBJECT_RESOLVER] '{action_text[:40]}' → {best_match_id!r} "
-            f"(score={best_score})"
-        )
+        logger.debug(f"[OBJECT_RESOLVER] '{action_text[:40]}' → {best_match_id!r} (score={best_score})")
         return best_match_id
 
     return None
@@ -147,11 +144,7 @@ def resolve_object_group(
     base_group = first_obj.get("instance_of", first_match)
 
     # Все инстансы группы
-    group = [
-        obj_id
-        for obj_id, obj_data in objects.items()
-        if obj_data.get("instance_of", obj_id) == base_group
-    ]
+    group = [obj_id for obj_id, obj_data in objects.items() if obj_data.get("instance_of", obj_id) == base_group]
 
     # Ищем явный номер в тексте: "№5", "#5", "номер 5", "пятый"
     number_match = re.search(r"[№#]\s*(\d+)|номер\s+(\d+)", action_text.lower())

@@ -4,6 +4,7 @@ path: /project/backend/app/services/economy/need_presentation_mapper.py
 Зависимости: app.models.economy, app.domain.presentation
 Основные сущности: NeedPresentationMapper
 """
+
 from __future__ import annotations
 
 from typing import Iterable, List, Optional, Tuple

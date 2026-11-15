@@ -61,9 +61,7 @@ class SceneEventEmitter:
         is_critical: bool = False,
     ) -> List[SceneEvent]:
         """Создаёт SceneEvent из результата физического действия."""
-        profile = self._TYPE_PROFILES.get(
-            action_type, self._TYPE_PROFILES["player_interacts"]
-        )
+        profile = self._TYPE_PROFILES.get(action_type, self._TYPE_PROFILES["player_interacts"])
 
         events = []
 

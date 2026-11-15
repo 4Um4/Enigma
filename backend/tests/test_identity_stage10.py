@@ -28,6 +28,7 @@ def _make_manager() -> MemoryManager:
     mm._dialogue = MagicMock()
     mm._identity_cache = {}
     import threading
+
     mm._identity_lock = threading.RLock()
     return mm
 

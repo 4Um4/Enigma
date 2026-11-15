@@ -11,6 +11,7 @@ Rule 125: Snapshot mutation после создания ЗАПРЕЩЕНА.
 Первый закон причинности ENIGMA:
   Одинаковый Snapshot + Одинаковый Event = Одинаковый Result
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -95,6 +96,7 @@ def build_snapshot(
     SpatialService — reference (не rebuild, ADR-065).
     npc_positions / active_traversals — deep copy (гарантия immutability).
     """
+
     # S268-АТАКА6: двухуровневая структурная копия вместо copy.deepcopy.
     # Изоляция: уровни 1-2 — НОВЫЕ dict'ы (мутации сцены a["k"]=... и
     # a["k"]["f"]=... не пробивают снапшот). Листья — общие ссылки:
@@ -108,10 +110,11 @@ def build_snapshot(
             return src
         out: Dict[str, Any] = {}
         for k, v in src.items():
-            out[k] = {kk: vv for kk, vv in v.items()} if isinstance(v, dict) else (
-                list(v) if isinstance(v, list) else v
+            out[k] = (
+                {kk: vv for kk, vv in v.items()} if isinstance(v, dict) else (list(v) if isinstance(v, list) else v)
             )
         return out
+
     _npc_pos = _two_level_copy(scene_state.get("npc_positions", {}))
     _active_travs = _two_level_copy(scene_state.get("active_traversals", {}))
     # S203.1 (Stage 2A): заморозка поведенческого владения (shadow-реестр).

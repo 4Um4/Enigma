@@ -12,6 +12,7 @@ Usage:
 Детерминизм: entries отсортированы по entry_id. Повторный запуск на одинаковом
 входе даёт идентичный отчёт.
 """
+
 from __future__ import annotations
 
 import json
@@ -96,4 +97,3 @@ def main(argv: List[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-

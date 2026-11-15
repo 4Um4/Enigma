@@ -7,6 +7,7 @@
 Зависимости: intent_compressor, phase_1_input, llm_server_manager
 Запуск: cd backend; python -B -m tests.sandbox.SUPERBOX.scenarios.ue52_probe; cd ..
 """
+
 from __future__ import annotations
 
 import asyncio

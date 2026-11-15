@@ -188,9 +188,7 @@ class SocialEngine:
                 decayed = intensity * (self.HOP_DECAY**hop)
 
                 # Искажение на основе доверия к источнику (carrier)
-                perceived = self._distort_intensity(
-                    decayed, rel.effective_trust, is_negative
-                )
+                perceived = self._distort_intensity(decayed, rel.effective_trust, is_negative)
 
                 if perceived < self.PROPAGATION_THRESHOLD:
                     continue
@@ -208,18 +206,10 @@ class SocialEngine:
                     distortion_applied=round(perceived - decayed, 4),
                 )
 
-                trust_delta = self._compute_trust_delta(
-                    perceived, is_negative, rel.effective_trust
-                )
-                stress_delta = (
-                    round(perceived * self.STRESS_DELTA_SCALE, 4)
-                    if is_negative
-                    else 0.0
-                )
+                trust_delta = self._compute_trust_delta(perceived, is_negative, rel.effective_trust)
+                stress_delta = round(perceived * self.STRESS_DELTA_SCALE, 4) if is_negative else 0.0
 
-                continuity_note = self._build_continuity_note(
-                    neighbor_id, rumor, carrier
-                )
+                continuity_note = self._build_continuity_note(neighbor_id, rumor, carrier)
 
                 results.append(
                     PropagationResult(
@@ -310,9 +300,7 @@ class SocialEngine:
             factor = 1.0 + (self.LOW_TRUST_AMPLIFY - 1.0) * ratio
         elif trust > self.TRUST_HIGH_THRESHOLD:
             # trust=0.6 → dampen=1.0, trust=1.0 → dampen=0.7
-            ratio = (trust - self.TRUST_HIGH_THRESHOLD) / (
-                1.0 - self.TRUST_HIGH_THRESHOLD
-            )
+            ratio = (trust - self.TRUST_HIGH_THRESHOLD) / (1.0 - self.TRUST_HIGH_THRESHOLD)
             factor = 1.0 - (1.0 - self.HIGH_TRUST_DAMPEN) * ratio
         else:
             factor = 1.0
@@ -384,10 +372,7 @@ class SocialEngine:
 
         hop_label = "" if rumor.hop == 1 else f" (через {rumor.hop} передач)"
 
-        return (
-            f"[слух] {npc_id} узнал от {carrier_name}{hop_label}: "
-            f"{rumor.origin_actor} {action} {target_name}"
-        )
+        return f"[слух] {npc_id} узнал от {carrier_name}{hop_label}: {rumor.origin_actor} {action} {target_name}"
 
     # ─── Социальные модификаторы для DecisionHub (Фаза 3.2) ───
 
@@ -424,9 +409,7 @@ class SocialEngine:
         if not connections:
             return modifiers
 
-        _target_dist = (
-            player_distances.get(event_target, 999.0) if event_target else 999.0
-        )
+        _target_dist = player_distances.get(event_target, 999.0) if event_target else 999.0
 
         for other_id, rel in connections.items():
             other_dist = player_distances.get(other_id, 999.0)
@@ -439,19 +422,13 @@ class SocialEngine:
                 "player_threatens",
                 "proximity_close",
             }
-            if (
-                rel.effective_affection > 0.3
-                and other_dist < 3.0
-                and bool(_all_event_types & _JEALOUSY_EVENTS)
-            ):
+            if rel.effective_affection > 0.3 and other_dist < 3.0 and bool(_all_event_types & _JEALOUSY_EVENTS):
                 bonus = round(0.4 * rel.effective_affection, 4)
                 modifiers["INTIMIDATE"] = max(modifiers.get("INTIMIDATE", 0.0), bonus)
 
             # ЗАЩИТА СОЮЗНИКА: только если атакуют конкретного друга
             _PROTECT_EVENTS = {"player_attacks", "player_threatens", "player_insults"}
-            if is_target and (
-                rel.effective_trust > 0.4 and bool(_all_event_types & _PROTECT_EVENTS)
-            ):
+            if is_target and (rel.effective_trust > 0.4 and bool(_all_event_types & _PROTECT_EVENTS)):
                 bonus = round(0.3 * rel.effective_trust, 4)
                 modifiers["THREATEN"] = max(modifiers.get("THREATEN", 0.0), bonus)
 

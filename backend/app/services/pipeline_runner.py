@@ -31,14 +31,14 @@ def build_tick_state(
     crystallized_beliefs_map: Dict[str, Any],
     identity_traits_map: Dict[str, Any],
     spatial_service: Optional[Any] = None,  # P5 FIX: Явная инъекция от оркестратора
-    spatial_query: Optional[Any] = None,    # P5 FIX: Явная инъекция от оркестратора
-    l1_chronicle: Optional[Any] = None,     # V8-PSY-1 FIX: Инъекция L1Chronicle
-    idle_pressure_map: Optional[Any] = None, # V8-SOC-5 FIX: Инъекция idle_pressure
-    epistemic_store: Optional[Any] = None, # S189: Инъекция EpistemicStore
-    epistemic_context_resolver: Optional[Any] = None, # S189: Инъекция EpistemicContextResolver
-    affordance_facts_map: Optional[Dict[str, bool]] = None, # ADR-O-378 (G2 v1): preloaded факты W2
-    attention_states_map: Optional[Dict[str, Any]] = None, # CognitionContext v0 (P1): preloaded внимание
-    object_target_map: Optional[Dict[str, str]] = None, # ADR-O-410 (G3 Этап 2): цели воли
+    spatial_query: Optional[Any] = None,  # P5 FIX: Явная инъекция от оркестратора
+    l1_chronicle: Optional[Any] = None,  # V8-PSY-1 FIX: Инъекция L1Chronicle
+    idle_pressure_map: Optional[Any] = None,  # V8-SOC-5 FIX: Инъекция idle_pressure
+    epistemic_store: Optional[Any] = None,  # S189: Инъекция EpistemicStore
+    epistemic_context_resolver: Optional[Any] = None,  # S189: Инъекция EpistemicContextResolver
+    affordance_facts_map: Optional[Dict[str, bool]] = None,  # ADR-O-378 (G2 v1): preloaded факты W2
+    attention_states_map: Optional[Dict[str, Any]] = None,  # CognitionContext v0 (P1): preloaded внимание
+    object_target_map: Optional[Dict[str, str]] = None,  # ADR-O-410 (G3 Этап 2): цели воли
 ) -> Any:
     """Сборка immutable TickState (causal snapshot) для NpcTickPipeline.run().
 
@@ -98,26 +98,25 @@ def build_tick_state(
         crystallized_beliefs_map=crystallized_beliefs_map,  # S266
         identity_traits_map=identity_traits_map,  # S266
         relationship_store=_svc.relationship_store if _svc else None,  # noqa: ENIGMA001
-        spatial_service=spatial_service or (_svc.spatial_service if _svc and hasattr(_svc, "spatial_service") else None),  # noqa: ENIGMA001
+        spatial_service=spatial_service
+        or (_svc.spatial_service if _svc and hasattr(_svc, "spatial_service") else None),  # noqa: ENIGMA001
         spatial_query=spatial_query or (_svc.spatial_query if _svc and hasattr(_svc, "spatial_query") else None),  # noqa: ENIGMA001
         npc_topics=ctx.npc_topics,
         response_targets=ctx.response_targets,
-        l1_chronicle=l1_chronicle, # V8-PSY-1 FIX
-        idle_pressure_map=idle_pressure_map, # V8-SOC-5 FIX
-        epistemic_store=epistemic_store, # S189: Epistemic Core
-        epistemic_context_resolver=epistemic_context_resolver, # S189: Epistemic Core
+        l1_chronicle=l1_chronicle,  # V8-PSY-1 FIX
+        idle_pressure_map=idle_pressure_map,  # V8-SOC-5 FIX
+        epistemic_store=epistemic_store,  # S189: Epistemic Core
+        epistemic_context_resolver=epistemic_context_resolver,  # S189: Epistemic Core
         affordance_facts_map=affordance_facts_map,
-        object_target_map=object_target_map, # ADR-O-378 (G2 v1): pass-through
-        attention_states_map=attention_states_map, # CognitionContext v0 (P1): pass-through
+        object_target_map=object_target_map,  # ADR-O-378 (G2 v1): pass-through
+        attention_states_map=attention_states_map,  # CognitionContext v0 (P1): pass-through
         epoch_id=ctx.tick_number,  # PR-5 (S268): Temporal Epoch carrier
-        world_view=_world_view,    # PR-5 (S268): read-only проекция эпохи
+        world_view=_world_view,  # PR-5 (S268): read-only проекция эпохи
     )
     return _tick_state
 
 
-def run_pipeline(
-    state: Any, drf_ctx: "DRFExecutionContext", rng_factory: Any
-) -> TickMutation:
+def run_pipeline(state: Any, drf_ctx: "DRFExecutionContext", rng_factory: Any) -> TickMutation:
     """Вызов Pure Reducer (NpcTickPipeline.run)."""
     return NpcTickPipeline.run(state=state, drf_ctx=drf_ctx, rng_factory=rng_factory)
 
@@ -132,10 +131,12 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # turn_pipeline; mvp_controller memory_manager не владеет — проверено
     # чтением конструктора). None → пустые cognition-блоки (sandbox-ctx).
     from app.services.npc.cognition_context import CognitionContextResolver
+
     _cog_mm = getattr(ctx, "memory_manager", None)  # noqa: ENIGMA002
+
     # COGNITIVE-CONTINUITY-01: name resolver from all_npcs_raw (ID -> game name)
     def _cog_name_resolver(npc_id: str) -> dict:
-        for n in (ctx.all_npcs_raw or []):
+        for n in ctx.all_npcs_raw or []:
             if n.get("npc_id") == npc_id or n.get("id") == npc_id:
                 return {"name": n.get("name", npc_id)}
         return {"name": npc_id}
@@ -145,13 +146,15 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             _cog_mm,
             epistemic_store=getattr(ctx, "epistemic_store", None),
             context_provider=_cog_name_resolver,
-        ) if _cog_mm else None  # noqa: ENIGMA001
+        )
+        if _cog_mm
+        else None  # noqa: ENIGMA001
     )
     ctx.communication_intents = mutation.communication_intents or []
     # SLEEP_FIX: Объединяем интенты от Фазы 0 (LifeEngine) и Фазы 5 (DecisionHub),
     # чтобы запланированное движение к кровати не отменялось, если DecisionHub вернул IDLE.
     _phase_5_intents = mutation.movement_intents or []
-    _phase_0_intents = getattr(ctx, 'movement_intents', []) or []  # noqa: ENIGMA002
+    _phase_0_intents = getattr(ctx, "movement_intents", []) or []  # noqa: ENIGMA002
     _merged_intents = list(_phase_0_intents)
     for _intent in _phase_5_intents:
         if _intent not in _merged_intents:
@@ -160,7 +163,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # SLEEP_FIX: Если NPC спит, блокируем все движения, кроме schedule.
     # Это предотвращает перехват сна проактивными интентами от WorldTickEngine.
     _sleeping_npcs = set()
-    for _n in (ctx.all_npcs_raw or []):
+    for _n in ctx.all_npcs_raw or []:
         if _n.get("routine", {}).get("current") in ("sleeping", "resting"):
             _sleeping_npcs.add(_n.get("npc_id") or _n.get("id"))
 
@@ -171,7 +174,9 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             if _actor_id in _sleeping_npcs:
                 _reason = getattr(_intent, "reason", "")  # noqa: ENIGMA002
                 if not _reason.startswith("schedule"):
-                    logger.info(f"[SLEEP_GUARD] npc={_actor_id} is sleeping, dropping non-schedule movement intent: {_reason}")
+                    logger.info(
+                        f"[SLEEP_GUARD] npc={_actor_id} is sleeping, dropping non-schedule movement intent: {_reason}"
+                    )
                     continue
             _filtered_intents.append(_intent)
         ctx.movement_intents = _filtered_intents
@@ -186,14 +191,18 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
     # событийных дельтах). Вариант (y) (все decision-дельты) — отдельное решение
     # Мастера с собственным гейтом.
     ctx.delta_buffer.extend(
-        d for d in (mutation.npc_deltas or []) if getattr(d, "intent", None) is not None  # noqa: ENIGMA002
+        d
+        for d in (mutation.npc_deltas or [])
+        if getattr(d, "intent", None) is not None  # noqa: ENIGMA002
     )
 
     # Применение L1 Drift Events (Append-only Chronicle)
     _svc = ctx.npc_services
 
     if mutation.l1_drift_events and _svc and _svc.memory_manager:
-        _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(_svc.memory_manager, "_l1_chronicle", None)  # noqa: ENIGMA002
+        _chronicle = getattr(_svc.memory_manager, "l1_chronicle", None) or getattr(
+            _svc.memory_manager, "_l1_chronicle", None
+        )  # noqa: ENIGMA002
         if _chronicle:
             for _event in mutation.l1_drift_events:
                 _chronicle.append(_event)
@@ -207,9 +216,12 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
 
         _spatial_query: Any = getattr(ctx.shared_context, "spatial_query", None) if ctx.shared_context else None  # noqa: ENIGMA001, ENIGMA002
         if _spatial_query is None:
-            logger.debug("SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab).")
+            logger.debug(
+                "SpatialQueryService missing in shared_context. Falling back to scene_state reader (IPT/DriftLab)."
+            )
         if not _spatial_query and ctx.scene_state:
             from app.services.spatial.spatial_query_service import SpatialQueryService
+
             _spatial_query = SpatialQueryService(
                 npc_positions=ctx.scene_state.get("npc_positions", {}),
                 scene_state=ctx.scene_state,  # S266: чистый читатель; изоляция — snapshot (Сайт 7)
@@ -228,7 +240,9 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             _npc_id = _mem_evt.payload.get("npc_id")
             if not _npc_id:
                 continue
-            _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+            _npc_dict = next(
+                (n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None
+            )
             if not _npc_dict:
                 continue
             try:
@@ -259,7 +273,9 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 logger.debug(f"[EPISTEMIC_FILTER] NPC {_npc_id} пропущен: не воспринимает событие {_mem_evt.type}")
                 continue
 
-            _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
+            _npc_dict = next(
+                (n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None
+            )
             if not _npc_dict:
                 continue
             try:
@@ -306,11 +322,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         if not _speaker:
             continue
         _npc_dict = next(
-            (
-                n
-                for n in ctx.all_npcs_raw
-                if n.get("npc_id") == _speaker or n.get("id") == _speaker
-            ),
+            (n for n in ctx.all_npcs_raw if n.get("npc_id") == _speaker or n.get("id") == _speaker),
             None,
         )
         if not _npc_dict:
@@ -358,12 +370,10 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 "micro_events": [],
                 "perceived_events": [],
                 "communication_intent": _intent,
-                "scores_trace": mutation.scores_trace_map.get(_speaker, {}), # S189: SUPERBOX-005
+                "scores_trace": mutation.scores_trace_map.get(_speaker, {}),  # S189: SUPERBOX-005
                 # Step 5 (вердикт Мастера): cognition-блок — фактура «что NPC
                 # слышал», едет с контекстом в DMFrame. Read-only резолвер.
-                "cognition": (
-                    _cog_resolver.resolve_block(_speaker) if _cog_resolver else ""
-                ),
+                "cognition": (_cog_resolver.resolve_block(_speaker) if _cog_resolver else ""),
             }
         )
 
@@ -376,14 +386,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
         if _npc_id in _existing_ctx_ids:
             continue
 
-        _npc_dict = next(
-            (
-                n
-                for n in ctx.all_npcs_raw
-                if n.get("npc_id") == _npc_id or n.get("id") == _npc_id
-            ),
-            None
-        )
+        _npc_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == _npc_id or n.get("id") == _npc_id), None)
         if not _npc_dict:
             continue
 
@@ -419,8 +422,6 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
                 "communication_intent": None,
                 "scores_trace": _trace,
                 # Step 5: cognition-блок молчащего NPC (гард Optional).
-                "cognition": (
-                    _cog_resolver.resolve_block(_npc_id) if _cog_resolver else ""
-                ),
+                "cognition": (_cog_resolver.resolve_block(_npc_id) if _cog_resolver else ""),
             }
         )

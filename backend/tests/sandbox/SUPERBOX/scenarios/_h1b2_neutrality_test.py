@@ -9,6 +9,7 @@ H1b-mini2 тест нейтральности.
 Запуск:
     python backend/tests/sandbox/SUPERBOX/scenarios/_h1b2_neutrality_test.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -64,8 +65,14 @@ def call_score_components(dh, state, event):
     effective_drives.values = {"fear": 0.4, "control": 0.3}
 
     return dh._score_components(
-        Intent.ATTACK.value, state, personality, event, opportunity,
-        active_traits, decision_ctx=None, effective_drives=effective_drives,
+        Intent.ATTACK.value,
+        state,
+        personality,
+        event,
+        opportunity,
+        active_traits,
+        decision_ctx=None,
+        effective_drives=effective_drives,
     )
 
 
@@ -76,6 +83,7 @@ def main() -> int:
     # === Шаг 1: _score_components БЕЗ патча (оригинал) ===
     print("--- Step 1: _score_components WITHOUT patch (original) ---")
     from app.services.npc.decision_hub import DecisionHub
+
     dh_orig = DecisionHub(seed=42)
     dh_orig._rel_store = None
     dh_orig._campaign_id = "test"
@@ -92,6 +100,7 @@ def main() -> int:
     # === Шаг 2: Применить H1b-mini патч ===
     print("--- Step 2: apply H1b-mini ON patch ---")
     import bm_bprime_framework as bpf
+
     bpf.install_h1b_mini_capture("on")
     print()
 
@@ -99,6 +108,7 @@ def main() -> int:
     print("--- Step 3: _score_components WITH patch ---")
     del sys.modules["app.services.npc.decision_hub"]
     from app.services.npc.decision_hub import DecisionHub as DecisionHubPatched
+
     dh_patched = DecisionHubPatched(seed=42)
     dh_patched._rel_store = None
     dh_patched._campaign_id = "test"

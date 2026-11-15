@@ -13,6 +13,7 @@
 KnowledgeLink-записи валидируются против события (инвариант двух времён,
 запрет 4); dangling-ссылки white_spot/causes/entry_id — ошибки.
 """
+
 from __future__ import annotations
 
 import json
@@ -381,12 +382,18 @@ def validate_document(doc: ChronicleDocument, *, require_canonical_clean: bool) 
         if b.effect_entry_id not in entry_ids:
             raise ValueError(f"dangling npc_belief: effect_entry_id '{b.effect_entry_id}' (believer={b.believer_id})")
         if b.alleged_cause_entry_id not in entry_ids:
-            raise ValueError(f"dangling npc_belief: alleged_cause_entry_id '{b.alleged_cause_entry_id}' (believer={b.believer_id})")
+            raise ValueError(
+                f"dangling npc_belief: alleged_cause_entry_id '{b.alleged_cause_entry_id}' (believer={b.believer_id})"
+            )
     for candidate in doc.cause_candidates:
         if candidate.effect_entry_id not in entry_ids:
-            raise ValueError(f"dangling candidate: effect_entry_id '{candidate.effect_entry_id}' (id={candidate.candidate_id})")
+            raise ValueError(
+                f"dangling candidate: effect_entry_id '{candidate.effect_entry_id}' (id={candidate.candidate_id})"
+            )
         if candidate.candidate_entry_id not in entry_ids:
-            raise ValueError(f"dangling candidate: candidate_entry_id '{candidate.candidate_entry_id}' (id={candidate.candidate_id})")
+            raise ValueError(
+                f"dangling candidate: candidate_entry_id '{candidate.candidate_entry_id}' (id={candidate.candidate_id})"
+            )
 
 
 def _validate_knowledge_entry(doc: ChronicleDocument, entry: ChronicleEntry, entry_ids: set) -> None:

@@ -1,5 +1,6 @@
 # backend/tests/micro/test_cognition_context_cc.py
 """COGNITIVE-CONTINUITY-01 CC-core: CognitionContextResolver reads EpistemicStore."""
+
 from app.domain.epistemology import EpistemicRecord, Predicate, Proposition
 from app.services.npc.cognition_context import CognitionContextResolver
 from app.services.npc.epistemic_store import EpistemicStore
@@ -7,8 +8,10 @@ from app.services.npc.epistemic_store import EpistemicStore
 
 class MockMemory:
     """Mock memory_manager — returns empty session (no STM claims)."""
+
     def get_dialogue_session(self, campaign_id, npc_id, partner_id="player"):
         from types import SimpleNamespace
+
         return SimpleNamespace(claims=[], open_questions=[])
 
 
@@ -49,8 +52,16 @@ def test_cognition_reads_epistemic_beliefs():
 def test_cognition_provenance_testimony():
     """Provenance: testimony → «тебе сообщил(а)»."""
     store = EpistemicStore()
-    store.upsert(_record("tavern_keeper_tornin", "player", Predicate.INSULTED, "tavern_keeper_tornin",
-                          source="maid_lusya", original="player"))
+    store.upsert(
+        _record(
+            "tavern_keeper_tornin",
+            "player",
+            Predicate.INSULTED,
+            "tavern_keeper_tornin",
+            source="maid_lusya",
+            original="player",
+        )
+    )
     resolver = CognitionContextResolver(MockMemory(), epistemic_store=store, context_provider=_name_resolver)
 
     block = resolver.resolve_block("tavern_keeper_tornin")
@@ -62,8 +73,17 @@ def test_cognition_provenance_testimony():
 def test_cognition_provenance_direct_observation():
     """Provenance: direct_observation → «ты видел это сам»."""
     store = EpistemicStore()
-    store.upsert(_record("maid_lusya", "guard_borko", Predicate.STOLE, "merchant_goran",
-                          source="maid_lusya", source_type="direct_observation", original="maid_lusya"))
+    store.upsert(
+        _record(
+            "maid_lusya",
+            "guard_borko",
+            Predicate.STOLE,
+            "merchant_goran",
+            source="maid_lusya",
+            source_type="direct_observation",
+            original="maid_lusya",
+        )
+    )
     resolver = CognitionContextResolver(MockMemory(), epistemic_store=store, context_provider=_name_resolver)
 
     block = resolver.resolve_block("maid_lusya")

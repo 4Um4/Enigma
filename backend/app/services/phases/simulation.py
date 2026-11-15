@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/simulation.py
 Зависимости: app.services.npc.life_engine, app.services.spatial.movement_engine
 Основные сущности: run_phase_0_simulation
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,9 +26,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     runtime_path = get_npc_runtime_path(ctx.campaign_id)
     _trav_keys = sorted(ctx.scene_state.get("active_traversals", {}).keys())
     _pos_keys = sorted(ctx.scene_state.get("npc_positions", {}).keys())
-    logger.debug(
-        f"[NPC_SET] tick={ctx.tick_number} traversals={_trav_keys} positions={_pos_keys}"
-    )
+    logger.debug(f"[NPC_SET] tick={ctx.tick_number} traversals={_trav_keys} positions={_pos_keys}")
 
     # ADR-048: Авторитетный SpatialService берется из единого резолвера
     _spatial_svc = orchestrator._resolve_spatial_service(ctx)
@@ -40,9 +39,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     # DRF: Инъекция единой причинной шины в LifeEngine
     engine.set_claim_bus(ctx.drf_bus)
     logger.debug(f"[DRF_BIND_LIFE] bus_id={id(ctx.drf_bus)}")
-    changes, life_intents = engine.tick(
-        ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path
-    )
+    changes, life_intents = engine.tick(ctx.campaign_id, ctx.scene_state, runtime_path=runtime_path)
     logger.debug(
         f"[GATE_A] tick={ctx.tick_number} life_intents={len(life_intents)} cognitive_changes={len(changes or [])}"
     )
@@ -53,24 +50,16 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     # ADR-030: Сохраняем аватара игрока, если он был передан в контексте (от GameLoop),
     # так как LifeEngine не кэширует аватара.
     if ctx.npc_states:
-        _player_entry = next(
-            (n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None
-        )
+        _player_entry = next((n for n in (ctx.all_npcs_raw or []) if n.get("npc_id") == "player"), None)
         ctx.all_npcs_raw = ctx.npc_states
         if _player_entry:
-            ctx.all_npcs_raw = [
-                n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"
-            ]
+            ctx.all_npcs_raw = [n for n in ctx.all_npcs_raw if n.get("npc_id") != "player"]
             ctx.all_npcs_raw.append(_player_entry)
     else:
         ctx.all_npcs_raw = ctx.npc_states or []
     if changes and orchestrator._scene_manager:
-        orchestrator._apply_with_shadow_observation(
-            ctx, changes, phase_label="IDLE_COGNITIVE"
-        )
-        logger.debug(
-            f"[TICK_ORCH] Фаза 0: {len(changes)} cognitive changes от LifeEngine"
-        )
+        orchestrator._apply_with_shadow_observation(ctx, changes, phase_label="IDLE_COGNITIVE")
+        logger.debug(f"[TICK_ORCH] Фаза 0: {len(changes)} cognitive changes от LifeEngine")
 
     # Living Activity (шаги 2+4): продюсер желаний + конвертер деятельностей
     # ВНУТРИ Фазы 0, ДО Гейта① — MOVE-шаги деятельностей едут существующим
@@ -103,7 +92,8 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             for g in _activity_goals
         }
         life_intents = list(_activity_goals) + [
-            _i for _i in (life_intents or [])
+            _i
+            for _i in (life_intents or [])
             if getattr(_i, "actor_id", "") not in _activity_actors  # noqa: ENIGMA002
             or str(getattr(_i, "location_id", "") or "").split(":")[0]  # noqa: ENIGMA002
             != _activity_loc_by_actor.get(getattr(_i, "actor_id", ""), "")  # noqa: ENIGMA002
@@ -113,9 +103,11 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
     # судьба каждого интента borko на входе движка — где молчит потеря
     for _di in life_intents:
         if getattr(_di, "actor_id", "") == "guard_borko":  # noqa: ENIGMA002
-            print(f"[DIAG_D3] tick={ctx.tick_number} INTENT reason={getattr(_di, 'reason', '?')} "
-                  f"target={getattr(_di, 'target_node_id', '?')} domain={getattr(_di, 'domain', '?')}",
-                  flush=True)
+            print(
+                f"[DIAG_D3] tick={ctx.tick_number} INTENT reason={getattr(_di, 'reason', '?')} "
+                f"target={getattr(_di, 'target_node_id', '?')} domain={getattr(_di, 'domain', '?')}",
+                flush=True,
+            )
 
     # ADR-049: LifeEngine De-godification. Замыкание контура локомоции.
     # Намерения расписания обрабатываются через MovementEngine, порождая TraversalState.
@@ -149,9 +141,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
         # OFF = поведение байтово прежнее; откат = снятие флага.
         import os as _os_n18  # noqa: PLC0415 — экспериментальный гейт
 
-        if _os_n18.environ.get("N18_EXP", "").strip().lower() in (
-            "1", "true", "yes"
-        ):
+        if _os_n18.environ.get("N18_EXP", "").strip().lower() in ("1", "true", "yes"):
             _att_map = ctx.scene_state.get("attention_states") or {}
             # этап 2 / п-1 (санкция): приоритет ram-канона сцены (npc_intents
             # — single-writer проекция ssot-решений текущего тика) над
@@ -171,11 +161,8 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
             for _i in life_intents:
                 _aid = getattr(_i, "actor_id", "")  # noqa: ENIGMA002
                 _reason = str(getattr(_i, "reason", "") or "")  # noqa: ENIGMA002
-                if (
-                    _reason.startswith("schedule")
-                    and _intents_by_id.get(_aid) == "observe"
-                ):
-                    _pair = ((_att_map.get(_aid) or {}).get("player") or {})
+                if _reason.startswith("schedule") and _intents_by_id.get(_aid) == "observe":
+                    _pair = (_att_map.get(_aid) or {}).get("player") or {}
                     _e = float(_pair.get("approach_evidence", 0.0) or 0.0)
                     _phase = _pair.get("phase", "")
                     if (
@@ -211,9 +198,7 @@ def run_phase_0_simulation(ctx: Any, orchestrator: Any) -> None:
                 f"[GATE_B2] tick={ctx.tick_number} spatial_changes={len(spatial_changes or [])} from_intents={len(life_intents)}"
             )
             if spatial_changes and orchestrator._scene_manager:
-                orchestrator._apply_with_shadow_observation(
-                    ctx, spatial_changes, phase_label="IDLE_SPATIAL"
-                )
+                orchestrator._apply_with_shadow_observation(ctx, spatial_changes, phase_label="IDLE_SPATIAL")
                 logger.info(
                     f"[TICK_ORCH] Фаза 0: {len(spatial_changes)} spatial changes from {len(life_intents)} LifeEngine intents"
                 )

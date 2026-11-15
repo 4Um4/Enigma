@@ -80,22 +80,12 @@ class PhysicalProjection(ProjectionPolicy):
             archetype = "faint_vibration"
         elif stage == 1:
             # Точный геном утерян. Независимо от того, кто бил, это просто шум сквозь стену
-            archetype = (
-                "muffled_impact"
-                if DisturbanceVector.MATTER in disturbance.vectors
-                else "distant_noise"
-            )
+            archetype = "muffled_impact" if DisturbanceVector.MATTER in disturbance.vectors else "distant_noise"
         else:  # stage == 0
             archetype = disturbance.semantic_seed or "impact"
-            if (
-                DisturbanceVector.ACOUSTIC in disturbance.vectors
-                and not disturbance.semantic_seed
-            ):
+            if DisturbanceVector.ACOUSTIC in disturbance.vectors and not disturbance.semantic_seed:
                 archetype = "noise"
-            if (
-                DisturbanceVector.MATTER in disturbance.vectors
-                and not disturbance.semantic_seed
-            ):
+            if DisturbanceVector.MATTER in disturbance.vectors and not disturbance.semantic_seed:
                 archetype = "collision"
 
         return PerceivedPhenomenon(
@@ -138,9 +128,7 @@ class CognitiveProjection(ProjectionPolicy):
         is_neutral_seed = archetype in ("idle", "activity", "unknown")
 
         if DisturbanceVector.BEHAVIORAL in disturbance.vectors:
-            if not is_neutral_seed and (
-                perceived_intensity > 0.6 or observer_kernel.anomaly_score > 0.5
-            ):
+            if not is_neutral_seed and (perceived_intensity > 0.6 or observer_kernel.anomaly_score > 0.5):
                 archetype = "threat"
                 stage = 1
                 distortion = "paranoid_inference"
@@ -267,9 +255,7 @@ class LocalCausalSolver:
             return {}
 
         # Маппинг NPC_id -> их сырые данные для получения observer_state
-        npc_data_map = {
-            str(d.get("npc_id")): d for d in all_npcs_raw if d.get("npc_id")
-        }
+        npc_data_map = {str(d.get("npc_id")): d for d in all_npcs_raw if d.get("npc_id")}
 
         # Словарь аккумуляции феноменов для каждого наблюдателя
         observer_phenomena: Dict[str, List[PerceivedPhenomenon]] = {}
@@ -313,9 +299,7 @@ class LocalCausalSolver:
                 if not policy:
                     continue
 
-                phenomenon = policy.project(
-                    dist, membrane_factor, obs_kernel, obs_state
-                )
+                phenomenon = policy.project(dist, membrane_factor, obs_kernel, obs_state)
 
                 if phenomenon:
                     if entity_id not in observer_phenomena:
@@ -325,15 +309,11 @@ class LocalCausalSolver:
         # 3. LOCAL REDUCTION: Агрегация феноменов в локальную истину
         result_states: Dict[str, PhenomenologicalState] = {}
         for entity_id, phenomena in observer_phenomena.items():
-            result_states[entity_id] = self._aggregate_phenomena(
-                phenomena, entity_id, npc_data_map
-            )
+            result_states[entity_id] = self._aggregate_phenomena(phenomena, entity_id, npc_data_map)
 
         return result_states
 
-    def _extract_observer_state(
-        self, entity_id: str, npc_data_map: Dict[str, Dict]
-    ) -> Dict[str, Any]:
+    def _extract_observer_state(self, entity_id: str, npc_data_map: Dict[str, Dict]) -> Dict[str, Any]:
         """Извлекает физическое и психическое состояние для проекционной политики."""
         data = npc_data_map.get(entity_id, {})
         body_state = data.get("body_state", {})
@@ -346,9 +326,7 @@ class LocalCausalSolver:
             return {
                 "consciousness": body_state.get("consciousness", 1.0),
                 "stress": psyche.get("stress", 0.0),
-                "fear": psyche.get(
-                    "fear", 0.0
-                ),  # Игрок не имеет fear_of_player, но имеет свой страх
+                "fear": psyche.get("fear", 0.0),  # Игрок не имеет fear_of_player, но имеет свой страх
             }
 
         return {
@@ -357,9 +335,7 @@ class LocalCausalSolver:
             "fear": social_stats.get("fear_of_player", 0.0),
         }
 
-    def _extract_observer_kernel(
-        self, entity_id: str, npc_data_map: Dict[str, Dict]
-    ) -> PerceptualKernel:
+    def _extract_observer_kernel(self, entity_id: str, npc_data_map: Dict[str, Dict]) -> PerceptualKernel:
         """Извлекает текущий PerceptualKernel наблюдателя."""
         data = npc_data_map.get(entity_id, {})
         # Если ядро уже есть в стейте (P2)
@@ -387,17 +363,17 @@ class LocalCausalSolver:
 
         for phen in phenomena:
             # 1. УГРОЗА: Физическая или когнитивная угроза
-            is_physical_threat = (
-                phen.phenomenon_type == CausalAxis.PHYSICAL
-                and phen.perceived_archetype in ("collision", "impact")
+            is_physical_threat = phen.phenomenon_type == CausalAxis.PHYSICAL and phen.perceived_archetype in (
+                "collision",
+                "impact",
             )
-            is_cognitive_threat = (
-                phen.phenomenon_type == CausalAxis.COGNITIVE
-                and phen.perceived_archetype in ("threat", "imminent_danger")
+            is_cognitive_threat = phen.phenomenon_type == CausalAxis.COGNITIVE and phen.perceived_archetype in (
+                "threat",
+                "imminent_danger",
             )
-            is_social_threat = (
-                phen.phenomenon_type == CausalAxis.SOCIAL
-                and phen.perceived_archetype in ("dramatic_rumor", "mass_hysteria")
+            is_social_threat = phen.phenomenon_type == CausalAxis.SOCIAL and phen.perceived_archetype in (
+                "dramatic_rumor",
+                "mass_hysteria",
             )
 
             if is_physical_threat or is_cognitive_threat or is_social_threat:

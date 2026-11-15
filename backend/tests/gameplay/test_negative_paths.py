@@ -1,4 +1,4 @@
-﻿"""
+"""
 GC-01: Негативные пути.
 
 Test C — Принудительный отказ DM + полный честный контракт:
@@ -23,6 +23,7 @@ Diag: предыдущие xfail-маркеры атрибутировали с�
   для получения реальных traceback'ов и установления контрактов
   (c1/c2/c4/c6/d2). Order-dependent-эффект проверяется прогоном B->C.
 """
+
 from __future__ import annotations
 
 import inspect
@@ -39,15 +40,15 @@ from tests.gameplay.harness import TavernGameplayHarness
 # ============================================================================
 
 
-
-
 # ============================================================================
 # Helpers
 # ============================================================================
 
+
 def _get_model_pool():
     """Lazy доступ к ModelPool singleton (legitimate test surface)."""
     from app.services.llm.provider_manager import get_model_pool
+
     return get_model_pool()
 
 
@@ -63,6 +64,7 @@ def _resolve_game_loop(harness):
 # ============================================================================
 # Test C: Принудительный отказ DM + полный честный контракт
 # ============================================================================
+
 
 class TestCForcedDmFailure:
     """Принудительный отказ DM + честный контракт деградации.
@@ -114,9 +116,7 @@ class TestCForcedDmFailure:
         try:
             h.new_game()
             response = h.player_action("Действие")
-            assert response.npc_reactions == [], (
-                f"expected [], got {response.npc_reactions!r}"
-            )
+            assert response.npc_reactions == [], f"expected [], got {response.npc_reactions!r}"
         finally:
             h.dispose()
 
@@ -126,9 +126,7 @@ class TestCForcedDmFailure:
         try:
             h.new_game()
             response = h.player_action("Действие")
-            assert response.world_changes == [], (
-                f"expected [], got {response.world_changes!r}"
-            )
+            assert response.world_changes == [], f"expected [], got {response.world_changes!r}"
         finally:
             h.dispose()
 
@@ -138,9 +136,7 @@ class TestCForcedDmFailure:
         try:
             h.new_game()
             response = h.player_action("Действие")
-            assert response.journal_entry_id == "", (
-                f"expected '', got {response.journal_entry_id!r}"
-            )
+            assert response.journal_entry_id == "", f"expected '', got {response.journal_entry_id!r}"
         finally:
             h.dispose()
 
@@ -152,9 +148,7 @@ class TestCForcedDmFailure:
             response = h.player_action("Действие")
             dm = response.dm_response or ""
             assert isinstance(dm, str), f"dm_response not str: {type(dm)}"
-            assert len(dm) > 0, (
-                "dm_response empty — expected honest degradation marker"
-            )
+            assert len(dm) > 0, "dm_response empty — expected honest degradation marker"
         finally:
             h.dispose()
 
@@ -184,8 +178,7 @@ class TestCForcedDmFailure:
             # Инвариант 1: identity (ADR-O-201 — спавн/деспавн вне
             # initialize_scene запрещён)
             assert set(before.keys()) == set(after.keys()), (
-                f"npc identity changed: before={sorted(before.keys())}, "
-                f"after={sorted(after.keys())}"
+                f"npc identity changed: before={sorted(before.keys())}, after={sorted(after.keys())}"
             )
             # Инвариант 2: location (ADR-O-201 E18 — межлокационный переход
             # требует boundary traversal, не мгновенный телепорт)
@@ -194,9 +187,7 @@ class TestCForcedDmFailure:
                 for nid in before
                 if before[nid].get("location_id") != after[nid].get("location_id")
             }
-            assert not _teleported, (
-                f"cross-location teleport detected: {_teleported}"
-            )
+            assert not _teleported, f"cross-location teleport detected: {_teleported}"
         finally:
             h.dispose()
 
@@ -204,6 +195,7 @@ class TestCForcedDmFailure:
 # ============================================================================
 # Test D: Контролируемый успешный провайдер (MOCK)
 # ============================================================================
+
 
 class TestDControlledMockProvider:
     """Контролируемый успех через MockProvider — дискриминатор против Test C."""
@@ -218,6 +210,7 @@ class TestDControlledMockProvider:
 
         Fix: Controller pattern — caller invokes activate() AFTER h.new_game().
         """
+
         class _Controller:
             def __init__(self):
                 self._cfg = None
@@ -232,9 +225,7 @@ class TestDControlledMockProvider:
                 # Setting MOCK only on qwen_7b misses the actually-used models.
                 self._cfgs = list(pool._model_configs.values())
                 if not self._cfgs:
-                    pytest.skip(
-                        "no model configs registered in pool after h.new_game()"
-                    )
+                    pytest.skip("no model configs registered in pool after h.new_game()")
                 self._orig_pts = [c.provider_type for c in self._cfgs]
                 self._orig_env = settings.environment
                 for c in self._cfgs:
@@ -282,8 +273,7 @@ class TestDControlledMockProvider:
             response = h.player_action("Осмотреть таверну")
             ws = getattr(response, "world_snapshot", None)
             assert ws is not None, (
-                f"world_snapshot missing in response; "
-                f"attrs: {[a for a in dir(response) if not a.startswith('_')]}"
+                f"world_snapshot missing in response; attrs: {[a for a in dir(response) if not a.startswith('_')]}"
             )
         finally:
             controlled_mock_provider.restore()
@@ -309,20 +299,21 @@ class TestDControlledMockProvider:
 # Test E: Malformed intervention — публичный контракт idle_tick(interventions=...)
 # ============================================================================
 
+
 class TestEMalformedIntervention:
     """Публичный контракт idle_tick(interventions=...) и malformed intervention."""
 
     def test_e1_idle_tick_accepts_interventions_kwarg(self):
         """Публичный контракт: idle_tick(campaign_id, ..., interventions=...)."""
         from app.services.game_loop.game_loop import GameLoop
+
         sig = inspect.signature(GameLoop.idle_tick)
-        assert "interventions" in sig.parameters, (
-            f"idle_tick must accept 'interventions' kwarg; sig={sig}"
-        )
+        assert "interventions" in sig.parameters, f"idle_tick must accept 'interventions' kwarg; sig={sig}"
 
     def test_e2_intervention_event_schema(self):
         """InterventionEvent (TZ-08 v0.2): source/payload/tick + factory."""
         from app.contracts.interventions import InterventionEvent
+
         ev = InterventionEvent(source="test", payload={"k": "v"}, tick=42)
         assert ev.source == "test"
         assert ev.payload == {"k": "v"}
@@ -334,6 +325,7 @@ class TestEMalformedIntervention:
     def test_e3_foreign_source_is_silent_noop(self):
         """S-UE/D4: source != 'player' → no exception, no dispatch."""
         from app.contracts.interventions import InterventionEvent
+
         h = TavernGameplayHarness(seed=42, location="tavern")
         try:
             h.new_game()
@@ -351,9 +343,6 @@ class TestEMalformedIntervention:
             try:
                 gl.idle_tick(h.campaign_id, interventions=[interv])
             except TypeError as e:
-                pytest.skip(
-                    f"idle_tick signature requires more params: {e}. "
-                    f"Test E3 needs harness helper."
-                )
+                pytest.skip(f"idle_tick signature requires more params: {e}. Test E3 needs harness helper.")
         finally:
             h.dispose()

@@ -4,6 +4,7 @@
 LiveClock — для production (использует time.time / datetime.now).
 FakeClock — для replay (использует game_time_seconds).
 """
+
 import datetime
 import time
 from typing import Protocol, runtime_checkable
@@ -14,11 +15,14 @@ class Clock(Protocol):
     def now(self) -> datetime.datetime: ...
     def timestamp(self) -> float: ...
 
+
 class LiveClock:
     def now(self) -> datetime.datetime:
         return datetime.datetime.now()
+
     def timestamp(self) -> float:
         return time.time()
+
 
 class FakeClock:
     def __init__(self, game_time_seconds: float = 0.0):
@@ -33,11 +37,14 @@ class FakeClock:
     def timestamp(self) -> float:
         return self._game_time
 
+
 # Глобальный синглтон часов
 _current_clock: Clock = LiveClock()
 
+
 def get_clock() -> Clock:
     return _current_clock
+
 
 def set_clock(clock: Clock) -> None:
     global _current_clock

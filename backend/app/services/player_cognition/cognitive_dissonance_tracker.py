@@ -18,7 +18,7 @@ class CognitiveDissonanceTracker:
     _CONTRADICTION_RULES = [
         (ActionType.HELP, ActionType.ATTACK, "Ты помог одному и напал на другого в один день", 0.8),
         (ActionType.HELP, ActionType.BLACKMAIL, "Ты проявил милосердие и тут же прибег к шантажу", 0.7),
-        (ActionType.BRIBE, ActionType.ATTACK, "Ты пытался подкупить и перешёл к насилию", 0.5)
+        (ActionType.BRIBE, ActionType.ATTACK, "Ты пытался подкупить и перешёл к насилию", 0.5),
     ]
 
     def __init__(self) -> None:
@@ -30,7 +30,7 @@ class CognitiveDissonanceTracker:
         new_contradictions: List[Contradiction] = []
 
         for i, action_a in enumerate(actions):
-            for action_b in actions[i+1:]:
+            for action_b in actions[i + 1 :]:
                 # Пропускаем пары с одинаковыми ID или разными акторами (хотя пока только player)
                 if action_a.action_id == action_b.action_id:
                     continue
@@ -42,8 +42,9 @@ class CognitiveDissonanceTracker:
 
                 # Проверяем правила
                 for rule_a, rule_b, desc, weight in self._CONTRADICTION_RULES:
-                    is_match = (action_a.action_type == rule_a and action_b.action_type == rule_b) or \
-                               (action_a.action_type == rule_b and action_b.action_type == rule_a)
+                    is_match = (action_a.action_type == rule_a and action_b.action_type == rule_b) or (
+                        action_a.action_type == rule_b and action_b.action_type == rule_a
+                    )
 
                     if is_match:
                         # Проверяем, что действия направлены на разных NPC (иначе это просто смена настроения)
@@ -53,11 +54,11 @@ class CognitiveDissonanceTracker:
                                 action_a_id=action_a.action_id,
                                 action_b_id=action_b.action_id,
                                 description=desc,
-                                emotional_weight=weight
+                                emotional_weight=weight,
                             )
                             new_contradictions.append(contradiction)
                             self._processed_pairs.add(pair_key)  # type: ignore[arg-type]
-                            break # Одно противоречие на пару действий достаточно
+                            break  # Одно противоречие на пару действий достаточно
 
         self._contradictions.extend(new_contradictions)
         return new_contradictions

@@ -3,8 +3,16 @@
 P5-B v7 — финальный probe с правильным именем SQLite таблицы (state_kv).
 Дополняет v6: независимо читает SQLite state_kv для epistemic_records.
 """
+
 from __future__ import annotations
-import os, sys, json, shutil, sqlite3, tempfile, traceback, time
+import os
+import sys
+import json
+import shutil
+import sqlite3
+import tempfile
+import traceback
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from unittest.mock import MagicMock
@@ -23,9 +31,11 @@ from app.domain.epistemology import Proposition, Predicate
 
 SPY_LOG: List[Dict[str, Any]] = []
 
+
 def _stamp(tag: str, **kw: Any) -> None:
     SPY_LOG.append({"tag": tag, **kw})
     print(f"[SPY] {tag}: " + json.dumps(kw, ensure_ascii=False, default=str))
+
 
 def build_loop(data_dir: Path, saves_dir: Path) -> Any:
     settings.saves_dir = str(saves_dir)
@@ -38,17 +48,23 @@ def build_loop(data_dir: Path, saves_dir: Path) -> Any:
                 ex._router = MagicMock()
                 if hasattr(ex._router, "route"):
                     ex._router.route.return_value = "[Test LLM Mock]"
-    except Exception: pass
+    except Exception:
+        pass
     return loop
+
 
 def cleanup_loop(loop: Any) -> None:
     try:
         if hasattr(loop, "_task_scheduler"):
             ts = loop._task_scheduler
             if hasattr(ts, "_executor_pool"):
-                try: ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-                except Exception: pass
-    except Exception: pass
+                try:
+                    ts._executor_pool.shutdown(wait=False, cancel_futures=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 
 def init_scene(loop: Any) -> Dict[str, Any]:
     scene = loop.scene_manager.get_scene_state("Open_road", "tavern")
@@ -56,10 +72,12 @@ def init_scene(loop: Any) -> Dict[str, Any]:
         scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
     return scene or {}
 
+
 def attach_spies(loop: Any) -> Dict[str, Any]:
     refs: Dict[str, Any] = {}
     sm = loop.scene_manager
     orig_aca = sm._persistence.atomic_commit_all
+
     def _spy_aca(campaign_id, all_scenes, npc_states=None, events=None):
         ep_total = 0
         ep_preview = []
@@ -67,19 +85,27 @@ def attach_spies(loop: Any) -> Dict[str, Any]:
             recs = ss.get("epistemic_records", []) if isinstance(ss, dict) else []
             ep_total += len(recs)
             if recs and len(ep_preview) < 3:
-                ep_preview.extend(recs[:3 - len(ep_preview)])
-        _stamp("PERSIST.atomic_commit_all:ENTER",
-               campaign=campaign_id, scenes_count=len(all_scenes or {}),
-               epistemic_records_total=ep_total, epistemic_records_preview=ep_preview)
+                ep_preview.extend(recs[: 3 - len(ep_preview)])
+        _stamp(
+            "PERSIST.atomic_commit_all:ENTER",
+            campaign=campaign_id,
+            scenes_count=len(all_scenes or {}),
+            epistemic_records_total=ep_total,
+            epistemic_records_preview=ep_preview,
+        )
         result = orig_aca(campaign_id, all_scenes, npc_states, events)
         _stamp("PERSIST.atomic_commit_all:EXIT", result=result)
         return result
+
     sm._persistence.atomic_commit_all = _spy_aca  # type: ignore
     refs["spa"] = sm._persistence
     return refs
 
+
 # === Independent SQLite read — CORRECT TABLE NAME: state_kv ===
-def read_sqlite_independent(saves_dir: Path, campaign_id: str = "Open_road", location_id: str = "tavern") -> Dict[str, Any]:
+def read_sqlite_independent(
+    saves_dir: Path, campaign_id: str = "Open_road", location_id: str = "tavern"
+) -> Dict[str, Any]:
     db_path = saves_dir / "enigma_runtime.db"
     if not db_path.exists():
         return {"error": f"DB not found at {db_path}"}
@@ -134,6 +160,7 @@ def read_sqlite_independent(saves_dir: Path, campaign_id: str = "Open_road", loc
     except Exception as e:
         return {"error": f"{type(e).__name__}: {e}"}
 
+
 def snapshot_epistemic_store(loop: Any, agent_id: str = "maid_lusya") -> Dict[str, Any]:
     orch = getattr(loop, "_tick_orch", None)
     orch_store = getattr(orch, "_epistemic_store", None) if orch else None
@@ -156,8 +183,9 @@ def snapshot_epistemic_store(loop: Any, agent_id: str = "maid_lusya") -> Dict[st
                 "original_source_id": r.original_source_id,
             }
             for r in records
-        ]
+        ],
     }
+
 
 def publish_insult(target_id: str = "maid_lusya"):
     payload = {
@@ -180,11 +208,16 @@ def publish_insult(target_id: str = "maid_lusya"):
     _stamp("EVENT.publish", event_id=str(evt.id), target_id=target_id)
     get_event_bus().publish(evt)
 
+
 def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: Path) -> Dict[str, Any]:
-    print(f"\n{'#' * 78}\n# SCENARIO {label}: {'WITH' if with_insult else 'NO'} PLAYER_INSULTS\n# saves_dir={saves_dir}\n{'#' * 78}")
+    print(
+        f"\n{'#' * 78}\n# SCENARIO {label}: {'WITH' if with_insult else 'NO'} PLAYER_INSULTS\n# saves_dir={saves_dir}\n{'#' * 78}"
+    )
     SPY_LOG.clear()
-    try: get_event_bus().clear()
-    except Exception: pass
+    try:
+        get_event_bus().clear()
+    except Exception:
+        pass
 
     _stamp(f"{label}.A1.clean_startup", saves_dir=str(saves_dir))
     loop1 = build_loop(real_data_dir, saves_dir)
@@ -201,8 +234,10 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     _stamp(f"{label}.A3.idle_tick:START")
     try:
         result = loop1.idle_tick("Open_road")
-        _stamp(f"{label}.A3.idle_tick:EXIT",
-               status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__)
+        _stamp(
+            f"{label}.A3.idle_tick:EXIT",
+            status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__,
+        )
     except Exception as e:
         _stamp(f"{label}.A3.idle_tick:ERROR", error=type(e).__name__, msg=str(e)[:300])
         cleanup_loop(loop1)
@@ -230,7 +265,9 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     _stamp(f"{label}.A4.destroy_loop1")
     cleanup_loop(loop1)
     del loop1
-    import gc; gc.collect()
+    import gc
+
+    gc.collect()
     time.sleep(0.5)
     _stamp(f"{label}.A4.destroyed")
 
@@ -246,12 +283,14 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
         resolver = getattr(orch, "_epistemic_context_resolver", None) if orch else None
         if resolver is not None:
             ctx = resolver.resolve("maid_lusya")
-            _stamp(f"{label}.A5_5.resolver_rehydrated",
-                   agent_id=ctx.agent_id,
-                   perceived_threats=list(ctx.perceived_threats),
-                   claims_about_self=[p.to_dict() for p in ctx.claims_about_self],
-                   max_self_confidence=ctx.max_self_confidence,
-                   report_proposition=ctx.report_proposition.to_dict() if ctx.report_proposition else None)
+            _stamp(
+                f"{label}.A5_5.resolver_rehydrated",
+                agent_id=ctx.agent_id,
+                perceived_threats=list(ctx.perceived_threats),
+                claims_about_self=[p.to_dict() for p in ctx.claims_about_self],
+                max_self_confidence=ctx.max_self_confidence,
+                report_proposition=ctx.report_proposition.to_dict() if ctx.report_proposition else None,
+            )
     except Exception as e:
         _stamp(f"{label}.A5_5.resolver:ERROR", error=str(e)[:200])
     cleanup_loop(loop2)
@@ -259,6 +298,7 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     gc.collect()
 
     return {"spy": list(SPY_LOG)}
+
 
 def main() -> int:
     print("\n" + "=" * 78)
@@ -290,8 +330,11 @@ def main() -> int:
         return 1
     finally:
         for d in [saves_a, saves_b]:
-            try: shutil.rmtree(d, ignore_errors=True)
-            except Exception: pass
+            try:
+                shutil.rmtree(d, ignore_errors=True)
+            except Exception:
+                pass
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -10,17 +10,18 @@ path: /frontend/ui_workbench/windows/board_window.py
 Зависимости: ui_workbench.manifests, pygame (для K_b)
 Основные сущности: BOARD_MANIFEST
 """
+
 import pygame
 from ui_workbench.manifests import InputBinding, WindowManifest, WindowState
 
 BOARD_MANIFEST = WindowManifest(
     window_id="board",
     title="Доска",
-    layer=3,                                       # Осознанный анализ (UI Doctrine §IX)
-    data_source="investigation_board",             # board-канал: GET /api/board/{campaign}
+    layer=3,  # Осознанный анализ (UI Doctrine §IX)
+    data_source="investigation_board",  # board-канал: GET /api/board/{campaign}
     default_state=WindowState.HIDDEN,
     anchor="top_right",
-    offset=(24, 60),                               # ниже Журнала (анкер тот же)
+    offset=(24, 60),  # ниже Журнала (анкер тот же)
     size_policy=(0.40, 0.70),
     min_size=(420, 300),
     max_size=(900, 1100),

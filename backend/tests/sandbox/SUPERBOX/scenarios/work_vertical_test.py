@@ -24,6 +24,7 @@ SUPERBOX-WORK (S256, ADR-O-391): Vertical Slice «Заказ и расчёт».
 исходы на шине доказаны; проводка в память NPC — LIFE INTEGRATION (R4).
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/work_vertical_test.py
 """
+
 import os
 import sys
 import tempfile
@@ -165,8 +166,7 @@ def _work_outcomes():
     return [
         e
         for e in SPY["events"]
-        if str(getattr(e, "type", "")) == "activity_outcome"
-        and (getattr(e, "payload", {}) or {}).get("order_id")
+        if str(getattr(e, "type", "")) == "activity_outcome" and (getattr(e, "payload", {}) or {}).get("order_id")
     ]
 
 
@@ -198,9 +198,7 @@ def main() -> int:
         _tick(world)
         _tally_tasks(world)
         _collect_serve(world, _serve_seen)
-        GORAN_POS.append(
-            str((_states_map(world).get(GORAN) or {}).get("position", "") or "")
-        )
+        GORAN_POS.append(str((_states_map(world).get(GORAN) or {}).get("position", "") or ""))
         if any(o.get("status") == "completed" for o in _orders(world).values()):
             break
 
@@ -216,9 +214,7 @@ def main() -> int:
     )
 
     # ── W1: сделка ───────────────────────────────────────────────────
-    _o = next(
-        (o for o in _orders_f.values() if o.get("status") == "completed"), None
-    )
+    _o = next((o for o in _orders_f.values() if o.get("status") == "completed"), None)
     w1 = (
         _o is not None
         and _o.get("actor_id") == GORAN
@@ -250,10 +246,7 @@ def main() -> int:
         if (getattr(e, "payload", {}) or {}).get("success") is True
     }
     w1o = GORAN in _src_ok and TORNIN in _src_ok
-    print(
-        f"[W1-O] ACTIVITY_OUTCOME обоим (sources={sorted(_src_ok)}) — "
-        f"{'✅' if w1o else '❌'}"
-    )
+    print(f"[W1-O] ACTIVITY_OUTCOME обоим (sources={sorted(_src_ok)}) — {'✅' if w1o else '❌'}")
     ok = ok and w1o
 
     _inc = world.game_loop._svc.economy_tracker.get_daily_income(TORNIN)
@@ -284,10 +277,7 @@ def main() -> int:
     _thirst(world)
     for _ in range(MAX_TICKS):
         _tick(world)
-        if (
-            sum(1 for o in _orders(world).values() if o.get("status") == "completed")
-            >= 2
-        ):
+        if sum(1 for o in _orders(world).values() if o.get("status") == "completed") >= 2:
             break
     _after5 = _eco(world)
     w5 = (
@@ -309,17 +299,13 @@ def main() -> int:
     _thirst(world)
     for _ in range(MAX_TICKS):
         _tick(world)
-        if any(
-            str(o.get("fail_reason", "")).startswith("no_stock")
-            for o in _orders(world).values()
-        ):
+        if any(str(o.get("fail_reason", "")).startswith("no_stock") for o in _orders(world).values()):
             break
     _after3 = _eco(world)
     _failed = [
         o
         for o in _orders(world).values()
-        if o.get("status") == "failed"
-        and str(o.get("fail_reason", "")).startswith("no_stock")
+        if o.get("status") == "failed" and str(o.get("fail_reason", "")).startswith("no_stock")
     ]
     w3 = (
         bool(_failed)
@@ -328,14 +314,10 @@ def main() -> int:
         and any(
             (getattr(e, "payload", {}) or {}).get("success") is False
             for e in _work_outcomes()
-            if (getattr(e, "payload", {}) or {}).get("order_id")
-            == (_failed[0].get("order_id") if _failed else None)
+            if (getattr(e, "payload", {}) or {}).get("order_id") == (_failed[0].get("order_id") if _failed else None)
         )
     )
-    print(
-        f"[W3] stock=0 → FAILED no_stock:ale, before==after, success=False — "
-        f"{'✅' if w3 else '❌'}"
-    )
+    print(f"[W3] stock=0 → FAILED no_stock:ale, before==after, success=False — {'✅' if w3 else '❌'}")
     ok = ok and w3
 
     # ── W4: OFF = no causal footprint (абляция) ──────────────────────

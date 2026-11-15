@@ -49,7 +49,7 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
         2. LifeProjectResolver меняет life_direction на 'isolation'.
         3. DecisionHub на следующем тике выбирает 'FLEE' или 'BLOCK_PATH' вместо 'SEEK_ALLY'.
     """
-    
+
     _effective_drives = EffectiveDrives(values={"fear": 0.2, "control": 0.3, "significance": 0.3, "desire": 0.2})
     hub = DecisionHub(seed=42)
 
@@ -70,7 +70,9 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
         event=world_tick_event,
         effective_drives=_effective_drives,
     )
-    print(f"\n[PRE-CRISIS] life_project={state_healthy.life_project}, intent={pre_crisis_result.intent.value}, score={pre_crisis_result.score:.2f}")
+    print(
+        f"\n[PRE-CRISIS] life_project={state_healthy.life_project}, intent={pre_crisis_result.intent.value}, score={pre_crisis_result.score:.2f}"
+    )
     assert pre_crisis_result.intent.value != Intent.FLEE.value, "Family builder без кризиса не должен бежать"
 
     # --- СИМУЛЯЦИЯ КРИЗИСА (BreakProgressEngine -> LifeProjectResolver) ---
@@ -113,7 +115,9 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
     # Тик 5: COMMITTED -> ACTIVE
     LifeProjectResolver.resolve(state_broken, deltas.identity_pressure)
     assert state_broken.life_project_state == "ACTIVE"
-    print(f"\n[CRISIS RESOLVED] life_project changed to: {state_broken.life_project}, state={state_broken.life_project_state}")
+    print(
+        f"\n[CRISIS RESOLVED] life_project changed to: {state_broken.life_project}, state={state_broken.life_project_state}"
+    )
 
     # --- ТИК 1: POST-CRISIS (NPC сломлен, project=isolation, state=ACTIVE) ---
     post_crisis_result = hub.compute(
@@ -122,8 +126,11 @@ def test_crisis_changes_life_direction_and_intent(family_profile, world_tick_eve
         event=world_tick_event,
         effective_drives=_effective_drives,
     )
-    print(f"\n[POST-CRISIS] life_project={state_broken.life_project}, intent={post_crisis_result.intent.value}, score={post_crisis_result.score:.2f}")
+    print(
+        f"\n[POST-CRISIS] life_project={state_broken.life_project}, intent={post_crisis_result.intent.value}, score={post_crisis_result.score:.2f}"
+    )
 
     isolation_intents = [Intent.FLEE.value, Intent.BLOCK_PATH.value]
-    assert post_crisis_result.intent.value in isolation_intents, \
+    assert post_crisis_result.intent.value in isolation_intents, (
         f"NPC в изоляции должен выбирать FLEE или BLOCK_PATH, но выбрал {post_crisis_result.intent.value}"
+    )

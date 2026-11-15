@@ -14,6 +14,7 @@ _ABSENT_FATES = {"escaped", "liberated", "imprisoned", "missing"}
 # Fate outcodes, при которых NPC остаётся в мире, но мёртв
 _DEAD_FATES = {"killed_by_guild", "death", "suicide"}
 
+
 class WorldStateApplicator:
     """Применяет WorldStateDiff к кэшу NPC новой кампании.
 

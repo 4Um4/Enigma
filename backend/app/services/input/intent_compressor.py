@@ -204,16 +204,26 @@ _ACTION_LEMMAS_FLAT = set(lemma for s in _ACTION_LEMMAS.values() for lemma in s)
 # №7-a/zone_raw: синонимы зон из живых ответов LLM + нормализатор для Reconciler
 # (консолидация с _safe_enum — косметика после исследования)
 _ZONE_SYNONYMS = {
-    "EYES": "HEAD", "EYE": "HEAD",
-    "EYE_LEFT": "HEAD", "EYE_RIGHT": "HEAD",
+    "EYES": "HEAD",
+    "EYE": "HEAD",
+    "EYE_LEFT": "HEAD",
+    "EYE_RIGHT": "HEAD",
     "NOSE": "HEAD",
 }
 
 
 _VALID_ACT_TYPES = {
-    "GREETING", "ASK_NAME", "ASK_IDENTITY", "ASK_LOCATION",
-    "SELF_INTRODUCTION", "QUESTION", "ASSERT", "ORDER",
-    "THREAT", "COMPLIMENT", "FAREWELL",
+    "GREETING",
+    "ASK_NAME",
+    "ASK_IDENTITY",
+    "ASK_LOCATION",
+    "SELF_INTRODUCTION",
+    "QUESTION",
+    "ASSERT",
+    "ORDER",
+    "THREAT",
+    "COMPLIMENT",
+    "FAREWELL",
     # Шаг 4/RC8 (вердикт Мастера): provenance — канонический тип акта.
     # Ownership перенесён из consumer (keyword-детектор удалён) в
     # canonicalization: LLM классифицирует, consumer детерминирован.
@@ -282,6 +292,7 @@ def normalize_zone(val: Any) -> Optional[TargetZone]:
         logger.debug(f"[RECONCILE] zone {_v!r} не нормализуется: {_z_err}")
         return None
 
+
 _INTENSITY_LEMMAS = {
     # ИСПРАВЛЕНО: убраны 'весь' (местоимение — 'весь день' давало false positive
     # high intensity) и 'дурь' (существительное — 'дурь прошла' давало false positive).
@@ -318,15 +329,30 @@ _INTENSITY_LEMMAS = {
 # ── M1/P3: предметная ось вопроса (SubjectRef; коррекция Мастера) ──────────
 
 _ASK_STRONG = {
-    "спросить", "расспросить", "выспросить", "спроси",
-    "почему", "зачем", "известно",
+    "спросить",
+    "расспросить",
+    "выспросить",
+    "спроси",
+    "почему",
+    "зачем",
+    "известно",
 }
 _ASK_MEDIUM = {
-    "рассказ", "рассказать", "рассказывать", "поведать", "знать", "знаешь",
-    "видеть", "видел", "слышать", "слышал", "услышать", "услышал",
+    "рассказ",
+    "рассказать",
+    "рассказывать",
+    "поведать",
+    "знать",
+    "знаешь",
+    "видеть",
+    "видел",
+    "слышать",
+    "слышал",
+    "услышать",
+    "услышал",
 }
 # «кто/что» — слабые: бытовая речь («что наливаю?») тоже их содержит;
-#QUESTION требует сильный/средний индикатор ИЛИ вопросительный знак.
+# QUESTION требует сильный/средний индикатор ИЛИ вопросительный знак.
 _QUESTION_MARK = "?"
 
 
@@ -337,9 +363,7 @@ def _is_question(lemmas: set, raw_text: str) -> bool:
         return True
     if not lemmas.isdisjoint(_ASK_MEDIUM):
         return True
-    return _QUESTION_MARK in raw_text and (
-        "кто" in lemmas or "что" in lemmas
-    )
+    return _QUESTION_MARK in raw_text and ("кто" in lemmas or "что" in lemmas)
 
 
 # M1/P3: предлоги с ГРАНИЦЕЙ СЛОВА — «о» внутри «что/кто» не предлог
@@ -356,7 +380,7 @@ def _extract_np_after_preposition(text: str) -> str | None:
     for prep in _SUBJECT_PREPOSITIONS:
         idx = lowered.find(prep)
         if idx >= 0:
-            tail = lowered[idx + len(prep):].strip()
+            tail = lowered[idx + len(prep) :].strip()
             tail = tail.rstrip("?!.,;:").strip()
             tokens = tail.split()[:3]
             return " ".join(tokens) if tokens else None  # noqa: ENIGMA001
@@ -371,8 +395,7 @@ def extract_subject(raw_text: str) -> SubjectRef:
     if not np:
         # «почему Горан нервничает?» — без предлога: первый токен после
         # слабого индикатора; fallback: вся строка как hint
-        return SubjectRef(kind=SubjectKind.UNKNOWN, subject_id=None,
-                          subject_hint=raw_text.strip()[:60] or None)
+        return SubjectRef(kind=SubjectKind.UNKNOWN, subject_id=None, subject_hint=raw_text.strip()[:60] or None)
 
     # 1) NPC-резолв по канон-словарю имён (детерминированный реестр)
     _hit = _resolve_npc_by_name(np)
@@ -382,8 +405,7 @@ def extract_subject(raw_text: str) -> SubjectRef:
     # 2) Канон-тема: topics-словарь секретов (тема ≠ discovery)
     _topic = _resolve_canon_topic(np)
     if _topic is not None:
-        return SubjectRef(kind=SubjectKind.CANON_TOPIC, subject_id=_topic,
-                          subject_hint=np)
+        return SubjectRef(kind=SubjectKind.CANON_TOPIC, subject_id=_topic, subject_hint=np)
 
     # 3) Событие/сущность: NP сохраняется как hint (без онтологии событий)
     return SubjectRef(kind=SubjectKind.EVENT, subject_id=None, subject_hint=np)
@@ -442,6 +464,7 @@ def _ensure_registry_cache() -> dict[str, str]:
     if _REGISTRY_CACHE is not None:
         return _REGISTRY_CACHE
     from app.services.chronicle.registry_builder import build_canonical_registry
+
     _REGISTRY_CACHE = dict(build_canonical_registry().alias_to_npc)
     return _REGISTRY_CACHE
 
@@ -515,7 +538,8 @@ class IntentCompressor:
             # SLOW-ONLY: fast не увидел ничего — LLM обязана разобрать
             _field = await self._recover_acts(
                 await self._slow_path_parse(raw_text, scene_context, dialogue_session),
-                None, scene_context,
+                None,
+                scene_context,
             )
         elif self._fast_incomplete(fast_result, scene_context):
             # FAST-INCOMPLETE: fast нашёл якорь, но неполон — LLM дополняет
@@ -586,7 +610,8 @@ class IntentCompressor:
                 fast.action is ActionType.DIALOGUE
                 and not fast.semantic_acts
                 and getattr(fast, "speech_act", None) is not None  # noqa: ENIGMA002
-                and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower() == "question"  # noqa: ENIGMA002
+                and str(getattr(getattr(fast, "speech_act", None), "value", fast.speech_act) or "").lower()
+                == "question"  # noqa: ENIGMA002
             ):
                 return True
             # S-UE Блок 5.2 (GO Мастера, узкий эксперимент): однопредложенческий
@@ -612,9 +637,7 @@ class IntentCompressor:
                 return True
         return False
 
-    def _enrich(
-        self, fast: IntentSemanticField, llm: Dict[str, Any], scene_context: Any
-    ) -> IntentSemanticField:
+    def _enrich(self, fast: IntentSemanticField, llm: Dict[str, Any], scene_context: Any) -> IntentSemanticField:
         """Enrichment ТОЛЬКО пустых полей fast; перезапись запрещена (вердикт).
         Конфликты — телеметрия [RECONCILE] CONFLICT (вход SCR/M3), арбитраж —
         следующий уровень."""
@@ -643,9 +666,7 @@ class IntentCompressor:
             # P1-фикс (живой регресс): падежные формы имён NPC («горана»)
             # резолвятся существующим падеже-устойчивым резолвером —
             # цель реального NPC НЕ фантом, proposition не снимается.
-            _obj_is_known_npc = _obj in _ids or (
-                _obj and _resolve_npc_by_name(_obj) is not None
-            )
+            _obj_is_known_npc = _obj in _ids or (_obj and _resolve_npc_by_name(_obj) is not None)
             if not _obj_is_known_npc and _obj not in _ids:
                 _lp = llm.get("proposition")
                 if isinstance(_lp, dict) and _lp.get("subject_id") and _lp.get("object_id"):
@@ -751,9 +772,7 @@ class IntentCompressor:
             try:
                 # Правильный await: recovery вызывается из async compress —
                 # asyncio.run здесь = RE-D2 класс (loop already running)
-                _llm2 = await self._llm_client.compress_intent(
-                    field.raw_text, scene_context or {}, None
-                )
+                _llm2 = await self._llm_client.compress_intent(field.raw_text, scene_context or {}, None)
                 if _llm2:
                     # LLM-словарь передаётся в legacy-блок ниже: его поля
                     # (speech_act/requested_outcome) — источник recovery,
@@ -808,13 +827,15 @@ class IntentCompressor:
             and field.proposition is not None
             and field.proposition.object_id
         ):
-            _u["semantic_acts"] = [{
-                "type": "ASSERT",
-                "params": {
-                    "claim": str(field.proposition.object_id),
-                    "subject": str(field.proposition.subject_id or ""),
-                },
-            }]
+            _u["semantic_acts"] = [
+                {
+                    "type": "ASSERT",
+                    "params": {
+                        "claim": str(field.proposition.object_id),
+                        "subject": str(field.proposition.subject_id or ""),
+                    },
+                }
+            ]
 
         # S313-R4 (§ENIGMA-003): incomplete LLM (proposition=None) — fast-фантом
         # с сырым object_id ('люсю') обязан быть снят: неполная proposition ≠
@@ -842,7 +863,9 @@ class IntentCompressor:
                 lemmas.add(token)
         return lemmas
 
-    def _fast_path_parse(self, raw_text: str, dialogue_session: Optional[DialogueSession] = None) -> Optional[IntentSemanticField]:
+    def _fast_path_parse(
+        self, raw_text: str, dialogue_session: Optional[DialogueSession] = None
+    ) -> Optional[IntentSemanticField]:
         lemmas = self._lemmatize(raw_text)
 
         # S200: Context-sensitive Fast Path. Если игрок пишет "продолжай", "ну?", "и?"
@@ -907,11 +930,9 @@ class IntentCompressor:
                     parsed
                     and parsed[0].tag.POS == "NOUN"
                     and parsed[0].normal_form not in _ACTION_LEMMAS_FLAT
-                    and parsed[0].normal_form != "раз" # Исключаем "Еще раз!"
+                    and parsed[0].normal_form != "раз"  # Исключаем "Еще раз!"
                 ):
-                    target_ref = (
-                        token.lower()
-                    )  # Нормализуем в нижний регистр для fuzzy matching
+                    target_ref = token.lower()  # Нормализуем в нижний регистр для fuzzy matching
                     break
 
             # GAP11 FIX: Если NOUN не найден, но есть наречия/местоимения 1-го лица -> цель "player"
@@ -943,10 +964,7 @@ class IntentCompressor:
         _proposition = None
         if matched_action in (ActionType.ATTACK, ActionType.THREATEN) and target_ref:
             _proposition = Proposition(
-                subject_id="player",
-                predicate=Predicate.ATTACKED,
-                object_id=target_ref,
-                polarity=True
+                subject_id="player", predicate=Predicate.ATTACKED, object_id=target_ref, polarity=True
             )
 
         # ADR-O-315: Fast path по умолчанию считает актора игроком ("я"),
@@ -979,9 +997,7 @@ class IntentCompressor:
             physical_force=physical,
             emotional_charge=emotional,
             semantic=_semantic,  # ИНЪЕКЦИЯ ЖИВОГО ВЕКТОРА
-            confidence=ConfidenceVector(
-                action=0.9, parse=1.0, target=0.8 if target_ref else 0.3, emotion=0.5
-            ),
+            confidence=ConfidenceVector(action=0.9, parse=1.0, target=0.8 if target_ref else 0.3, emotion=0.5),
             ambiguity=SemanticAmbiguity.PARTIAL,
         )
 
@@ -1001,9 +1017,7 @@ class IntentCompressor:
             return IntentSemanticField(
                 action=ActionType.UNCERTAIN,
                 raw_text=raw_text,
-                confidence=ConfidenceVector(
-                    parse=0.1, target=0.0, emotion=0.0, action=0.1
-                ),
+                confidence=ConfidenceVector(parse=0.1, target=0.0, emotion=0.0, action=0.1),
                 ambiguity=SemanticAmbiguity.AMBIGUOUS,
             )
 
@@ -1011,10 +1025,12 @@ class IntentCompressor:
             # S199/S200/S203: Fault-tolerant parsing. LLM может возвращать неизвестные значения.
             from enum import Enum
             from typing import Any, Optional, Type, TypeVar
+
             _E = TypeVar("_E", bound=Enum)
 
             def _safe_enum(enum_cls: Type[_E], val: Optional[Any], default: Optional[_E] = None) -> Optional[_E]:
-                if not val: return default
+                if not val:
+                    return default
                 if not isinstance(val, str):
                     val = str(val)
                 try:
@@ -1022,8 +1038,10 @@ class IntentCompressor:
                 except ValueError:
                     # Маппинг частых галлюцинаций
                     if enum_cls is ActionType:
-                        if val.upper() == "HELP": return ActionType.GIVE  # type: ignore
-                        if val.upper() in ("ASSERT", "ASSERTS"): return ActionType.DIALOGUE  # type: ignore
+                        if val.upper() == "HELP":
+                            return ActionType.GIVE  # type: ignore
+                        if val.upper() in ("ASSERT", "ASSERTS"):
+                            return ActionType.DIALOGUE  # type: ignore
                     if enum_cls is TargetZone:
                         # №7-a (вердикт Мастера): нормализация синонимов частей тела
                         # к ближайшей канонической зоне. EYES→HEAD — сознательная
@@ -1031,33 +1049,41 @@ class IntentCompressor:
                         # анатомической детализации — будущая модель зон (CognitionContext),
                         # сегодня недостижима (IntentParametersDTO не несёт zone).
                         _tz_syn = {
-                            "EYES": "HEAD", "EYE": "HEAD",
-                            "EYE_LEFT": "HEAD", "EYE_RIGHT": "HEAD",
+                            "EYES": "HEAD",
+                            "EYE": "HEAD",
+                            "EYE_LEFT": "HEAD",
+                            "EYE_RIGHT": "HEAD",
                             "NOSE": "HEAD",
                         }
                         if val and str(val).upper() in _tz_syn:
                             return TargetZone[_tz_syn[str(val).upper()]]  # type: ignore
                         return TargetZone.UNDEFINED  # type: ignore
                     if enum_cls is SocialIntent:
-                        if val == "clarify": return SocialIntent.NEUTRAL  # type: ignore
+                        if val == "clarify":
+                            return SocialIntent.NEUTRAL  # type: ignore
                     return default
 
             _prop_data = llm_response.get("proposition")
             _proposition = None
             if _prop_data and isinstance(_prop_data, dict):
-                _pred = _safe_enum(Predicate, _prop_data.get("predicate", "asserts"), Predicate.ASSERTS) or Predicate.ASSERTS
+                _pred = (
+                    _safe_enum(Predicate, _prop_data.get("predicate", "asserts"), Predicate.ASSERTS)
+                    or Predicate.ASSERTS
+                )
                 _proposition = Proposition(
                     subject_id=_prop_data.get("subject_id", ""),
                     predicate=_pred,
                     object_id=_prop_data.get("object_id", ""),
-                    polarity=_prop_data.get("polarity", True)
+                    polarity=_prop_data.get("polarity", True),
                 )
 
             _speech_act_val = llm_response.get("speech_act")
             _speech_act = _safe_enum(SpeechAct, _speech_act_val) if _speech_act_val else None  # noqa: ENIGMA001
 
             _social_intent_val = llm_response.get("social_intent")
-            _social_intent = _safe_enum(SocialIntent, _social_intent_val, SocialIntent.NEUTRAL) if _social_intent_val else None  # noqa: ENIGMA001
+            _social_intent = (
+                _safe_enum(SocialIntent, _social_intent_val, SocialIntent.NEUTRAL) if _social_intent_val else None
+            )  # noqa: ENIGMA001
 
             _action_val = llm_response.get("action", llm_response.get("action_type", ActionType.UNCERTAIN))
             _action = _safe_enum(ActionType, _action_val, ActionType.UNCERTAIN)
@@ -1090,9 +1116,7 @@ class IntentCompressor:
                 tool_reference=llm_response.get("tool_reference"),
                 semantic=EmotionalVector(**(llm_response.get("semantic") or {})),
                 raw_text=raw_text,
-                confidence=ConfidenceVector(
-                    parse=0.8, target=0.6, emotion=0.7, action=0.8
-                ),
+                confidence=ConfidenceVector(parse=0.8, target=0.6, emotion=0.7, action=0.8),
             )
         except Exception as _parse_err:
             import logging
@@ -1106,8 +1130,6 @@ class IntentCompressor:
             return IntentSemanticField(
                 action=ActionType.UNCERTAIN,
                 raw_text=raw_text,
-                confidence=ConfidenceVector(
-                    parse=0.3, target=0.1, emotion=0.1, action=0.3
-                ),
+                confidence=ConfidenceVector(parse=0.3, target=0.1, emotion=0.1, action=0.3),
                 ambiguity=SemanticAmbiguity.AMBIGUOUS,
             )

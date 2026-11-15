@@ -5,6 +5,7 @@ path: backend/app/services/spatial/world_topology_provider.py
 Зависимости: SpatialService, motion_core
 Основные сущности: WorldTopologyProvider
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
@@ -27,9 +28,7 @@ class DynamicAffordanceField:
         # Слой 2: Soft Traces (region -> zone_id -> trace_type -> accumulated float)
         self._traces: Dict[str, Dict[str, Dict[str, float]]] = {}
 
-    def apply_deformation(
-        self, region: str, zone_id: str, record: DeformationRecord
-    ) -> None:
+    def apply_deformation(self, region: str, zone_id: str, record: DeformationRecord) -> None:
         """Слой 1: Применяет структурную деформацию (перезаписывает старую того же типа)."""
         if region not in self._hard_overrides:
             self._hard_overrides[region] = {}
@@ -44,16 +43,10 @@ class DynamicAffordanceField:
         if payload.zone_id not in self._traces[payload.region]:
             self._traces[payload.region][payload.zone_id] = {}
 
-        current = self._traces[payload.region][payload.zone_id].get(
-            payload.trace_type, 0.0
-        )
-        self._traces[payload.region][payload.zone_id][payload.trace_type] = (
-            current + payload.magnitude
-        )
+        current = self._traces[payload.region][payload.zone_id].get(payload.trace_type, 0.0)
+        self._traces[payload.region][payload.zone_id][payload.trace_type] = current + payload.magnitude
 
-    def get_hard_overrides(
-        self, region: str, zone_id: str
-    ) -> Dict[str, DeformationRecord]:
+    def get_hard_overrides(self, region: str, zone_id: str) -> Dict[str, DeformationRecord]:
         """Возвращает все активные структурные деформации для зоны."""
         return self._hard_overrides.get(region, {}).get(zone_id, {})
 
@@ -67,9 +60,7 @@ class DynamicAffordanceField:
         for region, zones in self._hard_overrides.items():
             for zone_id, types in zones.items():
                 expired_types = [
-                    t
-                    for t, rec in types.items()
-                    if rec.ttl > 0 and (current_tick - rec.created_tick) > rec.ttl
+                    t for t, rec in types.items() if rec.ttl > 0 and (current_tick - rec.created_tick) > rec.ttl
                 ]
                 for t in expired_types:
                     del types[t]
@@ -122,9 +113,7 @@ class WorldTopologyProvider:
         """S91: Инъекция SpatialService для персистентного провайдера."""
         self._svc = svc
 
-    def query_affordance_field(
-        self, region: str, pos: Tuple[float, float]
-    ) -> AffordanceVector:
+    def query_affordance_field(self, region: str, pos: Tuple[float, float]) -> AffordanceVector:
         """Запрашивает AffordanceVector для точки (x, y) в регионе (location_id).
 
         S91: Базовая геометрия мержится с активными деформациями (DynamicAffordanceField).
@@ -182,8 +171,6 @@ class WorldTopologyProvider:
         """
         return {}
 
-    def apply_deformation(
-        self, region: str, zone_id: str, record: DeformationRecord
-    ) -> None:
+    def apply_deformation(self, region: str, zone_id: str, record: DeformationRecord) -> None:
         """S91: Делегирует применение деформации в DynamicAffordanceField."""
         self._dynamic_field.apply_deformation(region, zone_id, record)

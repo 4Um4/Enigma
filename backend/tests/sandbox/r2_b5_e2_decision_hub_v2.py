@@ -24,6 +24,7 @@ Key intel from v1:
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -130,9 +131,7 @@ def _find_function_bounds(src: str, func_name: str) -> Optional[Tuple[int, int]]
             continue
         cur_indent = len(line) - len(line.lstrip())
         if cur_indent <= indent_of_def and (
-            line.lstrip().startswith("def ")
-            or line.lstrip().startswith("class ")
-            or line.lstrip().startswith("@")
+            line.lstrip().startswith("def ") or line.lstrip().startswith("class ") or line.lstrip().startswith("@")
         ):
             func_end = j
             break
@@ -289,6 +288,7 @@ def main() -> int:
         DecisionHubClass: Any = None
         try:
             from app.services.npc.decision_hub import DecisionHub as _DH
+
             DecisionHubClass = _DH
             print(f"  DecisionHub class imported: {DecisionHubClass}")
             print(f"  module: {DecisionHubClass.__module__}")
@@ -318,7 +318,7 @@ def main() -> int:
 
         # Specifically look for instance creation: DecisionHub(
         print()
-        print(f"  --- DecisionHub( construction sites ---")
+        print("  --- DecisionHub( construction sites ---")
         for path, ln, line in dh_wiring_results:
             if "DecisionHub(" in line and not line.strip().startswith("#"):
                 try:
@@ -332,7 +332,7 @@ def main() -> int:
                 print(f"\n  >>> {rel} L{ln}: {line.strip()}")
                 for j in range(ctx_start, ctx_end):
                     marker = ">>>" if j + 1 == ln else "   "
-                    print(f"  {marker} L{j+1:4d}: {src_lines[j]}")
+                    print(f"  {marker} L{j + 1:4d}: {src_lines[j]}")
 
         # =====================================================================
         # STEP 4: read DecisionHub class structure (decorators, methods)
@@ -347,7 +347,7 @@ def main() -> int:
             print(f"  file: {dh_path_str}")
             print(f"  total lines: {len(dh_lines)}")
             print()
-            print(f"  --- class DecisionHub definition + structure ---")
+            print("  --- class DecisionHub definition + structure ---")
             # Find class definition
             class_start = None
             for i, line in enumerate(dh_lines):
@@ -368,21 +368,20 @@ def main() -> int:
                         continue
                     cur_indent = len(dh_lines[j]) - len(dh_lines[j].lstrip())
                     if cur_indent <= class_indent and (
-                        dh_lines[j].lstrip().startswith("class ")
-                        or dh_lines[j].lstrip().startswith("def ")
+                        dh_lines[j].lstrip().startswith("class ") or dh_lines[j].lstrip().startswith("def ")
                     ):
                         class_end = j
                         break
                 # Print first 80 lines of class
                 end_print = min(class_end, class_start + 80)
                 for j in range(class_start, end_print):
-                    print(f"  L{j+1:4d}: {dh_lines[j]}")
+                    print(f"  L{j + 1:4d}: {dh_lines[j]}")
                 if class_end > end_print:
                     print(f"  ... ({class_end - end_print} more lines)")
 
             # List all methods with decorators
             print()
-            print(f"  --- all methods in DecisionHub (with decorators) ---")
+            print("  --- all methods in DecisionHub (with decorators) ---")
             for i, line in enumerate(dh_lines, 1):
                 stripped = line.lstrip()
                 if stripped.startswith("@") or stripped.startswith("def "):
@@ -394,9 +393,9 @@ def main() -> int:
                 bounds = _find_function_bounds(dh_src, method_name)
                 if bounds:
                     s, e = bounds
-                    print(f"\n  --- {method_name}() at L{s+1}..L{e} ---")
+                    print(f"\n  --- {method_name}() at L{s + 1}..L{e} ---")
                     for j in range(s, e):
-                        print(f"  L{j+1:4d}: {dh_lines[j]}")
+                        print(f"  L{j + 1:4d}: {dh_lines[j]}")
                     break
         else:
             print("  [DecisionHub class not imported — skipping]")
@@ -414,7 +413,7 @@ def main() -> int:
                     print(f"\n  >>> L{i}: {line.rstrip()}")
                     for j in range(ctx_start, ctx_end):
                         marker = ">>>" if j + 1 == i else "   "
-                        print(f"  {marker} L{j+1:4d}: {dh_lines[j]}")
+                        print(f"  {marker} L{j + 1:4d}: {dh_lines[j]}")
 
         # =====================================================================
         # STEP 6: read epistemic_dispositions.py — maid disposition
@@ -498,7 +497,9 @@ def main() -> int:
                             continue
                         if callable(val):
                             try:
-                                result = val("Open_road") if "snapshot" in attr_name or "resolve" in attr_name else val()
+                                result = (
+                                    val("Open_road") if "snapshot" in attr_name or "resolve" in attr_name else val()
+                                )
                                 if isinstance(result, dict) and result:
                                     npc_states = result
                                     print(f"  _svc.{attr_name}() returned: {len(result)} NPCs")
@@ -518,7 +519,7 @@ def main() -> int:
             print("  [maid_lusya NPC state NOT FOUND]")
         else:
             print(f"  maid_lusya NPC state: type={type(lusya_state).__name__}, id={id(lusya_state)}")
-            print(f"  --- maid_lusya state top-level attrs ---")
+            print("  --- maid_lusya state top-level attrs ---")
             try:
                 for k, v in vars(lusya_state).items():
                     if not k.startswith("__"):
@@ -642,7 +643,7 @@ def main() -> int:
                         print(f"  {type(e).__name__}: {e}")
                         if any(t in str(e).lower() for t in ("llm", "openai", "client", "api")):
                             decision_error = f"LLM_ERROR: {e}"
-                            print(f"  >>> LLM error — reached LLM call (good sign)")
+                            print("  >>> LLM error — reached LLM call (good sign)")
                             break
             else:
                 # Try as static/class method
@@ -667,7 +668,7 @@ def main() -> int:
                         print(f"  {type(e).__name__}: {e}")
                         if any(t in str(e).lower() for t in ("llm", "openai", "client", "api")):
                             decision_error = f"LLM_ERROR: {e}"
-                            print(f"  >>> LLM error — reached LLM call")
+                            print("  >>> LLM error — reached LLM call")
                             break
 
         # =====================================================================
@@ -677,28 +678,44 @@ def main() -> int:
         if decision_result is not None:
             print(f"  result type: {type(decision_result).__name__}")
             result_dict = _inspect_obj(decision_result)
-            print(f"  --- result dump ---")
+            print("  --- result dump ---")
             print(json.dumps(result_dict, indent=2, default=str, ensure_ascii=False)[:5000])
 
             # Look for intent field
             intent_value = None
             for attr_name in ("intent", "selected_intent", "action", "selected_action", "decision", "intent_type"):
-                v = getattr(decision_result, attr_name, None) if not isinstance(decision_result, dict) else decision_result.get(attr_name)
+                v = (
+                    getattr(decision_result, attr_name, None)
+                    if not isinstance(decision_result, dict)
+                    else decision_result.get(attr_name)
+                )
                 if v is not None:
                     intent_value = v
                     print(f"\n  >>> {attr_name}: {v!r}")
                     break
 
             # Look for scores
-            for attr_name in ("scores", "intent_scores", "modifiers", "intent_modifiers", "evaluations", "weights", "scored_intents"):
-                v = getattr(decision_result, attr_name, None) if not isinstance(decision_result, dict) else decision_result.get(attr_name)
+            for attr_name in (
+                "scores",
+                "intent_scores",
+                "modifiers",
+                "intent_modifiers",
+                "evaluations",
+                "weights",
+                "scored_intents",
+            ):
+                v = (
+                    getattr(decision_result, attr_name, None)
+                    if not isinstance(decision_result, dict)
+                    else decision_result.get(attr_name)
+                )
                 if v is not None:
                     print(f"\n  --- {attr_name} ---")
                     print(json.dumps(_inspect_obj(v), indent=2, default=str, ensure_ascii=False)[:3000])
         elif decision_error:
             print(f"  Decision could not complete: {decision_error}")
         else:
-            print(f"  [no decision result captured]")
+            print("  [no decision result captured]")
 
         # =====================================================================
         # STEP 11: trace execution path
@@ -706,8 +723,14 @@ def main() -> int:
         _print_section("STEP 11: trace execution — where DecisionHub output flows")
         exec_results = _grep_in_dir(
             _BACKEND,
-            ["intent_executor", "execute_intent", "action_dispatcher",
-             "apply_intent", "intent_handler", "dialogue_executor"],
+            [
+                "intent_executor",
+                "execute_intent",
+                "action_dispatcher",
+                "apply_intent",
+                "intent_handler",
+                "dialogue_executor",
+            ],
             production_only=True,
         )
         for path, ln, line in exec_results[:20]:
@@ -733,7 +756,11 @@ def main() -> int:
         if decision_result is not None:
             intent_value = None
             for attr_name in ("intent", "selected_intent", "action", "selected_action", "decision", "intent_type"):
-                v = getattr(decision_result, attr_name, None) if not isinstance(decision_result, dict) else decision_result.get(attr_name)
+                v = (
+                    getattr(decision_result, attr_name, None)
+                    if not isinstance(decision_result, dict)
+                    else decision_result.get(attr_name)
+                )
                 if v is not None:
                     intent_value = v
                     break
@@ -742,23 +769,23 @@ def main() -> int:
                 intent_str = str(intent_value).upper()
                 print(f"  selected intent: {intent_value!r}")
                 if "SPREAD_RUMOR" in intent_str or "spread_rumor" in intent_str:
-                    print(f"\n  >>> VERDICT: B5-E2 NOT A DEFECT")
-                    print(f"  >>> DecisionHub selected SPREAD_RUMOR for maid_lusya")
-                    print(f"  >>> WANTS is proven")
+                    print("\n  >>> VERDICT: B5-E2 NOT A DEFECT")
+                    print("  >>> DecisionHub selected SPREAD_RUMOR for maid_lusya")
+                    print("  >>> WANTS is proven")
                 elif "TALK" in intent_str:
-                    print(f"\n  >>> VERDICT: B5-E2 DEFECT — TALK chosen instead of SPREAD_RUMOR")
-                    print(f"  >>> Investigate why SPREAD_RUMOR modifier (1.3 maid disposition) didn't win")
+                    print("\n  >>> VERDICT: B5-E2 DEFECT — TALK chosen instead of SPREAD_RUMOR")
+                    print("  >>> Investigate why SPREAD_RUMOR modifier (1.3 maid disposition) didn't win")
                 else:
-                    print(f"\n  >>> VERDICT: B5-E2 DEFECT — neither SPREAD_RUMOR nor TALK")
+                    print("\n  >>> VERDICT: B5-E2 DEFECT — neither SPREAD_RUMOR nor TALK")
             else:
-                print(f"\n  >>> VERDICT: needs manual inspection of Step 10 dump")
+                print("\n  >>> VERDICT: needs manual inspection of Step 10 dump")
         elif decision_error and "LLM_ERROR" in decision_error:
-            print(f"\n  >>> VERDICT: INCONCLUSIVE — DecisionHub requires LLM")
-            print(f"  >>> However, v1 confirmed spread_rumor uses fast-path (no LLM)")
-            print(f"  >>> Need to find correct call signature OR run full tick")
+            print("\n  >>> VERDICT: INCONCLUSIVE — DecisionHub requires LLM")
+            print("  >>> However, v1 confirmed spread_rumor uses fast-path (no LLM)")
+            print("  >>> Need to find correct call signature OR run full tick")
         else:
-            print(f"\n  >>> VERDICT: INCONCLUSIVE — could not invoke DecisionHub")
-            print(f"  >>> Need to inspect wiring sites from Step 3 + class structure from Step 4")
+            print("\n  >>> VERDICT: INCONCLUSIVE — could not invoke DecisionHub")
+            print("  >>> Need to inspect wiring sites from Step 3 + class structure from Step 4")
 
         # ---- Cleanup ----
         try:
@@ -769,8 +796,10 @@ def main() -> int:
             pass
         del loop
         import gc
+
         gc.collect()
         import shutil
+
         shutil.rmtree(saves_dir, ignore_errors=True)
 
     except Exception as e:

@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: backend/tests/sandbox/micro/test_target_resolve_canonical_id.py
 Назначение: R14 — canonical id от LLM-слоя резолвится в Слое 2 (exact-id bridge до fuzzy)
 Зависимости: app.services.game_loop.phase_1_input
@@ -6,6 +6,7 @@ path: backend/tests/sandbox/micro/test_target_resolve_canonical_id.py
 
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_target_resolve_canonical_id.py -v --tb=short; cd ..
 """
+
 from app.domain.intent_profile import ActionType, IntentSemanticField
 from app.services.game_loop.phase_1_input import _resolve_target_reference
 

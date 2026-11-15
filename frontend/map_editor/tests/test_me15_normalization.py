@@ -30,9 +30,7 @@ import pytest
 from data_manager import DataManager  # type: ignore[import-not-found]
 
 _CAMPAIGN = "Open_road"
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / _CAMPAIGN / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / _CAMPAIGN / "locations"
 
 
 @pytest.fixture
@@ -70,18 +68,13 @@ def test_add_passage_writes_wall_id_root_only(isolated_dm):
     obj = passages[-1]
 
     # ME-1.5 контракт: wall_id в root
-    assert obj.get("wall_id") == wall_id, (
-        f"wall_id должен быть в root, а не {obj.get('wall_id')!r}"
-    )
+    assert obj.get("wall_id") == wall_id, f"wall_id должен быть в root, а не {obj.get('wall_id')!r}"
     # ME-1.5 контракт: дубликат в properties отсутствует
     props = obj.get("properties") or {}
-    assert "wall_id" not in props, (
-        f"properties.wall_id должен быть удалён, а не {props.get('wall_id')!r}"
-    )
+    assert "wall_id" not in props, f"properties.wall_id должен быть удалён, а не {props.get('wall_id')!r}"
     # ME-1.5 контракт: rotation больше не несёт wall_id (S129 снят)
     assert obj.get("rotation") != wall_id, (
-        f"rotation не должен дублировать wall_id (S129 снят), "
-        f"получено rotation={obj.get('rotation')!r}"
+        f"rotation не должен дублировать wall_id (S129 снят), получено rotation={obj.get('rotation')!r}"
     )
 
 
@@ -97,18 +90,14 @@ def test_add_object_with_wall_id_writes_root_only(isolated_dm):
 
     assert obj.get("wall_id") == wall_id, "wall_id должен быть в root"
     props = obj.get("properties") or {}
-    assert "wall_id" not in props, (
-        f"properties.wall_id не должен дублироваться, получено {props.get('wall_id')!r}"
-    )
+    assert "wall_id" not in props, f"properties.wall_id не должен дублироваться, получено {props.get('wall_id')!r}"
 
 
 def test_save_drops_portals_key(isolated_dm, tmp_path):
     """save(...) не пишет легаси-ключ `portals` в файл."""
     dm, fname = isolated_dm
     wall_id = dm.add_wall(fname, 0.0, 0.0, 5.0, 0.0)
-    dm.add_passage(
-        fname, wall_id=wall_id, passage_type="door", position={"x": 2.5, "y": 0.0}
-    )
+    dm.add_passage(fname, wall_id=wall_id, passage_type="door", position={"x": 2.5, "y": 0.0})
 
     ok = dm.save(fname)
     assert ok, "save должен вернуть True"
@@ -117,18 +106,14 @@ def test_save_drops_portals_key(isolated_dm, tmp_path):
     assert saved_path.exists(), f"файл {saved_path} должен существовать после save"
     saved = json.loads(saved_path.read_text(encoding="utf-8"))
 
-    assert "portals" not in saved, (
-        "ME-1.5: ключ `portals` не должен присутствовать в сохранённом файле"
-    )
+    assert "portals" not in saved, "ME-1.5: ключ `portals` не должен присутствовать в сохранённом файле"
 
 
 def test_round_trip_preserves_wall_id_root(isolated_dm, tmp_path):
     """load→save→load: wall_id выживает в одной форме (root)."""
     dm, fname = isolated_dm
     wall_id = dm.add_wall(fname, 0.0, 0.0, 5.0, 0.0)
-    dm.add_passage(
-        fname, wall_id=wall_id, passage_type="door", position={"x": 2.5, "y": 0.0}
-    )
+    dm.add_passage(fname, wall_id=wall_id, passage_type="door", position={"x": 2.5, "y": 0.0})
     assert dm.save(fname), "save должен вернуть True"
 
     # Новый менеджер на ту же папку — симулирует холодный старт редактора
@@ -139,13 +124,9 @@ def test_round_trip_preserves_wall_id_root(isolated_dm, tmp_path):
     assert passages, "после round-trip passage должен присутствовать"
 
     obj = passages[-1]
-    assert obj.get("wall_id") == wall_id, (
-        f"wall_id потерян после round-trip: {obj.get('wall_id')!r} != {wall_id!r}"
-    )
+    assert obj.get("wall_id") == wall_id, f"wall_id потерян после round-trip: {obj.get('wall_id')!r} != {wall_id!r}"
     props = obj.get("properties") or {}
-    assert "wall_id" not in props, (
-        "после round-trip properties.wall_id не должен воскрешаться"
-    )
+    assert "wall_id" not in props, "после round-trip properties.wall_id не должен воскрешаться"
     assert "portals" not in loc2, "после round-trip ключ `portals` не должен появляться"
 
 
@@ -160,6 +141,4 @@ def test_migrated_campaign_locations_have_no_portals():
         data = json.loads(path.read_text(encoding="utf-8-sig"))
         if "portals" in data:
             offenders.append(path.name)
-    assert not offenders, (
-        f"ME-1.5: локации всё ещё содержат легаси `portals`: {offenders}"
-    )
+    assert not offenders, f"ME-1.5: локации всё ещё содержат легаси `portals`: {offenders}"

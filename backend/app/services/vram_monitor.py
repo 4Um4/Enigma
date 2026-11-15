@@ -4,12 +4,15 @@ path: /project/backend/app/services/vram_monitor.py
 Зависимости: Нет.
 Основные сущности: VramMonitor, get_vram_monitor
 """
+
 import logging
 
 logger = logging.getLogger(__name__)
 
+
 class VramMonitor:
     """Пассивный монитор VRAM (заглушка)."""
+
     async def start_session(self) -> None:
         """Инициализация сессии мониторинга (заглушка)."""
         pass
@@ -27,7 +30,9 @@ class VramMonitor:
     def get_status(self) -> dict:
         return {"vram_used": 0, "vram_total": 0}
 
+
 _vram_monitor_instance: VramMonitor | None = None
+
 
 def get_vram_monitor() -> VramMonitor:
     """Возвращает синглтон VramMonitor."""

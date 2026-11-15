@@ -123,6 +123,4 @@ class PerceivedScene:
     audio_events: List[AudioEvent] = field(default_factory=list)
     environment: PerceivedEnvironment = field(default_factory=PerceivedEnvironment)
     attention_focus_id: Optional[str] = None  # entity_id в фокусе
-    player_body_state: List[str] = field(
-        default_factory=list
-    )  # ["тяжело дышишь", "рука болит"]
+    player_body_state: List[str] = field(default_factory=list)  # ["тяжело дышишь", "рука болит"]

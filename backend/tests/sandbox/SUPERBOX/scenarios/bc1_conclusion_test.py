@@ -66,6 +66,7 @@ class _GroupResult:
 
 # ── Тап (ObservabilityTap-паттерн, дословно из causal_state_test) ──
 
+
 class _TapRegistry:
     """Обёртка execute → stash TickResultDTO. Наблюдение не создаёт
     причинность (Устав §XI)."""
@@ -97,10 +98,7 @@ class _TapRegistry:
     def _check_crash(self) -> None:
         for _res in reversed(self.stash):
             if getattr(_res, "status", "ok") == "error":
-                raise RuntimeError(
-                    f"[BC1_CONCLUSION_TEST] TICK_CRASH в прогоне: "
-                    f"{getattr(_res, 'error', 'unknown')}"
-                )
+                raise RuntimeError(f"[BC1_CONCLUSION_TEST] TICK_CRASH в прогоне: {getattr(_res, 'error', 'unknown')}")
 
     def last_scene(self) -> Dict[str, Any]:
         self._check_crash()
@@ -113,6 +111,7 @@ class _TapRegistry:
 
 
 # ── Хелперы (дословно из causal_state_test) ──
+
 
 def _bus_publish(game_loop: Any, event_type: str, payload: Dict[str, Any]) -> None:
     from app.domain.events import EventDTO
@@ -173,6 +172,7 @@ def _record_as_dict(record: Any) -> Dict[str, Any]:
 # ── Общий конвейер групп (методология causal_state_test: clear ВНЕ группы,
 #    ДО построения харнесса — подписки харнесса и коллектора выживают) ──
 
+
 def _run_group_bc1(
     label: str,
     injection: Callable[[Any, _TapRegistry, _GroupResult], None],
@@ -196,18 +196,14 @@ def _run_group_bc1(
             res.pk_at_measure = _read_pk(h.game_loop, NPC_TARGET)
             store = _store_of(h.game_loop)
             if store is None:
-                raise RuntimeError(
-                    f"[BC1_CONCLUSION_TEST][{label}] BC-1 store не wired (ON-группа)"
-                )
+                raise RuntimeError(f"[BC1_CONCLUSION_TEST][{label}] BC-1 store не wired (ON-группа)")
             res.store_size = len(store)
             rec = store.get(NPC_TARGET, "player", _predicate())
             if rec is not None:
                 res.record = _record_as_dict(rec)
             res.store_data = store.to_dict()
             orch = h.game_loop._tick_orch
-            res.collector_residual = len(
-                getattr(orch, "_conclusion_collector", []) or []
-            )
+            res.collector_residual = len(getattr(orch, "_conclusion_collector", []) or [])
             res.formed_events = len(formed)
         finally:
             tap.detach()
@@ -215,6 +211,7 @@ def _run_group_bc1(
 
 
 # ── Инъекции групп ──
+
 
 def _inject_A(game_loop: Any, tap: _TapRegistry, res: _GroupResult) -> None:
     """A: прод-путь. Threat-событие → тик 1: Фаза 8 (reaction S115:
@@ -295,13 +292,12 @@ def _inject_C(game_loop: Any, tap: _TapRegistry, res: _GroupResult) -> None:
     if gate is None or store is None:
         raise RuntimeError("[BC1_CONCLUSION_TEST][C1] BC-1 слои не wired (gate/store)")
     if not gate.apply(_proposal, consumer_dispatch=store.apply):
-        raise RuntimeError(
-            "[BC1_CONCLUSION_TEST][C1] gate не принял механический proposal"
-        )
+        raise RuntimeError("[BC1_CONCLUSION_TEST][C1] gate не принял механический proposal")
 
 
 # ── Группа D: WRITE-GUARD (слой-уровень; харнесс не нужен — guard
 #    проверяет caller, не мир; D в цензус НЕ вносится — замок) ──
+
 
 def _run_group_D() -> Dict[str, str]:
     from app.domain.conclusions import ConclusionPredicate, ConclusionProposal
@@ -328,6 +324,7 @@ def _run_group_D() -> Dict[str, str]:
 
 # ── Группа E: рестарт round-trip (данные группы A; прецедент SUPERBOX-009) ──
 
+
 def _run_group_E(a_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     from app.domain.conclusions import ConclusionPredicate
     from app.services.npc.conclusion_store import ConclusionStore
@@ -351,6 +348,7 @@ def _run_group_E(a_data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 # ── Группа OFF: dormant (INV-BC1-NOOP) ──
 
+
 def _run_group_OFF() -> Dict[str, Any]:
     from app.services.events.event_bus import get_event_bus
     from app.services.events.event_types import EventType
@@ -366,9 +364,7 @@ def _run_group_OFF() -> Dict[str, Any]:
         with TavernGameplayHarness() as h:
             tap.attach(h.game_loop)
             bus = h.game_loop._tick_orch._get_event_bus()
-            bus.subscribe(
-                EventType.CONCLUSION_FORMED, lambda ev: formed.append(ev)
-            )
+            bus.subscribe(EventType.CONCLUSION_FORMED, lambda ev: formed.append(ev))
             try:
                 h.game_loop.idle_tick(CAMPAIGN)  # тик 0
                 _bus_publish(
@@ -385,14 +381,9 @@ def _run_group_OFF() -> Dict[str, Any]:
                 scene = tap.last_scene()
                 out["events"] = len(formed)
                 out["store_attr"] = (
-                    "None"
-                    if getattr(h.game_loop._tick_orch, "_conclusion_store", None)
-                    is None
-                    else "WIRED(!)"
+                    "None" if getattr(h.game_loop._tick_orch, "_conclusion_store", None) is None else "WIRED(!)"
                 )
-                out["scene_key"] = (
-                    "absent" if "conclusions" not in scene else "PRESENT(!)"
-                )
+                out["scene_key"] = "absent" if "conclusions" not in scene else "PRESENT(!)"
             finally:
                 tap.detach()
     finally:
@@ -401,6 +392,7 @@ def _run_group_OFF() -> Dict[str, Any]:
 
 
 # ── Оркестрация + вердикты ──
+
 
 def run_bc1_conclusion_test() -> Dict[str, Any]:
     from app.services.events.event_bus import get_event_bus
@@ -431,11 +423,7 @@ def run_bc1_conclusion_test() -> Dict[str, Any]:
         and len(res_a.record.get("evidence", [])) > 0
         and res_a.formed_events >= 1
     )
-    res_b.pass_ = (
-        res_b.formed_events == 0
-        and res_b.store_size == 0
-        and res_b.collector_residual == 0
-    )
+    res_b.pass_ = res_b.formed_events == 0 and res_b.store_size == 0 and res_b.collector_residual == 0
     _conf_a = (res_a.record or {}).get("confidence")
     _conf_c = (res_c.record or {}).get("confidence")
     res_c.pass_ = (
@@ -458,8 +446,7 @@ def run_bc1_conclusion_test() -> Dict[str, Any]:
     for _r in (res_a, res_b, res_c):
         _rec = _r.record
         _rec_s = (
-            "owner={owner_id} subject={subject} pred={predicate} "
-            "conf={confidence} evidence={evidence}".format(**_rec)
+            "owner={owner_id} subject={subject} pred={predicate} conf={confidence} evidence={evidence}".format(**_rec)
             if _rec
             else "—"
         )
@@ -469,10 +456,7 @@ def run_bc1_conclusion_test() -> Dict[str, Any]:
             f"collector_resid={_r.collector_residual} | PK@tick2={_r.pk_at_measure}"
         )
     print(f"[D] {d_outcome['D_store_bypass']}")
-    print(
-        f"[E] restart round-trip: {'✅' if _e_pass else '❌'} "
-        f"{e_outcome.get('note')}"
-    )
+    print(f"[E] restart round-trip: {'✅' if _e_pass else '❌'} {e_outcome.get('note')}")
     print(
         f"[OFF] dormant: events={off_outcome['events']}, "
         f"store={off_outcome['store_attr']}, "
@@ -480,14 +464,7 @@ def run_bc1_conclusion_test() -> Dict[str, Any]:
     )
     print()
 
-    _all = (
-        res_a.pass_
-        and res_b.pass_
-        and res_c.pass_
-        and _d_pass
-        and _e_pass
-        and _off_pass
-    )
+    _all = res_a.pass_ and res_b.pass_ and res_c.pass_ and _d_pass and _e_pass and _off_pass
     print(
         f"ИТОГ BC-1: {'✅ ЗАКРЫТО' if _all else '❌ КРАСНЫЙ'} "
         f"(A={res_a.pass_}, B={res_b.pass_}, C={res_c.pass_}, "
@@ -512,8 +489,6 @@ if __name__ == "__main__":
         and _out.get("C_state_channel")
         and _out.get("E_roundtrip")
         and _out.get("OFF_dormant")
-        and str(_out.get("D_guard", {}).get("D_store_bypass", "")).startswith(
-            "REJECTED"
-        )
+        and str(_out.get("D_guard", {}).get("D_store_bypass", "")).startswith("REJECTED")
     )
     sys.exit(0 if _ok else 1)

@@ -13,6 +13,7 @@ path: backend/tests/sandbox/re_gap1_production_probe.py
 Основные сущности: main
 Запуск: python backend/tests/sandbox/re_gap1_production_probe.py
 """
+
 from __future__ import annotations
 
 import shutil
@@ -91,10 +92,14 @@ def main() -> int:
     _set_trust = {"merchant_goran": -60.0, "maid_lusya": 60.0}
     _injected = []
     for _nid, _val in _set_trust.items():
-        _npc_dict = next(
-            (d for d in loop.all_npcs_raw if isinstance(d, dict) and d.get("id") == _nid),
-            None,
-        ) if hasattr(loop, "all_npcs_raw") else None
+        _npc_dict = (
+            next(
+                (d for d in loop.all_npcs_raw if isinstance(d, dict) and d.get("id") == _nid),
+                None,
+            )
+            if hasattr(loop, "all_npcs_raw")
+            else None
+        )
         if _npc_dict is None:
             print(f"[GAP1-PROBE] FAIL-FAST: {_nid} не найден в all_npcs_raw — вердикта нет")
             return 2

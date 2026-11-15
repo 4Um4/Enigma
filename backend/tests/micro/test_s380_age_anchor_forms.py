@@ -10,6 +10,7 @@
 
 Тесты на реальные языковые формулировки.
 """
+
 from __future__ import annotations
 
 from app.services.chronicle.age_anchor import (
@@ -31,6 +32,7 @@ def _values(anchors):
 # =========================================================================
 # INTERVAL — «через N лет», «N лет спустя», «спустя N лет»
 # =========================================================================
+
 
 class TestIntervalForm:
     def test_cherez_n_let(self):
@@ -63,6 +65,7 @@ class TestIntervalForm:
 # END_OF_PERIOD — «к концу того года», «к концу периода»
 # =========================================================================
 
+
 class TestEndOfPeriodForm:
     def test_k_koncu_togo_goda(self):
         """Борко п.11: «К концу того года он стал начальником»."""
@@ -90,6 +93,7 @@ class TestEndOfPeriodForm:
 # =========================================================================
 # REPEAT — «каждый год», «каждые N лет», «регулярно», «постоянно»
 # =========================================================================
+
 
 class TestRepeatForm:
     def test_kazhdyj_god(self):
@@ -126,6 +130,7 @@ class TestRepeatForm:
 # Регрессия существующих форм
 # =========================================================================
 
+
 class TestExistingFormsRegression:
     def test_at_age_still_works(self):
         anchors = extract_age_anchors_typed("В 14 лет она потеряла семью.")
@@ -159,6 +164,7 @@ class TestExistingFormsRegression:
 # Hint — подсказки для новых kinds
 # =========================================================================
 
+
 class TestHintForNewKinds:
     def test_hint_interval(self):
         anchors = [AgeAnchor(value=5, kind=AgeAnchorKind.INTERVAL, source_span="через 5 лет")]
@@ -188,6 +194,7 @@ class TestHintForNewKinds:
 # =========================================================================
 # Комбинированные кейсы из реальных биографий
 # =========================================================================
+
 
 class TestRealBiographyFragments:
     def test_borko_11_full(self):

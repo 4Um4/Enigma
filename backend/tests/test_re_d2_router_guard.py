@@ -55,10 +55,7 @@ def test_router_source_has_no_self_deadlock_bridge():
     # красный тест-баг в коммите).
     for _node in ast.walk(ast.parse(_src)):
         if isinstance(_node, ast.Call):
-            _called = getattr(_node.func, "id", None) or getattr(
-                _node.func, "attr", None
-            )
+            _called = getattr(_node.func, "id", None) or getattr(_node.func, "attr", None)
             assert _called != "run_coroutine_threadsafe", (
-                "RE-D2: в router.py возвращён threadsafe-мост (ВЫЗОВ) — "
-                "см. вердикт RE-D2 (self-deadlock) и DEBT-RE-D2A"
+                "RE-D2: в router.py возвращён threadsafe-мост (ВЫЗОВ) — см. вердикт RE-D2 (self-deadlock) и DEBT-RE-D2A"
             )

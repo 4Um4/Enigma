@@ -27,9 +27,7 @@ class TraversalExecutionSystem:
         if not traversals:
             return
 
-        logger.debug(
-            f"[TRAV_EXEC_ADVANCE] tick={current_tick} active_traversals={list(traversals.keys())}"
-        )
+        logger.debug(f"[TRAV_EXEC_ADVANCE] tick={current_tick} active_traversals={list(traversals.keys())}")
 
         npc_positions = scene_state.setdefault("npc_positions", {})
         completed_npcs = []
@@ -58,20 +56,27 @@ class TraversalExecutionSystem:
             elif modes_missing or arcs_missing:
                 # C. Partial corruption — игра должна упасть громко
                 from app.errors import SimulationIntegrityError
+
                 raise SimulationIntegrityError(
                     invariant_id="INV-TRAV-CONTRACT",
                     message=f"Partial contract corruption for {npc_id}: one of segment_modes/arc_heights is missing",
                     suspect_files=["backend/app/services/spatial/movement_engine.py"],
-                    file=__file__, line=48,
+                    file=__file__,
+                    line=48,
                 )
             elif len(segment_modes) != len(waypoints) - 1 or len(segment_arc_heights) != len(waypoints) - 1:
                 # B. Invalid length — игра должна упасть громко
                 from app.errors import SimulationIntegrityError
+
                 raise SimulationIntegrityError(
                     invariant_id="INV-TRAV-CONTRACT",
                     message=f"Kinematic contract violated for {npc_id}: len(segment_modes) != len(waypoints)-1",
-                    suspect_files=["backend/app/services/spatial/movement_engine.py", "backend/app/domain/traversal_schema.py"],
-                    file=__file__, line=57,
+                    suspect_files=[
+                        "backend/app/services/spatial/movement_engine.py",
+                        "backend/app/domain/traversal_schema.py",
+                    ],
+                    file=__file__,
+                    line=57,
                 )
 
             if not waypoints:
@@ -82,13 +87,18 @@ class TraversalExecutionSystem:
             if elapsed_ticks >= duration_ticks:
                 # Маршрут завершён — Snap на финальную точку
                 target_xy = waypoints[-1]
-                npc_positions.setdefault(npc_id, {}).update({"local_position": {
-                    "x": target_xy[0],
-                    "y": target_xy[1],
-                    "z": 0.0,  # S132.1: Завершение прыжка — возврат на землю
-                }})
+                npc_positions.setdefault(npc_id, {}).update(
+                    {
+                        "local_position": {
+                            "x": target_xy[0],
+                            "y": target_xy[1],
+                            "z": 0.0,  # S132.1: Завершение прыжка — возврат на землю
+                        }
+                    }
+                )
                 # BUG-SPATIAL-026 FIX: Используем transition_traversal() FSM вместо прямой мутации.
                 from app.domain.traversal_schema import transition_traversal
+
                 if not transition_traversal(trav, "COMPLETED"):
                     logger.error(f"[TRAV_EXEC_FSM] Failed to transition to COMPLETED for npc={npc_id}")
                 completed_npcs.append(npc_id)
@@ -96,9 +106,7 @@ class TraversalExecutionSystem:
                 target_node_id = trav.get("target_node")
                 if target_node_id:
                     npc_positions[npc_id]["position"] = target_node_id
-                logger.info(
-                    f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy} node={target_node_id}"
-                )
+                logger.info(f"[TRAV_EXEC] COMPLETED: npc={npc_id} snapped to {target_xy} node={target_node_id}")
                 # Phase D Э-2 (Mechanism A, вердикт Мастера): arrival на
                 # boundary-узел без знания маршрута наружу = вход в существующий
                 # transfer-контур. Пишем ТОЛЬКО канонический dwell-payload
@@ -116,6 +124,7 @@ class TraversalExecutionSystem:
                         _neighbor = _b_info.get("neighbor_chunk", "")
                         if _neighbor:
                             from app.core.constants import BOUNDARY_DWELL_TICKS
+
                             _dwell[npc_id] = {
                                 "ready_tick": current_tick + BOUNDARY_DWELL_TICKS,
                                 "neighbor": _neighbor,
@@ -132,11 +141,15 @@ class TraversalExecutionSystem:
                     waypoints, progress, segment_modes, segment_arc_heights
                 )
                 if pos:
-                    npc_positions.setdefault(npc_id, {}).update({"local_position": {
-                        "x": pos[0],
-                        "y": pos[1],
-                        "z": pos[2],  # S132.1: Z-координата для прыжков
-                    }})
+                    npc_positions.setdefault(npc_id, {}).update(
+                        {
+                            "local_position": {
+                                "x": pos[0],
+                                "y": pos[1],
+                                "z": pos[2],  # S132.1: Z-координата для прыжков
+                            }
+                        }
+                    )
                     # Обновляем current_waypoint_idx для фронтенда
                     trav["current_waypoint_idx"] = seg_idx
 
@@ -149,13 +162,12 @@ class TraversalExecutionSystem:
         # ADR-XXX, поглощённого O-363). Не-MOVING записи TES не двигает —
         # физика остановлена статусом.
         from app.services.action.commitment_registry import CommitmentRegistry
+
         for npc_id in completed_npcs:
             CommitmentRegistry.mirror_traversal_completed(scene_state, npc_id, current_tick)
 
     @staticmethod
-    def resolve(
-        npc_id: str, scene_state: Dict[str, Any], current_tick: int
-    ) -> Tuple[float, float]:
+    def resolve(npc_id: str, scene_state: Dict[str, Any], current_tick: int) -> Tuple[float, float]:
         """Чистая функция: возвращает текущую мировую позицию NPC (x, y)."""
         trav = scene_state.get("active_traversals", {}).get(npc_id)
         if trav and trav.get("status") == "MOVING":
@@ -180,19 +192,12 @@ class TraversalExecutionSystem:
                     return (pos[0], pos[1])
 
         # Fallback на кэшированную позицию
-        lp = (
-            scene_state.get("npc_positions", {})
-            .get(npc_id, {})
-            .get("local_position", {})
-        )
+        lp = scene_state.get("npc_positions", {}).get(npc_id, {}).get("local_position", {})
         return (lp.get("x", 0.0), lp.get("y", 0.0))
 
     @staticmethod
     def _interpolate_path(
-        waypoints: List[Any],
-        progress: float,
-        segment_modes: List[str],
-        segment_arc_heights: List[float]
+        waypoints: List[Any], progress: float, segment_modes: List[str], segment_arc_heights: List[float]
     ) -> Tuple[Tuple[float, float, float], int]:
         """S132.1: Интерполяция вдоль пути с учётом сегментов (WALK/JUMP).
         Возвращает ((x, y, z), current_segment_index).
@@ -219,9 +224,7 @@ class TraversalExecutionSystem:
 
         for i, seg_dist in enumerate(segment_dists):
             if current_dist + seg_dist >= target_dist:
-                seg_progress = (
-                    (target_dist - current_dist) / seg_dist if seg_dist > 0 else 0.0
-                )
+                seg_progress = (target_dist - current_dist) / seg_dist if seg_dist > 0 else 0.0
 
                 # S132.1: Линейная интерполяция для X и Y (работает для обоих режимов)
                 x = waypoints[i][0] + (waypoints[i + 1][0] - waypoints[i][0]) * seg_progress
@@ -235,7 +238,7 @@ class TraversalExecutionSystem:
                     arc_h = segment_arc_heights[i] if i < len(segment_arc_heights) else 1.0
                     z = 4.0 * arc_h * seg_progress * (1.0 - seg_progress)
                 else:
-                    z = 0.0 # WALK - движение по земле
+                    z = 0.0  # WALK - движение по земле
 
                 return ((x, y, z), i)
 

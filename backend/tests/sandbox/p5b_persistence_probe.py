@@ -5,8 +5,16 @@ P5-B — SQLite Epistemic Persistence Forensics.
             → SQLite → destroy GameLoop → new GameLoop → EpistemicStore rehydration.
 A/B control. Независимое чтение SQLite через sqlite3.connect.
 """
+
 from __future__ import annotations
-import os, sys, json, shutil, sqlite3, tempfile, traceback, time
+import os
+import sys
+import json
+import shutil
+import sqlite3
+import tempfile
+import traceback
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from unittest.mock import MagicMock
@@ -25,9 +33,11 @@ from app.domain.epistemology import Proposition, Predicate
 
 SPY_LOG: List[Dict[str, Any]] = []
 
+
 def _stamp(tag: str, **kw: Any) -> None:
     SPY_LOG.append({"tag": tag, **kw})
     print(f"[SPY] {tag}: " + json.dumps(kw, ensure_ascii=False, default=str))
+
 
 # === Build loop with persistent saves_dir (NOT temp) ===
 def build_loop(data_dir: Path, saves_dir: Path) -> Any:
@@ -46,20 +56,26 @@ def build_loop(data_dir: Path, saves_dir: Path) -> Any:
         _stamp("HARNESS.mock_llm", error=str(e)[:200])
     return loop
 
+
 def cleanup_loop(loop: Any) -> None:
     try:
         if hasattr(loop, "_task_scheduler"):
             ts = loop._task_scheduler
             if hasattr(ts, "_executor_pool"):
-                try: ts._executor_pool.shutdown(wait=False, cancel_futures=True)
-                except Exception: pass
-    except Exception: pass
+                try:
+                    ts._executor_pool.shutdown(wait=False, cancel_futures=True)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 
 def init_scene(loop: Any) -> Dict[str, Any]:
     scene = loop.scene_manager.get_scene_state("Open_road", "tavern")
     if scene is None:
         scene = loop.scene_manager.initialize_scene("Open_road", "tavern", "12:00")
     return scene or {}
+
 
 # === Attach spies on persistence chain ===
 def attach_persistence_spies(loop: Any) -> Dict[str, Any]:
@@ -68,49 +84,62 @@ def attach_persistence_spies(loop: Any) -> Dict[str, Any]:
     # 1. SceneStateManager.commit_tick_result
     sm = loop.scene_manager
     orig_ctr = sm.commit_tick_result
+
     def _spy_ctr(campaign_id, result_snapshot):
         ep_in_snap = result_snapshot.get("epistemic_records", []) if isinstance(result_snapshot, dict) else None
-        _stamp("PERSIST.commit_tick_result:ENTER",
-               campaign=campaign_id,
-               tick=result_snapshot.get("tick") if isinstance(result_snapshot, dict) else "?",
-               epistemic_records_count=len(ep_in_snap) if ep_in_snap is not None else None,
-               epistemic_records_preview=ep_in_snap[:3] if ep_in_snap else [])
+        _stamp(
+            "PERSIST.commit_tick_result:ENTER",
+            campaign=campaign_id,
+            tick=result_snapshot.get("tick") if isinstance(result_snapshot, dict) else "?",
+            epistemic_records_count=len(ep_in_snap) if ep_in_snap is not None else None,
+            epistemic_records_preview=ep_in_snap[:3] if ep_in_snap else [],
+        )
         result = orig_ctr(campaign_id, result_snapshot)
         _stamp("PERSIST.commit_tick_result:EXIT")
         return result
+
     sm.commit_tick_result = _spy_ctr  # type: ignore
     refs["sm"] = sm
 
     # 2. SceneStateManager.save_scene_state
     orig_sss = sm.save_scene_state
+
     def _spy_sss(campaign_id, scene_state):
         ep_in_ss = scene_state.get("epistemic_records", []) if isinstance(scene_state, dict) else None
-        _stamp("PERSIST.save_scene_state:ENTER",
-               campaign=campaign_id,
-               tick_locked=getattr(sm, "_tick_locked", None),
-               epistemic_records_count=len(ep_in_ss) if ep_in_ss is not None else None)
+        _stamp(
+            "PERSIST.save_scene_state:ENTER",
+            campaign=campaign_id,
+            tick_locked=getattr(sm, "_tick_locked", None),
+            epistemic_records_count=len(ep_in_ss) if ep_in_ss is not None else None,
+        )
         result = orig_sss(campaign_id, scene_state)
         _stamp("PERSIST.save_scene_state:EXIT")
         return result
+
     sm.save_scene_state = _spy_sss  # type: ignore
 
     # 3. SqlitePersistenceAdapter.atomic_commit / atomic_commit_all
     spa = getattr(sm, "_persistence", None)
     if spa is not None:
         orig_ac = spa.atomic_commit
+
         def _spy_ac(campaign_id, scene_state, npc_states=None, events=None):
             ep_in_ss = scene_state.get("epistemic_records", []) if isinstance(scene_state, dict) else None
-            _stamp("PERSIST.atomic_commit:ENTER",
-                   campaign=campaign_id,
-                   loc_id=scene_state.get("location_id") if isinstance(scene_state, dict) else "?",
-                   epistemic_records_count=len(ep_in_ss) if ep_in_ss is not None else None,
-                   epistemic_records_preview=ep_in_ss[:3] if ep_in_ss else [])
+            _stamp(
+                "PERSIST.atomic_commit:ENTER",
+                campaign=campaign_id,
+                loc_id=scene_state.get("location_id") if isinstance(scene_state, dict) else "?",
+                epistemic_records_count=len(ep_in_ss) if ep_in_ss is not None else None,
+                epistemic_records_preview=ep_in_ss[:3] if ep_in_ss else [],
+            )
             result = orig_ac(campaign_id, scene_state, npc_states, events)
             _stamp("PERSIST.atomic_commit:EXIT", result=result)
             return result
+
         spa.atomic_commit = _spy_ac  # type: ignore
 
         orig_aca = spa.atomic_commit_all
+
         def _spy_aca(campaign_id, all_scenes, npc_states=None, events=None):
             ep_total = 0
             ep_preview = []
@@ -118,21 +147,27 @@ def attach_persistence_spies(loop: Any) -> Dict[str, Any]:
                 recs = ss.get("epistemic_records", []) if isinstance(ss, dict) else []
                 ep_total += len(recs)
                 if recs and len(ep_preview) < 3:
-                    ep_preview.extend(recs[:3 - len(ep_preview)])
-            _stamp("PERSIST.atomic_commit_all:ENTER",
-                   campaign=campaign_id,
-                   scenes_count=len(all_scenes or {}),
-                   epistemic_records_total=ep_total,
-                   epistemic_records_preview=ep_preview)
+                    ep_preview.extend(recs[: 3 - len(ep_preview)])
+            _stamp(
+                "PERSIST.atomic_commit_all:ENTER",
+                campaign=campaign_id,
+                scenes_count=len(all_scenes or {}),
+                epistemic_records_total=ep_total,
+                epistemic_records_preview=ep_preview,
+            )
             result = orig_aca(campaign_id, all_scenes, npc_states, events)
             _stamp("PERSIST.atomic_commit_all:EXIT", result=result)
             return result
+
         spa.atomic_commit_all = _spy_aca  # type: ignore
         refs["spa"] = spa
     return refs
 
+
 # === Read SQLite independently ===
-def read_sqlite_epistemic_records(saves_dir: Path, campaign_id: str = "Open_road", location_id: str = "tavern") -> Dict[str, Any]:
+def read_sqlite_epistemic_records(
+    saves_dir: Path, campaign_id: str = "Open_road", location_id: str = "tavern"
+) -> Dict[str, Any]:
     db_path = saves_dir / "enigma_runtime.db"
     if not db_path.exists():
         return {"error": f"DB not found at {db_path}"}
@@ -155,10 +190,16 @@ def read_sqlite_epistemic_records(saves_dir: Path, campaign_id: str = "Open_road
             try:
                 scene_dict = json.loads(value)
                 result["scene_keys"] = sorted(list(scene_dict.keys())) if isinstance(scene_dict, dict) else None
-                result["epistemic_records_count"] = len(scene_dict.get("epistemic_records", [])) if isinstance(scene_dict, dict) else 0
-                result["epistemic_records_preview"] = scene_dict.get("epistemic_records", [])[:5] if isinstance(scene_dict, dict) else None
+                result["epistemic_records_count"] = (
+                    len(scene_dict.get("epistemic_records", [])) if isinstance(scene_dict, dict) else 0
+                )
+                result["epistemic_records_preview"] = (
+                    scene_dict.get("epistemic_records", [])[:5] if isinstance(scene_dict, dict) else None
+                )
                 result["scene_tick"] = scene_dict.get("tick") if isinstance(scene_dict, dict) else None
-                result["scene_game_time"] = scene_dict.get("game_time_seconds") if isinstance(scene_dict, dict) else None
+                result["scene_game_time"] = (
+                    scene_dict.get("game_time_seconds") if isinstance(scene_dict, dict) else None
+                )
             except Exception as e:
                 result["parse_error"] = str(e)[:200]
                 result["value_preview"] = value[:300] if isinstance(value, str) else str(value)[:300]
@@ -174,6 +215,7 @@ def read_sqlite_epistemic_records(saves_dir: Path, campaign_id: str = "Open_road
         return result
     except Exception as e:
         return {"error": f"{type(e).__name__}: {e}"}
+
 
 # === Snapshot EpistemicStore ===
 def snapshot_epistemic_store(loop: Any, agent_id: str = "maid_lusya") -> Dict[str, Any]:
@@ -204,8 +246,9 @@ def snapshot_epistemic_store(loop: Any, agent_id: str = "maid_lusya") -> Dict[st
                 "original_source_id": r.original_source_id,
             }
             for r in records
-        ]
+        ],
     }
+
 
 # === Snapshot scene_state epistemic_records ===
 def snapshot_scene_state_epistemic(loop: Any) -> Dict[str, Any]:
@@ -219,6 +262,7 @@ def snapshot_scene_state_epistemic(loop: Any) -> Dict[str, Any]:
         "epistemic_records_count": len(recs),
         "epistemic_records_preview": recs[:5],
     }
+
 
 # === Publish PLAYER_INSULTS ===
 def publish_insult(target_id: str = "maid_lusya"):
@@ -242,18 +286,23 @@ def publish_insult(target_id: str = "maid_lusya"):
     _stamp("EVENT.publish", event_id=str(evt.id), target_id=target_id)
     get_event_bus().publish(evt)
 
+
 # === Run scenario ===
 def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: Path) -> Dict[str, Any]:
-    print(f"\n{'#' * 78}\n# SCENARIO {label}: {'WITH' if with_insult else 'NO'} PLAYER_INSULTS\n# saves_dir={saves_dir}\n{'#' * 78}")
+    print(
+        f"\n{'#' * 78}\n# SCENARIO {label}: {'WITH' if with_insult else 'NO'} PLAYER_INSULTS\n# saves_dir={saves_dir}\n{'#' * 78}"
+    )
     SPY_LOG.clear()
-    try: get_event_bus().clear()
-    except Exception: pass
+    try:
+        get_event_bus().clear()
+    except Exception:
+        pass
 
     # === A1: clean startup ===
     _stamp(f"{label}.A1.clean_startup", saves_dir=str(saves_dir))
     loop1 = build_loop(real_data_dir, saves_dir)
     init_scene(loop1)
-    refs = attach_persistence_spies(loop1)
+    attach_persistence_spies(loop1)
     _stamp(f"{label}.A1.epistemic_pre_insult", epistemic=snapshot_epistemic_store(loop1))
     _stamp(f"{label}.A1.scene_pre_insult", scene=snapshot_scene_state_epistemic(loop1))
 
@@ -268,8 +317,10 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     _stamp(f"{label}.A3.idle_tick:START")
     try:
         result = loop1.idle_tick("Open_road")
-        _stamp(f"{label}.A3.idle_tick:EXIT",
-               status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__)
+        _stamp(
+            f"{label}.A3.idle_tick:EXIT",
+            status=result.get("status", "?") if isinstance(result, dict) else type(result).__name__,
+        )
     except Exception as e:
         _stamp(f"{label}.A3.idle_tick:ERROR", error=type(e).__name__, msg=str(e)[:300])
         cleanup_loop(loop1)
@@ -301,7 +352,9 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     _stamp(f"{label}.A4.destroy_loop1", reason="no Python object transfer")
     cleanup_loop(loop1)
     del loop1
-    import gc; gc.collect()
+    import gc
+
+    gc.collect()
     time.sleep(0.3)  # ensure sqlite handle released
     _stamp(f"{label}.A4.destroyed")
 
@@ -317,12 +370,14 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
         resolver = getattr(orch, "_epistemic_context_resolver", None) if orch else None
         if resolver is not None:
             ctx = resolver.resolve("maid_lusya")
-            _stamp(f"{label}.A5_5.resolver_rehydrated",
-                   agent_id=ctx.agent_id,
-                   perceived_threats=list(ctx.perceived_threats),
-                   claims_about_self=[p.to_dict() for p in ctx.claims_about_self],
-                   max_self_confidence=ctx.max_self_confidence,
-                   report_proposition=ctx.report_proposition.to_dict() if ctx.report_proposition else None)
+            _stamp(
+                f"{label}.A5_5.resolver_rehydrated",
+                agent_id=ctx.agent_id,
+                perceived_threats=list(ctx.perceived_threats),
+                claims_about_self=[p.to_dict() for p in ctx.claims_about_self],
+                max_self_confidence=ctx.max_self_confidence,
+                report_proposition=ctx.report_proposition.to_dict() if ctx.report_proposition else None,
+            )
         else:
             _stamp(f"{label}.A5_5.resolver", error="resolver not found")
     except Exception as e:
@@ -332,6 +387,7 @@ def run_scenario(label: str, with_insult: bool, real_data_dir: Path, saves_dir: 
     gc.collect()
 
     return {"spy": list(SPY_LOG)}
+
 
 # === MAIN ===
 def main() -> int:
@@ -372,8 +428,11 @@ def main() -> int:
     finally:
         # Cleanup temp dirs
         for d in [saves_a, saves_b]:
-            try: shutil.rmtree(d, ignore_errors=True)
-            except Exception: pass
+            try:
+                shutil.rmtree(d, ignore_errors=True)
+            except Exception:
+                pass
+
 
 if __name__ == "__main__":
     sys.exit(main())

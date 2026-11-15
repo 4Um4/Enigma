@@ -26,8 +26,8 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 if TYPE_CHECKING:
-    from app.services.memory.relationship_store import RelationshipStore
     from app.models.npc.beliefs import BeliefDelta
+    from app.services.memory.relationship_store import RelationshipStore
     from app.services.npc.resolution_engine import ResolutionOutcome
 
 from app.core.constants import TRAIT_DECAY_RATE
@@ -85,7 +85,7 @@ class StateApplicator:
         self,
         relationship_store: RelationshipStore,
         reputation_engine: Any = None,
-        l1_chronicle: Optional[Any] = None, # V8-PSY-1 FIX
+        l1_chronicle: Optional[Any] = None,  # V8-PSY-1 FIX
     ) -> None:
         self._rel_store = relationship_store
         # M1b.2.4 (ADR-O-371): SOCIAL-маршрут DecisionResult идёт через
@@ -93,10 +93,11 @@ class StateApplicator:
         # остальными писателями; на cutover (M1b.4) backend гейта меняется
         # централизованно. Кэш-гидратация ниже — read-проекция, не write.
         from app.services.social.relationship_write_gate import RelationshipWriteGate
+
         self._rel_write_gate = RelationshipWriteGate(relationship_store)
         # ReputationEngine — опциональная зависимость (DI)
         self._reputation_engine = reputation_engine
-        self._l1_chronicle = l1_chronicle # V8-PSY-1 FIX
+        self._l1_chronicle = l1_chronicle  # V8-PSY-1 FIX
 
     def update_relationships(
         self,
@@ -124,7 +125,10 @@ class StateApplicator:
         # M1b.2.4: делегация гейту (D2). Сатурация в backend'е — D3-паритет
         # доказан сеткой M1b.2.0; поведение идентично.
         self._rel_write_gate.apply(
-            campaign_id, state.npc_id, target_id, _delta,
+            campaign_id,
+            state.npc_id,
+            target_id,
+            _delta,
             cause="state_applicator:social_deltas",
         )
         # P1 ARCH: Заполнение read-cache из SSOT (RelationshipStore).
@@ -162,8 +166,7 @@ class StateApplicator:
         for delta in deltas:
             if not delta.npc_id:
                 raise ArchitecturalViolationError(
-                    "apply_relationship_deltas: дельта без npc_id — "
-                    "маршрутизация невозможна (ADR-O-418)",
+                    "apply_relationship_deltas: дельта без npc_id — маршрутизация невозможна (ADR-O-418)",
                     __name__,  # writer_module: StateApplicator — write-маршрут
                 )
             if not isinstance(delta.payload, NeedDeltaPayload):
@@ -182,8 +185,7 @@ class StateApplicator:
                 event_uuid = UUID(delta.payload.source_event_id)
             except ValueError as e:
                 raise MissingProvenanceError(
-                    f"apply_relationship_deltas: source_event_id="
-                    f"'{delta.payload.source_event_id}' не UUID"
+                    f"apply_relationship_deltas: source_event_id='{delta.payload.source_event_id}' не UUID"
                 ) from e
             self.update_needs(
                 scene_state,
@@ -275,9 +277,7 @@ class StateApplicator:
             # ADR-039: Перехватываем WillConflictPayload до коллапса в v1, чтобы не потерять его
             will_conflict_for_ui = None
             for d in result.deltas:
-                if d.domain == DeltaDomain.WILL and isinstance(
-                    d.payload, WillConflictPayload
-                ):
+                if d.domain == DeltaDomain.WILL and isinstance(d.payload, WillConflictPayload):
                     will_conflict_for_ui = d.payload
                     break
 
@@ -285,9 +285,7 @@ class StateApplicator:
             # В будущем StateApplicator.apply() должен нативно итерировать List[StateDeltas].
             _legacy_deltas = LegacyStateDeltaAdapter.collapse(result.deltas)
 
-            self._apply_progress(
-                new_state, _legacy_deltas
-            )  # счётчик реального прогресса
+            self._apply_progress(new_state, _legacy_deltas)  # счётчик реального прогресса
             self._apply_deltas(new_state, _legacy_deltas, campaign_id, cause=cause)
 
             # --- ИСПРАВЛЕНО: работаем с new_state и result.deltas ---
@@ -295,9 +293,7 @@ class StateApplicator:
             _l1_events: list[Any] = []  # C7 FIX: Инициализация списка для L1 событий
 
             # Применяем психологические изменения (R6.1)
-            new_state.identity_integrity = max(
-                0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta)
-            )
+            new_state.identity_integrity = max(0.0, min(1.0, new_state.identity_integrity + d.identity_integrity_delta))
             new_state.pressure_resistance = max(
                 0.0,
                 min(2.0, new_state.pressure_resistance + d.pressure_resistance_delta),
@@ -314,22 +310,14 @@ class StateApplicator:
             # FIX: Убран локальный импорт DeltaDomain, который вызывал UnboundLocalError.
             # Глобальный импорт в начале файла уже присутствует.
             for _orig_delta in result.deltas:
-                if _orig_delta.domain == DeltaDomain.IDENTITY and isinstance(
-                    _orig_delta.payload, IdentityPayload
-                ):
-                    if (
-                        hasattr(new_state, "perceptual_kernel")
-                        and new_state.perceptual_kernel
-                    ):
+                if _orig_delta.domain == DeltaDomain.IDENTITY and isinstance(_orig_delta.payload, IdentityPayload):
+                    if hasattr(new_state, "perceptual_kernel") and new_state.perceptual_kernel:
                         _pk = new_state.perceptual_kernel
                         _pk.compliance_bias = max(
                             -1.0,
                             min(
                                 1.0,
-                                _pk.compliance_bias
-                                + getattr(
-                                    _orig_delta.payload, "compliance_bias_delta", 0.0
-                                ),
+                                _pk.compliance_bias + getattr(_orig_delta.payload, "compliance_bias_delta", 0.0),
                             ),
                         )
                         _pk.aggression_inhibition = max(
@@ -357,9 +345,7 @@ class StateApplicator:
                             ),
                         )
                         if getattr(_orig_delta.payload, "recent_directive_data", None):  # noqa: ENIGMA002
-                            _pk.recent_directive = (
-                                _orig_delta.payload.recent_directive_data
-                            )
+                            _pk.recent_directive = _orig_delta.payload.recent_directive_data
 
             # Прямое переопределение воли (R6.4)
             if d.will_state_override:
@@ -404,16 +390,13 @@ class StateApplicator:
                     campaign_id,
                 )
 
-            logger.info(
-                f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}"
-            )
+            logger.info(f"[STATE_APPLIED] {new_state.npc_id}: stress={new_state.stress:.1f} intent={new_state.intent}")
             return new_state
 
         except Exception as e:
             # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
-                f"[STATE_APPLICATOR] Ошибка применения для '{state.npc_id}': {e}. "
-                f"Пробрасываем исключение.",
+                f"[STATE_APPLICATOR] Ошибка применения для '{state.npc_id}': {e}. Пробрасываем исключение.",
                 exc_info=True,
             )
             raise
@@ -463,9 +446,7 @@ class StateApplicator:
 
             # 2. Threat accumulation
             if outcome.attacker_id:
-                new_state.threat_accumulator.add_threat(
-                    outcome.attacker_id, float(outcome.damage)
-                )
+                new_state.threat_accumulator.add_threat(outcome.attacker_id, float(outcome.damage))
                 state_changes.append(
                     StateChange(
                         target_id=new_state.npc_id,
@@ -502,9 +483,7 @@ class StateApplicator:
             # KERNEL-ISOLATION: передаём deterministic rng.
             from app.services.npc.kernel_rng import KernelRNG
 
-            _wound_rng = KernelRNG(
-                tick=current_tick, npc_id=new_state.npc_id, salt="wound_gen"
-            )
+            _wound_rng = KernelRNG(tick=current_tick, npc_id=new_state.npc_id, salt="wound_gen")
             wound = self._check_wound(outcome, new_state, current_tick, rng=_wound_rng)
             if wound:
                 new_state.wounds.append(wound)
@@ -519,8 +498,7 @@ class StateApplicator:
 
             # 5. Posture change при тяжёлом ударе
             if outcome.damage >= 15 or (
-                new_state.effective_max_hp > 0
-                and new_state.effective_hp < new_state.effective_max_hp * 0.2
+                new_state.effective_max_hp > 0 and new_state.effective_hp < new_state.effective_max_hp * 0.2
             ):
                 new_state.posture = "prone"
 
@@ -549,8 +527,7 @@ class StateApplicator:
         except Exception as e:
             # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
-                f"[STATE_APPLICATOR] apply_physical ошибка для '{state.npc_id}': {e}. "
-                f"Пробрасываем исключение."
+                f"[STATE_APPLICATOR] apply_physical ошибка для '{state.npc_id}': {e}. Пробрасываем исключение."
             )
             raise
 
@@ -650,8 +627,7 @@ class StateApplicator:
         except Exception as e:
             # H-29 FIX: Не маскируем ошибку, пробрасываем выше (ADR-O-308).
             logger.error(
-                f"[STATE_APPLICATOR] apply_deltas_only ошибка для '{state.npc_id}': {e}. "
-                f"Пробрасываем исключение."
+                f"[STATE_APPLICATOR] apply_deltas_only ошибка для '{state.npc_id}': {e}. Пробрасываем исключение."
             )
             raise
 
@@ -718,47 +694,40 @@ class StateApplicator:
 
         stress_delta = (
             deltas.payload.stress_delta
-            if domain == DeltaDomain.EMOTION
-            and isinstance(deltas.payload, EmotionPayload)
+            if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload)
             else deltas.stress_delta
         )
         emotion_delta = (
             deltas.payload.emotion_delta
-            if domain == DeltaDomain.EMOTION
-            and isinstance(deltas.payload, EmotionPayload)
+            if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload)
             else deltas.emotion_delta
         )
         emotion_tag = (
             deltas.payload.emotion_tag
-            if domain == DeltaDomain.EMOTION
-            and isinstance(deltas.payload, EmotionPayload)
+            if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload)
             else deltas.emotion_tag
         )
         new_trauma = (
             deltas.payload.new_trauma
-            if domain == DeltaDomain.EMOTION
-            and isinstance(deltas.payload, EmotionPayload)
+            if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload)
             else deltas.new_trauma
         )
 
         trust_delta = (
             deltas.payload.trust_delta
-            if domain == DeltaDomain.SOCIAL
-            and isinstance(deltas.payload, SocialPayload)
+            if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload)
             else deltas.trust_delta
         )
         fear_delta = (
             deltas.payload.fear_delta
-            if domain == DeltaDomain.SOCIAL
-            and isinstance(deltas.payload, SocialPayload)
+            if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload)
             else deltas.fear_delta
         )
         # social_satiation — гомеостаз социального насыщения
         # social_input_ema — континуальное поле социального входа
         _ema_delta = (
             deltas.payload.social_input_ema_delta
-            if domain == DeltaDomain.SOCIAL
-            and isinstance(deltas.payload, SocialPayload)
+            if domain == DeltaDomain.SOCIAL and isinstance(deltas.payload, SocialPayload)
             else 0.0
         )
 
@@ -770,15 +739,11 @@ class StateApplicator:
             _intent_new = deltas.intent
             if state.intent == _intent_new:
                 state.intent_duration += 1
-                _prog = min(
-                    state.intent_progress_ticks + 1, state.intent_duration
-                )
+                _prog = min(state.intent_progress_ticks + 1, state.intent_duration)
                 state.intent_progress_ticks = _prog
             else:
                 state.intent = _intent_new
-                state.intent_target = (
-                    deltas.target or state.intent_target
-                )
+                state.intent_target = deltas.target or state.intent_target
                 # W2: guard intent_tick is not None — None=отсутствует (не трогать),
                 # 0=валидный тик 0, N=тик N. Прежнее int(intent_tick or 0) маскировало
                 # default=0 как «не задано» и перезатирало валидный past formed_at.
@@ -787,9 +752,7 @@ class StateApplicator:
                     state.intent_formed_at = _w2_tick
                     state.last_intent_change = _w2_tick
                 state.intent_duration = 0
-                state.intent_progress_ticks = int(
-                    state.intent_progress_ticks * 0.3
-                )
+                state.intent_progress_ticks = int(state.intent_progress_ticks * 0.3)
 
         # [D-A02 / A2] pressure-провод: DecisionHub.compute() READ ONLY —
         # мутация идёт через спец-поле дельты (см. DecisionHub._pressure_updates).
@@ -811,44 +774,37 @@ class StateApplicator:
         # Physiology Domain: Damage & Stress Propagation System
         hp_delta = (
             deltas.payload.hp_delta
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         pain_delta = (
             deltas.payload.pain_delta
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         fatigue_delta = (
             deltas.payload.fatigue_delta
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         blood_loss_delta = (
             deltas.payload.blood_loss_delta
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         add_injuries = (
             deltas.payload.add_injuries
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else ()
         )
         add_statuses = (
             deltas.payload.add_statuses
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else ()
         )
         remove_statuses = (
             deltas.payload.remove_statuses
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else ()
         )
         shock_impulse = (
@@ -862,20 +818,17 @@ class StateApplicator:
         # PERCEPTION DOMAIN (ADR-O)
         threat_gradient_delta = (
             deltas.payload.threat_gradient_delta
-            if domain == DeltaDomain.PERCEPTION
-            and isinstance(deltas.payload, PerceptionPayload)
+            if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload)
             else 0.0
         )
         uncertainty_delta_perc = (
             deltas.payload.uncertainty_delta
-            if domain == DeltaDomain.PERCEPTION
-            and isinstance(deltas.payload, PerceptionPayload)
+            if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload)
             else 0.0
         )
         anomaly_score_delta_perc = (
             deltas.payload.anomaly_score_delta
-            if domain == DeltaDomain.PERCEPTION
-            and isinstance(deltas.payload, PerceptionPayload)
+            if domain == DeltaDomain.PERCEPTION and isinstance(deltas.payload, PerceptionPayload)
             else 0.0
         )
         # N-26 FIX: dominant_emotion_hint удалён (движок не назначает эмоцию, §S72.1).
@@ -897,9 +850,7 @@ class StateApplicator:
 
         # Эмоция
         if emotion_delta != 0.0:
-            state.emotion_delta = max(
-                -100.0, min(100.0, state.emotion_delta + emotion_delta)
-            )
+            state.emotion_delta = max(-100.0, min(100.0, state.emotion_delta + emotion_delta))
         if emotion_tag is not None:
             # SCC: StateApplicator НЕ имеет права писать S-слой в M-слой.
             # Interpretation (emotion_tag) применяется ТОЛЬКО через semantic_buffer в Phase 10.
@@ -911,15 +862,9 @@ class StateApplicator:
             else:
                 from app.models.npc_state import _emotion_from_str
 
-                _converted = (
-                    _emotion_from_str(emotion_tag)
-                    if isinstance(emotion_tag, str)
-                    else emotion_tag
-                )
+                _converted = _emotion_from_str(emotion_tag) if isinstance(emotion_tag, str) else emotion_tag
                 state.emotion = _converted
-                logger.debug(
-                    f"[SCC_PASS] npc={state.npc_id} decay emotion={_converted} applied to M."
-                )
+                logger.debug(f"[SCC_PASS] npc={state.npc_id} decay emotion={_converted} applied to M.")
 
         self._apply_emotion_social_deltas(state, domain, deltas)
 
@@ -930,8 +875,7 @@ class StateApplicator:
         # energy_delta ещё не в PhysiologyPayload текущего коммита.
         energy_delta = (
             getattr(deltas.payload, "energy_delta", 0.0)
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
         # S2B.3: hydration_delta extraction
@@ -944,8 +888,7 @@ class StateApplicator:
         # подхватится без изменения этой строки.
         hydration_delta = (
             getattr(deltas.payload, "hydration_delta", 0.0)
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
 
@@ -954,8 +897,7 @@ class StateApplicator:
         # для единства стиля extraction-блока)
         nutrition_delta = (
             getattr(deltas.payload, "nutrition_delta", 0.0)
-            if domain == DeltaDomain.PHYSIOLOGY
-            and isinstance(deltas.payload, PhysiologyPayload)
+            if domain == DeltaDomain.PHYSIOLOGY and isinstance(deltas.payload, PhysiologyPayload)
             else 0.0
         )
 
@@ -1084,11 +1026,7 @@ class StateApplicator:
             if self._rel_store is not None:
                 # Явная маршрутизация: target (v2) → NPC→NPC/NPC→Player
                 _target = (
-                    deltas.target
-                    or deltas.social_target
-                    or deltas.intent_target
-                    or state.intent_target
-                    or "player"
+                    deltas.target or deltas.social_target or deltas.intent_target or state.intent_target or "player"
                 )
                 # S212 FIX: вызов согласован с сигнатурой update_relationships
                 # (state: NPCState — первый аргумент; source_id убран чужой
@@ -1140,9 +1078,7 @@ class StateApplicator:
         if hp_delta != 0.0:
             _max_hp = state.body_state.get("max_hp", 100.0)
             _cur_hp = state.body_state.get("current_hp", _max_hp)
-            state.body_state["current_hp"] = max(
-                0.0, min(_max_hp, _cur_hp + hp_delta)
-            )
+            state.body_state["current_hp"] = max(0.0, min(_max_hp, _cur_hp + hp_delta))
 
         if pain_delta != 0.0:
             _cur_pain = state.body_state.get("pain", 0.0)
@@ -1150,37 +1086,27 @@ class StateApplicator:
 
         if fatigue_delta != 0.0:
             _cur_fat = state.body_state.get("fatigue", 0.0)
-            state.body_state["fatigue"] = max(
-                0.0, min(100.0, _cur_fat + fatigue_delta)
-            )
+            state.body_state["fatigue"] = max(0.0, min(100.0, _cur_fat + fatigue_delta))
 
         # S2B.1: energy — artificial variable for pipeline proof.
         # Same clamp pattern as pain/fatigue (0-100).
         if energy_delta != 0.0:
             _cur_energy = state.body_state.get("energy", 100.0)
-            state.body_state["energy"] = max(
-                0.0, min(100.0, _cur_energy + energy_delta)
-            )
+            state.body_state["energy"] = max(0.0, min(100.0, _cur_energy + energy_delta))
 
         # S2B.3: hydration — same clamp pattern (0-100).
         if hydration_delta != 0.0:
             _cur_hydration = state.body_state.get("hydration", 100.0)
-            state.body_state["hydration"] = max(
-                0.0, min(100.0, _cur_hydration + hydration_delta)
-            )
+            state.body_state["hydration"] = max(0.0, min(100.0, _cur_hydration + hydration_delta))
 
         # S2B.4: nutrition — same clamp pattern (0-100).
         if nutrition_delta != 0.0:
             _cur_nutrition = state.body_state.get("nutrition", 100.0)
-            state.body_state["nutrition"] = max(
-                0.0, min(100.0, _cur_nutrition + nutrition_delta)
-            )
+            state.body_state["nutrition"] = max(0.0, min(100.0, _cur_nutrition + nutrition_delta))
 
         if blood_loss_delta != 0.0:
             _cur_blood = state.body_state.get("blood_loss", 0.0)
-            state.body_state["blood_loss"] = max(
-                0.0, min(1.0, _cur_blood + blood_loss_delta)
-            )
+            state.body_state["blood_loss"] = max(0.0, min(1.0, _cur_blood + blood_loss_delta))
 
         if add_injuries:
             # Конвертируем InjuryDTO в dict для JSON-сериализации.
@@ -1189,10 +1115,7 @@ class StateApplicator:
             # в S2B.7 НЕ реализуется — мост только). Аддитивный ключ,
             # round-trip-safe: injuries — свободные dict-поля body_state.
             state.body_state.setdefault("injuries", []).extend(
-                [
-                    dict(asdict(inj), received_tick=current_tick)
-                    for inj in add_injuries
-                ]
+                [dict(asdict(inj), received_tick=current_tick) for inj in add_injuries]
             )
             logger.debug(
                 f"[INJURY_APPLIED] npc={state.npc_id} total_injuries={len(state.body_state.get('injuries', []))} new={[i.damage_type for i in add_injuries]}"
@@ -1202,18 +1125,12 @@ class StateApplicator:
             state.body_state.setdefault("statuses", []).extend(add_statuses)
 
         if remove_statuses:
-            state.body_state["statuses"] = [
-                s
-                for s in state.body_state.get("statuses", [])
-                if s not in remove_statuses
-            ]
+            state.body_state["statuses"] = [s for s in state.body_state.get("statuses", []) if s not in remove_statuses]
 
         # Шоковый импульс: аддитивный с потолком 1.0, decay даёт отрицательную дельту
         if shock_impulse != 0.0:
             _cur_shock = state.body_state.get("shock_impulse", 0.0)
-            state.body_state["shock_impulse"] = max(
-                0.0, min(1.0, _cur_shock + shock_impulse)
-            )
+            state.body_state["shock_impulse"] = max(0.0, min(1.0, _cur_shock + shock_impulse))
 
         # ADR-124: Consciousness derivation из физиологии
         _bl = state.body_state.get("blood_loss", 0.0)
@@ -1221,9 +1138,7 @@ class StateApplicator:
         _physiological_consciousness = max(0.0, 1.0 - (_bl**1.5) * 2.0 - _si * 1.5)
         _cur_consciousness = state.body_state.get("consciousness", 1.0)
         if _physiological_consciousness < _cur_consciousness:
-            state.body_state["consciousness"] = round(
-                _physiological_consciousness, 4
-            )
+            state.body_state["consciousness"] = round(_physiological_consciousness, 4)
             logger.debug(
                 f"[CONSCIOUSNESS_DROP] npc={state.npc_id} bl={_bl:.3f} shock={_si:.3f} old={_cur_consciousness:.3f} new={state.body_state['consciousness']:.3f}"
             )
@@ -1239,9 +1154,7 @@ class StateApplicator:
                 f"[DEATH_CERTIFIED] npc={state.npc_id} bl={state.body_state.get('blood_loss', 0):.3f} structural={sum(float(i.get('structural_damage', 0)) for i in state.body_state.get('injuries', [])):.3f}"
             )
 
-    def _apply_emotion_social_deltas(
-        self, state: NPCState, domain: DeltaDomain, deltas: StateDeltas
-    ) -> None:
+    def _apply_emotion_social_deltas(self, state: NPCState, domain: DeltaDomain, deltas: StateDeltas) -> None:
         """Применяет дельты эмоций (SCC) и социального давления (EMA)."""
         # SCC: affective_load — интеграл давления. Пишется в M ТОЛЬКО через decay.
         if domain == DeltaDomain.EMOTION and isinstance(deltas.payload, EmotionPayload):
@@ -1267,15 +1180,11 @@ class StateApplicator:
             _ema_delta = getattr(deltas.payload, "social_input_ema_delta", 0.0)
 
         if _ema_delta != 0.0:
-            state.social_input_ema = max(
-                0.0, min(1.0, state.social_input_ema + _ema_delta)
-            )
+            state.social_input_ema = max(0.0, min(1.0, state.social_input_ema + _ema_delta))
             logger.warning(
                 f"[SOCIAL_EMA] npc={state.npc_id} delta={_ema_delta:+.3f} result={state.social_input_ema:.3f}"
             )
-            if deltas.source == "sel_trace_commit" and isinstance(
-                deltas.payload, EmotionPayload
-            ):
+            if deltas.source == "sel_trace_commit" and isinstance(deltas.payload, EmotionPayload):
                 _payload_memory = getattr(deltas.payload, "affective_memory", None)  # noqa: ENIGMA002
                 if _payload_memory is not None:
                     state.affective_memory = min(1.0, max(0.0, _payload_memory))
@@ -1346,24 +1255,19 @@ class StateApplicator:
                     0.0,
                     min(
                         1.0,
-                        state.perceptual_kernel.anomaly_score
-                        + anomaly_score_delta_perc,
+                        state.perceptual_kernel.anomaly_score + anomaly_score_delta_perc,
                     ),
                 )
 
             # N-26 FIX: dominant_emotion_hint удалён (движок не назначает эмоцию, §S72.1).
 
-    def _apply_trauma_and_traits(
-        self, state: NPCState, deltas: StateDeltas, new_trauma: Optional[str]
-    ) -> None:
+    def _apply_trauma_and_traits(self, state: NPCState, deltas: StateDeltas, new_trauma: Optional[str]) -> None:
         """Применяет накопление энергии черт и обработку травм."""
         from app.core.constants import TRAIT_ACTIVATION_RATE
 
         for trait, value in deltas.trait_updates.items():
             _current_energy = state.trait_activation.get(trait, 0.0)
-            state.trait_activation[trait] = min(
-                1.0, _current_energy + (value * TRAIT_ACTIVATION_RATE)
-            )
+            state.trait_activation[trait] = min(1.0, _current_energy + (value * TRAIT_ACTIVATION_RATE))
 
         if new_trauma:
             state.trauma_markers.add(new_trauma)
@@ -1472,10 +1376,7 @@ class StateApplicator:
 
         # Разделение: фракции (v2 domain + v1 fallback) vs NPC
         faction_deltas = [
-            d
-            for d in deltas
-            if d.domain == DeltaDomain.REPUTATION
-            or (d.domain is None and d.faction_id is not None)
+            d for d in deltas if d.domain == DeltaDomain.REPUTATION or (d.domain is None and d.faction_id is not None)
         ]
         npc_deltas = [d for d in deltas if d not in faction_deltas]
 
@@ -1489,15 +1390,9 @@ class StateApplicator:
             if d.npc_id:
                 by_npc.setdefault(d.npc_id, []).append(d)
         if by_npc:
-            _phys_npcs = [
-                nid
-                for nid, ds in by_npc.items()
-                if any(d.domain == DeltaDomain.PHYSIOLOGY for d in ds)
-            ]
+            _phys_npcs = [nid for nid, ds in by_npc.items() if any(d.domain == DeltaDomain.PHYSIOLOGY for d in ds)]
             if _phys_npcs:
-                logger.debug(
-                    f"[APPLY_BATCH] npc_count={len(by_npc)} physiology_npcs={_phys_npcs}"
-                )
+                logger.debug(f"[APPLY_BATCH] npc_count={len(by_npc)} physiology_npcs={_phys_npcs}")
 
         # DEBT-DET-01: Детерминированный порядок применения дельт.
         # Физика (PHYSICS_COMPOSITE) -> Когнитив (EMOTION, PERCEPTION) -> Социум (SOCIAL).
@@ -1522,7 +1417,9 @@ class StateApplicator:
             # Сортируем дельты по домену для предсказуемого результата
             sorted_deltas = sorted(
                 by_npc[npc_id],
-                key=lambda d: _DOMAIN_APPLICATION_ORDER.get(d.domain if d.domain else DeltaDomain.PERCEPTION, _DEFAULT_ORDER),
+                key=lambda d: _DOMAIN_APPLICATION_ORDER.get(
+                    d.domain if d.domain else DeltaDomain.PERCEPTION, _DEFAULT_ORDER
+                ),
             )
             for delta in sorted_deltas:
                 self._apply_delta_to_raw(npc_dict, delta, campaign_id, cause=cause)
@@ -1562,6 +1459,7 @@ class StateApplicator:
     def apply_belief_delta(self, state: NPCState, delta: "BeliefDelta") -> None:
         """Stage 1 Task 1.6: Единственный физический write-path в state.beliefs."""
         from app.models.npc.beliefs import BeliefFragment
+
         state.beliefs.update(
             delta.belief_type,
             BeliefFragment(
@@ -1569,11 +1467,12 @@ class StateApplicator:
                 confidence=delta.confidence,
                 source=delta.source,
                 timestamp=delta.timestamp,
-            )
+            ),
         )
         # CC-09: CausalEntry for belief changes — same causal_ledger as trust/fear.
         # Не новый SSOT — существующий causal_ledger (ADR-CAUSAL-SPINE).
         from app.models.psychological import CausalEntry
+
         state.causal_ledger.append(
             CausalEntry(
                 npc_id=state.npc_id,
@@ -1622,8 +1521,7 @@ class StateApplicator:
         total_mass = sum(drives.values())
         if abs(total_mass - 1.0) > 1e-6:
             raise OntologyViolationError(
-                f"NPC '{state.npc_id}': Закон Сохранения Я нарушен. "
-                f"Сумма драйвов = {total_mass:.6f}, ожидается 1.0"
+                f"NPC '{state.npc_id}': Закон Сохранения Я нарушен. Сумма драйвов = {total_mass:.6f}, ожидается 1.0"
             )
 
         for drive_name, value in drives.items():

@@ -53,29 +53,27 @@ class EndScreenDataBuilder:
             fate_texts.append(EndScreenNarrator.narrate_fate(_disp, fate_state))
             if fate_state.resolved_fate:
                 last_word = last_words_system.get_last_word(
-                    npc_id=fate_state.npc_id,
-                    fate=fate_state.resolved_fate,
-                    social_fabric=social_fabric
+                    npc_id=fate_state.npc_id, fate=fate_state.resolved_fate, social_fabric=social_fabric
                 )
-                npc_fates_data.append(NpcFateScreenData(
-                    npc_id=fate_state.npc_id,
-                    fate_outcome=fate_state.resolved_fate.value,
-                    last_word=last_word
-                ))
+                npc_fates_data.append(
+                    NpcFateScreenData(
+                        npc_id=fate_state.npc_id, fate_outcome=fate_state.resolved_fate.value, last_word=last_word
+                    )
+                )
 
         # 8.1 FIX: Генерация текста для социального графа
         if relationship_store and campaign_id:
             all_rels = relationship_store.get_all(campaign_id)
             for src_tgt, vals in all_rels.items():
-                if "→" not in src_tgt: continue
+                if "→" not in src_tgt:
+                    continue
                 src, tgt = src_tgt.split("→", 1)
                 trust = float(vals.get("trust", 0.0))
                 fear = float(vals.get("fear", 0.0))
                 # Чтобы не захламлять экран, пропускаем нейтральные
-                if abs(trust) < 10.0 and fear < 10.0: continue
-                relationship_texts.append(
-                    EndScreenNarrator.narrate_relationship(_dn(src), _dn(tgt), trust, fear)
-                )
+                if abs(trust) < 10.0 and fear < 10.0:
+                    continue
+                relationship_texts.append(EndScreenNarrator.narrate_relationship(_dn(src), _dn(tgt), trust, fear))
 
         return EndScreenData(
             evaluation=evaluation,
@@ -83,5 +81,5 @@ class EndScreenDataBuilder:
             contradictions=contradictions,
             verdict_text=EndScreenNarrator.narrate_verdict(evaluation.score if hasattr(evaluation, "score") else 0),
             fate_texts=fate_texts,
-            relationship_texts=relationship_texts
+            relationship_texts=relationship_texts,
         )

@@ -34,9 +34,9 @@ def test_prefix_target_loc_routes_to_unknown_gate():
 
     intent = MacroMovementGoal(
         actor_id="merchant_goran",
-        target_node_id="tavern:bar_area",   # префикс чужой локации
+        target_node_id="tavern:bar_area",  # префикс чужой локации
         from_node_id="city_gate:gate_road",
-        location_id="city_gate",            # генератор ставит ТЕКУЩУЮ локацию (сломанная форма)
+        location_id="city_gate",  # генератор ставит ТЕКУЩУЮ локацию (сломанная форма)
         reason="need_driven:shelter_urge=1.00",
         domain=IntentDomain.ROUTINE,
     )
@@ -44,7 +44,9 @@ def test_prefix_target_loc_routes_to_unknown_gate():
     # Гейт контрактно требует scene_state (без него PERSONAL_ROUTE skip by design):
     # минимальная живая сцена текущей локации.
     scene_state = {"location_id": "city_gate", "npc_positions": npc_positions}
-    changes = engine.process_intents([intent], tick, npc_positions=npc_positions, campaign_id="Open_road", scene_state=scene_state)
+    changes = engine.process_intents(
+        [intent], tick, npc_positions=npc_positions, campaign_id="Open_road", scene_state=scene_state
+    )
 
     # 1) Никаких позиционных SceneChange из чужого графа
     pos_changes = [c for c in changes if getattr(c, "field", "") == "position"]

@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
+
 class SpatialPersistenceAdapter:
     """
     ADR-O-442: Единый адаптер для сохранения пространственного состояния.
@@ -30,7 +31,7 @@ class SpatialPersistenceAdapter:
             scene_state["npc_positions"]["player"] = {
                 "local_position": {"x": 0.0, "y": 0.0},
                 "position": "unknown_node",
-                "location_id": current_location
+                "location_id": current_location,
             }
 
         # 3. Проверка мирового фрейма
@@ -45,6 +46,4 @@ class SpatialPersistenceAdapter:
                         # Защита от нулевых координат при загрузке
                         logger.warning(f"[SPATIAL_SSOT] Player/NPC {npc_id} has zero coords before save")
 
-        logger.info(
-            f"[SPATIAL_SSOT] Scene prepared for save at location={current_location}"
-        )
+        logger.info(f"[SPATIAL_SSOT] Scene prepared for save at location={current_location}")

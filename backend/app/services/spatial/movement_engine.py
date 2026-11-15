@@ -30,9 +30,10 @@ from app.domain.traversal import (
 
 # S203.3 (Stage 2A): lifecycle-correct interrupt vs legacy pop (A/B-флаг,
 # default OFF; прецедент ARBITER_ENFORCEMENT S203.2).
-TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = (
-    os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower()
-    in ("1", "true", "yes")
+TRAVERSAL_OWNERSHIP_ENFORCEMENT: bool = os.environ.get("TRAVERSAL_OWNERSHIP_ENFORCEMENT", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
 )
 
 # FIX-6c: мгновенный кросс-локационный перенос отключён (перенос делает S186
@@ -130,10 +131,7 @@ class MovementEngine:
 
         _skipped = len(intents) - len(validated)
         if _skipped > 0:
-            logger.info(
-                f"[SPATIAL_GATE] {len(intents)} intents → {len(validated)} validated "
-                f"({_skipped} collapsed)"
-            )
+            logger.info(f"[SPATIAL_GATE] {len(intents)} intents → {len(validated)} validated ({_skipped} collapsed)")
 
         return validated
 
@@ -142,9 +140,7 @@ class MovementEngine:
         intents: List[MacroMovementGoal | LocalSteeringGoal],
         tick: int,
         npc_positions: Optional[Dict] = None,  # ADR-056: Collision Avoidance для LOD0
-        campaign_id: Optional[
-            str
-        ] = None,  # Для динамической сборки графа чужой локации
+        campaign_id: Optional[str] = None,  # Для динамической сборки графа чужой локации
         scene_state: Optional[Dict[str, Any]] = None,  # Для SpatialService.build_for_location
     ) -> List[SceneChange]:
         """Обрабатывает список намерений → список SceneChange.
@@ -171,7 +167,9 @@ class MovementEngine:
                     _existing = _best_macro_intents[_npc_id]
                     _existing_reason = getattr(_existing, "reason", "")  # noqa: ENIGMA002
                     _existing_is_schedule = "schedule" in _existing_reason
-                    _existing_is_reactive = "flee" in _existing_reason or "combat" in _existing_reason or "reactive" in _existing_reason
+                    _existing_is_reactive = (
+                        "flee" in _existing_reason or "combat" in _existing_reason or "reactive" in _existing_reason
+                    )
 
                     # Reactive (flee/combat) always wins
                     if _is_reactive and not _existing_is_reactive:
@@ -185,7 +183,8 @@ class MovementEngine:
         # Фильтруем микро-интенты: если у NPC есть выигравший MacroMovementGoal (Schedule/Reactive), микро-интенты (Social) удаляются.
         _winning_actors = set(_best_macro_intents.keys())
         _filtered_micro_intents = [
-            intent for intent in _micro_intents
+            intent
+            for intent in _micro_intents
             if getattr(intent, "actor_id", "") not in _winning_actors  # noqa: ENIGMA002
         ]
 
@@ -260,8 +259,10 @@ class MovementEngine:
                             from app.domain.traversal_schema import interrupt_traversal
 
                             interrupt_traversal(
-                                scene_state, _it.actor_id,
-                                INTERRUPT_PRIORITY_SUPERSEDE, tick,
+                                scene_state,
+                                _it.actor_id,
+                                INTERRUPT_PRIORITY_SUPERSEDE,
+                                tick,
                             )
                         else:
                             # Legacy: тихий pop + mirror (A/B-база, прецедент Н-46a :458-468)
@@ -269,8 +270,11 @@ class MovementEngine:
                             from app.services.action.commitment_registry import (
                                 CommitmentRegistry,
                             )
+
                             CommitmentRegistry.mirror_traversal_interrupted(
-                                scene_state, _it.actor_id, tick,
+                                scene_state,
+                                _it.actor_id,
+                                tick,
                                 "PRIORITY_SUPERSEDE",
                             )
                     _filtered.append(_it)
@@ -298,9 +302,7 @@ class MovementEngine:
             )
             if isinstance(intent, LocalSteeringGoal):
                 # LOD0: Микро-перемещение обрабатывается напрямую, без SpatialService
-                changes.extend(
-                    self._resolve_micro_movement(intent, tick, npc_positions)
-                )
+                changes.extend(self._resolve_micro_movement(intent, tick, npc_positions))
             elif isinstance(intent, MacroMovementGoal):
                 # ADR-O-323: MovementPlanner — единый автор TraversalState.
                 # Вычисляет waypoints и distance ДО создания SceneChange.
@@ -310,9 +312,7 @@ class MovementEngine:
                 # S267 (типизация/граница): npc_positions — Optional; при
                 # scene_state truthy и npc_positions None старое выражение
                 # падало .get() на None (Pylance reportOptionalMemberAccess).
-                _npc_pos_data = (
-                    (npc_positions or {}).get(intent.actor_id) or {}
-                ) if scene_state else {}
+                _npc_pos_data = ((npc_positions or {}).get(intent.actor_id) or {}) if scene_state else {}
                 _pos_str = str(_npc_pos_data.get("position") or "")
                 current_loc = _npc_pos_data.get("location_id")
                 if current_loc is None:
@@ -322,7 +322,9 @@ class MovementEngine:
                 if ":" in _pos_str:
                     _pos_loc = _pos_str.split(":")[0]
                     if _pos_loc != current_loc:
-                        logger.debug(f"[CROSS_LOC_SYNC] npc={intent.actor_id} syncing current_loc='{current_loc}' to pos_loc='{_pos_loc}'")
+                        logger.debug(
+                            f"[CROSS_LOC_SYNC] npc={intent.actor_id} syncing current_loc='{current_loc}' to pos_loc='{_pos_loc}'"
+                        )
                         current_loc = _pos_loc
                 # ADR-FIX: Надёжно определяем целевую локацию из префикса target_node_id (напр. "city_gate:exit_west")
                 # S268: дефолт-инициализация — все ветки ниже перезаписывают; страховка
@@ -347,7 +349,9 @@ class MovementEngine:
                     # ищем узел в текущей и смежных локациях для корректного определения target_loc.
                     # Без этого cross_loc_intercept не срабатывает, и NPC застревает на boundary-узле.
                     _short_target = intent.target_node_id
-                    _cur_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state) if scene_state else None  # noqa: ENIGMA001
+                    _cur_svc = (
+                        self._resolve_spatial_service(current_loc, campaign_id, scene_state) if scene_state else None
+                    )  # noqa: ENIGMA001
                     if _cur_svc and _cur_svc.get_node(_short_target):
                         target_loc = current_loc
                     elif scene_state:
@@ -357,10 +361,14 @@ class MovementEngine:
                             if not _n_loc or _n_loc == current_loc:
                                 continue
                             _n_svc = self._resolve_spatial_service(_n_loc, campaign_id, scene_state)
-                            if _n_svc and (_n_svc.get_node(_short_target) or _n_svc.get_node(f"{_n_loc}:{_short_target}")):
+                            if _n_svc and (
+                                _n_svc.get_node(_short_target) or _n_svc.get_node(f"{_n_loc}:{_short_target}")
+                            ):
                                 target_loc = _n_loc
                                 intent.location_id = _n_loc
-                                logger.info(f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_short_target} found in adjacent loc={_n_loc}")
+                                logger.info(
+                                    f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_short_target} found in adjacent loc={_n_loc}"
+                                )
                                 _found = True
                                 break
                         if not _found:
@@ -377,17 +385,17 @@ class MovementEngine:
                     # skip вместо мёртвой ветки). UNKNOWN — причинный сигнал
                     # для Phase D Exploration.
                     if intent.actor_id not in (npc_positions or {}):
-                        logger.debug(
-                            f"[PERSONAL_ROUTE] npc={intent.actor_id} offscreen — gate skipped"
-                        )
+                        logger.debug(f"[PERSONAL_ROUTE] npc={intent.actor_id} offscreen — gate skipped")
                     else:
                         from app.services.npc.personal_route_resolver import (
                             resolve_personal_route,
                         )
 
                         _route = resolve_personal_route(
-                            intent.actor_id, self._epistemic_store,
-                            current_loc, target_loc,
+                            intent.actor_id,
+                            self._epistemic_store,
+                            current_loc,
+                            target_loc,
                         )
                         if _route.status != "KNOWN_ROUTE":
                             logger.info(
@@ -406,9 +414,7 @@ class MovementEngine:
                                 _sig_entry["_unknown_route"] = {
                                     "from": current_loc,
                                     "to": target_loc,
-                                    "known_edges": [
-                                        [_f, _t] for _f, _t in _route.known_edges
-                                    ],
+                                    "known_edges": [[_f, _t] for _f, _t in _route.known_edges],
                                     "tick": tick,
                                 }
                             continue
@@ -426,17 +432,19 @@ class MovementEngine:
                         _sig_entry = (npc_positions or {}).get(intent.actor_id)
                         if isinstance(_sig_entry, dict):
                             _sig_entry.pop("_unknown_route", None)
-                    current_svc = self._resolve_spatial_service(
-                        current_loc, campaign_id, scene_state
-                    )
+                    current_svc = self._resolve_spatial_service(current_loc, campaign_id, scene_state)
                     if current_svc:
-                        logger.debug(f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}")
+                        logger.debug(
+                            f"[DIAG_BOUNDARY] npc={intent.actor_id} current_loc={current_loc} target_loc={target_loc}"
+                        )
                         boundary_node = current_svc.get_boundary_to_neighbor(target_loc)
 
                         logger.debug(f"[DIAG_BOUNDARY] result={boundary_node}")
                         if boundary_node:
                             if not target_loc:
-                                logger.error(f"[CROSS_LOC_MATERIALIZE] target_loc is empty for {intent.actor_id}! Skipping.")
+                                logger.error(
+                                    f"[CROSS_LOC_MATERIALIZE] target_loc is empty for {intent.actor_id}! Skipping."
+                                )
                                 continue
                             # S-04: Проверяем, не стоит ли NPC уже на boundary node.
                             # Используем XY-дистанцию, так как position (node_id) ещё не обновлён до Фазы 8.
@@ -448,11 +456,12 @@ class MovementEngine:
                             _dist_to_boundary = math.hypot(boundary_node.x - _cur_x, boundary_node.y - _cur_y)
 
                             # S-145 FIX: Материализация если NPC стоит на boundary node ИЛИ очень близко к ней.
-                            _is_at_boundary = (_npc_pos_data.get("position", "") == boundary_node.node_id)
+                            _is_at_boundary = _npc_pos_data.get("position", "") == boundary_node.node_id
                             if _is_at_boundary:
                                 # FIX-6c: стоит В двери → пауза BOUNDARY_DWELL_TICKS,
                                 # перенос делает S186 по boundary_dwell (tick_orchestrator).
                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+
                                 _dwell_map = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
                                 # FIX-6g: гасим intent и здесь (симметрично dist-ветке),
                                 # иначе block_path каждый тик возрождается и гоняет
@@ -465,7 +474,9 @@ class MovementEngine:
                                         "neighbor": target_loc,
                                         "via": boundary_node.node_id,
                                     }
-                                    logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+                                    logger.info(
+                                        f"[BOUNDARY_DWELL] npc={intent.actor_id} at {boundary_node.node_id}; transfer at tick {tick + BOUNDARY_DWELL_TICKS}"
+                                    )
                                 continue
                             if _dist_to_boundary < 1.5:
                                 # FIX-6c+6e: «почти у двери» → пауза в проёме.
@@ -473,6 +484,7 @@ class MovementEngine:
                                 # пересоздаёт dwell с новым ready_tick —
                                 # вечная пауза, доказано логами tick 22→27).
                                 from app.core.constants import BOUNDARY_DWELL_TICKS
+
                                 _dwell_near = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
                                 if intent.actor_id not in _dwell_near:
                                     _dwell_near[intent.actor_id] = {
@@ -480,17 +492,25 @@ class MovementEngine:
                                         "neighbor": target_loc,
                                         "via": boundary_node.node_id,
                                     }
-                                    logger.info(f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}")
+                                    logger.info(
+                                        f"[BOUNDARY_DWELL] npc={intent.actor_id} near {boundary_node.node_id} (dist={_dist_to_boundary:.2f}); transfer at tick {tick + BOUNDARY_DWELL_TICKS}"
+                                    )
                                 (npc_positions or {})[intent.actor_id].pop("intent", None)
                                 (npc_positions or {})[intent.actor_id].pop("intent_target", None)
                                 continue
-                            if CROSS_LOC_MATERIALIZE_ENABLED:  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
-                                logger.info(f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}")
+                            if (
+                                CROSS_LOC_MATERIALIZE_ENABLED
+                            ):  # FIX-6c: мгновенный перенос отключён (см. boundary_dwell выше)
+                                logger.info(
+                                    f"[CROSS_LOC_MATERIALIZE] npc={intent.actor_id} crossing {current_loc} → {target_loc}"
+                                )
                                 target_svc = self._resolve_spatial_service(target_loc, campaign_id, scene_state)
 
                                 # V8-SP-5 FIX: Проверка target_svc на None (защита от AttributeError)
                                 if not target_svc:
-                                    logger.warning(f"[CROSS_LOC_INTERCEPT] target_svc is None for {target_loc}, skipping materialize for {intent.actor_id}")
+                                    logger.warning(
+                                        f"[CROSS_LOC_INTERCEPT] target_svc is None for {target_loc}, skipping materialize for {intent.actor_id}"
+                                    )
                                     continue
 
                                 # MOVEMENT-V2 (I-MV2): semantic destination — из
@@ -500,33 +520,50 @@ class MovementEngine:
                                 if _fin_loc and _fin_node:
                                     _original_target = f"{_fin_loc}:{_fin_node}"
                                 else:
-                                    _original_target = getattr(intent, 'original_target_node_id', intent.target_node_id)
+                                    _original_target = getattr(intent, "original_target_node_id", intent.target_node_id)
                                 _target_node_id_short = _original_target.split(":")[-1]
-                                target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(f"{target_loc}:{_target_node_id_short}")
+                                target_node_obj = target_svc.get_node(_target_node_id_short) or target_svc.get_node(
+                                    f"{target_loc}:{_target_node_id_short}"
+                                )
 
                                 if not target_node_obj:
                                     # V8-SP-16.3 FIX: Если целевой узел не найден, используем entry_node_hint (напр. exit_west)
                                     _b_info = current_svc.get_boundary_info(boundary_node.node_id) or {}
                                     _entry_hint = _b_info.get("entry_node_hint", "")
                                     if _entry_hint:
-                                        target_node_obj = target_svc.get_node(_entry_hint.split(":")[-1]) or target_svc.get_node(_entry_hint)
+                                        target_node_obj = target_svc.get_node(
+                                            _entry_hint.split(":")[-1]
+                                        ) or target_svc.get_node(_entry_hint)
 
                                 if not target_node_obj:
                                     # S-04: Topology Violation. Целевой узел отсутствует в новой локации.
                                     # Silent fallback убит (S134.1). Игра должна упасть громко.
                                     from app.errors import SimulationIntegrityError
+
                                     raise SimulationIntegrityError(
                                         invariant_id="INV-CROSS-LOC-TARGET",
                                         message=f"Materialize failed: target node '{_target_node_id_short}' not found in loc '{target_loc}'",
                                         suspect_files=["frontend/map_editor/campaigns/Open_road/locations/"],
-                                        file=__file__, line=188,
+                                        file=__file__,
+                                        line=188,
                                     )
 
                                 # V8-SP-4 FIX: active_traversals — это dict, а не list.
                                 # Итерация по dict выдаёт ключи (строки), а .remove() ломает everything.
                                 _active_traversals = scene_state.get("active_traversals", {})
-                                _traversal_items = _active_traversals.values() if isinstance(_active_traversals, dict) else _active_traversals
-                                _entry = next((e for e in _traversal_items if isinstance(e, dict) and e.get("npc_id") == intent.actor_id), None)
+                                _traversal_items = (
+                                    _active_traversals.values()
+                                    if isinstance(_active_traversals, dict)
+                                    else _active_traversals
+                                )
+                                _entry = next(
+                                    (
+                                        e
+                                        for e in _traversal_items
+                                        if isinstance(e, dict) and e.get("npc_id") == intent.actor_id
+                                    ),
+                                    None,
+                                )
                                 if _entry:
                                     # S203.3 (Stage 2A, ADR-O-363): Н-46a легализован.
                                     # interrupt_traversal: атомарный interrupt ДВУХ рельсов
@@ -536,8 +573,10 @@ class MovementEngine:
                                         from app.domain.traversal_schema import interrupt_traversal
 
                                         interrupt_traversal(
-                                            scene_state, intent.actor_id,
-                                            "CROSS_LOCATION_MATERIALIZE", tick,
+                                            scene_state,
+                                            intent.actor_id,
+                                            "CROSS_LOCATION_MATERIALIZE",
+                                            tick,
                                         )
                                     else:
                                         # Legacy: тихий pop + mirror (A/B-база)
@@ -547,25 +586,30 @@ class MovementEngine:
                                             _active_traversals.remove(_entry)
                                         logger.debug(f"Cleared traversal for {intent.actor_id} after materialize")
                                         from app.services.action.commitment_registry import CommitmentRegistry
+
                                         CommitmentRegistry.mirror_traversal_interrupted(
-                                            scene_state, intent.actor_id, tick,
+                                            scene_state,
+                                            intent.actor_id,
+                                            tick,
                                             "CROSS_LOCATION_MATERIALIZE",
                                         )
 
-                                changes.extend([
-                                    SceneChange(
-                                        type=ChangeType.NPC_POSITION,
-                                        target=intent.actor_id,
-                                        field="position",
-                                        value=target_node_obj.node_id,
-                                        cause=f"cross_loc_materialize:{intent.reason}",
-                                        tick=tick,
-                                        target_location_id=target_loc,
-                                        target_local_xy=(target_node_obj.x, target_node_obj.y),
-                                        traversal_proposal=None, # Мгновенный перенос (портал), контракт не требуется
-                                    )
-                                ])
-                                continue # Переходим к следующему NPC, этот уже материализован
+                                changes.extend(
+                                    [
+                                        SceneChange(
+                                            type=ChangeType.NPC_POSITION,
+                                            target=intent.actor_id,
+                                            field="position",
+                                            value=target_node_obj.node_id,
+                                            cause=f"cross_loc_materialize:{intent.reason}",
+                                            tick=tick,
+                                            target_location_id=target_loc,
+                                            target_local_xy=(target_node_obj.x, target_node_obj.y),
+                                            traversal_proposal=None,  # Мгновенный перенос (портал), контракт не требуется
+                                        )
+                                    ]
+                                )
+                                continue  # Переходим к следующему NPC, этот уже материализован
 
                             logger.info(
                                 f"[CROSS_LOC_INTERCEPT] npc={intent.actor_id} target={target_loc} rerouted to boundary {boundary_node.node_id} in {current_loc}"
@@ -573,8 +617,8 @@ class MovementEngine:
                             # Перенаправляем интент на boundary node текущей локации
                             # BUG-SPATIAL-001 FIX: Сохраняем оригинальный target перед перезаписью.
                             # Иначе materialize lookup не найдёт кровать в target loc.
-                            if not hasattr(intent, 'original_target_node_id'):
-                                setattr(intent, 'original_target_node_id', intent.target_node_id)
+                            if not hasattr(intent, "original_target_node_id"):
+                                setattr(intent, "original_target_node_id", intent.target_node_id)
                             intent.target_node_id = boundary_node.node_id.split(":")[-1]
                             # MOVEMENT-V2 (I-MV2): semantic destination фиксируется
                             # ПРИ ПЕРВОМ intercept (final_* пуст = target ещё не
@@ -602,9 +646,7 @@ class MovementEngine:
                             # Дропаем интент, чтобы предотвратить невалидный SceneChange (SHADOW_COMPILER FAILED).
                             continue
                     else:
-                        logger.warning(
-                            f"[CROSS_LOC_INTERCEPT] No SpatialService for current_loc={current_loc}"
-                        )
+                        logger.warning(f"[CROSS_LOC_INTERCEPT] No SpatialService for current_loc={current_loc}")
                         # Нет SpatialService — нет валидации маршрута. Дропаем интент.
                         continue
 
@@ -648,9 +690,7 @@ class MovementEngine:
             if campaign_id and location_id and scene_state is not None:
                 from app.services.spatial.spatial_factory import SpatialFactory
 
-                svc = SpatialFactory.build_for_campaign(
-                    campaign_id, location_id, scene_state
-                )
+                svc = SpatialFactory.build_for_campaign(campaign_id, location_id, scene_state)
                 if svc:
                     # IPT-CLEANUP: WARNING → DEBUG. Пересборка графа — нормальное поведение.
                     # При real failure (svc is None) ниже идёт logger.error, он останется.
@@ -658,9 +698,7 @@ class MovementEngine:
                         f"[MOVEMENT_ENGINE] Пересобрал SpatialService для {location_id} (needs_dynamic={needs_dynamic})"
                     )
                 else:
-                    logger.error(
-                        f"[MOVEMENT_ENGINE] build_for_location вернул None для {location_id}!"
-                    )
+                    logger.error(f"[MOVEMENT_ENGINE] build_for_location вернул None для {location_id}!")
             elif needs_dynamic:
                 # Нет данных для сборки чужой локации — запрещаем использование текущего графа
                 logger.error(
@@ -686,9 +724,7 @@ class MovementEngine:
         if isinstance(intent, LocalSteeringGoal):
             return self._resolve_micro_movement(intent, tick, npc_positions)
 
-        return self._resolve_macro_relocation(
-            intent, svc, location_id, tick, npc_positions, campaign_id, scene_state
-        )
+        return self._resolve_macro_relocation(intent, svc, location_id, tick, npc_positions, campaign_id, scene_state)
 
     def _resolve_micro_movement(
         self,
@@ -710,6 +746,7 @@ class MovementEngine:
 
         if npc_positions:
             import math
+
             for _ in range(10):  # Увеличено с 5 для стабильности обхода коллизий
                 # ADR-056: Генерация точки в круге радиуса 1.5 (полярные координаты),
                 # чтобы гарантированно найти свободную точку и не нарушать dist_to_target <= 1.5.
@@ -735,27 +772,19 @@ class MovementEngine:
             best_y = ty + rng.uniform(-1.5, 1.5)
 
         tx, ty = best_x, best_y
-        logger.debug(
-            f"[TRACE][SCENE_CHANGE_CREATED] actor={intent.actor_id} x={tx:.1f} y={ty:.1f}"
-        )
-        logger.info(
-            f"[PIPELINE][MOVEMENT][MICRO_SNAP] actor={intent.actor_id} → xy=({tx:.1f}, {ty:.1f})"
-        )
+        logger.debug(f"[TRACE][SCENE_CHANGE_CREATED] actor={intent.actor_id} x={tx:.1f} y={ty:.1f}")
+        logger.info(f"[PIPELINE][MOVEMENT][MICRO_SNAP] actor={intent.actor_id} → xy=({tx:.1f}, {ty:.1f})")
 
         # ADR-O-315: Вычисление body_heading на основе вектора движения (intent -> target)
         import math
 
         _curr_pos = (
-            npc_positions.get(intent.actor_id, {}).get(
-                "local_position", {"x": tx, "y": ty}
-            )
+            npc_positions.get(intent.actor_id, {}).get("local_position", {"x": tx, "y": ty})
             if npc_positions
             else {"x": tx, "y": ty}
         )
         _cx, _cy = _curr_pos.get("x", tx), _curr_pos.get("y", ty)
-        _heading = (
-            math.atan2(ty - _cy, tx - _cx) if (tx != _cx or ty != _cy) else 1.5708
-        )
+        _heading = math.atan2(ty - _cy, tx - _cx) if (tx != _cx or ty != _cy) else 1.5708
 
         return [
             SceneChange(
@@ -784,7 +813,7 @@ class MovementEngine:
         tick: int,
         source_xy: tuple,
         target_xy: tuple,
-        target_node_obj: Any
+        target_node_obj: Any,
     ) -> MovementPlanResult:
         """S131.1: Fallback на A* ТОЛЬКО если локальная геометрия недоступна.
         Если геометрия была доступна, но план отклонён (физический запрет) — этот метод не вызывается.
@@ -793,10 +822,7 @@ class MovementEngine:
         segment_arc_heights: List[float] = []
         path = svc.find_path(source_xy, target_node_obj) if hasattr(svc, "find_path") else None  # noqa: ENIGMA001
         if not path or len(path) < 2:
-            return MovementPlanResult(
-                status=MovementPlanStatus.REJECTED,
-                reason="NO_GEOMETRY_AND_NO_A_STAR_PATH"
-            )
+            return MovementPlanResult(status=MovementPlanStatus.REJECTED, reason="NO_GEOMETRY_AND_NO_A_STAR_PATH")
 
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
         segment_modes: List[str] = []
@@ -819,9 +845,7 @@ class MovementEngine:
             npc_id=intent.actor_id,
             source_node=current_pos,
             target_node=target_node_obj.node_id,
-            path_waypoints=tuple(
-                cast(Tuple[float, float], tuple(wp)) for wp in waypoints
-            ),
+            path_waypoints=tuple(cast(Tuple[float, float], tuple(wp)) for wp in waypoints),
             distance=distance,
             speed=speed,
             duration_ticks=duration_ticks,
@@ -830,7 +854,7 @@ class MovementEngine:
             topology_version=topology_version,
             segment_modes=tuple(segment_modes) if segment_modes else ("WALK",),
             planning_source="ASTAR_FALLBACK",
-            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
+            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,),
         )
 
         return MovementPlanResult(
@@ -846,7 +870,7 @@ class MovementEngine:
         tick: int,
         source_xy: tuple,
         target_xy: tuple,
-        target_node_obj: Any
+        target_node_obj: Any,
     ) -> MovementPlanResult:
         """S131: Компилирует TraversalPlan (от LocalTraversalPlanner) в TraversalProposal.
         Если локальная физика блокирована стеной, fallback на A* (все сегменты WALK).
@@ -869,7 +893,7 @@ class MovementEngine:
             source_pose=Pose(source_xy[0], source_xy[1]),
             target_pose=Pose(target_xy[0], target_xy[1]),
             body=intent.body_capabilities,
-            allowed_modes=tuple(allowed_modes)
+            allowed_modes=tuple(allowed_modes),
         )
 
         # 3. Выполняем локальное планирование (честная физика)
@@ -877,10 +901,7 @@ class MovementEngine:
 
         # S131.1: Если физика запрещает — это HARD_REJECT. A* не имеет права отменить физический запрет.
         if not plan.possible:
-            return MovementPlanResult(
-                status=MovementPlanStatus.REJECTED,
-                reason=plan.reason or "TRAVERSAL_IMPOSSIBLE"
-            )
+            return MovementPlanResult(status=MovementPlanStatus.REJECTED, reason=plan.reason or "TRAVERSAL_IMPOSSIBLE")
 
         # 4. Компилируем сегменты из TraversalPlan (с сохранением JUMP)
         waypoints: List[List[float]] = [[source_xy[0], source_xy[1]]]
@@ -910,18 +931,16 @@ class MovementEngine:
             npc_id=intent.actor_id,
             source_node=current_pos,
             target_node=target_node_obj.node_id,
-            path_waypoints=tuple(
-                cast(Tuple[float, float], tuple(wp)) for wp in waypoints
-            ),
+            path_waypoints=tuple(cast(Tuple[float, float], tuple(wp)) for wp in waypoints),
             distance=distance,
             speed=speed,
             duration_ticks=duration_ticks,
             source_intent_id=getattr(intent, "intent_id", f"{intent.actor_id}:{intent.reason}"),
             planned_tick=tick,
             topology_version=topology_version,
-            segment_modes=tuple(segment_modes) if segment_modes else ("WALK",), # S131: Сохраняем семантику
+            segment_modes=tuple(segment_modes) if segment_modes else ("WALK",),  # S131: Сохраняем семантику
             planning_source="LOCAL_TRAVERSAL",
-            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,)
+            segment_arc_heights=tuple(segment_arc_heights) if segment_arc_heights else (0.0,),
         )
 
         return MovementPlanResult(
@@ -948,12 +967,8 @@ class MovementEngine:
 
         # Защита micro-position: если NPC уже в целевом узле — пропускаем
         if current_pos and current_pos == intent.target_node_id:
-            logger.debug(
-                f"[GATE_B3] npc={intent.actor_id} reason=SAME_NODE node={intent.target_node_id}"
-            )
-            logger.debug(
-                f"[MOVEMENT_ENGINE] Skip macro: {intent.actor_id} уже в {intent.target_node_id}"
-            )
+            logger.debug(f"[GATE_B3] npc={intent.actor_id} reason=SAME_NODE node={intent.target_node_id}")
+            logger.debug(f"[MOVEMENT_ENGINE] Skip macro: {intent.actor_id} уже в {intent.target_node_id}")
             return []
 
         # S140: Route-Aware Traversal Planning.
@@ -961,7 +976,11 @@ class MovementEngine:
         # и проверяем его физическую проходимость через LocalTraversalPlanner.
         # BUG-SPATIAL-032 FIX: Нормализуем target_node_id, отрезая префикс локации, чтобы избежать двойного префикса.
         _target_node_id_short = intent.target_node_id.split(":")[-1]
-        target_node_obj = svc.get_node(_target_node_id_short) or svc.get_node(intent.target_node_id) or svc.get_node(f"{intent.location_id}:{_target_node_id_short}")
+        target_node_obj = (
+            svc.get_node(_target_node_id_short)
+            or svc.get_node(intent.target_node_id)
+            or svc.get_node(f"{intent.location_id}:{_target_node_id_short}")
+        )
 
         # BUG-SPATIAL-035 FIX: Если узел не найден в текущей локации, ищем в смежных (adjacency).
         # Это позволяет NPC ходить спать/работать в соседние чанки (напр. guard_borko -> city_gate).
@@ -972,11 +991,17 @@ class MovementEngine:
                     continue
                 _neighbor_svc = self._resolve_spatial_service(neighbor_loc, campaign_id, scene_state)
                 if _neighbor_svc:
-                    _neighbor_node = _neighbor_svc.get_node(_target_node_id_short) or _neighbor_svc.get_node(f"{neighbor_loc}:{_target_node_id_short}")
+                    _neighbor_node = _neighbor_svc.get_node(_target_node_id_short) or _neighbor_svc.get_node(
+                        f"{neighbor_loc}:{_target_node_id_short}"
+                    )
                     if _neighbor_node:
                         target_node_obj = _neighbor_node
-                        intent.location_id = neighbor_loc # Обновляем локацию интента, чтобы CROSS_LOC_INTERCEPT сработал корректно
-                        logger.info(f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_target_node_id_short} found in adjacent loc={neighbor_loc}")
+                        intent.location_id = (
+                            neighbor_loc  # Обновляем локацию интента, чтобы CROSS_LOC_INTERCEPT сработал корректно
+                        )
+                        logger.info(
+                            f"[CROSS_LOC_LOOKUP] npc={intent.actor_id} target={_target_node_id_short} found in adjacent loc={neighbor_loc}"
+                        )
                         break
 
         source_node_obj = svc.get_node(current_pos)
@@ -1011,20 +1036,24 @@ class MovementEngine:
             actor_id=intent.actor_id,
             source_position=source_xy,
             source_node=source_node_obj,
-            target_node=target_node_obj
+            target_node=target_node_obj,
         )
 
         # S140.1 FIX: Если A* вернул ровно 1 узел — NPC уже стоит на цели.
         if path_nodes and len(path_nodes) == 1:
             _trace.path_status = PathStatus.ALREADY_AT_TARGET
-            logger.debug(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=ALREADY_AT_TARGET node={path_nodes[0].node_id}")
+            logger.debug(
+                f"[MOVEMENT_TRACE] npc={intent.actor_id} status=ALREADY_AT_TARGET node={path_nodes[0].node_id}"
+            )
             return []
 
         if not path_nodes or len(path_nodes) < 2:
             _trace.path_status = PathStatus.NO_PATH
             _trace.failure = MovementFailure.NO_PATH
             _trace.reason = f"A* no path to {intent.target_node_id}"
-            logger.warning(f"[MOVEMENT_TRACE] npc={intent.actor_id} failure={_trace.failure.value} reason={_trace.reason}")
+            logger.warning(
+                f"[MOVEMENT_TRACE] npc={intent.actor_id} failure={_trace.failure.value} reason={_trace.reason}"
+            )
             return []
 
         _trace.path_status = PathStatus.VALID_PATH
@@ -1049,7 +1078,11 @@ class MovementEngine:
             _b_info = svc.get_boundary_info(next_node.node_id) or {}
             _materialize_target_loc = _b_info.get("neighbor_chunk", "")
             _entry_hint = _b_info.get("entry_node_hint", "") or f"{_materialize_target_loc}:entrance"
-            _target_svc = self._resolve_spatial_service(_materialize_target_loc, campaign_id, scene_state) if scene_state else None  # noqa: ENIGMA001
+            _target_svc = (
+                self._resolve_spatial_service(_materialize_target_loc, campaign_id, scene_state)
+                if scene_state
+                else None
+            )  # noqa: ENIGMA001
             if _target_svc:
                 _target_node_obj = _target_svc.get_node(_entry_hint.split(":")[-1]) or _target_svc.get_node(_entry_hint)
                 if _target_node_obj:
@@ -1059,6 +1092,7 @@ class MovementEngine:
                     # FIX-6c: встаём в boundary-узел и ждём BOUNDARY_DWELL_TICKS
                     # (перенос делает S186); визуально NPC стоит в двери.
                     from app.core.constants import BOUNDARY_DWELL_TICKS
+
                     _dwell_map_ms = scene_state.setdefault("boundary_dwell", {}) if scene_state else {}
                     _dwell_map_ms[intent.actor_id] = {
                         "ready_tick": tick + BOUNDARY_DWELL_TICKS,
@@ -1076,16 +1110,21 @@ class MovementEngine:
                     # (это фиксация завершённого перехода, не его планирование).
                     return [
                         SceneChange(
-                            type=ChangeType.NPC_POSITION, target=intent.actor_id,
-                            field="position", value=next_node.node_id,
-                            cause="traversal_complete", tick=tick,
+                            type=ChangeType.NPC_POSITION,
+                            target=intent.actor_id,
+                            field="position",
+                            value=next_node.node_id,
+                            cause="traversal_complete",
+                            tick=tick,
                             traversal_proposal=None,
                         ),
                         SceneChange(
-                            type=ChangeType.NPC_POSITION, target=intent.actor_id,
+                            type=ChangeType.NPC_POSITION,
+                            target=intent.actor_id,
                             field="local_position",
                             value={"x": next_node.x, "y": next_node.y},
-                            cause="traversal_complete", tick=tick,
+                            cause="traversal_complete",
+                            tick=tick,
                             traversal_proposal=None,
                         ),
                     ]
@@ -1107,9 +1146,7 @@ class MovementEngine:
                 )
             ]
 
-        plan_result = self._compile_traversal_plan(
-            intent, svc, current_pos, tick, source_xy, target_xy, next_node
-        )
+        plan_result = self._compile_traversal_plan(intent, svc, current_pos, tick, source_xy, target_xy, next_node)
 
         if plan_result.status == MovementPlanStatus.REJECTED:
             logger.debug(f"[GATE_B3] npc={intent.actor_id} reason=PLAN_REJECTED reason={plan_result.reason}")
@@ -1125,11 +1162,11 @@ class MovementEngine:
         logger.info(
             f"[PIPELINE][MOVEMENT][RELOCATE] npc={intent.actor_id} → zone={next_node.node_id} reason={intent.reason} exact_xy={target_xy} dist={plan_result.proposal.distance:.2f} ticks={plan_result.proposal.duration_ticks}"
         )
-        logger.debug(
-            f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={next_node.node_id} loc={location_id}"
-        )
+        logger.debug(f"[GATE_B3] npc={intent.actor_id} reason=SUCCESS target={next_node.node_id} loc={location_id}")
         _trace.traversal_created = True
-        logger.info(f"[MOVEMENT_TRACE] npc={intent.actor_id} status=VALID_PATH path_len={len(path_nodes)} traversal=CREATED")
+        logger.info(
+            f"[MOVEMENT_TRACE] npc={intent.actor_id} status=VALID_PATH path_len={len(path_nodes)} traversal=CREATED"
+        )
 
         # NEW-ORIENT-001 FIX: Вычисляем угол поворота тела к цели и добавляем SceneChange.
         _heading = math.atan2(target_xy[1] - source_xy[1], target_xy[0] - source_xy[0])
@@ -1154,7 +1191,7 @@ class MovementEngine:
                 cause="semantic_relocation_heading",
                 tick=tick,
                 target_location_id=location_id,
-            )
+            ),
         ]
 
     @staticmethod

@@ -402,9 +402,7 @@ class SqliteMemoryStore:
             result: List[Dict[str, Any]] = []
             for row in rows:
                 d = dict(row)
-                d["related_episodes"] = tuple(
-                    _json.loads(d.pop("related_episodes_json"))
-                )
+                d["related_episodes"] = tuple(_json.loads(d.pop("related_episodes_json")))
                 result.append(d)
             return result
         except (sqlite3.Error, _json.JSONDecodeError) as e:

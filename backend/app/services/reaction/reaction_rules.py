@@ -65,9 +65,7 @@ def compute_reaction_events(
     # ── Правило 1: Уронить предмет ─────────────────────────────────────────
     # Условие: угроза + низкий composure + занятые руки
     if hands_occupied and composure < _COMPOSURE_DROP_THRESHOLD:
-        fragility = _ACTIVITY_FRAGILITY.get(
-            current_activity, _ACTIVITY_FRAGILITY_DEFAULT
-        )
+        fragility = _ACTIVITY_FRAGILITY.get(current_activity, _ACTIVITY_FRAGILITY_DEFAULT)
         p_drop = (1.0 - composure) * fragility
         p_drop = min(1.0, p_drop)
 

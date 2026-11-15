@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /project/backend/tests/micro/test_intent_liveness_gate.py
 [GC-I01-E2] GC-INTERRUPT-01 micro: flee-гейт четырёх точек диспетчеризации.
 Юнит-уровень: хелпер (fail-open S198-паритет), outbox 4-кортеж + drain-форвард
@@ -6,6 +6,7 @@ path: /project/backend/tests/micro/test_intent_liveness_gate.py
 death-priority (смерть сильнее), scope (attack вне v1 — по приказу Мастера).
 Интеграционный контур третьего голоса — SUPERBOX gc_interrupt_test (следующий шаг).
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -38,6 +39,7 @@ def _outbox(s):
 
 
 # ── хелпер: предикат + fail-open ────────────────────────────────────────────
+
 
 def test_flee_helper_true_for_flee():
     s = _scheduler(lambda cid: [_row(intent="flee")])
@@ -81,6 +83,7 @@ def test_flee_helper_not_found_false():
 
 # ── outbox/drain: interrupt_reason-форвард + backcompat ─────────────────────
 
+
 def test_drain_forwards_interrupt_reason(monkeypatch):
     from app.services.action import commitment_registry as cr
 
@@ -117,6 +120,7 @@ def test_drain_backward_compat_legacy_three_tuple(monkeypatch):
 
 
 # ── process_tasks-гейт: терминал + недиспетчеризация + приоритет смерти ────
+
 
 def test_process_tasks_flee_owner_interrupted_not_dispatched():
     s = _scheduler(lambda cid: [_row(intent="flee")])

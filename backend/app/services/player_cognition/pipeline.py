@@ -56,9 +56,7 @@ class PerceptionConfig:
     player_memory: Optional[PlayerMemory] = None
 
 
-def _build_perceived_environment(
-    scene_state: dict, distortion_inputs: PlayerDistortionInputs
-) -> PerceivedEnvironment:
+def _build_perceived_environment(scene_state: dict, distortion_inputs: PlayerDistortionInputs) -> PerceivedEnvironment:
     """
     Заполняет воспринимаемое окружение на основе objective environment + искажения.
     Стресс делает мир темнее и шумнее.
@@ -113,9 +111,7 @@ def _build_body_state(distortion_inputs: PlayerDistortionInputs) -> List[str]:
     states: List[str] = []
 
     stress = distortion_inputs.stress
-    hp_ratio = distortion_inputs.effective_hp / max(
-        1, distortion_inputs.effective_max_hp
-    )
+    hp_ratio = distortion_inputs.effective_hp / max(1, distortion_inputs.effective_max_hp)
     fatigue = distortion_inputs.fatigue
 
     # HP → телесные ощущения

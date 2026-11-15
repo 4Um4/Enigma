@@ -78,6 +78,7 @@ print()
 print("### 3. СЕЯЛКА: что реально посеется прямо сейчас")
 try:
     from app.services.chronicle.chronicle_seeder import build_full_seed, canonical_chronicle
+
     docs = canonical_chronicle()
     print("canonical_chronicle():", list(docs) if docs else "пусто")
     for npc_id in sorted(docs):
@@ -106,8 +107,14 @@ for stem, doc in canon_docs.items():
     dn = len(d.get("entries") or [])
     dpc = dict(Counter(prov(e) for e in (d.get("entries") or [])))
     if n == 0 and dn == 0:
-        print("  %s: Г1 — записей нет НИ в каноне, НИ в черновике: разбор (Ctrl+G / decompose) не делался или падал. Вот причина «0 записей» и «не поняла» по всем пунктам." % stem)
+        print(
+            "  %s: Г1 — записей нет НИ в каноне, НИ в черновике: разбор (Ctrl+G / decompose) не делался или падал. Вот причина «0 записей» и «не поняла» по всем пунктам."
+            % stem
+        )
     elif n == 0 and dn > 0:
-        print("  %s: Г2 — в черновике %d записей (%s), но в каноне 0: записи не доехали через canonize — смотреть раздел 2 блока." % (stem, dn, dpc))
+        print(
+            "  %s: Г2 — в черновике %d записей (%s), но в каноне 0: записи не доехали через canonize — смотреть раздел 2 блока."
+            % (stem, dn, dpc)
+        )
     elif n > 0:
         print("  %s: канон имеет %d записей; сеялка скажет своё в разделе 3." % (stem, n))

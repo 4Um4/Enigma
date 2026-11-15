@@ -8,6 +8,7 @@ path: /project/backend/app/domain/desire.py
 Зависимости: dataclasses, typing (чистый домен, никаких services)
 Основные сущности: DesireSource, ProvenanceEntry, Desire
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -104,14 +105,14 @@ class Desire:
     """
 
     desire_id: str
-    subject_class: str                       # food / money / safety / person / ...
-    urgency: float                           # 0..1 — давление сейчас
-    target_class: str                        # класс цели (не экземпляр)
+    subject_class: str  # food / money / safety / person / ...
+    urgency: float  # 0..1 — давление сейчас
+    target_class: str  # класс цели (не экземпляр)
     provenance: Tuple[ProvenanceEntry, ...]  # множественная (L-M1)
     born_tick: int
     last_fulfilled_tick: int = -1
-    weight: float = 1.0                      # обучаемость: успех подкрепляет
-    learned_from: Tuple[str, ...] = ()       # id исходов, append-only
+    weight: float = 1.0  # обучаемость: успех подкрепляет
+    learned_from: Tuple[str, ...] = ()  # id исходов, append-only
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "urgency", _clamp01(self.urgency))
@@ -143,9 +144,7 @@ class Desire:
             subject_class=d.get(_KEY_SUBJECT, ""),
             urgency=d.get(_KEY_URGENCY, 0.0),
             target_class=d.get(_KEY_TARGET_CLASS, ""),
-            provenance=tuple(
-                ProvenanceEntry.from_dict(p) for p in d.get(_KEY_PROVENANCE, [])
-            ),
+            provenance=tuple(ProvenanceEntry.from_dict(p) for p in d.get(_KEY_PROVENANCE, [])),
             born_tick=int(d.get(_KEY_BORN_TICK, 0)),
             last_fulfilled_tick=int(d.get(_KEY_LAST_FULFILLED, -1)),
             weight=d.get(_KEY_WEIGHT, 1.0),

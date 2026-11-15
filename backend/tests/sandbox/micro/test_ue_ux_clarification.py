@@ -9,6 +9,7 @@
 Зависимости: app.models.schemas
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_ux_clarification.py -q; cd ..
 """
+
 import pytest
 
 from app.models.schemas import ChatTurnResponse
@@ -21,8 +22,11 @@ def _fields(cls) -> dict:
 
 def _response() -> ChatTurnResponse:
     return ChatTurnResponse(
-        dm_response="ok", npc_reactions=[], world_changes=[],
-        journal_entry_id="", traces=[],
+        dm_response="ok",
+        npc_reactions=[],
+        world_changes=[],
+        journal_entry_id="",
+        traces=[],
     )
 
 
@@ -49,14 +53,21 @@ def test_clarification_shape_contract():
             for item in c["candidates"]:
                 assert set(item.keys()) == {"npc_id", "name"}
 
-    check({"reason": "REFERENCE_AMBIGUOUS", "text": "…",
-           "candidates": [{"npc_id": "guard_gate", "name": "стражник у ворот"},
-                          {"npc_id": "guard_market", "name": "стражник на рынке"}]})
+    check(
+        {
+            "reason": "REFERENCE_AMBIGUOUS",
+            "text": "…",
+            "candidates": [
+                {"npc_id": "guard_gate", "name": "стражник у ворот"},
+                {"npc_id": "guard_market", "name": "стражник на рынке"},
+            ],
+        }
+    )
     check({"reason": "PARTIAL", "text": "…", "candidates": None})
     for bad in (
         {"reason": "RESOLVED", "text": "x", "candidates": None},  # RESOLVED запрещён
-        {"reason": "PARTIAL", "candidates": None},                 # нет text
-        {"reason": "PARTIAL", "text": "x", "candidates": []},      # [] не производится
+        {"reason": "PARTIAL", "candidates": None},  # нет text
+        {"reason": "PARTIAL", "text": "x", "candidates": []},  # [] не производится
         {"reason": "PARTIAL", "text": "x", "candidates": [{"id": "x"}]},  # форма элементов
     ):
         with pytest.raises(AssertionError):

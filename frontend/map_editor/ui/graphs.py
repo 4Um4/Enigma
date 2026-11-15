@@ -8,6 +8,7 @@ path: frontend/map_editor/ui/graphs.py
     ui.components — ключи подтверждены использованием в lab_screen).
 Основные сущности: LineGraph, BarChart.
 """
+
 from __future__ import annotations
 
 from typing import Dict, Sequence, Tuple

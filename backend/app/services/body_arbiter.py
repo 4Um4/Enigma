@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class AuthorizationDecision(Enum):
     """Решение авторизации для конкретного намерения."""
+
     AUTHORIZED = "AUTHORIZED"
     REJECTED = "REJECTED"
     DEFERRED = "DEFERRED"
@@ -41,6 +42,7 @@ class AuthorizationResult:
     Содержит отдельное решение для Player Intent и Avatar Intent.
     НЕ содержит победителя. НЕ исполняет эффекты.
     """
+
     player_decision: AuthorizationDecision
     avatar_decision: AuthorizationDecision
     player_intent_id: Optional[str]
@@ -99,9 +101,7 @@ class BodyArbiter:
         avatar_intent_id = avatar_intent.get("intent_id") if avatar_intent else None
 
         # 1. Compatibility check (Etap A)
-        compatibility = check_compatibility(
-            player_action, avatar_action, player_target, avatar_target
-        )
+        compatibility = check_compatibility(player_action, avatar_action, player_target, avatar_target)
 
         # 2. Arbitration — определение типа конфликта
         verdict, conflict_type, player_dec, avatar_dec, reason = self._arbitrate(
@@ -109,12 +109,8 @@ class BodyArbiter:
         )
 
         # 3. Authorization — запись в lifecycle
-        self._write_authorization(
-            scene_state, player_intent_id, player_dec
-        )
-        self._write_authorization(
-            scene_state, avatar_intent_id, avatar_dec
-        )
+        self._write_authorization(scene_state, player_intent_id, player_dec)
+        self._write_authorization(scene_state, avatar_intent_id, avatar_dec)
 
         result = AuthorizationResult(
             player_decision=player_dec,

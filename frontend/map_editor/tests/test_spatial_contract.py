@@ -1,4 +1,4 @@
-﻿"""path: /frontend/map_editor/tests/test_spatial_contract.py
+"""path: /frontend/map_editor/tests/test_spatial_contract.py
 
 Назначение: ME-1.12 autotests — глобальный пространственный контракт v1.2/v1.3.
     Инварианты: grid_cell_size > 0, spatial_ref (optional string),
@@ -17,9 +17,7 @@ import pytest
 from data_manager import DataManager  # type: ignore[import-not-found]
 from schema_validator import validate_location  # type: ignore[import-not-found]
 
-_CAMPAIGN_DIR = (
-    Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
-)
+_CAMPAIGN_DIR = Path(__file__).resolve().parents[1] / "campaigns" / "Open_road" / "locations"
 
 
 @pytest.fixture

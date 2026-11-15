@@ -7,6 +7,7 @@ path: /project/backend/app/services/body/body_engine.py
 Зависимости: app.models, app.core.constants (Δt)
 Основные сущности: BodyEngine
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,8 +34,8 @@ class BodyEngine:
     name: str = "body_engine"
 
     # ── Calibration (S2B.2; move to config later) ──────────────────
-    BASE_EXPENDITURE_RATE: float = 0.5    # per tick at load=1.0
-    BASE_RECOVERY_RATE: float = 0.3       # per tick at load=0.0
+    BASE_EXPENDITURE_RATE: float = 0.5  # per tick at load=1.0
+    BASE_RECOVERY_RATE: float = 0.3  # per tick at load=0.0
     SLEEP_RECOVERY_MULTIPLIER: float = 3.0
     # S2B.3: hydration — one-way loss (no passive recovery; drinking = action)
     BASE_HYDRATION_LOSS: float = 0.2  # per tick at rest (respiration, basal)
@@ -58,14 +59,14 @@ class BodyEngine:
 
     # Physiological load map (NOT occupational — body cost, not job title)
     _ACTIVITY_LOADS = {
-        "": 0.0,           # IDLE
+        "": 0.0,  # IDLE
         "idle": 0.0,
-        "sleeping": 0.1,   # REST (low baseline, but high recovery via coupling)
+        "sleeping": 0.1,  # REST (low baseline, but high recovery via coupling)
         "resting": 0.1,
         "eating": 0.2,
         "Обедает за столом": 0.2,
         "Обедает в общем зале": 0.2,
-        "guarding_gate": 0.5,   # WORK (standing watch)
+        "guarding_gate": 0.5,  # WORK (standing watch)
         "working": 0.5,
     }
 
@@ -138,17 +139,11 @@ class BodyEngine:
             # S2B.7-5: leg injury → movement capability ↓. Через СТОИМОСТЬ,
             # не veto (закон №8: pressure, не decision). Читается из ПЛОСКОГО
             # контракта снапшота — injuries_by_zone (вечный гвард S2B.7-6).
-            _inj_flat = [
-                _inj
-                for _zl in npc.get("injuries_by_zone", {}).values()
-                for _inj in _zl
-            ]
+            _inj_flat = [_inj for _zl in npc.get("injuries_by_zone", {}).values() for _inj in _zl]
             _injury_cost = 1.0 + self.INJURY_LOCOMOTION_WEAR * locomotion_impairment(_inj_flat)
 
             # Expenditure: load-dependent, body-mass-scaled, injury-scaled (S2B.7)
-            _expenditure = (
-                self.BASE_EXPENDITURE_RATE * _load * _modifier * _injury_cost
-            )
+            _expenditure = self.BASE_EXPENDITURE_RATE * _load * _modifier * _injury_cost
 
             # Recovery: inverse to load; sleep bonus via coupling (NOT via activity string)
             _recovery = self.BASE_RECOVERY_RATE * (1.0 - _load)
@@ -164,11 +159,7 @@ class BodyEngine:
 
             # S2B.4: nutrition — one-way loss; load-коэф. 0.5 (медленнее воды);
             # body_mass масштабирует. nutrition = STOCK (запас), НЕ hunger (S2B.10).
-            _nutrition_loss = (
-                self.BASE_NUTRITION_LOSS
-                * (1.0 + _load * self.NUTRITION_LOAD_COEFF)
-                * _modifier
-            )
+            _nutrition_loss = self.BASE_NUTRITION_LOSS * (1.0 + _load * self.NUTRITION_LOAD_COEFF) * _modifier
             nutrition_delta = round(-_nutrition_loss, 4)
 
             # S2B.5 (ADR-O-373): fatigue — two-way износ, «плохо вверх»
@@ -176,9 +167,7 @@ class BodyEngine:
             # fatigue-проекция: combat (ImpactEngine) — event-продюсер;
             # PHYSICS_COMPOSITE = pass-through на агрегации, вклады
             # применяются последовательно единым StateApplicator (clamp).
-            _fatigue_wear = (
-                self.BASE_FATIGUE_RATE * _load * _modifier * _injury_cost
-            )
+            _fatigue_wear = self.BASE_FATIGUE_RATE * _load * _modifier * _injury_cost
             _fatigue_recovery = self.BASE_FATIGUE_RECOVERY * (1.0 - _load)
             if is_sleep_coupling(_coupling):
                 _fatigue_recovery *= self.SLEEP_RECOVERY_MULTIPLIER

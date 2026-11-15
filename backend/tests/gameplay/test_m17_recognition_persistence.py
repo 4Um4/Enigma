@@ -79,9 +79,7 @@ def test_t1_idle_recognition_lifecycle(harness):
             last_rec = rec
         _check_m17_contract(rec, f"tick{i + 1}", problems)
 
-    print(f"[M17-T1] npc_spoke={spoke_total} "
-          f"first_recognition_at_tick={first_recog_tick} "
-          f"final_recognition={last_rec}")
+    print(f"[M17-T1] npc_spoke={spoke_total} first_recognition_at_tick={first_recog_tick} final_recognition={last_rec}")
 
     if spoke_total > 10 and not last_rec:
         problems.append(
@@ -148,6 +146,7 @@ def test_t3_recognition_persistence_roundtrip(harness):
     # отсев артефакта «пишем в одну локацию, читаем другую».
     print(f"[M17-T3-DB] db_path={getattr(pers, '_db_path', '?')}")
     import sqlite3 as _sq
+
     try:
         _conn = _sq.connect(str(getattr(pers, "_db_path", "")))
         _keys = [r[0] for r in _conn.execute("SELECT key FROM state_kv").fetchall()]
@@ -157,10 +156,10 @@ def test_t3_recognition_persistence_roundtrip(harness):
         print(f"[M17-T3-DB] key dump failed: {_e}")
     # Динамический обход ВСЕХ ключей сейва — отсев «читали не тот ключ».
     import sqlite3 as _sq2
+
     try:
         _c2 = _sq2.connect(str(getattr(pers, "_db_path", "")))
-        _scene_keys = [r[0] for r in _c2.execute(
-            "SELECT key FROM state_kv WHERE key LIKE 'scene:%'").fetchall()]
+        _scene_keys = [r[0] for r in _c2.execute("SELECT key FROM state_kv WHERE key LIKE 'scene:%'").fetchall()]
         _c2.close()
     except Exception as _e2:
         _scene_keys = []
@@ -170,8 +169,10 @@ def test_t3_recognition_persistence_roundtrip(harness):
         _r = _recog(pers.load_scene_at(_CAMPAIGN, _loc) or {})
         print(f"[M17-T3-DB] {_k} recognition={_r}")
     _tk = getattr(harness.game_loop.scene_manager, "_tick_scenes", {}) or {}
-    print(f"[M17-T3-DB] _tick_scenes keys={list(_tk.keys())} "
-          f"recog_per_key={ {k: list(_recog(v).keys()) for k, v in _tk.items()} }")
+    print(
+        f"[M17-T3-DB] _tick_scenes keys={list(_tk.keys())} "
+        f"recog_per_key={ {k: list(_recog(v).keys()) for k, v in _tk.items()} }"
+    )
 
     rec_saved = _loaded_rec()
     if rec_live:
@@ -189,7 +190,6 @@ def test_t3_recognition_persistence_roundtrip(harness):
             f"персистенция recognition не проверена"
         )
 
-
     print(f"[M17-T3] live={rec_live}")
     print(f"[M17-T3] saved={rec_saved}")
 
@@ -200,13 +200,11 @@ def test_t3_recognition_persistence_roundtrip(harness):
         saved_entry = rec_saved.get(nid)
         if saved_entry is None:
             problems.append(
-                f"DATA-LOSS: {nid} ({entry}) есть в _tick_scenes, "
-                f"отсутствует в persistence после догоняющего тика"
+                f"DATA-LOSS: {nid} ({entry}) есть в _tick_scenes, отсутствует в persistence после догоняющего тика"
             )
         elif saved_entry.get("status") != entry.get("status"):
             problems.append(
-                f"DATA-DRIFT: {nid} status live={entry.get('status')!r} "
-                f"saved={saved_entry.get('status')!r}"
+                f"DATA-DRIFT: {nid} status live={entry.get('status')!r} saved={saved_entry.get('status')!r}"
             )
 
     _check_m17_contract(rec_saved, "persistence", problems)

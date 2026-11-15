@@ -6,9 +6,7 @@
 # Зависимости: app.services.game_loop.task_scheduler.TaskScheduler
 # Основные сущности: test_drain_order_independent_of_push_order,
 #                    test_empty_outbox_noop, test_effect_order_per_record
-"""
-
-"""
+""" """
 
 import sys
 from pathlib import Path
@@ -23,6 +21,7 @@ def _bare_scheduler():
     s = TaskScheduler.__new__(TaskScheduler)
     s._task_outbox = []
     import threading
+
     s._task_outbox_lock = threading.Lock()
     s._dialogue_lock = threading.Lock()
     s._recent_dialogues = []
@@ -32,9 +31,12 @@ def _bare_scheduler():
 
 def _rec(tid: str, tick: int = 5, dlg: str = "x") -> _TaskArtifactRecord:
     return _TaskArtifactRecord(
-        submit_tick=tick, task_id=tid, events=(),
+        submit_tick=tick,
+        task_id=tid,
+        events=(),
         dialogue_entry={"speaker_id": dlg, "text": f"line-{tid}"},
-        economy_talks=(), speech_reset=None,
+        economy_talks=(),
+        speech_reset=None,
     )
 
 
@@ -61,8 +63,12 @@ def test_empty_outbox_noop():
 def test_effect_order_per_record():
     """Порядок эффектов внутри записи: dialogue после events (зеркало прежнего воркера)."""
     r = _TaskArtifactRecord(
-        submit_tick=1, task_id="t", events=(), dialogue_entry={"speaker_id": "a"},
-        economy_talks=(("a", 1),), speech_reset=None,
+        submit_tick=1,
+        task_id="t",
+        events=(),
+        dialogue_entry={"speaker_id": "a"},
+        economy_talks=(("a", 1),),
+        speech_reset=None,
     )
     # frozen-контейнер: поля не мутируются после создания
     assert r.economy_talks == (("a", 1),)
@@ -88,11 +94,15 @@ def test_drain_stamps_event_tick():
         radius=1.0,
         persistence_level="working",
     )
-    s._task_outbox.append(_TaskArtifactRecord(
-        submit_tick=777, task_id="t-1", events=(ev,),
-        dialogue_entry=None, economy_talks=(), speech_reset=None,
-    ))
-    s.drain_task_worker_outbox(scene)
-    assert ev.payload.get("event_tick") == 777, (
-        f"drain не штампует event_tick: {ev.payload}"
+    s._task_outbox.append(
+        _TaskArtifactRecord(
+            submit_tick=777,
+            task_id="t-1",
+            events=(ev,),
+            dialogue_entry=None,
+            economy_talks=(),
+            speech_reset=None,
+        )
     )
+    s.drain_task_worker_outbox(scene)
+    assert ev.payload.get("event_tick") == 777, f"drain не штампует event_tick: {ev.payload}"

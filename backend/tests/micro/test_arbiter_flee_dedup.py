@@ -30,6 +30,8 @@ def test_flee_dedup_before_supersede(arb_src: str) -> None:
 def test_flee_dedup_returns_reject(arb_src: str) -> None:
     src = arb_src
     anchor = src.find("ARBITER_FLEE_DEDUP")
-    block = src[anchor:anchor + 1200]
+    block = src[anchor : anchor + 1200]
     assert "VERDICT_REJECT" in block, "FLEE-DEDUP must return REJECT, not INTERRUPT"
-    assert "VERDICT_INTERRUPT" not in block[:block.find(")")] if ")" in block else True, "FLEE-DEDUP must not INTERRUPT"
+    assert "VERDICT_INTERRUPT" not in block[: block.find(")")] if ")" in block else True, (
+        "FLEE-DEDUP must not INTERRUPT"
+    )

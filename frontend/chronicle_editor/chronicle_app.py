@@ -28,7 +28,6 @@ _HINT1 = "Enter: читать целиком · колесо: прокрутка
 _HINT2 = "Ctrl+G: понять всё+карта · F9: утвердить · Shift+F9: утвердить ВСЕ черновики · F4: чистый черновик · Ctrl+O: загрузить · Ctrl+D: карта разрывов · Ctrl+U: отчёт понимания · Ctrl+S: сводка · ESC: выход"
 
 
-
 _OPTION_BY_KEY = {
     pygame.K_1: "SELECT_EXISTING_NPC",
     pygame.K_2: "CREATE_NEW_NPC",
@@ -142,7 +141,13 @@ class ChronicleEditorCore:
             self._npc_idx = (self._npc_idx - 1) % len(self._npcs) if self._npcs else 0
             self._reload()
         elif key == pygame.K_F1:
-            self._decompose_ordinal(self._frag_ord if not self._view_history else self._frag_index_by_number(self._frag_ord + 1) - 1 if False else self._frag_ord)
+            self._decompose_ordinal(
+                self._frag_ord
+                if not self._view_history
+                else self._frag_index_by_number(self._frag_ord + 1) - 1
+                if False
+                else self._frag_ord
+            )
         elif key == pygame.K_F2:
             self._decompose_ordinal(self._frag_ord + 1)
         elif key == pygame.K_F9 and pygame.key.get_pressed()[pygame.K_LSHIFT]:
@@ -194,14 +199,18 @@ class ChronicleEditorCore:
                     return
                 frs = self._history_fragments()
                 num = frs[self._frag_ord][0] if self._frag_ord < len(frs) else None
-                self._status = f"Пункт {num if num is not None else self._frag_ord + 1} выбран (Enter — читать, F1 — понять)"
+                self._status = (
+                    f"Пункт {num if num is not None else self._frag_ord + 1} выбран (Enter — читать, F1 — понять)"
+                )
             else:
                 # ЛЕНТА — выбор записи разбора
                 _entries = (self._doc or {}).get("entries") or []
                 _idx = (y - 100) // 22 + self._lenta_scroll
                 if 0 <= _idx < len(_entries):
                     _e = _entries[_idx]
-                    self._status = f"Запись {_idx + 1}: {self._kind_ru(_e.get('kind',''))} — {self._entry_text(_e)[:50]}"
+                    self._status = (
+                        f"Запись {_idx + 1}: {self._kind_ru(_e.get('kind', ''))} — {self._entry_text(_e)[:50]}"
+                    )
         elif 300 <= x <= 520 and 700 <= y <= 730:
             self._decompose_ordinal(self._frag_ord)
         elif 900 <= x <= 1120 and 700 <= y <= 730:
@@ -277,8 +286,7 @@ class ChronicleEditorCore:
             f.write(data.get("text", ""))
         totals = (data.get("report") or {}).get("totals") or {}
         self._status = (
-            f"Отчёт понимания: {path} (пунктов {totals.get('items', '?')}, "
-            f"понято {totals.get('percent', '?')}%)"
+            f"Отчёт понимания: {path} (пунктов {totals.get('items', '?')}, понято {totals.get('percent', '?')}%)"
         )
 
     @staticmethod
@@ -311,7 +319,7 @@ class ChronicleEditorCore:
         for p in parts[1:]:
             m = re.match(r"(.+)", p)
             title = m.group(1).strip() if m else "?"
-            body = p[m.end():].strip() if m else p.strip()
+            body = p[m.end() :].strip() if m else p.strip()
             blocks.append((title, body))
         world_markers = ("КАРТА ПРАВДЫ", "СИММЕТРИИ", "ПРАВДА И ВЕРСИИ")
         world_layer = []
@@ -357,8 +365,7 @@ class ChronicleEditorCore:
             frags = self._split_fragments(str((doc or {}).get("author_text", "") or ""))
             for fi, frag in enumerate(frags):
                 self._status = (
-                    f"Понимаю: {npc_id} {fi + 1}/{len(frags)} "
-                    f"(понято {total_ok}, сбоев {total_fail}) — не закрывай"
+                    f"Понимаю: {npc_id} {fi + 1}/{len(frags)} (понято {total_ok}, сбоев {total_fail}) — не закрывай"
                 )
                 self.draw(pygame.display.get_surface())
                 pygame.display.flip()
@@ -422,8 +429,7 @@ class ChronicleEditorCore:
             root.withdraw()
             replace = messagebox.askyesno(
                 "Текст уже содержит эти пункты",
-                "Заменить текст целиком на загружаемый?\n"
-                "(«Нет» = дописать — может создать дубли)",
+                "Заменить текст целиком на загружаемый?\n(«Нет» = дописать — может создать дубли)",
                 parent=root,
             )
             root.destroy()
@@ -445,7 +451,7 @@ class ChronicleEditorCore:
 
     def _new_clean_draft(self) -> None:
         if not self._npcs:
-            print('[CHRONICLE] F4 skipped: NPC list empty - backend alive?')
+            print("[CHRONICLE] F4 skipped: NPC list empty - backend alive?")
             return
         if self._npc_idx >= len(self._npcs):
             self._npc_idx = 0
@@ -503,19 +509,16 @@ class ChronicleEditorCore:
             return
         for block in (data.get("report") or {}).get("per_npc", []):
             self._und[str(block.get("npc", ""))] = {
-                r.get("n"): r.get("status")
-                for r in block.get("records", [])
-                if r.get("n") is not None
+                r.get("n"): r.get("status") for r in block.get("records", []) if r.get("n") is not None
             }
+
     def _ask_format(self) -> bool:
         import tkinter as tk
         from tkinter import messagebox
 
         root = tk.Tk()
         root.withdraw()
-        answer = messagebox.askyesno(
-            "Формат файла", "Сохранить в JSON? («Нет» = Markdown)", parent=root
-        )
+        answer = messagebox.askyesno("Формат файла", "Сохранить в JSON? («Нет» = Markdown)", parent=root)
         root.destroy()
         return answer
 
@@ -545,7 +548,11 @@ class ChronicleEditorCore:
             return
         self._frag_ord = ord_
         _frs = self._history_fragments()
-        _label = f"пункт {_frs[ord_][0]}" if self._view_history and ord_ < len(_frs) and _frs[ord_][0] is not None else f"фрагмент №{ord_}"
+        _label = (
+            f"пункт {_frs[ord_][0]}"
+            if self._view_history and ord_ < len(_frs) and _frs[ord_][0] is not None
+            else f"фрагмент №{ord_}"
+        )
         self._status = f"Разбор {_label}... (LLM, до 60 с)"
         self.draw(pygame.display.get_surface())
         pygame.display.flip()
@@ -577,9 +584,7 @@ class ChronicleEditorCore:
         ok = self._api.resolve_question(
             self._campaign, self._npcs[self._npc_idx], q.get("question_id", ""), option, value
         )
-        self._status = (
-            f"Резолюция [{option}{': ' + value if value else ''}] — {'OK' if ok else 'ОШИБКА PUT'}"
-        )
+        self._status = f"Резолюция [{option}{': ' + value if value else ''}] — {'OK' if ok else 'ОШИБКА PUT'}"
         self._current_q = None
         self._reload()
 
@@ -628,10 +633,7 @@ class ChronicleEditorCore:
                 blocked += 1
             else:
                 errors += 1
-        self._status = (
-            f"Shift+F9: канонизировано {ok}/{len(drafts)}"
-            f" (блоков: {blocked}, ошибок: {errors})"
-        )
+        self._status = f"Shift+F9: канонизировано {ok}/{len(drafts)} (блоков: {blocked}, ошибок: {errors})"
         self._load_roster()
 
     def _next_open_question(self):
@@ -682,7 +684,7 @@ class ChronicleEditorCore:
             if m:
                 # «1. 1.» лечится здесь: номер — метка строки, из текста
                 # фрагмента вырезается (урок скринов Мастера)
-                out.append((int(m.group(1)), p[m.end():].strip()))
+                out.append((int(m.group(1)), p[m.end() :].strip()))
             else:
                 out.append((None, p))
         return out
@@ -697,11 +699,7 @@ class ChronicleEditorCore:
         """Человекочитаемая метка выбранного (пункт N в истории / № в ленте) —
         единый источник для статуса и вопросов (двойное вычисление убрано)."""
         frs = self._history_fragments()
-        if (
-            self._view_history
-            and self._frag_ord < len(frs)
-            and frs[self._frag_ord][0] is not None
-        ):
+        if self._view_history and self._frag_ord < len(frs) and frs[self._frag_ord][0] is not None:
             return f"пункт {frs[self._frag_ord][0]}"
         return f"фрагмент #{self._frag_ord}"
 
@@ -719,7 +717,7 @@ class ChronicleEditorCore:
                 e = entries[self._frag_ord]
                 age = e.get("historical_age")
                 self._detail = (
-                    f"{self._kind_ru(e.get('kind',''))} [{age if age is not None else '?'}]",
+                    f"{self._kind_ru(e.get('kind', ''))} [{age if age is not None else '?'}]",
                     self._entry_text(e),
                 )
 
@@ -751,12 +749,23 @@ class ChronicleEditorCore:
                 num, txt = _frs[i]
                 label = f"{num}." if num is not None else "·"
                 color = _ACCENT if i == self._frag_ord else _TEXT
-                _st = (getattr(self, "_und", {}).get(self._npcs[self._npc_idx]) or {}).get(num) if num is not None else None
+                _st = (
+                    (getattr(self, "_und", {}).get(self._npcs[self._npc_idx]) or {}).get(num)
+                    if num is not None
+                    else None
+                )
                 _v = {"OK": "✓", "PART": "~", "MISS": "×"}.get(_st, "")
                 surface.blit(self._font.render(f"{label}{_v} {txt[:57]}", True, color), (280, 100 + _row * 22))
             if len(_frs) > 22:
                 _pct = int(100 * (self._hist_scroll + 22) / len(_frs))
-                surface.blit(self._font.render(f"▼ {self._hist_scroll + 1}–{min(self._hist_scroll + 22, len(_frs))} из {len(_frs)} ({_pct}%) — колесо мыши", True, (120, 120, 120)), (280, 645))
+                surface.blit(
+                    self._font.render(
+                        f"▼ {self._hist_scroll + 1}–{min(self._hist_scroll + 22, len(_frs))} из {len(_frs)} ({_pct}%) — колесо мыши",
+                        True,
+                        (120, 120, 120),
+                    ),
+                    (280, 645),
+                )
         elif self._doc:
             # entry_id текущего вопроса — для подсветки
             _q_entry_id = ""
@@ -766,14 +775,14 @@ class ChronicleEditorCore:
                 _nq = self._next_open_question()
                 if _nq:
                     _q_entry_id = _nq.get("entry_id", "")
-            _entries = (self._doc.get("entries") or [])
+            _entries = self._doc.get("entries") or []
             _scroll = self._lenta_scroll
             for _row, _i in enumerate(range(_scroll, min(_scroll + 25, len(_entries)))):
                 e = _entries[_i]
                 age = e.get("historical_age")
                 marker = f"[{age}]" if age is not None else "[?]"
                 _txt_full = self._entry_text(e)
-                line = f"{marker} {self._kind_ru(e.get('kind',''))}: {_txt_full[:60]}"
+                line = f"{marker} {self._kind_ru(e.get('kind', ''))}: {_txt_full[:60]}"
                 _y = 100 + _row * 22
                 # Подсветка жёлтым строки с открытым вопросом
                 if _q_entry_id and e.get("entry_id", "") == _q_entry_id:
@@ -787,8 +796,10 @@ class ChronicleEditorCore:
                 surface.blit(
                     self._font.render(
                         f"▼ {self._lenta_scroll + 1}–{min(self._lenta_scroll + 25, len(_entries))} из {len(_entries)} ({_pct_l}%) — колесо мыши",
-                        True, (120, 120, 120),
-                    ), (280, 645)
+                        True,
+                        (120, 120, 120),
+                    ),
+                    (280, 645),
                 )
             # Tooltip: полный текст записи под курсором
             if self._hover_idx is not None and 0 <= self._hover_idx < 25:
@@ -815,7 +826,7 @@ class ChronicleEditorCore:
             txt = str(dp.get("summary") or dp.get("statement") or dp.get("trait") or "")
             color = _ACCENT if q else _TEXT
             surface.blit(
-                self._font.render(f"{self._kind_ru(item.get('kind',''))}{q}:", True, color),
+                self._font.render(f"{self._kind_ru(item.get('kind', ''))}{q}:", True, color),
                 (910, _ry),
             )
             for _ln in self._wrap(txt, 34)[:6]:
@@ -839,7 +850,7 @@ class ChronicleEditorCore:
             _npc = self._npcs[self._npc_idx] if self._npcs else "?"
             _q = _cq.get("q", _cq) if isinstance(_cq, dict) else _cq
             qline = (
-                f"❓ {_npc}, {self._current_label()}: «…{_q.get('target_span','')[:40]}…» — кто это? "
+                f"❓ {_npc}, {self._current_label()}: «…{_q.get('target_span', '')[:40]}…» — кто это? "
                 "1:из списка · 2:новый · 3:массовка · 4:пятно"
             )
             # Жёлтый фон под строкой вопроса (привлечение внимания)
@@ -886,9 +897,7 @@ class ChronicleEditorApp:
         # Кампания: селектор — Шаг 2; пока дефолт silver_wolf.
         # Таймаут 180 с (вердикт Мастера «готов ждать»): плотные пункты
         # Торнина (28 пунктов × развилки) живут дольше 60-секундного дефолта.
-        self._core = ChronicleEditorCore(
-            ChronicleApi(HttpClient(base_url, timeout_sec=180)), "silver_wolf"
-        )
+        self._core = ChronicleEditorCore(ChronicleApi(HttpClient(base_url, timeout_sec=180)), "silver_wolf")
 
     def run(self) -> None:
         clock = pygame.time.Clock()

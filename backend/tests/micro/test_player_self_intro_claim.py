@@ -10,7 +10,6 @@
 Запуск: cd backend; python -m pytest tests/micro/test_player_self_intro_claim.py -v; cd ..
 """
 
-
 from app.domain.events import EventDTO
 from app.services.events.event_types import EventType
 from app.services.events.player_speech_act_subscriber import (
@@ -25,9 +24,7 @@ class _SessionMemory:
     def __init__(self) -> None:
         self._sessions: dict = {}
 
-    def get_dialogue_session(
-        self, campaign_id: str, npc_id: str, partner_id: str = "player"
-    ) -> DialogueSession:
+    def get_dialogue_session(self, campaign_id: str, npc_id: str, partner_id: str = "player") -> DialogueSession:
         key = (campaign_id, npc_id, partner_id)
         if key not in self._sessions:
             self._sessions[key] = DialogueSession(npc_id=npc_id, partner_id=partner_id)
@@ -49,9 +46,7 @@ def _spoke_event(acts, event_id="evt-1", target_id="merchant_goran"):
 def test_self_intro_creates_claim_and_reaches_prompt_block():
     mem = _SessionMemory()
     sub = PlayerSpeechActSubscriber(memory_manager=mem, campaign_id_provider=lambda: "T")
-    sub.on_player_spoke(
-        _spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}])
-    )
+    sub.on_player_spoke(_spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}]))
     session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     assert len(session.claims) == 1
     claim = session.claims[0]
@@ -78,12 +73,8 @@ def test_no_self_intro_no_claim():
 def test_duplicate_event_id_single_claim():
     mem = _SessionMemory()
     sub = PlayerSpeechActSubscriber(memory_manager=mem, campaign_id_provider=lambda: "T")
-    sub.on_player_spoke(
-        _spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}])
-    )
-    sub.on_player_spoke(
-        _spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}])
-    )  # тот же event_id
+    sub.on_player_spoke(_spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}]))
+    sub.on_player_spoke(_spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}]))  # тот же event_id
     session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     assert len(session.claims) == 1
 
@@ -91,9 +82,7 @@ def test_duplicate_event_id_single_claim():
 def test_invalid_name_rejected():
     mem = _SessionMemory()
     sub = PlayerSpeechActSubscriber(memory_manager=mem, campaign_id_provider=lambda: "T")
-    sub.on_player_spoke(
-        _spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "   "}}])
-    )
+    sub.on_player_spoke(_spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "   "}}]))
     session = mem.get_dialogue_session("T", "merchant_goran", partner_id="player")
     assert len(session.claims) == 0
 
@@ -101,7 +90,5 @@ def test_invalid_name_rejected():
 def test_no_target_no_claim():
     mem = _SessionMemory()
     sub = PlayerSpeechActSubscriber(memory_manager=mem, campaign_id_provider=lambda: "T")
-    sub.on_player_spoke(
-        _spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}], target_id="")
-    )
+    sub.on_player_spoke(_spoke_event([{"type": "SELF_INTRODUCTION", "params": {"name": "Мю"}}], target_id=""))
     assert len(mem._sessions) == 0  # сессия не создана без адресата-актора

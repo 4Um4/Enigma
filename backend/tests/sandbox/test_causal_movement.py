@@ -46,7 +46,10 @@ class TestCausalOntology:
     def test_pressure_modifies_utility_not_commands(self):
         """FAIL CONDITION: Давление становится командой (ReflexEngine)."""
         semantic_field = IntentSemanticField(
-            action=ActionType.MOVE, target_reference="тень", social_pressure=0.9, raw_text="Тень, иди сюда"  # S267: поле action_type переименовано в action
+            action=ActionType.MOVE,
+            target_reference="тень",
+            social_pressure=0.9,
+            raw_text="Тень, иди сюда",  # S267: поле action_type переименовано в action
         )
         assert semantic_field.action_type == ActionType.MOVE
         assert not hasattr(semantic_field, "movement_intent"), (

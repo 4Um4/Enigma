@@ -24,6 +24,7 @@ Other v4 findings (already confirmed):
 
 READ-ONLY. Production-код не менять.
 """
+
 from __future__ import annotations
 
 import os
@@ -123,7 +124,8 @@ _TARGET_LOGGERS = [
     "app.services.game_loop.game_loop",
     "app.services.world.world_tick_engine",
     "app.services.npc.state_applicator",
-    "app", "",
+    "app",
+    "",
 ]
 
 
@@ -340,6 +342,7 @@ def _install_class_spies() -> bool:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         _orig_execute = DialogueExecutor.execute
         DialogueExecutor.execute = _spy_execute  # plain function — descriptor will pass self
 
@@ -352,6 +355,7 @@ def _install_class_spies() -> bool:
 
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         _orig_materialize = DialogueMaterializer.materialize
         DialogueMaterializer.materialize = _spy_materialize
     except Exception as e:
@@ -359,6 +363,7 @@ def _install_class_spies() -> bool:
 
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         _orig_to_event = IntentEventAdapter.to_event
         IntentEventAdapter.to_event = staticmethod(_spy_to_event)
     except Exception as e:
@@ -371,6 +376,7 @@ def _restore_class_spies() -> None:
     global _orig_execute, _orig_gen, _orig_materialize, _orig_to_event
     try:
         from app.services.execution.dialogue_executor import DialogueExecutor
+
         if _orig_execute is not None:
             DialogueExecutor.execute = _orig_execute
         if _orig_gen is not None:
@@ -379,12 +385,14 @@ def _restore_class_spies() -> None:
         pass
     try:
         from app.services.execution.dialogue_materializer import DialogueMaterializer
+
         if _orig_materialize is not None:
             DialogueMaterializer.materialize = _orig_materialize
     except Exception:
         pass
     try:
         from app.services.events.intent_event_adapter import IntentEventAdapter
+
         if _orig_to_event is not None:
             IntentEventAdapter.to_event = _orig_to_event
     except Exception:
@@ -507,24 +515,30 @@ def main() -> int:
         # =====================================================================
         _print_section("STEP 2: install CLASS-LEVEL spies (PLAIN FUNCTIONS)")
         _event_bus_spy.install(bus)
-        print(f"  EventBus spy installed")
+        print("  EventBus spy installed")
 
         if _install_class_spies():
-            print(f"  Class spies installed (plain functions)")
+            print("  Class spies installed (plain functions)")
 
         # Verify
         from app.services.execution.dialogue_executor import DialogueExecutor
         from app.services.execution.dialogue_materializer import DialogueMaterializer
         from app.services.events.intent_event_adapter import IntentEventAdapter
 
-        print(f"\n  Verify spy installation:")
+        print("\n  Verify spy installation:")
         print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute is _spy_execute}")
-        print(f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
-              f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}")
-        print(f"    DialogueMaterializer.materialize is _spy_materialize: "
-              f"{DialogueMaterializer.materialize is _spy_materialize}")
-        print(f"    IntentEventAdapter.to_event is _spy_to_event: "
-              f"{IntentEventAdapter.to_event is _spy_to_event.__func__ if hasattr(_spy_to_event, '__func__') else _spy_to_event}")
+        print(
+            f"    DialogueExecutor._generate_with_router is _spy_generate_with_router: "
+            f"{DialogueExecutor._generate_with_router is _spy_generate_with_router}"
+        )
+        print(
+            f"    DialogueMaterializer.materialize is _spy_materialize: "
+            f"{DialogueMaterializer.materialize is _spy_materialize}"
+        )
+        print(
+            f"    IntentEventAdapter.to_event is _spy_to_event: "
+            f"{IntentEventAdapter.to_event is _spy_to_event.__func__ if hasattr(_spy_to_event, '__func__') else _spy_to_event}"
+        )
 
         # =====================================================================
         # STEP 3: capture PRE-EXISTING Tornin beliefs
@@ -534,9 +548,11 @@ def main() -> int:
             tornin_pre = store.get_all_for_agent("tavern_keeper_tornin") or []
             print(f"  Tornin pre-existing records: {len(tornin_pre)}")
             for r in tornin_pre:
-                print(f"    prop={str(getattr(r, 'proposition', None))[:80]} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"    prop={str(getattr(r, 'proposition', None))[:80]} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
         # =====================================================================
         # STEP 4: publish PLAYER_INSULTS
@@ -571,7 +587,7 @@ def main() -> int:
         _install_log_capture()
 
         # Re-verify spies are still installed after reset
-        print(f"  Re-verify spies after reset:")
+        print("  Re-verify spies after reset:")
         print(f"    DialogueExecutor.execute is _spy_execute: {DialogueExecutor.execute is _spy_execute}")
 
         try:
@@ -589,7 +605,7 @@ def main() -> int:
         _print_section("STEP 6: spy results")
 
         # 6a. DialogueExecutor.execute() + _generate_with_router calls (combined)
-        print(f"\n  === All executor spy calls (execute + _generate_with_router) ===")
+        print("\n  === All executor spy calls (execute + _generate_with_router) ===")
         print(f"  Total: {len(_executor_calls)}")
         for i, call in enumerate(_executor_calls):
             print(f"\n  Call [{i}]:")
@@ -611,7 +627,7 @@ def main() -> int:
             if call.get("exception"):
                 print(f"    EXCEPTION: {call['exception']}")
                 if "exception_traceback" in call:
-                    print(f"    TRACEBACK:")
+                    print("    TRACEBACK:")
                     print(call["exception_traceback"][:1500])
             else:
                 print(f"    return: {call.get('return_value', 'N/A')[:200]}")
@@ -631,11 +647,13 @@ def main() -> int:
                         print(call["iteration_traceback"][:800])
 
         # 6b. DialogueMaterializer.materialize calls
-        print(f"\n  === DialogueMaterializer.materialize() calls ===")
+        print("\n  === DialogueMaterializer.materialize() calls ===")
         print(f"  Total: {len(_materializer_calls)}")
         for i, call in enumerate(_materializer_calls[:10]):
-            print(f"  [{i}] artifact.success={call.get('artifact_success')} "
-                  f"result_type={call.get('artifact_result_type')}")
+            print(
+                f"  [{i}] artifact.success={call.get('artifact_success')} "
+                f"result_type={call.get('artifact_result_type')}"
+            )
             if call.get("artifact_error_message"):
                 print(f"      error: {call['artifact_error_message'][:200]}")
             if call.get("exception"):
@@ -648,11 +666,13 @@ def main() -> int:
                     print(f"      result count: {call['result_count']}")
 
         # 6c. IntentEventAdapter calls
-        print(f"\n  === IntentEventAdapter.to_event() calls ===")
+        print("\n  === IntentEventAdapter.to_event() calls ===")
         print(f"  Total: {len(_adapter_calls)}")
         for i, call in enumerate(_adapter_calls[:10]):
-            print(f"  [{i}] speaker={call.get('intent_speaker')} "
-                  f"target={call.get('intent_target')} type={call.get('intent_type')}")
+            print(
+                f"  [{i}] speaker={call.get('intent_speaker')} "
+                f"target={call.get('intent_target')} type={call.get('intent_type')}"
+            )
             print(f"      proposition: {call.get('intent_proposition', 'N/A')[:120]}")
             if call.get("exception"):
                 print(f"      EXCEPTION: {call['exception']}")
@@ -660,7 +680,7 @@ def main() -> int:
                 print(f"      return_event_type: {call.get('return_event_type', 'N/A')}")
 
         # 6d. EventBus events
-        print(f"\n  === EventBus.publish() calls ===")
+        print("\n  === EventBus.publish() calls ===")
         print(f"  Total events: {len(_event_bus_spy.published_events)}")
         ev_type_counter: Dict[str, int] = {}
         for ev_type, _ in _event_bus_spy.published_events:
@@ -669,16 +689,18 @@ def main() -> int:
             print(f"    {ev_type}: {count}")
 
         # Show all events with details
-        print(f"\n  --- ALL events with details ---")
+        print("\n  --- ALL events with details ---")
         for i, (ev_type, ev) in enumerate(_event_bus_spy.published_events):
             p = getattr(ev, "payload", {}) or {}
-            print(f"    [{i}] type={ev_type} source={getattr(ev, 'source', '?')} "
-                  f"target={p.get('target_id', '?')} intent={p.get('intent_type', '?')}")
+            print(
+                f"    [{i}] type={ev_type} source={getattr(ev, 'source', '?')} "
+                f"target={p.get('target_id', '?')} intent={p.get('intent_type', '?')}"
+            )
             if p.get("proposition"):
                 print(f"         proposition: {str(p.get('proposition'))[:200]}")
 
         # 6e. ALL DialogueExecutor logs
-        print(f"\n  === ALL DialogueExecutor logs ===")
+        print("\n  === ALL DialogueExecutor logs ===")
         all_logs = _log_capture.messages()
         de_logs = [l for l in all_logs if "dialogue_executor" in l.lower() or "DIALOGUE_EXEC" in l]
         print(f"  Total: {len(de_logs)}")
@@ -686,28 +708,28 @@ def main() -> int:
             print(f"    {l[:300]}")
 
         # 6f. ALL task_scheduler logs
-        print(f"\n  === ALL task_scheduler logs (no filter) ===")
+        print("\n  === ALL task_scheduler logs (no filter) ===")
         ts_logs = [l for l in all_logs if "task_scheduler" in l.lower() or "TASK_SCHED" in l or "[SCHEDULER]" in l]
         print(f"  Total: {len(ts_logs)}")
         for l in ts_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6g. DialogueMaterializer logs
-        print(f"\n  === DialogueMaterializer logs ===")
+        print("\n  === DialogueMaterializer logs ===")
         dm_logs = [l for l in all_logs if "dialogue_materializer" in l.lower() or "Materializer" in l]
         print(f"  Total: {len(dm_logs)}")
         for l in dm_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6h. ERROR logs
-        print(f"\n  === ALL ERROR level logs ===")
+        print("\n  === ALL ERROR level logs ===")
         err_logs = [l for l in all_logs if l.startswith("[ERROR]")]
         print(f"  Total: {len(err_logs)}")
         for l in err_logs[:30]:
             print(f"    {l[:300]}")
 
         # 6i. WARN logs
-        print(f"\n  === ALL WARN level logs ===")
+        print("\n  === ALL WARN level logs ===")
         warn_logs = [l for l in all_logs if l.startswith("[WARNING]")]
         print(f"  Total: {len(warn_logs)}")
         for l in warn_logs[:30]:
@@ -722,13 +744,14 @@ def main() -> int:
             print(f"  Tornin total records: {len(tornin_after)}")
             for r in tornin_after:
                 print(f"    prop={str(getattr(r, 'proposition', None))[:80]}")
-                print(f"      conf={getattr(r, 'confidence', None)} "
-                      f"source_id={getattr(r, 'source_id', None)} "
-                      f"orig={getattr(r, 'original_source_id', None)}")
+                print(
+                    f"      conf={getattr(r, 'confidence', None)} "
+                    f"source_id={getattr(r, 'source_id', None)} "
+                    f"orig={getattr(r, 'original_source_id', None)}"
+                )
 
             new_borko_belief = any(
-                getattr(r, "source_id", None) == "guard_borko"
-                and getattr(r, "original_source_id", None) == "player"
+                getattr(r, "source_id", None) == "guard_borko" and getattr(r, "original_source_id", None) == "player"
                 for r in tornin_after
             )
             print(f"\n  NEW Tornin belief with source_id='guard_borko' (orig='player'): {new_borko_belief}")
@@ -743,8 +766,9 @@ def main() -> int:
         gen_calls = [c for c in _executor_calls if "req_target_id" in c]
         materializer_calls = len(_materializer_calls)
         adapter_calls = len(_adapter_calls)
-        npc_spoke_count = sum(1 for t, _ in _event_bus_spy.published_events
-                              if "npc_spoke" in t.lower() or "spread_rumor" in t.lower())
+        npc_spoke_count = sum(
+            1 for t, _ in _event_bus_spy.published_events if "npc_spoke" in t.lower() or "spread_rumor" in t.lower()
+        )
 
         print(f"  execute() calls: {len(execute_calls)}")
         print(f"  _generate_with_router calls: {len(gen_calls)}")
@@ -753,39 +777,39 @@ def main() -> int:
         print(f"  NPC_SPOKE/SPREAD_RUMOR published: {npc_spoke_count}")
 
         if new_borko_belief:
-            print(f"\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
+            print("\n  >>> VERDICT: B5-D2 NOT A DEFECT — chain completed")
         elif len(execute_calls) == 0:
-            print(f"\n  >>> VERDICT: BREAK — execute() NOT called")
-            print(f"  >>> Spy works, but executor was never invoked by task_scheduler")
+            print("\n  >>> VERDICT: BREAK — execute() NOT called")
+            print("  >>> Spy works, but executor was never invoked by task_scheduler")
         elif len(execute_calls) > 0 and execute_calls[0].get("exception"):
-            print(f"\n  >>> VERDICT: BREAK — execute() raised exception")
+            print("\n  >>> VERDICT: BREAK — execute() raised exception")
             print(f"  >>> Exception: {execute_calls[0]['exception']}")
-            print(f"  >>> TRACEBACK:")
+            print("  >>> TRACEBACK:")
             print(execute_calls[0].get("exception_traceback", "")[:1500])
         elif len(execute_calls) > 0 and execute_calls[0].get("iteration_exception"):
-            print(f"\n  >>> VERDICT: BREAK — execute() generator iteration raised exception")
+            print("\n  >>> VERDICT: BREAK — execute() generator iteration raised exception")
             print(f"  >>> Exception: {execute_calls[0]['iteration_exception']}")
-            print(f"  >>> TRACEBACK:")
+            print("  >>> TRACEBACK:")
             print(execute_calls[0].get("iteration_traceback", "")[:1500])
         elif len(execute_calls) > 0:
             arts = execute_calls[0].get("yielded_artifacts", [])
             if not arts:
-                print(f"\n  >>> VERDICT: BREAK — execute() yielded NO artifacts")
+                print("\n  >>> VERDICT: BREAK — execute() yielded NO artifacts")
             else:
                 first_art = arts[0]
                 if not first_art.get("success"):
-                    print(f"\n  >>> VERDICT: BREAK — execute() yielded error artifact")
+                    print("\n  >>> VERDICT: BREAK — execute() yielded error artifact")
                     print(f"  >>> error_message: {first_art.get('error_message', 'N/A')[:200]}")
                 elif materializer_calls == 0:
-                    print(f"\n  >>> VERDICT: BREAK — execute() succeeded but materializer NOT called")
-                    print(f"  >>> Investigate task_scheduler materializer dispatch")
+                    print("\n  >>> VERDICT: BREAK — execute() succeeded but materializer NOT called")
+                    print("  >>> Investigate task_scheduler materializer dispatch")
                 elif adapter_calls == 0:
-                    print(f"\n  >>> VERDICT: BREAK — materializer called but IntentEventAdapter NOT called")
-                    print(f"  >>> Materializer creates events directly (not via IntentEventAdapter)")
+                    print("\n  >>> VERDICT: BREAK — materializer called but IntentEventAdapter NOT called")
+                    print("  >>> Materializer creates events directly (not via IntentEventAdapter)")
                 elif npc_spoke_count == 0:
-                    print(f"\n  >>> VERDICT: BREAK — adapter called but NPC_SPOKE not published")
+                    print("\n  >>> VERDICT: BREAK — adapter called but NPC_SPOKE not published")
                 else:
-                    print(f"\n  >>> VERDICT: needs manual inspection")
+                    print("\n  >>> VERDICT: needs manual inspection")
 
         # ---- Cleanup ----
         _event_bus_spy.restore()

@@ -9,6 +9,7 @@ path: backend/tests/calibration_lab/test_m0_metrics.py
 
 Запуск: cd backend; python -m pytest tests/calibration_lab/test_m0_metrics.py  -q --tb=line; cd ..
 """
+
 from pathlib import Path
 from typing import Any, Dict
 
@@ -66,17 +67,13 @@ class TestDecisionMetrics:
     def test_diversity_constant_label(self) -> None:
         metric = DecisionDiversity()
         for tick in range(3):
-            metric.update(
-                tick, {}, self._ev([("npc_spoke", "a", "talk")])
-            )
+            metric.update(tick, {}, self._ev([("npc_spoke", "a", "talk")]))
         assert abs(metric.compute() - 1 / 3) < 1e-9
 
     def test_diversity_ignores_non_decision_events(self) -> None:
         metric = DecisionDiversity()
         for tick in range(3):
-            metric.update(
-                tick, {}, self._ev([("npc_moved", "a", "npc_moved")])
-            )
+            metric.update(tick, {}, self._ev([("npc_moved", "a", "npc_moved")]))
         assert metric.compute() is None
 
     def test_loop_rate_constant_is_one(self) -> None:
@@ -147,9 +144,6 @@ class TestBundleIntegration:
         assert 0.0 <= dv <= 1.0
         lr = result.metrics["loop_rate"]
         assert lr is None or 0.0 <= lr <= 1.0
-        with_intents = [
-            sum(1 for n in tick if n.get("intent") is not None)
-            for tick in result.npc_captures
-        ]
+        with_intents = [sum(1 for n in tick if n.get("intent") is not None) for tick in result.npc_captures]
         print(f"[DIAG_M06] NPC с intent по тикам: {with_intents}")
         assert len(result.events_per_tick) == 3

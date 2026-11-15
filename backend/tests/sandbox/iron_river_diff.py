@@ -5,6 +5,7 @@ path: /project/backend/tests/sandbox/iron_river_diff.py
 Зависимости: subprocess, json, tempfile
 Запуск: cd backend; python tests/sandbox/iron_river_diff.py
 """
+
 import json
 import subprocess
 import sys
@@ -49,6 +50,7 @@ def canon(o):
 print("SCENE " + json.dumps(canon(scene), sort_keys=True, default=str))
 """
 
+
 def _flat(o, prefix=""):
     out = {}
     if isinstance(o, dict):
@@ -60,14 +62,16 @@ def _flat(o, prefix=""):
         out[prefix] = str(o)
     return out
 
+
 def main() -> int:
     scenes = []
     for i in range(2):
-        r = subprocess.run([sys.executable, "-c", _RUNNER],
-                           capture_output=True, text=True, cwd=".")
+        r = subprocess.run([sys.executable, "-c", _RUNNER], capture_output=True, text=True, cwd=".")
         line = next((l for l in r.stdout.splitlines() if l.startswith("SCENE ")), None)
         if not line:
-            print(f"RUN{i+1}: ERR"); print(r.stderr[-300:]); return 2
+            print(f"RUN{i + 1}: ERR")
+            print(r.stderr[-300:])
+            return 2
         scenes.append(json.loads(line[6:]))
     a, b = _flat(scenes[0]), _flat(scenes[1])
     diffs = [k for k in sorted(set(a) | set(b)) if a.get(k) != b.get(k)]
@@ -77,6 +81,7 @@ def main() -> int:
     if not diffs:
         print("VERDICT: MATCH")
     return 0 if not diffs else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

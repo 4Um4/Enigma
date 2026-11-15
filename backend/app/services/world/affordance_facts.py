@@ -17,6 +17,7 @@ path: backend/app/services/world/affordance_facts.py
 Зависимости: app.domain (body_state_view, world_object), app.services.world (affordance_resolver, world_objects_projection)
 Основные сущности: WEAPON_ARCHETYPES, compute_weapon_access_facts, run_affordance_facts_guarded
 """
+
 from __future__ import annotations
 
 import logging
@@ -65,9 +66,7 @@ def _weapon_reachable(
     """
     if obj.holder == npc_id:
         return True
-    return PRECONDITION_REGISTRY["IS_ADJACENT_TO"](
-        obj, view, npc_position, ()
-    )
+    return PRECONDITION_REGISTRY["IS_ADJACENT_TO"](obj, view, npc_position, ())
 
 
 def compute_weapon_access_facts(
@@ -89,9 +88,7 @@ def compute_weapon_access_facts(
         return _facts
 
     _objects = project_world_objects(snapshot.world_objects, location_id)
-    _weapons = tuple(
-        _o for _o in _objects if _o.archetype in WEAPON_ARCHETYPES
-    )
+    _weapons = tuple(_o for _o in _objects if _o.archetype in WEAPON_ARCHETYPES)
     if not _weapons:
         return _facts
 
@@ -116,10 +113,7 @@ def compute_weapon_access_facts(
         except ValueError as _e:
             logger.warning(f"[W3_G2] body_state missing npc='{_nid}': {_e}")
             continue
-        _facts[_nid] = any(
-            _weapon_reachable(_w, _view, _npc_pos[_nid], _nid)
-            for _w in _weapons
-        )
+        _facts[_nid] = any(_weapon_reachable(_w, _view, _npc_pos[_nid], _nid) for _w in _weapons)
     return _facts
 
 
@@ -139,13 +133,9 @@ def run_affordance_facts_guarded(
     if not _g2_enabled():
         return {}
     try:
-        _facts = compute_weapon_access_facts(
-            snapshot, all_npcs_raw, location_id
-        )
+        _facts = compute_weapon_access_facts(snapshot, all_npcs_raw, location_id)
         if _facts:
-            logger.info(
-                f"[W3_G2] tick={tick} weapon_access npc={len(_facts)}"
-            )
+            logger.info(f"[W3_G2] tick={tick} weapon_access npc={len(_facts)}")
         return _facts
     except Exception as _e:  # D5/§11: логируем; деградация канала, не тика
         logger.warning(f"[W3_G2] producer fault: {_e}")

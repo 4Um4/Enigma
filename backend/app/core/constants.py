@@ -86,20 +86,14 @@ TRAIT_DECAY_RATE: Final[float] = 0.02  # decay временных state_modifier
 # ADR-O-304: Trait Stabilization Hysteresis (Trait Dynamics)
 THETA_UP: Final[float] = 0.60  # Порог активации черты (накопленная энергия)
 THETA_DOWN: Final[float] = 0.20  # Порог деактивации черты
-TRAIT_ACTIVATION_RATE: Final[float] = (
-    0.15  # Скорость накопления энергии активации за одно событие
-)
-TRAIT_ACTIVATION_DECAY: Final[float] = (
-    0.03  # Скорость затухания энергии активации за тик
-)
+TRAIT_ACTIVATION_RATE: Final[float] = 0.15  # Скорость накопления энергии активации за одно событие
+TRAIT_ACTIVATION_DECAY: Final[float] = 0.03  # Скорость затухания энергии активации за тик
 INTENT_EXHAUSTION_RATE: Final[float] = 0.08  # штраф за зависание сверх порога
 
 # Пороги выбора
 FEAR_FLEE_THRESHOLD: Final[float] = 0.65
 MIN_INTENT_SCORE: Final[float] = 0.15
-PROVOCATION_THREAT_THRESHOLD: Final[float] = (
-    0.3  # суммарный threat_markers для разблокировки агрессии без event_type
-)
+PROVOCATION_THREAT_THRESHOLD: Final[float] = 0.3  # суммарный threat_markers для разблокировки агрессии без event_type
 
 # Commitment Model
 COMMITMENT_BASE_THRESHOLD: Final[float] = 0.15
@@ -227,9 +221,7 @@ PRESSURE_IDLE_RATE: float = 0.05  # +0.05 за секунду реального
 PRESSURE_THRESHOLD: float = 0.5  # порог для триггера телеграфа
 
 # Фаза 2.1 — DecisionHub в idle_tick
-IDLE_DECISION_SCORE_THRESHOLD: Final[float] = (
-    0.15  # порог накопленного давления для триггера телеграфа (~6 тиков)
-)
+IDLE_DECISION_SCORE_THRESHOLD: Final[float] = 0.15  # порог накопленного давления для триггера телеграфа (~6 тиков)
 IDLE_PRESSURE_ACCUM_RATE: Final[float] = 0.1  # 10% от score за тик
 IDLE_PRESSURE_DECAY_RATE: Final[float] = 0.05  # 5% decay за тик
 MAX_CACHED_CAMPAIGNS: Final[int] = 100

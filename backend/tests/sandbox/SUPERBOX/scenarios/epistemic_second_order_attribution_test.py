@@ -7,6 +7,7 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_a
 
 Запуск: python backend/tests/sandbox/SUPERBOX/scenarios/epistemic_second_order_attribution_test.py
 """
+
 import atexit
 import logging
 import sys
@@ -24,11 +25,12 @@ sys.path.insert(0, str(_ROOT))
 # module-level atexit handler. Принцип Мастера: идентификация ≠ владение.
 try:
     from app.services.llm.runtime.client import ensure_llm
+
     ensure_llm(label="epistemic_2nd_attr")
 except Exception as e:
     print(f"⚠️ Внимание: LLM недоступна ({e}). Тест продолжает работу без LLM.")
 
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(name)s:%(message)s')
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("EPISTEMIC_SECOND_ORDER_ATTRIBUTION")
 logger.setLevel(logging.INFO)
 
@@ -55,20 +57,20 @@ NPC_A = "thief_shadow"
 NPC_B = "merchant_goran"
 NPC_C = "guard_borko"
 
+
 def inject_lie(game_loop):
     """Инъецирует ложное убеждение напрямую в EpistemicStore NPC_A (thief_shadow)."""
     from app.services.game_loop.scene_init import ensure_scene_initialized
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     game_loop._current_spatial_query = SpatialQueryService(
-        npc_positions=_scene.get("npc_positions", {}),
-        scene_state=_scene
+        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
     )
-    
+
     _all_npcs = game_loop._get_life_engine().get_npc_states(CAMPAIGN_ID)
     for _n in _all_npcs:
         if _n.get("npc_id") == NPC_A:
@@ -78,54 +80,74 @@ def inject_lie(game_loop):
             _n["body_state"] = _n.get("body_state", {})
             _n["body_state"]["sleep_pressure"] = 0.0
             _n["body_state"]["arousal"] = 1.0
-            
+
     _mem_mgr = getattr(game_loop._tick_orch, "_memory_manager", None)
     if _mem_mgr:
         _mem_mgr.add_dialogue_turn(
-            campaign_id=CAMPAIGN_ID, npc_id=NPC_A, partner_id=NPC_B,
-            speaker=NPC_A, text="Я видел, что ты сделал.", target_id=NPC_B,
-            intent="talk", tone="serious", tick=1
+            campaign_id=CAMPAIGN_ID,
+            npc_id=NPC_A,
+            partner_id=NPC_B,
+            speaker=NPC_A,
+            text="Я видел, что ты сделал.",
+            target_id=NPC_B,
+            intent="talk",
+            tone="serious",
+            tick=1,
         )
         _mem_mgr.add_dialogue_turn(
-            campaign_id=CAMPAIGN_ID, npc_id=NPC_B, partner_id=NPC_A,
-            speaker=NPC_B, text="О чём ты говоришь?", target_id=NPC_A,
-            intent="talk", tone="neutral", tick=1
+            campaign_id=CAMPAIGN_ID,
+            npc_id=NPC_B,
+            partner_id=NPC_A,
+            speaker=NPC_B,
+            text="О чём ты говоришь?",
+            target_id=NPC_A,
+            intent="talk",
+            tone="neutral",
+            tick=1,
         )
-    
+
     _epistemic_store = game_loop._tick_orch._epistemic_store
-    _prop = Proposition(
-        subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True
-    )
+    _prop = Proposition(subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True)
     _record = EpistemicRecord(
-        agent_id=NPC_A, proposition=_prop, confidence=1.0,
-        source_id="test_injector", source_claim_id="test_claim_1",
-        first_observed_tick=1, last_updated_tick=1
+        agent_id=NPC_A,
+        proposition=_prop,
+        confidence=1.0,
+        source_id="test_injector",
+        source_claim_id="test_claim_1",
+        first_observed_tick=1,
+        last_updated_tick=1,
     )
     _epistemic_store.upsert(_record)
+
 
 def run_tick(game_loop):
     from app.services.game_loop.scene_init import ensure_scene_initialized
     from app.services.spatial.spatial_factory import SpatialFactory
-    
+
     ensure_scene_initialized(game_loop, CAMPAIGN_ID)
     _scene = game_loop.scene_manager.get_scene_state(CAMPAIGN_ID, LOCATION_ID)
     if _scene is None:
         _scene = game_loop.scene_manager.initialize_scene(CAMPAIGN_ID, LOCATION_ID, "02:00")
-        
+
     _scene["game_time_seconds"] = 22 * 3600
     _scene.setdefault("environment", {})["time_of_day"] = "22:00"
-    
+
     _spatial_svc = SpatialFactory.build_for_campaign(
         campaign_id=CAMPAIGN_ID, location_id=LOCATION_ID, scene_state=_scene
     )
     _all_npcs = game_loop._get_life_engine().get_npc_states(CAMPAIGN_ID)
-    
+
     result = game_loop._tick_orch.execute(
-        campaign_id=CAMPAIGN_ID, scene_state=_scene,
-        tick_number=_scene.get("tick", 0) + 1, spatial_service=_spatial_svc,
-        all_npcs_raw=_all_npcs, active_location_id=LOCATION_ID, location_ids=[LOCATION_ID],
+        campaign_id=CAMPAIGN_ID,
+        scene_state=_scene,
+        tick_number=_scene.get("tick", 0) + 1,
+        spatial_service=_spatial_svc,
+        all_npcs_raw=_all_npcs,
+        active_location_id=LOCATION_ID,
+        location_ids=[LOCATION_ID],
     )
     return result
+
 
 def execute_scheduler(game_loop, result):
     _scene = getattr(result, "final_scene_state", None) or {}
@@ -134,40 +156,42 @@ def execute_scheduler(game_loop, result):
     )
     game_loop._task_scheduler.execute_pending(scene_state=_scene, campaign_id=CAMPAIGN_ID)
 
+
 @pytest.mark.skip(
     reason="EPISTEMIC-005 deferred: Second-Order ToM (ASSERTS) сознательно "
-           "откачен к first-order (S199.6 FIX в belief_revision_engine / "
-           "S202 EPISTEMIC CORE GATE; вердикт Мастера — вариант Б). Тест "
-           "сохранён как документированное отложенное требование: "
-           "возвращается вместе с реализацией слоя EPISTEMIC-005. "
-           "Production first-order поведение НЕ меняется ради теста."
+    "откачен к first-order (S199.6 FIX в belief_revision_engine / "
+    "S202 EPISTEMIC CORE GATE; вердикт Мастера — вариант Б). Тест "
+    "сохранён как документированное отложенное требование: "
+    "возвращается вместе с реализацией слоя EPISTEMIC-005. "
+    "Production first-order поведение НЕ меняется ради теста."
 )
 def test_superbox_014_second_order_attribution():
     logger.info("=== SUPERBOX-014: SECOND-ORDER ATTRIBUTION TEST ===")
-    
+
     logger.info("[1/4] Treatment Run: Injecting lie into NPC_A.")
     game_loop_treat = build_game_loop(data_dir=str(BACKEND_ROOT.parent / "data"))
-    
-    _ = run_tick(game_loop_treat) # Прогрев
+
+    _ = run_tick(game_loop_treat)  # Прогрев
     inject_lie(game_loop_treat)
-    
+
     logger.info("[2/4] Running tick for Treatment...")
     result_treat = run_tick(game_loop_treat)
-    
+
     logger.info("[3/4] Executing TaskScheduler for Treatment...")
     execute_scheduler(game_loop_treat, result_treat)
-    
+
     # --- VALIDATION ---
     _epistemic_store = game_loop_treat._tick_orch._epistemic_store
-    
-    rec_A = _epistemic_store.get(NPC_A, proposition=Proposition(
-        subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True
-    ))
+
+    rec_A = _epistemic_store.get(
+        NPC_A, proposition=Proposition(subject_id=NPC_B, predicate=Predicate.STOLE, object_id="apple", polarity=True)
+    )
     assert rec_A is not None, "NPC_A must have the injected belief"
     assert rec_A.proposition.subject_id == NPC_B, "NPC_A's belief must be about NPC_B"
     logger.info(f"[VALIDATION] NPC_A belief: {rec_A.proposition.subject_id} {rec_A.proposition.predicate.value}")
-    
+
     import time
+
     # S292: у NPC_B легитимные EXITS_TO-гео-записи (эксплорация) — get()
     # без proposition возвращает произвольную запись. Second-order ищем
     # по предикату ASSERTS среди ВСЕХ записей агента.
@@ -175,8 +199,7 @@ def test_superbox_014_second_order_attribution():
     for _ in range(20):
         _all_B = _epistemic_store.get_all_for_agent(NPC_B)
         rec_B = next(
-            (r for r in _all_B
-             if getattr(r.proposition, "predicate", None) == Predicate.ASSERTS),
+            (r for r in _all_B if getattr(r.proposition, "predicate", None) == Predicate.ASSERTS),
             None,
         )
         if rec_B is not None:
@@ -184,16 +207,18 @@ def test_superbox_014_second_order_attribution():
         time.sleep(0.25)
 
     assert rec_B is not None, "NPC_B MUST have the 2nd-order belief!"
-    
+
     # S199: Проверяем, что убеждение B является вторым порядком (B believes A asserts P)
     assert rec_B.proposition.subject_id == NPC_A, "NPC_B's belief must be about NPC_A (the speaker)"
     assert rec_B.proposition.predicate == Predicate.ASSERTS, "NPC_B's belief must be 'asserts'"
     assert rec_B.source_id == NPC_A, "NPC_B's belief source must be NPC_A"
-    
+
     assert "stole" in rec_B.proposition.object_id, "NPC_B's belief must contain the original proposition"
-    
-    logger.info(f"[VALIDATION] NPC_B 2nd-order belief: {rec_B.proposition.subject_id} {rec_B.proposition.predicate.value} {rec_B.proposition.object_id}")
-    
+
+    logger.info(
+        f"[VALIDATION] NPC_B 2nd-order belief: {rec_B.proposition.subject_id} {rec_B.proposition.predicate.value} {rec_B.proposition.object_id}"
+    )
+
     logger.info("=== SUPERBOX-014: PASS ===")
     logger.info("Second-Order Attribution proven: NPC_B believes NPC_A asserts P.")
     print("\n✅ SUPERBOX-014: PASS — Second-Order Attribution proven.")

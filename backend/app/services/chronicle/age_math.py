@@ -14,6 +14,7 @@
 - любое вычисление времени знания из исторического (и наоборот) запрещено —
   это оси разных доменов (запрет 4 ADR-O-420).
 """
+
 from __future__ import annotations
 
 from app.core.constants import SECONDS_PER_DAY, SECONDS_PER_YEAR

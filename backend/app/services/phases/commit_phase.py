@@ -23,9 +23,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
     Объединяет логику _phase_10_persistence и _phase_10_player_persistence.
     """
     # DRF Observer: Схлопываем поле причинных напряжений ПЕРЕД коммитом
-    logger.debug(
-        f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}"
-    )
+    logger.debug(f"[DRF_DRAIN_BUS] bus_id={id(ctx.drf_bus)} stream_size={len(ctx.drf_bus.stream)}")
     _claims = ctx.drf_bus.drain()
     if _claims:
         _npc_claims = defaultdict(list)
@@ -59,24 +57,14 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
         # игнорирование неизвестного домена = L4-опасность. Носитель
         # scene_state: player-path → shared_context.scene_state (None-gate
         # выше по функции), idle-path → ctx.scene_state.
-        _re_deltas = [
-            d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP
-        ]
+        _re_deltas = [d for d in ctx.delta_buffer if d.domain == DeltaDomain.RELATIONSHIP]
         if _re_deltas and orchestrator._state_applicator:
-            _re_scene = (
-                ctx.shared_context.scene_state if is_player_turn else ctx.scene_state
-            )
-            orchestrator._state_applicator.apply_relationship_deltas(
-                _re_deltas, _re_scene
-            )
-        _rest = [
-            d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP
-        ]
+            _re_scene = ctx.shared_context.scene_state if is_player_turn else ctx.scene_state
+            orchestrator._state_applicator.apply_relationship_deltas(_re_deltas, _re_scene)
+        _rest = [d for d in ctx.delta_buffer if d.domain != DeltaDomain.RELATIONSHIP]
         _aggregated = aggregate_deltas(_rest)
         if _aggregated and orchestrator._state_applicator:
-            orchestrator._state_applicator.apply_batch(
-                _aggregated, ctx.all_npcs_raw, ctx.campaign_id
-            )
+            orchestrator._state_applicator.apply_batch(_aggregated, ctx.all_npcs_raw, ctx.campaign_id)
         ctx.delta_buffer.clear()
 
     # ADR-O-436: Producer NPC_ADDRESSES_PLAYER (LC-IMPL-3 Ступень A).
@@ -90,14 +78,23 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
     # Идентичность события — Single Writer next_event_identity, не отдельная
     # формула. Read-only: публикация не мутирует all_npcs_raw (§15.4-8).
     _tick_now = int(getattr(ctx, "tick_number", 0) or 0)
-    _addr_intents = frozenset({
-        "talk", "warn", "trade", "offer_job",
-        "request_service", "help", "report", "intimidate",
-    })
+    _addr_intents = frozenset(
+        {
+            "talk",
+            "warn",
+            "trade",
+            "offer_job",
+            "request_service",
+            "help",
+            "report",
+            "intimidate",
+        }
+    )
     if _tick_now > 0 and ctx.all_npcs_raw:
         from app.domain.events import EventDTO
         from app.services.events.event_bus import get_event_bus
         from app.services.events.event_types import EventType
+
         for _addr_dict in ctx.all_npcs_raw:
             _addr_id = _addr_dict.get("npc_id") or _addr_dict.get("id")
             if not _addr_id or _addr_id == "player":
@@ -122,7 +119,8 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
                 # (L4 запрет silent failure, INV-SILENT-FAILURE).
                 logging.getLogger(__name__).debug(
                     "commit_phase: skip addr intent %r — formed_at not int: %s",
-                    _addr_intent, _exc,
+                    _addr_intent,
+                    _exc,
                 )
                 continue
             if _addr_formed_int != _tick_now:
@@ -189,9 +187,7 @@ def execute_persistence(ctx: Any, orchestrator: Any, is_player_turn: bool) -> No
 
         # RCG: Flush scene_changes buffer through apply_changes before commit
         if ctx.scene_changes and orchestrator._scene_manager:
-            orchestrator._scene_manager.apply_changes(
-                ctx.campaign_id, ctx.scene_changes, ctx.scene_state
-            )
+            orchestrator._scene_manager.apply_changes(ctx.campaign_id, ctx.scene_changes, ctx.scene_state)
             ctx.scene_changes.clear()
 
         saved = orchestrator._scene_manager.commit(

@@ -16,9 +16,13 @@ class TestP704SocialFabric:
     @pytest.fixture
     def tracker(self) -> SocialFabricTracker:
         t = SocialFabricTracker()
-        t.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-            source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
-        ))
+        t.set_baseline(
+            "maid_lusya",
+            "player",
+            RelationshipSnapshot(
+                source_id="maid_lusya", target_id="player", trust=20.0, fear=10.0, affection=0.0, debt=0.0, respect=10.0
+            ),
+        )
         return t
 
     def test_snapshot_validation(self):
@@ -32,17 +36,25 @@ class TestP704SocialFabric:
 
     def test_baseline_is_immutable(self, tracker: SocialFabricTracker):
         """V8-MVP-9 FIX: Baseline идемпотентен (перезапись тихо игнорируется)."""
-        tracker.set_baseline("maid_lusya", "player", RelationshipSnapshot(
-            source_id="maid_lusya", target_id="player", trust=50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
-        ))
+        tracker.set_baseline(
+            "maid_lusya",
+            "player",
+            RelationshipSnapshot(
+                source_id="maid_lusya", target_id="player", trust=50.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+            ),
+        )
         # Проверяем, что оригинальный baseline не перезаписан
         assert tracker.get_current("maid_lusya", "player").trust == 20.0
 
     def test_directional_independence(self, tracker: SocialFabricTracker):
         """Инвариант: A->B != B->A."""
-        tracker.set_baseline("player", "maid_lusya", RelationshipSnapshot(
-            source_id="player", target_id="maid_lusya", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
-        ))
+        tracker.set_baseline(
+            "player",
+            "maid_lusya",
+            RelationshipSnapshot(
+                source_id="player", target_id="maid_lusya", trust=80.0, fear=0.0, affection=0.0, debt=0.0, respect=0.0
+            ),
+        )
         assert tracker.get_current("maid_lusya", "player").trust == 20.0
         assert tracker.get_current("player", "maid_lusya").trust == 80.0
 
@@ -55,16 +67,18 @@ class TestP704SocialFabric:
 
     def test_apply_delta_updates_current(self, tracker: SocialFabricTracker):
         """Дельта обновляет текущее состояние."""
-        tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-30.0, fear_delta=20.0, cause="blackmail")
-        
+        tracker.apply_delta(
+            tick=1, source_id="maid_lusya", target_id="player", trust_delta=-30.0, fear_delta=20.0, cause="blackmail"
+        )
+
         snap = tracker.get_current("maid_lusya", "player")
-        assert snap.trust == -10.0 # 20 - 30
-        assert snap.fear == 30.0   # 10 + 20
+        assert snap.trust == -10.0  # 20 - 30
+        assert snap.fear == 30.0  # 10 + 20
 
     def test_apply_delta_clamps_values(self, tracker: SocialFabricTracker):
         """Значения ограничиваются диапазонами (-100..100, 0..100)."""
         tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-200.0, fear_delta=200.0)
-        
+
         snap = tracker.get_current("maid_lusya", "player")
         assert snap.trust == -100.0
         assert snap.fear == 100.0
@@ -73,10 +87,10 @@ class TestP704SocialFabric:
         """История изменений сохраняется."""
         tracker.apply_delta(tick=1, source_id="maid_lusya", target_id="player", trust_delta=-10.0, cause="action1")
         tracker.apply_delta(tick=2, source_id="guard_borko", target_id="player", fear_delta=10.0, cause="action2")
-        
+
         all_deltas = tracker.get_all_deltas()
         assert len(all_deltas) == 2
-        
+
         lusya_deltas = tracker.get_deltas_for("maid_lusya", "player")
         assert len(lusya_deltas) == 1
         assert lusya_deltas[0].cause == "action1"

@@ -37,6 +37,7 @@ TICK ARCHITECTURE (Блок 1):
   - LRU: HOT очищается по TTL (1ч) и лимиту (100 кампаний)
   - Hybrid persistence: JSON пишется раз в N тиков, не каждый
 """
+
 from __future__ import annotations
 
 import json
@@ -108,6 +109,7 @@ def _living_activity_owns_needs() -> bool:
         from app.services.npc.activity_lifecycle_service import (
             living_activity_owns_needs,
         )
+
         return living_activity_owns_needs()
     except ImportError as exc:
         # Модуль контура отсутствует → легаси-поведение; наблюдаемо (L4)
@@ -121,11 +123,13 @@ def _legacy_suppressed(need_name: str) -> bool:
         from app.services.npc.activity_lifecycle_service import (
             legacy_need_suppressed,
         )
+
         return legacy_need_suppressed(need_name)
     except ImportError as exc:
         # Модуль контура отсутствует → легаси-поведение; наблюдаемо (L4)
         logger.debug(f"[LIFE_ENGINE] activity module unavailable: {exc}")
         return False
+
 
 # Восстановление стресса за тик
 # ── Tick Architecture (Блок 1) ──────────────────────────────────────────────
@@ -259,6 +263,7 @@ class LifeEngine:
 
         # TemporalEngine — единая точка времени/decay (перенесено из LifeEngine)
         from app.services.temporal.temporal_engine import TemporalEngine
+
         self._temporal = TemporalEngine(sessions_dir=self.sessions_dir)
 
         # Слой 2: MovementEngine — конвертирует MovementIntent → SceneChange с {x, y}
@@ -314,9 +319,7 @@ class LifeEngine:
         affective_load и прочие runtime-поля теряются навсегда.
         """
         self._persistence = persistence
-        logger.info(
-            "[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен"
-        )
+        logger.info("[LIFE_ENGINE] PersistencePort инжектирован — SQLite read-back активен")
 
     def macro_simulate(
         self,
@@ -343,10 +346,7 @@ class LifeEngine:
             # Короткое отсутствие — обычный тик (или несколько)
             return self.tick(campaign_id, scene_state, runtime_path=runtime_path)
 
-        logger.info(
-            f"[LIFE_ENGINE] macro_simulate для '{campaign_id}': "
-            f"idle={idle_seconds:.0f}s"
-        )
+        logger.info(f"[LIFE_ENGINE] macro_simulate для '{campaign_id}': idle={idle_seconds:.0f}s")
 
         from app.services.npc.npc_loader import load_npcs_merged
 
@@ -373,9 +373,7 @@ class LifeEngine:
                     # Формула: stress = baseline + (current - baseline) * decay
                     baseline = 10  # нормальный фоновый стресс
                     decay = 0.3  # за долгое отсутствие сбросить на 70%
-                    psyche["stress"] = round(
-                        baseline + (current_stress - baseline) * decay
-                    )
+                    psyche["stress"] = round(baseline + (current_stress - baseline) * decay)
 
                 # 3. Агрегированные события — вероятность * время
                 # 5% за тик, но мы не считаем тики — используем эвристику
@@ -393,9 +391,7 @@ class LifeEngine:
         self._npc_cache[campaign_id] = npcs
         self._increment_tick(campaign_id)  # Один тик за всю макро-симуляцию
 
-        logger.info(
-            f"[LIFE_ENGINE] macro_simulate завершена: {len(all_changes)} changes"
-        )
+        logger.info(f"[LIFE_ENGINE] macro_simulate завершена: {len(all_changes)} changes")
         return (
             all_changes,
             [],
@@ -425,11 +421,7 @@ class LifeEngine:
         evicted = []
 
         # Слой 1: TTL eviction (по количеству операций, а не wall-clock)
-        stale = [
-            cid
-            for cid, ts in self._last_access.items()
-            if current_counter - ts > 1000
-        ]
+        stale = [cid for cid, ts in self._last_access.items() if current_counter - ts > 1000]
         for cid in stale:
             self.cleanup_campaign(cid)
             evicted.append(f"{cid}(TTL)")
@@ -497,9 +489,7 @@ class LifeEngine:
                 baseline = 0.0
                 decay_rate = 0.05  # Примерно 5% восстановления за тик
                 # Формула: S_t = baseline + (S_0 - baseline) * (1 - decay_rate)^T
-                decayed_stress = baseline + (current_stress - baseline) * (
-                    (1 - decay_rate) ** ticks_equivalent
-                )
+                decayed_stress = baseline + (current_stress - baseline) * ((1 - decay_rate) ** ticks_equivalent)
                 psyche["stress"] = max(0.0, round(decayed_stress, 2))
 
             # 2. Голод и Усталость: линейный рост (если были в пути)
@@ -552,21 +542,16 @@ class LifeEngine:
         current_tick = self._increment_tick(campaign_id)
         current_time = _parse_game_time(scene_state)
 
-        logger.info(
-            f"[LIFE_ENGINE] Тик #{current_tick} для '{campaign_id}' "
-            f"(время: {current_time})"
-        )
+        logger.info(f"[LIFE_ENGINE] Тик #{current_tick} для '{campaign_id}' (время: {current_time})")
 
         # ADR-123/127: Мёртвые NPC не генерируют интенты и не двигаются.
         _alive_npcs = []
-        for _npc in (self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path)):
+        for _npc in self._npc_cache.get(campaign_id) or load_npcs_merged(runtime_path=runtime_path):
             _life_status = _npc.get("body_state", {}).get("life_status", "ALIVE")
             if _life_status == "ALIVE":
                 _alive_npcs.append(_npc)
         npcs = _alive_npcs
-        logger.debug(
-            f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}"
-        )
+        logger.debug(f"[LIFE_SET] tick={current_tick} npcs={sorted([n.get('id', '?') for n in npcs]) if npcs else []}")
         all_changes: list[SceneChange] = []
         all_intents: list["MacroMovementGoal"] = []  # ADR-049: Сборка намерений
         npcs_updated = False
@@ -646,18 +631,12 @@ class LifeEngine:
             # LifeEngine не должен симулировать его, так как у него нет актуальной позиции.
             _in_scene = npc_id in scene_state.get("npc_positions", {})
             if not _in_scene and _current_loc:
-                logger.debug(
-                    f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} not in scene_state (loc={_npc_loc}) — skipped"
-                )
+                logger.debug(f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} not in scene_state (loc={_npc_loc}) — skipped")
                 continue
 
             # S144 FIX: Нормализация локации. "tavern" в конфиге NPC и "tavern_silver_wolf" в scene_state
             # должны считаться одной локацией, иначе NPC будут пропущены как оффскрин.
-            _loc_match = (
-                _npc_loc == _current_loc
-                or _npc_loc in _current_loc
-                or _current_loc in _npc_loc
-            )
+            _loc_match = _npc_loc == _current_loc or _npc_loc in _current_loc or _current_loc in _npc_loc
             if _current_loc and _npc_loc and not _loc_match:
                 logger.debug(
                     f"[LIFE_ENGINE][OFFSCREEN] npc={npc_id} loc={_npc_loc} != scene_loc={_current_loc} — skipped"
@@ -694,16 +673,17 @@ class LifeEngine:
             # relocation-победитель заведомо умирает в UNKNOWN-гейте.
             _unknown_sig = (
                 _ss_entry.get("_unknown_route", None)  # noqa: ENIGMA001
-                if isinstance(_ss_entry, dict) else None
+                if isinstance(_ss_entry, dict)
+                else None
             )
             _exploration_intent = None
             if _unknown_sig is not None:
                 from app.services.npc.exploration_target_resolver import (
                     resolve_exploration_target,
                 )
-                _cur_loc = (
-                    (_ss_entry.get("location_id") if isinstance(_ss_entry, dict) else "")
-                    or scene_state.get("location_id", "")
+
+                _cur_loc = (_ss_entry.get("location_id") if isinstance(_ss_entry, dict) else "") or scene_state.get(
+                    "location_id", ""
                 )
                 _lp = _ss_entry.get("local_position") if isinstance(_ss_entry, dict) else None  # noqa: ENIGMA001
                 _nx = float(_lp.get("x", 0.0)) if isinstance(_lp, dict) else 0.0
@@ -716,12 +696,14 @@ class LifeEngine:
                 _loc_svc = self._spatial_service
                 if _cur_loc and getattr(_loc_svc, "_location_id", "") != _cur_loc:  # noqa: ENIGMA002
                     from app.services.spatial.spatial_factory import SpatialFactory
-                    _loc_svc = SpatialFactory.build_for_campaign(
-                        campaign_id, _cur_loc, scene_state
-                    ) or _loc_svc
+
+                    _loc_svc = SpatialFactory.build_for_campaign(campaign_id, _cur_loc, scene_state) or _loc_svc
                 _target = resolve_exploration_target(
-                    npc_id, self._epistemic_store, _loc_svc,
-                    _cur_loc, (_nx, _ny),
+                    npc_id,
+                    self._epistemic_store,
+                    _loc_svc,
+                    _cur_loc,
+                    (_nx, _ny),
                 )
                 logger.info(
                     f"[EXPLORATION] npc={npc_id} consumed _unknown_route "
@@ -745,9 +727,7 @@ class LifeEngine:
             try:
                 # ── MAJOR: полная симуляция каждый тик ──────────────────────
                 if tier == "major":
-                    changes, intents = self._simulate_major(
-                        npc, current_time, current_tick, scene_state, rng=_rng
-                    )
+                    changes, intents = self._simulate_major(npc, current_time, current_tick, scene_state, rng=_rng)
                     # Phase D Э-3: подавление обречённого relocation. Сигнал —
                     # факт дропа прошлого тика (гейт = единственная точка
                     # истины UNKNOWN; здесь НЕТ предвычисления маршрута).
@@ -764,15 +744,16 @@ class LifeEngine:
                         _ep_recon = getattr(self, "_epistemic_store", None)  # noqa: ENIGMA002
                         if _ep_recon is not None:
                             try:
-                                for _r in (_ep_recon.get_all_for_agent(npc_id) or []):
+                                for _r in _ep_recon.get_all_for_agent(npc_id) or []:
                                     _p = getattr(_r, "proposition", None)  # noqa: ENIGMA002
                                     if _p is None:
                                         continue
                                     if str(getattr(_p.predicate, "value", "")) != "exits_to":  # noqa: ENIGMA002
                                         continue
                                     _subj = str(getattr(_p, "subject_id", "") or "")  # noqa: ENIGMA002
-                                    if (_subj.split(":", 1)[0] == _unknown_sig.get("from", "")
-                                            and str(getattr(_p, "object_id", "")) == _unknown_sig.get("to")):  # noqa: ENIGMA002
+                                    if _subj.split(":", 1)[0] == _unknown_sig.get("from", "") and str(
+                                        getattr(_p, "object_id", "")
+                                    ) == _unknown_sig.get("to"):  # noqa: ENIGMA002
                                         _recon_known = True
                                         break
                             except Exception:
@@ -787,7 +768,8 @@ class LifeEngine:
                             )
                         else:
                             _kept = [
-                                _i for _i in intents
+                                _i
+                                for _i in intents
                                 if not (
                                     "+relocation" in getattr(_i, "reason", "")  # noqa: ENIGMA002
                                     and getattr(_i, "location_id", "") == _unknown_sig.get("to")  # noqa: ENIGMA002
@@ -807,9 +789,7 @@ class LifeEngine:
                 elif tier == "minor":
                     last_minor = npc.get("routine", {}).get("_last_life_tick", 0)
                     if (current_tick - last_minor) >= MINOR_TICK_INTERVAL:
-                        changes, intents = self._simulate_minor(
-                            npc, current_time, current_tick, scene_state, rng=_rng
-                        )
+                        changes, intents = self._simulate_minor(npc, current_time, current_tick, scene_state, rng=_rng)
                         all_changes.extend(changes)
                         all_intents.extend(intents)
                         npc.setdefault("routine", {})["_last_life_tick"] = current_tick
@@ -855,9 +835,7 @@ class LifeEngine:
         path = self._npcs_file()
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            path.write_text(
-                json.dumps(npcs, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            path.write_text(json.dumps(npcs, ensure_ascii=False, indent=2), encoding="utf-8")
             logger.debug(f"[LIFE_ENGINE] NPC сохранены: {path}")
         except OSError as e:
             logger.error(f"[LIFE_ENGINE] Ошибка сохранения NPC: {e}")
@@ -976,10 +954,7 @@ class LifeEngine:
         # Сохранение будет атомарным в GameLoop.new_game() через atomic_commit.
         # Обновление кэша
         self._npc_cache[campaign_id] = npcs
-        logger.info(
-            f"[LIFE_ENGINE] Campaign '{campaign_id}' reset: "
-            f"{len(npcs)} NPCs with healthy body_state"
-        )
+        logger.info(f"[LIFE_ENGINE] Campaign '{campaign_id}' reset: {len(npcs)} NPCs with healthy body_state")
         return npcs
 
     def update_cache(self, campaign_id: str, npc_dicts: list[dict]) -> None:
@@ -1027,16 +1002,10 @@ class LifeEngine:
                     self._touch_counter += 1
                     self._last_access[campaign_id] = float(self._touch_counter)
                     self._last_access.move_to_end(campaign_id)
-                    logger.info(
-                        f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} "
-                        f"({len(runtime_npcs)} NPC)"
-                    )
+                    logger.info(f"[LIFE_ENGINE] Восстановлен из SQLite: {campaign_id} ({len(runtime_npcs)} NPC)")
                     return runtime_npcs
             except Exception as e:
-                logger.warning(
-                    f"[LIFE_ENGINE] Ошибка чтения SQLite runtime для "
-                    f"'{campaign_id}': {e}"
-                )
+                logger.warning(f"[LIFE_ENGINE] Ошибка чтения SQLite runtime для '{campaign_id}': {e}")
 
         # COLD-2: campaign-specific JSON файл (bootstrap для новых игр)
         campaign_file = self.sessions_dir / campaign_id / "major_npcs.json"
@@ -1131,9 +1100,7 @@ class LifeEngine:
                             _npc["narrative_cache"] = _cache_list
         return npcs
 
-    def _extracted_from__load_npcs_14(
-        self, arg0: Path, campaign_id: str
-    ) -> List[Any]:
+    def _extracted_from__load_npcs_14(self, arg0: Path, campaign_id: str) -> List[Any]:
         npcs = json.loads(arg0.read_text(encoding="utf-8-sig"))
         npcs = self._normalize_runtime_npcs(npcs)
         npcs = self._apply_cch4_seed(npcs)
@@ -1166,16 +1133,8 @@ class LifeEngine:
             light_snap.append(
                 {
                     "npc_id": n.get("npc_id"),
-                    "body_state": {
-                        "life_status": n.get("body_state", {}).get(
-                            "life_status", "ALIVE"
-                        )
-                    },
-                    "psyche": {
-                        "identity_integrity": n.get("psyche", {}).get(
-                            "identity_integrity", 1.0
-                        )
-                    },
+                    "body_state": {"life_status": n.get("body_state", {}).get("life_status", "ALIVE")},
+                    "psyche": {"identity_integrity": n.get("psyche", {}).get("identity_integrity", 1.0)},
                     "drives": n.get("drives", {}).copy(),
                 }
             )
@@ -1195,7 +1154,6 @@ class LifeEngine:
         # Загрузка из БД будет выполнена при следующем вызове _load_npcs.
         return []
 
-
     # ─────────────────────────────────────────────────────────────────────────
     # Симуляция по тирам
     # ─────────────────────────────────────────────────────────────────────────
@@ -1214,10 +1172,7 @@ class LifeEngine:
         # ADR-O-330: LifeEngine формирует только семантическое намерение (SA-1).
         # Поиск физического узла делегирован SpatialTargetResolver.
         bar_intent = SpatialTargetIntent(
-            target_type=SpatialTargetType.ANCHOR,
-            target_id="bar",
-            reason="random:wanders_to_bar",
-            confidence=0.8
+            target_type=SpatialTargetType.ANCHOR, target_id="bar", reason="random:wanders_to_bar", confidence=0.8
         )
 
         events = [
@@ -1310,9 +1265,7 @@ class LifeEngine:
                 if "position" in _pos_data:
                     npc.update({"position": _pos_data["position"]})
                 if "location_id" not in npc or not npc["location_id"]:
-                    npc["location_id"] = _pos_data.get(
-                        "location_id", scene_state.get("location_id", "")
-                    )
+                    npc["location_id"] = _pos_data.get("location_id", scene_state.get("location_id", ""))
                 if "local_position" in _pos_data:
                     npc.update({"local_position": _pos_data["local_position"]})
             else:
@@ -1351,9 +1304,7 @@ class LifeEngine:
             else None
         )
         if _init_sup > 0.7:
-            logger.debug(
-                f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}"
-            )
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Major cycle bypassed due to initiative_suppression={_init_sup:.2f}")
             return [], []
 
         # ADR-130: Movement Lock. Если NPC уже в активном транзите —
@@ -1392,9 +1343,7 @@ class LifeEngine:
         _has_activity = isinstance(npc.get("activity_state"), dict)
         # SLEEP-SLICE: физиологический сон не перебивается need-driven
         # (wake — исключительная компетенция wake-threshold Phase 0.6).
-        _physiologically_asleep = (
-            (npc.get("body_state") or {}).get("sleep_onset_tick") is not None
-        )
+        _physiologically_asleep = (npc.get("body_state") or {}).get("sleep_onset_tick") is not None
         if (
             IntentDomain.ROUTINE in _viable
             and _scheduled_activity != "sleeping"
@@ -1402,9 +1351,7 @@ class LifeEngine:
             and not _has_activity
         ):
             self._tick_needs(npc)
-            need_intent, need_wake_changes = self._check_need_driven_movement(
-                npc, tick
-            )
+            need_intent, need_wake_changes = self._check_need_driven_movement(npc, tick)
             if need_intent:
                 need_intent.domain = IntentDomain.ROUTINE
                 # S89: Need-driven OVERRIDE — критическая потребность перезаписывает schedule
@@ -1421,17 +1368,9 @@ class LifeEngine:
         # IRON RIVER Phase B / Н-18-фикс (ветка 2): та же защита домена —
         # живая activity_state глушит schedule-трек (eatlog: Люсью водило
         # именно расписание kitchen↔kitchen_bed_1 при живой eat-цели).
-        _has_critical_need = any(
-            c.reason.startswith("need_driven:") for c in candidates
-        )
-        if (
-            IntentDomain.ROUTINE in _viable
-            and not _has_critical_need
-            and not _has_activity
-        ):
-            routine_changes, routine_intent = self.update_routine(
-                npc, current_time, tick, scene_state=scene_state
-            )
+        _has_critical_need = any(c.reason.startswith("need_driven:") for c in candidates)
+        if IntentDomain.ROUTINE in _viable and not _has_critical_need and not _has_activity:
+            routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
             changes.extend(routine_changes)
             if routine_intent:
                 routine_intent.domain = IntentDomain.ROUTINE
@@ -1450,9 +1389,7 @@ class LifeEngine:
 
         # ── Viability логирование ──
         if IntentDomain.ROUTINE not in _viable:
-            logger.info(
-                f"[VIABILITY] npc={npc_id}: ROUTINE pruned (threat) — viable={[d.value for d in _viable]}"
-            )
+            logger.info(f"[VIABILITY] npc={npc_id}: ROUTINE pruned (threat) — viable={[d.value for d in _viable]}")
 
         # ── D6: выбираем лучший intent по priority ──
         if candidates:
@@ -1498,9 +1435,7 @@ class LifeEngine:
             intents.append(winner)
             # Обновляем activity в scene_state
             if winner.reason.startswith("need_driven:"):
-                if target_activity := _NEED_TO_ACTIVITY.get(
-                    winner.reason.split(":")[1].split("=")[0], ""
-                ):
+                if target_activity := _NEED_TO_ACTIVITY.get(winner.reason.split(":")[1].split("=")[0], ""):
                     # SLEEP-SLICE (вердикт Мастера): sleeping — не команда,
                     # а факт физиологии. Need-driven sleep-лейбл НЕ пишется
                     # при intent — иначе лейбл на не-BED позиции → resolver
@@ -1516,9 +1451,7 @@ class LifeEngine:
                         # activity-SceneChange не пишем: активность для
                         # наблюдателя останется прежней до arrival — честно.
                     else:
-                        activity_entry = npc.get("activity_map", {}).get(
-                            target_activity, {}
-                        )
+                        activity_entry = npc.get("activity_map", {}).get(target_activity, {})
                         changes.append(
                             SceneChange(
                                 type=ChangeType.NPC_POSITION,
@@ -1587,9 +1520,7 @@ class LifeEngine:
                 _act_state = npc.get("activity_state")
                 _busy = isinstance(_act_state, dict) and bool(_act_state)
                 if not _busy:
-                    needs[need_name] = min(
-                        1.0, needs[need_name] + _NEED_DECAY_PER_TICK
-                    )
+                    needs[need_name] = min(1.0, needs[need_name] + _NEED_DECAY_PER_TICK)
             elif activity_name in current_activity:
                 # Легаси: ярлык обнуляет (байт-идентично OFF-режиму)
                 needs[need_name] = 0.0
@@ -1622,10 +1553,7 @@ class LifeEngine:
 
         # Находим самую критичную потребность
         urgent_needs = [
-            (name, val)
-            for name, val in needs.items()
-            if val >= _NEED_THRESHOLD
-            and not _legacy_suppressed(name)
+            (name, val) for name, val in needs.items() if val >= _NEED_THRESHOLD and not _legacy_suppressed(name)
         ]
 
         if not urgent_needs:
@@ -1668,24 +1596,23 @@ class LifeEngine:
                 # ADR-O-330: Affordance Compatibility Adapter для сна
                 _npc_xy = npc.get("local_position", {})
                 _origin_xy = (_npc_xy.get("x", 0.0), _npc_xy.get("y", 0.0))
-                if _role == NodeRole.BED and hasattr(self._spatial_service, 'resolve_affordance'):
+                if _role == NodeRole.BED and hasattr(self._spatial_service, "resolve_affordance"):
                     _ref = self._spatial_service.resolve_affordance(
                         affordance_type="sleep",
                         origin_xy=_origin_xy,
                         origin_zone=npc.get("location_id"),
-                        owner=npc.get("id") # пока передаём ID, чтобы在未来 фильтровать палатки
+                        owner=npc.get("id"),  # пока передаём ID, чтобы在未来 фильтровать палатки
                     )
                     # S-146 FIX: Фоллбэк на роль BED, если в карте нет affordance_objects
                     if not _ref:
                         # BUG-SPATIAL-033 FIX: Не ограничиваем поиск кровати текущей зоной NPC.
                         # NPC может спать в любой зоне локации (например, kitchen_bed в зоне kitchen).
                         _ref = self._spatial_service.resolve_node(
-                            role=NodeRole.BED, origin_xy=(npc.get("local_position", {}).get("x"), npc.get("local_position", {}).get("y"))
+                            role=NodeRole.BED,
+                            origin_xy=(npc.get("local_position", {}).get("x"), npc.get("local_position", {}).get("y")),
                         )
                 else:
-                    _ref = self._spatial_service.resolve_node(
-                        role=_role, origin_zone=npc.get("location_id")
-                    )
+                    _ref = self._spatial_service.resolve_node(role=_role, origin_zone=npc.get("location_id"))
                 if _ref:
                     target_entry = {
                         "location": _ref.zone_id,
@@ -1718,18 +1645,11 @@ class LifeEngine:
         # SHI-FIX: No-op guard. Нормализуем ID узла, чтобы избежать mismatch.
         _loc = target_location or npc.get("location_id", "")
         _norm_target = target_node if ":" in target_node else f"{_loc}:{target_node}"
-        _norm_current = (
-            current_position
-            if ":" in current_position
-            else f"{_loc}:{current_position}"
-        )
+        _norm_current = current_position if ":" in current_position else f"{_loc}:{current_position}"
         if _norm_target == _norm_current:
             return None, []
 
-        logger.info(
-            f"[LIFE_ENGINE] Need-driven: {npc_id} → {target_activity} "
-            f"(need={need_name}={need_value:.2f})"
-        )
+        logger.info(f"[LIFE_ENGINE] Need-driven: {npc_id} → {target_activity} (need={need_name}={need_value:.2f})")
 
         # ADR-049: Запрещена прямая мутация позиции. LifeEngine — генератор намерений, не диктатор.
         # Движение реализуется через MovementIntent → MovementEngine → TraversalState.
@@ -1873,9 +1793,7 @@ class LifeEngine:
         # По умолчанию 0.0, если событий громкого звука (крик, взрыв) поблизости нет.
         _acoustic = npc.get("acoustic_stimulus", 0.0)
 
-        wake_pressure = (
-            _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
-        )
+        wake_pressure = _threat * 0.35 + _pain * 0.25 + _directive_salience * 0.3 + _acoustic * 0.1
 
         # ── Sleep resistance ───────────────────────────────────────────
         # SLEEP_FIX #6b: depth вычисляется из _sleep_start_tick, который
@@ -1959,13 +1877,9 @@ class LifeEngine:
         # Traumatized NPC входит в SURVIVAL режим при более низкой угрозе.
         _identity = npc.get("identity") or {}
         _active_traits = (
-            _identity.active_traits
-            if hasattr(_identity, "active_traits")
-            else _identity.get("active_traits", {})
+            _identity.active_traits if hasattr(_identity, "active_traits") else _identity.get("active_traits", {})
         )
-        _trauma_mod = (
-            _active_traits.get("traumatized", 0.0) * 0.25
-        )  # Макс эффект: снижение порога с 0.3 до 0.05
+        _trauma_mod = _active_traits.get("traumatized", 0.0) * 0.25  # Макс эффект: снижение порога с 0.3 до 0.05
         _survival_threshold = 0.3 - _trauma_mod
 
         # SURVIVAL ⟂ ROUTINE: угроза сжимает пространство — рутина невозможна
@@ -2002,9 +1916,7 @@ class LifeEngine:
         intents: list["MacroMovementGoal"] = []
 
         if IntentDomain.ROUTINE in _viable:
-            routine_changes, routine_intent = self.update_routine(
-                npc, current_time, tick, scene_state=scene_state
-            )
+            routine_changes, routine_intent = self.update_routine(npc, current_time, tick, scene_state=scene_state)
             changes.extend(routine_changes)
             if routine_intent:
                 routine_intent.domain = IntentDomain.ROUTINE
@@ -2085,9 +1997,7 @@ class LifeEngine:
             else 0.0
         )
         if _threat > 0.7:
-            logger.debug(
-                f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})"
-            )
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to proximate physical threat ({_threat:.2f})")
             return [], None
 
         # S139: Interruptibility Contract. Если NPC в активном транзите,
@@ -2126,9 +2036,7 @@ class LifeEngine:
         _psyche = npc.get("psyche", {})
         _life_project_state = _psyche.get("life_project_state", "ACTIVE")
         if _life_project_state in ("LOST", "SEARCHING"):
-            logger.debug(
-                f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to LifeProject crisis ({_life_project_state})"
-            )
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: Schedule bypassed due to LifeProject crisis ({_life_project_state})")
             return [], None
 
         # Bridge 6: Если жизненный проект сменился на кризисный (isolation, hermit, revenge),
@@ -2141,9 +2049,7 @@ class LifeEngine:
 
         # S89: Диагностика Schedule Freeze — отслеживание переходов активности
         if new_activity != prev_activity:
-            logger.info(
-                f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE"
-            )
+            logger.info(f"[SCHED_TRACE] npc={npc_id} prev={prev_activity!r} new={new_activity!r} CHANGE")
 
         if new_activity == prev_activity:
             logger.debug(f"[DIAG_S140] {npc_id}: new={new_activity} == prev={prev_activity}")
@@ -2177,13 +2083,11 @@ class LifeEngine:
                 if _kernel
                 else 0.0
             )
-            _stress = npc.get("psyche", {}).get("stress", 0.0) # V8-PSY-10 FIX
+            _stress = npc.get("psyche", {}).get("stress", 0.0)  # V8-PSY-10 FIX
             logger.debug(f"[DIAG_GAP9] {npc_id}: threat={_threat:.2f} stress={_stress:.2f}")
             if _threat > 0.3 or _stress > 50:
                 logger.debug(f"[DIAG_GAP9] {npc_id}: SLEEP BYPASSED!")
-                logger.debug(
-                    f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}"
-                )
+                logger.debug(f"[LIFE_ENGINE] {npc_id}: Sleep bypassed — threat={_threat:.2f}, stress={_stress}")
                 # SLEEP-SLICE (вердикт Мастера): лейбл = проекция факта.
                 # Сон заблокирован (threat/stress) → «спит» писать нельзя —
                 # resolver на том же тике вернёт blocked_stress и лейбл
@@ -2282,13 +2186,12 @@ class LifeEngine:
             if (going_to_sleep and self._spatial_service is not None)
             else None
         )
+
         def _norm_node(s: str) -> str:
             return s.split(":")[-1] if s else s
+
         _on_bed = bool(
-            going_to_sleep
-            and new_position
-            and _bed_ref
-            and _norm_node(_bed_ref.node_id) == _norm_node(new_position)
+            going_to_sleep and new_position and _bed_ref and _norm_node(_bed_ref.node_id) == _norm_node(new_position)
         )
         changes.append(
             SceneChange(
@@ -2320,18 +2223,12 @@ class LifeEngine:
         # SHI-FIX: No-op guard. Если NPC уже на целевом узле — не генерируем MovementIntent.
         # Нормализуем ID узла, чтобы избежать mismatch (bar_area vs tavern_silver_wolf:bar_area).
         _loc = new_location or prev_location
-        _norm_new_pos = (
-            new_position if ":" in new_position else f"{_loc}:{new_position}"
-        )
+        _norm_new_pos = new_position if ":" in new_position else f"{_loc}:{new_position}"
         _norm_curr_pos = (
-            npc.get("position", "")
-            if ":" in npc.get("position", "")
-            else f"{_loc}:{npc.get('position', '')}"
+            npc.get("position", "") if ":" in npc.get("position", "") else f"{_loc}:{npc.get('position', '')}"
         )
         if _norm_new_pos == _norm_curr_pos:
-            logger.debug(
-                f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position})."
-            )
+            logger.debug(f"[LIFE_ENGINE] {npc_id}: no-op movement (уже на {new_position}).")
             # SLEEP-SLICE: прибытие на место sleep-активности — ставим
             # отложенный лейбл (проекция факта позиции). Resolver Phase 0.6
             # на этом же тике увидит sleep-intent + bed_ok + settled → onset.
@@ -2342,10 +2239,7 @@ class LifeEngine:
                     routine["mood"] = self._mood_for_activity(new_activity)
                     routine["interrupted"] = False
                     routine["_sleep_start_tick"] = tick
-                    logger.info(
-                        f"[SLEEP_SLICE] {npc_id}: arrival on BED-node "
-                        f"{new_position} — sleep label projected"
-                    )
+                    logger.info(f"[SLEEP_SLICE] {npc_id}: arrival on BED-node {new_position} — sleep label projected")
             return changes, None
 
         # ── MovementIntent для MovementEngine (Слой 2) ────────────────────
@@ -2400,10 +2294,7 @@ class LifeEngine:
         # npc["location"] = new_location
         # npc["position"] = new_position
 
-        logger.debug(
-            f"[LIFE_ENGINE] {npc_id}: активность {prev_activity!r} → {new_activity!r} "
-            f"в {current_time}"
-        )
+        logger.debug(f"[LIFE_ENGINE] {npc_id}: активность {prev_activity!r} → {new_activity!r} в {current_time}")
         return changes, intent
 
     def _get_current_activity(self, schedule: Dict[str, Any], current_time: str) -> str:
@@ -2415,11 +2306,7 @@ class LifeEngine:
         """
         current_minutes = _time_to_minutes(current_time)
         return next(
-            (
-                activity
-                for time_range, activity in schedule.items()
-                if _in_time_range(time_range, current_minutes)
-            ),
+            (activity for time_range, activity in schedule.items() if _in_time_range(time_range, current_minutes)),
             "",
         )
 
@@ -2468,14 +2355,12 @@ class LifeEngine:
                 # Питьё/еда — социальные точки
                 "drinking": NodeRole.BAR,
                 "eating": NodeRole.TABLE,
-
                 # Рабочие точки (конкретные)
                 "serving_tables": NodeRole.SERVING_STATION,
                 "cleaning_tables": NodeRole.TABLE,
                 "guarding_gate": NodeRole.GUARD_POST,
                 "observing": NodeRole.DARK_CORNER,
                 "innkeeping": NodeRole.INN_DESK,
-
                 # Базовые
                 "sleeping": NodeRole.BED,
                 "resting": NodeRole.BED,
@@ -2495,23 +2380,22 @@ class LifeEngine:
                 # ADR-O-330: Affordance Compatibility Adapter для сна
                 _npc_xy = npc.get("local_position", {})
                 _origin_xy = (_npc_xy.get("x", 0.0), _npc_xy.get("y", 0.0))
-                if role == NodeRole.BED and hasattr(self._spatial_service, 'resolve_affordance'):
+                if role == NodeRole.BED and hasattr(self._spatial_service, "resolve_affordance"):
                     ref = self._spatial_service.resolve_affordance(
                         affordance_type="sleep",
                         origin_xy=_origin_xy,
                         origin_zone=npc.get("location_id"),
-                        owner=npc.get("id")
+                        owner=npc.get("id"),
                     )
                 else:
                     ref = self._spatial_service.resolve_node(
-                        role=role, origin_zone=npc.get("location_id"),
-                        filters=[_workplace_tag] if _workplace_tag else None  # noqa: ENIGMA001
+                        role=role,
+                        origin_zone=npc.get("location_id"),
+                        filters=[_workplace_tag] if _workplace_tag else None,  # noqa: ENIGMA001
                     )
                 # Fallback: Если персонального места нет, ищем любое по роли
                 if not ref:
-                    ref = self._spatial_service.resolve_node(
-                        role=role, origin_zone=npc.get("location_id")
-                    )
+                    ref = self._spatial_service.resolve_node(role=role, origin_zone=npc.get("location_id"))
                 if ref:
                     return (ref.zone_id, ref.node_id, activity)
 
@@ -2540,16 +2424,10 @@ class LifeEngine:
         # SpatialService is allowed ONLY if mapping table exists or confidence == 1.0
         if not current_position or not isinstance(current_position, str):
             _lp = npc.get("local_position", {})
-            if (
-                isinstance(_lp, dict)
-                and isinstance(_lp.get("x"), (int, float))
-                and self._spatial_service
-            ):
+            if isinstance(_lp, dict) and isinstance(_lp.get("x"), (int, float)) and self._spatial_service:
                 origin_zone = current_location
                 if origin_zone:
-                    _ref = self._spatial_service.get_nearest(
-                        zone_id=origin_zone, origin_xy=(_lp["x"], _lp["y"])
-                    )
+                    _ref = self._spatial_service.get_nearest(zone_id=origin_zone, origin_xy=(_lp["x"], _lp["y"]))
                     if _ref:
                         current_position = getattr(_ref, "node_id", str(_ref))
                         assert isinstance(current_position, str)

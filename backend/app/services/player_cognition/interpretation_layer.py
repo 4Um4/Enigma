@@ -237,11 +237,7 @@ def _apply_tier2(
         confidence = max(0.0, min(1.0, confidence))
 
         # Собираем source_observations из Tier 1
-        source = [
-            inf.source_observations[0]
-            for inf in entity.inferences
-            if inf.tier == InferenceTier.PHYSICAL
-        ]
+        source = [inf.source_observations[0] for inf in entity.inferences if inf.tier == InferenceTier.PHYSICAL]
 
         inferences.append(
             Inference(

@@ -4,6 +4,7 @@ path: backend/app/domain/action_windup.py
 Зависимости: typing
 Основные сущности: ActionWindup, WindupStatus
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

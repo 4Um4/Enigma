@@ -129,23 +129,17 @@ class JsonPersistenceAdapter(PersistencePort):
         except OSError as e:
             logger.error(f"[PERSISTENCE] Error saving NPCs: {e}")
 
-    def save_npc_runtime(
-        self, session_id: str, npc_dicts: List[Dict[str, Any]]
-    ) -> None:
+    def save_npc_runtime(self, session_id: str, npc_dicts: List[Dict[str, Any]]) -> None:
         """Сохраняет runtime-состояние NPC в сессию (отдельно от статического профиля)."""
         if not session_id:
-            logger.warning(
-                "[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск"
-            )
+            logger.warning("[PERSISTENCE] save_npc_runtime вызван без session_id — пропуск")
             return
         runtime_path = self._saves_dir / session_id / "npc_runtime.json"
         try:
             runtime_path.parent.mkdir(parents=True, exist_ok=True)
             with open(runtime_path, "w", encoding="utf-8") as f:
                 json.dump(npc_dicts, f, ensure_ascii=False, indent=2)
-            logger.debug(
-                f"[PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)"
-            )
+            logger.debug(f"[PERSISTENCE] NPC runtime saved: {session_id} ({len(npc_dicts)} records)")
         except OSError as e:
             logger.error(f"[PERSISTENCE] Error saving NPC runtime: {e}")
 
@@ -181,9 +175,7 @@ class JsonPersistenceAdapter(PersistencePort):
             if fpath.exists():
                 fpath.unlink()
                 removed.append(fname)
-        logger.info(
-            f"[PERSISTENCE] Campaign deleted: {campaign_id}, removed: {removed}"
-        )
+        logger.info(f"[PERSISTENCE] Campaign deleted: {campaign_id}, removed: {removed}")
 
     def atomic_commit(
         self,
@@ -202,9 +194,7 @@ class JsonPersistenceAdapter(PersistencePort):
             if npc_states is not None:
                 self.save_npc_runtime(campaign_id, npc_states)
             if events is not None:
-                logger.warning(
-                    "[PERSISTENCE] JSON adapter: events dropped (нет аудит-таблицы)"
-                )
+                logger.warning("[PERSISTENCE] JSON adapter: events dropped (нет аудит-таблицы)")
             logger.debug(f"[PERSISTENCE] Atomic commit (best-effort): {campaign_id}")
             return True
         except OSError as e:

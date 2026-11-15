@@ -4,6 +4,7 @@ path: /project/backend/app/services/phases/input.py
 Зависимости: app.services.will, app.services.affect, app.models.delta_payloads
 Основные сущности: Phase1InputDeps, run_phase_1_input, publish_player_intent
 """
+
 from __future__ import annotations
 
 import logging
@@ -60,18 +61,14 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
 
     Если интент угрожает идентичности аватара — возникает конфликт воли.
     """
-    logger.debug(
-        f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}"
-    )
+    logger.debug(f"[WILL_TRACE] _phase_1_input CALLED. Has intent: {ctx.player_intent is not None}")
 
     if not ctx.player_intent:
         return  # Idle-тик или нет ввода от игрока
 
     intent = ctx.player_intent
     _sem_action = (
-        intent.parameters.semantic_action
-        if hasattr(intent, "parameters") and intent.parameters
-        else intent.action
+        intent.parameters.semantic_action if hasattr(intent, "parameters") and intent.parameters else intent.action
     )
     _sem_target = (
         intent.target if hasattr(intent, "target") else "UNKNOWN"
@@ -81,9 +78,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
     )
 
     # Извлекаем снапшот аватара из симуляции
-    player_dict = next(
-        (n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None
-    )
+    player_dict = next((n for n in ctx.all_npcs_raw if n.get("npc_id") == "player"), None)
 
     if not player_dict:
         logger.error(
@@ -92,9 +87,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         publish_player_intent(ctx, intent)
         return
 
-    logger.warning(
-        f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}"
-    )
+    logger.warning(f"[WILL_TRACE] 2. Avatar found. Psyche: {player_dict.get('psyche', {})}")
 
     # 1. Вектор давления берется из результата Фазы 1 (Единая точка вычисления)
     # Повторный вызов resolve_intent_pressure ЗАПРЕЩЕН (каузальная integrity)
@@ -111,9 +104,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
     from app.models.affect import AffectiveImprint
     from app.services.affect import distort_pressure, scan_affective_resonance
 
-    imprints = tuple(
-        AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", [])
-    )
+    imprints = tuple(AffectiveImprint(**imp) for imp in player_dict.get("affective_imprints", []))
 
     # TODO: Передать PsychologicalPressure и PerceivedPhenomenon от CFRM P2, когда LocalCausalSolver будет генерировать их для хода игрока
     resonance = scan_affective_resonance(intent, None, None, imprints)
@@ -159,9 +150,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
                     npc_id="player",
                     domain=DeltaDomain.IDENTITY,
                     target="player",
-                    payload=IdentityPayload(
-                        identity_integrity_delta=-will_response.identity_damage
-                    ),
+                    payload=IdentityPayload(identity_integrity_delta=-will_response.identity_damage),
                 )
             )
 
@@ -268,9 +257,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
                     npc_id="player",
                     domain=DeltaDomain.EMOTION,
                     target="player",
-                    payload=EmotionPayload(
-                        stress_delta=will_response.fear_delta * 50, emotion_tag="fear"
-                    ),
+                    payload=EmotionPayload(stress_delta=will_response.fear_delta * 50, emotion_tag="fear"),
                 )
             )
 
@@ -284,9 +271,7 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
                     npc_id="player",
                     domain=DeltaDomain.EMOTION,
                     target="player",
-                    payload=EmotionPayload(
-                        stress_delta=will_response.stress_delta, emotion_tag="distress"
-                    ),
+                    payload=EmotionPayload(stress_delta=will_response.stress_delta, emotion_tag="distress"),
                 )
             )
 
@@ -298,7 +283,5 @@ def run_phase_1_input(ctx: _TickContext, deps: Phase1InputDeps) -> None:
         from app.services.affect import apply_conditioning
 
         current_game_time = ctx.scene_state.get("game_time_seconds", 0)
-        updated_imprints = apply_conditioning(
-            imprints, resonance, will_response, intent, current_game_time
-        )
+        updated_imprints = apply_conditioning(imprints, resonance, will_response, intent, current_game_time)
         player_dict["affective_imprints"] = [asdict(imp) for imp in updated_imprints]

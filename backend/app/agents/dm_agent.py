@@ -238,9 +238,7 @@ class DmAgent:
         # Если игрок сам обращается к NPC (target_id есть), пустое STM допустимо — это старт диалога.
         if not _has_target and not _has_stm and not _is_intro:
             # BUG-DLG-002 FIX: Не крашим pipeline, если резолвер цели упал. Продолжаем с generic narrative.
-            logger.warning(
-                "[DM_CONTRACT_WARN] NPC has no target and STM is empty. " "Proceeding with generic narrative."
-            )
+            logger.warning("[DM_CONTRACT_WARN] NPC has no target and STM is empty. Proceeding with generic narrative.")
 
         # Epistemic Boundary: Ментальные объекты NPC (L2 память, секреты, черты)
         # скрыты от DM-агента. DM описывает только то, что физически проявлено.

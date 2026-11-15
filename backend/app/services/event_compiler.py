@@ -16,6 +16,7 @@ EventCompiler — единственная симуляция мира (ADR-O-20
   Rule 121: ❌ Geometry compute внутри apply_changes → SpatialResolution
   Rule 122: ❌ Direct state mutation before apply_changes → never here
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -54,9 +55,7 @@ class EventCompiler:
     _TELEPORT_THRESHOLD: float = 0.1
     _JITTER_RANGE: float = 0.4
 
-    def compile(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> Optional[ThickSceneChange]:
+    def compile(self, snapshot: WorldSnapshot, change: SceneChange) -> Optional[ThickSceneChange]:
         """Компилирует SceneChange → ThickSceneChange.
 
         Returns None если изменение не может быть скомпилировано
@@ -69,10 +68,7 @@ class EventCompiler:
 
         if change.type != ChangeType.NPC_POSITION:
             result: Optional[ThickSceneChange] = self._compile_non_spatial(snapshot, change)
-            logger.debug(
-                f"[SHADOW_COMPILER] passthrough: type={change.type.value} "
-                f"target={change.target}"
-            )
+            logger.debug(f"[SHADOW_COMPILER] passthrough: type={change.type.value} target={change.target}")
             return result
 
         # NPC_POSITION — полная компиляция
@@ -105,7 +101,9 @@ class EventCompiler:
                 # State-based Idempotency: если NPC уже на целевом узле — это NOOP.
                 # Не зависит от cause (traversal_complete, teleport, sync и т.д.).
                 # Инвариант: current_state == target_state => отсутствие причинной структуры.
-                _current_pos = getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else ""  # noqa: ENIGMA002
+                _current_pos = (
+                    getattr(change.traversal_proposal, "source_node", "") if change.traversal_proposal else ""
+                )  # noqa: ENIGMA002
                 if _current_pos and _current_pos == change.value:
                     logger.debug(
                         f"[SHADOW_COMPILER] NOOP: target={change.target} "
@@ -141,9 +139,7 @@ class EventCompiler:
 
         return result
 
-    def _compile_traversal_completion(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> Optional[ThickSceneChange]:
+    def _compile_traversal_completion(self, snapshot: WorldSnapshot, change: SceneChange) -> Optional[ThickSceneChange]:
         """ADR-TRAV-NOOP: Compilation of traversal_complete SceneChange.
 
         Legacy apply_changes (scene_state_manager.py:1300-1324) уже сделал:
@@ -187,9 +183,7 @@ class EventCompiler:
         # завершил переход в другой). Legacy уже снапнул позицию (см.
         # докстринг). Shadow фиксирует факт завершения без пересчёта
         # геометрии чужого графа (ADR-O-201.4: snap без поиска в графе).
-        node = svc.get_node(target_node_id) or svc.get_node(
-            f"{target_loc}:{target_node_id}"
-        )
+        node = svc.get_node(target_node_id) or svc.get_node(f"{target_loc}:{target_node_id}")
         if node is None:
             logger.info(
                 f"[SHADOW_COMPILER] traversal_complete cross-chunk: node {target_node_id!r} "
@@ -256,9 +250,7 @@ class EventCompiler:
 
     # ── Passthrough ───────────────────────────────────────────────
 
-    def _compile_non_spatial(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> ThickSceneChange:
+    def _compile_non_spatial(self, snapshot: WorldSnapshot, change: SceneChange) -> ThickSceneChange:
         """Не-пространственные изменения — passthrough без физики."""
         return ThickSceneChange(
             change_type=change.type.value,
@@ -271,9 +263,7 @@ class EventCompiler:
             target_location_id=getattr(change, "target_location_id", ""),  # noqa: ENIGMA002
         )
 
-    def _compile_local_position_change(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> ThickSceneChange:
+    def _compile_local_position_change(self, snapshot: WorldSnapshot, change: SceneChange) -> ThickSceneChange:
         """NPC_POSITION field='local_position' — прямой xy update, без traversal."""
         target_loc = getattr(change, "target_location_id", "") or snapshot.location_id  # noqa: ENIGMA002
         _target_node = ""  # Микро-перемещение не меняет узел
@@ -310,9 +300,7 @@ class EventCompiler:
 
     # ── Main: NPC_POSITION field='position' ───────────────────────
 
-    def _compile_position_change(
-        self, snapshot: WorldSnapshot, change: SceneChange
-    ) -> Optional[ThickSceneChange]:
+    def _compile_position_change(self, snapshot: WorldSnapshot, change: SceneChange) -> Optional[ThickSceneChange]:
         """Полная компиляция NPC_POSITION field='position'.
 
         Соответствует 20 вычислениям legacy apply_change + _process_traversals.
@@ -331,6 +319,7 @@ class EventCompiler:
         # резолвить через ЖИВОЙ авторитет. scene_state из snapshot —
         # для BUG-SPATIAL-029 overlay-обновления (динамические узлы сцены).
         from app.services.spatial.spatial_factory import SpatialFactory
+
         # S268-фикс-дофикс: WorldSnapshot не хранит scene_state (DTO из
         # подмножеств) — собираем минимальную сцену для overlay из
         # легальных полей снапшота (BUG-SPATIAL-029: динамические узлы)
@@ -368,13 +357,9 @@ class EventCompiler:
                 # target_loc на префикс (prefix != target_loc).
                 target_loc = _prefix
                 _value = _bare
-        node = svc.get_node(_value) or svc.get_node(
-            f"{target_loc}:{_value}"
-        )
+        node = svc.get_node(_value) or svc.get_node(f"{target_loc}:{_value}")
         if node is None:
-            logger.warning(
-                f"[SHADOW_COMPILER] Node not found: {change.value} loc={target_loc}"
-            )
+            logger.warning(f"[SHADOW_COMPILER] Node not found: {change.value} loc={target_loc}")
             return None
 
         # E5-E16: Same-location movement
@@ -458,7 +443,7 @@ class EventCompiler:
                     duration_ticks=0,
                     speed=0.0,
                 ),
-                traversal=None, # ADR-TRAV-FSM: Snap не создаёт traversal
+                traversal=None,  # ADR-TRAV-FSM: Snap не создаёт traversal
                 boundary=BoundaryResolution(
                     is_boundary=True,
                     neighbor_chunk=_target_loc,
@@ -505,9 +490,7 @@ class EventCompiler:
         # FIX: getattr возвращает None, если атрибут существует, но равен None.
         # Используем 'or' для fallback на (0.0, 0.0), чтобы избежать None в SpatialResolution.
         _target_xy = (
-            (node.x, node.y)
-            if node
-            else (getattr(change, "target_local_xy", None) or (0.0, 0.0))  # noqa: ENIGMA002
+            (node.x, node.y) if node else (getattr(change, "target_local_xy", None) or (0.0, 0.0))  # noqa: ENIGMA002
         )
 
         return ThickSceneChange(
@@ -644,15 +627,10 @@ class EventCompiler:
         # E11-E16: Полное движение с pathfinding и traversal
         # ADR-DRIFT-D: _compile_full_movement теперь может вернуть None
         # (parity with legacy когда path blocked and no valid route)
-        result = self._compile_full_movement(
-            snapshot, change, node, svc, spatial, source_xy, target_xy
-        )
+        result = self._compile_full_movement(snapshot, change, node, svc, spatial, source_xy, target_xy)
         if result is None:
             # Path blocked, no valid route — parity with legacy
-            logger.debug(
-                f"[SHADOW_COMPILER] npc={change.target} "
-                f"no traversal created (path blocked, no route)"
-            )
+            logger.debug(f"[SHADOW_COMPILER] npc={change.target} no traversal created (path blocked, no route)")
         return result
 
     def _compile_full_movement(
@@ -715,7 +693,7 @@ class EventCompiler:
                             duration_ticks=0,
                             speed=0.0,
                         ),
-                        traversal=None, # Мгновенный перенос не создаёт TraversalContract
+                        traversal=None,  # Мгновенный перенос не создаёт TraversalContract
                         boundary=BoundaryResolution(
                             is_boundary=_is_real_boundary,
                             neighbor_chunk=_target_loc if _is_real_boundary else "",
@@ -731,25 +709,20 @@ class EventCompiler:
                 )
                 return None
             # Для микро-перемещений proposal не требуется
-            logger.debug(
-                f"[SHADOW_COMPILER] npc={change.target} no proposal (non-macro movement)"
-            )
+            logger.debug(f"[SHADOW_COMPILER] npc={change.target} no proposal (non-macro movement)")
             return None
 
         # Независимая валидация инвариантов TraversalProposal
         is_valid, reason = self._validate_traversal_proposal(proposal, change, spatial, source_xy, target_xy)
         if not is_valid:
             # Явный сигнал EquivalenceViolation (Class D - Causal)
-            logger.error(
-                f"[EQUIVALENCE_VIOLATION][PROPOSAL_INVALID] npc={change.target} "
-                f"reason={reason}"
-            )
+            logger.error(f"[EQUIVALENCE_VIOLATION][PROPOSAL_INVALID] npc={change.target} reason={reason}")
             return None
 
         # Валидация пройдена — формируем projection на основе проверенного proposal
         motion = MotionPlan(
             is_teleport=False,
-            is_path_blocked=False, # ADR-O-323: Shadow не вычисляет blockage, валидируется в _validate_traversal_proposal
+            is_path_blocked=False,  # ADR-O-323: Shadow не вычисляет blockage, валидируется в _validate_traversal_proposal
             waypoints=tuple(tuple(wp) for wp in proposal.path_waypoints),
             distance=proposal.distance,
             duration_ticks=proposal.duration_ticks,
@@ -839,8 +812,8 @@ class EventCompiler:
         # 3. Distance и Duration консистентны (геометрическая проверка)
         calc_distance = 0.0
         for i in range(len(prop_wps) - 1):
-            dx = prop_wps[i][0] - prop_wps[i+1][0]
-            dy = prop_wps[i][1] - prop_wps[i+1][1]
+            dx = prop_wps[i][0] - prop_wps[i + 1][0]
+            dy = prop_wps[i][1] - prop_wps[i + 1][1]
             calc_distance += math.hypot(dx, dy)
         if abs(proposal.distance - calc_distance) > 1.0:
             return False, f"DISTANCE_MISMATCH prop={proposal.distance:.2f} calc={calc_distance:.2f}"
@@ -909,8 +882,7 @@ class EventCompiler:
                         break
                     _acc += _seg
                 logger.debug(
-                    f"[SHADOW_COMPILER] ghost_interp: npc={npc_id} "
-                    f"prog={prog:.2f} xy=({interp_x:.1f},{interp_y:.1f})"
+                    f"[SHADOW_COMPILER] ghost_interp: npc={npc_id} prog={prog:.2f} xy=({interp_x:.1f},{interp_y:.1f})"
                 )
                 return (interp_x, interp_y)
 
@@ -923,14 +895,9 @@ class EventCompiler:
         # E6: Spatial Recovery — из узла текущей позиции
         old_position = npc_pos.get("position", "")
         if old_position and svc:
-            from_node = svc.get_node(old_position) or svc.get_node(
-                f"{snapshot.location_id}:{old_position}"
-            )
+            from_node = svc.get_node(old_position) or svc.get_node(f"{snapshot.location_id}:{old_position}")
             if from_node:
-                logger.debug(
-                    f"[SHADOW_COMPILER] spatial_recovery: npc={npc_id} "
-                    f"from_node={from_node.node_id}"
-                )
+                logger.debug(f"[SHADOW_COMPILER] spatial_recovery: npc={npc_id} from_node={from_node.node_id}")
                 return (from_node.x, from_node.y)
 
         # E7: Fallback (0, 0) — устраняется в Gen 3 (perceive_world)
@@ -954,14 +921,10 @@ class EventCompiler:
             return (float(exact_xy[0]), float(exact_xy[1]))
 
         # E9: Deterministic jitter (вместо random.uniform)
-        dx, dy = self._deterministic_jitter(
-            snapshot.rng_seed, change.target, node.node_id
-        )
+        dx, dy = self._deterministic_jitter(snapshot.rng_seed, change.target, node.node_id)
         return (node.x + dx, node.y + dy)
 
-    def _deterministic_jitter(
-        self, rng_seed: int, npc_id: str, node_id: str
-    ) -> Tuple[float, float]:
+    def _deterministic_jitter(self, rng_seed: int, npc_id: str, node_id: str) -> Tuple[float, float]:
         """Детерминированный jitter на основе seed + npc + node.
 
         Заменяет random.uniform(-0.4, 0.4) из legacy apply_change.
@@ -1005,9 +968,7 @@ class EventCompiler:
             logger.warning(f"[SHADOW_COMPILER] wall_check failed: {exc}")
             return False
 
-    def _find_path(
-        self, svc: Any, start_xy: Tuple[float, float], target_node: Any
-    ) -> Optional[list]:
+    def _find_path(self, svc: Any, start_xy: Tuple[float, float], target_node: Any) -> Optional[list]:
         """E12: Pathfinding через snapshot's SpatialService."""
         try:
             from app.services.spatial.spatial_service import Urgency

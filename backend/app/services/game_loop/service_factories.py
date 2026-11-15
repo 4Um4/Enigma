@@ -9,6 +9,7 @@ path: backend/app/services/game_loop/service_factories.py
 Зависимости: app.services.social.social_engine, app.services.social.reputation_engine, app.services.economy.economy_tracker, app.services.npc.npc_loader
 Основные сущности: ServiceFactory
 """
+
 from __future__ import annotations
 
 import logging
@@ -60,9 +61,7 @@ class ServiceFactory:
 
             # name_map для continuity_note (npc_id → имя)
             _all_npcs = self._load_npcs()
-            _name_map = {
-                n.get("id", ""): n.get("name", "") for n in _all_npcs if n.get("id")
-            }
+            _name_map = {n.get("id", ""): n.get("name", "") for n in _all_npcs if n.get("id")}
             # S129 FIX: Оборачиваем плоский словарь в формат, ожидаемый SocialEngine.from_config
             self._social_engine = SocialEngine.from_config({"relations": _config}, name_map=_name_map)
             logger.info(
@@ -84,6 +83,7 @@ class ServiceFactory:
             # S128 FIX: Надёжный путь к factions.json через BASE_DIR (корень проекта)
             from app.core.config import BASE_DIR
             from app.services.social.reputation_engine import ReputationEngine
+
             _config_path = BASE_DIR / "config" / "world" / "factions.json"
             if not _config_path.exists():
                 logger.warning(f"[REPUTATION] factions.json not found at {_config_path}, engine disabled")
@@ -148,9 +148,7 @@ class ServiceFactory:
         )
 
         self._economic_profiles[campaign_id] = _profiles
-        logger.info(
-            f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}"
-        )
+        logger.info(f"[ECO] Initialized {len(_profiles)} economic profiles for {campaign_id}")
         return _profiles
 
     # ── Base Drives ──────────────────────────────────────────────────────────
@@ -186,7 +184,7 @@ class ServiceFactory:
     def get_state_applicator(
         self,
         relationship_store: Any = None,
-        l1_chronicle: Any = None, # V8-PSY-1 FIX
+        l1_chronicle: Any = None,  # V8-PSY-1 FIX
     ) -> Any:
         """Ленивая инициализация StateApplicator с ReputationEngine.
 
@@ -201,7 +199,7 @@ class ServiceFactory:
         self._state_applicator = StateApplicator(
             relationship_store=relationship_store,
             reputation_engine=_rep_engine,
-            l1_chronicle=l1_chronicle, # V8-PSY-1 FIX
+            l1_chronicle=l1_chronicle,  # V8-PSY-1 FIX
         )
         logger.info(
             "[STATE_APPLICATOR] Initialized with ReputationEngine=%s",

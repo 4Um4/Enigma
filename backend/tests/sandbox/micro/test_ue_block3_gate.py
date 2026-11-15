@@ -6,6 +6,7 @@
 Зависимости: app.services.game_loop.phase_1_input, app.domain.intent_profile
 Запуск: cd backend; python -m pytest tests/sandbox/micro/test_ue_block3_gate.py -q; cd ..
 """
+
 from types import SimpleNamespace
 
 from app.domain.intent_profile import ActionType, IntentSemanticField
@@ -28,12 +29,19 @@ def test_matrix_attack_unresolved_negation_partial():
 
 
 def test_matrix_reference_ambiguous():
-    assert compute_intent_readiness(_field(ActionType.OBSERVE, "Проследи за стражником."), "", ["a", "b"]) == "REFERENCE_AMBIGUOUS"
+    assert (
+        compute_intent_readiness(_field(ActionType.OBSERVE, "Проследи за стражником."), "", ["a", "b"])
+        == "REFERENCE_AMBIGUOUS"
+    )
 
 
 def test_matrix_semantic_ambiguous():
     f = _field(ActionType.DIALOGUE, "Сделай так, как мы обсуждали.")
-    object.__setattr__(f, "ambiguity", __import__("app.domain.intent_profile", fromlist=["SemanticAmbiguity"]).SemanticAmbiguity.AMBIGUOUS)
+    object.__setattr__(
+        f,
+        "ambiguity",
+        __import__("app.domain.intent_profile", fromlist=["SemanticAmbiguity"]).SemanticAmbiguity.AMBIGUOUS,
+    )
     assert compute_intent_readiness(f, "", []) == "SEMANTIC_AMBIGUOUS"
 
 
@@ -45,4 +53,7 @@ def test_matrix_uncertain_failed():
 def test_matrix_negated_known_unblocks():
     # Блок 4-мост: per-act negated=False + 'не' в raw → RESOLVED (LLM разрешила)
     acts = [{"type": "ORDER", "params": {}, "negated": False}]
-    assert compute_intent_readiness(_field(ActionType.ATTACK, "Не бей его.", semantic_acts=acts), "guard_gate", []) == "RESOLVED"
+    assert (
+        compute_intent_readiness(_field(ActionType.ATTACK, "Не бей его.", semantic_acts=acts), "guard_gate", [])
+        == "RESOLVED"
+    )

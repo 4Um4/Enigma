@@ -10,6 +10,7 @@ path: /project/backend/app/services/npc/desire_generator.py
 Зависимости: app.domain.desire
 Основные сущности: update_all, update_npc_desires
 """
+
 from __future__ import annotations
 
 import logging
@@ -118,9 +119,9 @@ def update_npc_desires(npc: Dict[str, Any], tick: int) -> None:
 #   fatigue:             0=rested (no need), 100=tired (max need) → NO INVERT
 #   sleep_pressure:      0.0-1.0, 1.0=max need → NO INVERT (already 0-1)
 _AVATAR_BODY_TO_NEEDS = {
-    "nutrition": "hunger",            # S2B.4: stock; S2B.10: derived hunger
-    "hydration": "thirst",             # S2B.3: 0-100
-    "fatigue": "fatigue",              # S2B.5: 0-100 (0=rested, 100=tired)
+    "nutrition": "hunger",  # S2B.4: stock; S2B.10: derived hunger
+    "hydration": "thirst",  # S2B.3: 0-100
+    "fatigue": "fatigue",  # S2B.5: 0-100 (0=rested, 100=tired)
     "sleep_pressure": "shelter_urge",  # ADR-O-375: 0.0-1.0
 }
 

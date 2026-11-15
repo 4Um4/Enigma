@@ -9,6 +9,7 @@ path: /frontend/ui_workbench/windows/debug_window.py
 Зависимости: ui_workbench.manifests, pygame (для K_F11)
 Основные сущности: DEBUG_MANIFEST, draw_debug_window
 """
+
 import pygame
 from ui_workbench.manifests import InputBinding, WindowManifest, WindowState
 

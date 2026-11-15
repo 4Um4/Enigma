@@ -73,10 +73,7 @@ def resolve_exploration_target(
         dist = ((x - npc_xy[0]) ** 2 + (y - npc_xy[1]) ** 2) ** 0.5
         frontier.append((dist, node_id))
     if not frontier:
-        logger.info(
-            f"[EXPLORATION] npc={agent_id} loc={current_loc}: frontier пуст "
-            f"(все {len(bmap)} дверей пройдены)"
-        )
+        logger.info(f"[EXPLORATION] npc={agent_id} loc={current_loc}: frontier пуст (все {len(bmap)} дверей пройдены)")
         return None
 
     frontier.sort()  # (dist, node_id) — детерминизм

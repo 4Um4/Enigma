@@ -4,6 +4,7 @@ path: /frontend/ui_workbench/theme.py
 Зависимости: json, pathlib, pygame
 Основные сущности: Theme, ThemeLoader
 """
+
 import json
 from pathlib import Path
 from typing import Dict, Tuple

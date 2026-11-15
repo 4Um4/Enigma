@@ -4,6 +4,7 @@ path: backend/app/services/adr_net/adr_parser.py
 Назначение: Парсинг ADR Impact Audits и Master Index в структурированный граф (Этап 4.1).
 Зависимости: re, os, dataclasses
 """
+
 import logging
 import os
 import re
@@ -11,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 logger = logging.getLogger(__name__)
+
 
 def normalize_adr_id(raw_id: str) -> str:
     """Приводит ID к единому формату: ADR-148, ADR-O-327, ADR-TZ08-1."""
@@ -28,6 +30,7 @@ def normalize_adr_id(raw_id: str) -> str:
         return f"ADR-{int(s)}"
     return f"ADR-{s}"
 
+
 @dataclass
 class ADRNode:
     adr_id: str
@@ -38,6 +41,7 @@ class ADRNode:
     domain: str = ""
     laws: List[str] = field(default_factory=list)
 
+
 # Регулярка для парсинга строки вида: `ADR-148` [STD] **Title** — Desc.
 # H-20 FIX: Разрешаем любые буквы (A-Z), цифры (0-9) и дефисы в ID и типе.
 _ADR_LINE_REGEX = re.compile(r"`(ADR-[A-Za-z0-9./\-]+)`\s*\[([A-Za-z0-9\-]+)\]\s*\*\*(.+?)\*\*")
@@ -46,6 +50,7 @@ _ADR_LINE_REGEX = re.compile(r"`(ADR-[A-Za-z0-9./\-]+)`\s*\[([A-Za-z0-9\-]+)\]\s
 _FILES_REGEX = re.compile(r"[-*]?\s*\*{0,2}Files\b(?:\s*\([^)]*\))?:\s*(.+)")
 # B1: значения без файлов (118/120 аудитов "Files: N/A") → пустой список
 _FILES_NOT_APPLICABLE = {"N/A", "N/A.", "—", "-", "NA"}
+
 
 def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
     """Парсит один файл ADR-0XX_IMPACT.md."""
@@ -71,12 +76,8 @@ def parse_impact_audit(filepath: str) -> Optional[ADRNode]:
     if files_match:
         files = _parse_files_value(files_match.group(1))
 
-    return ADRNode(
-        adr_id=adr_id,
-        adr_type=adr_type,
-        title=title,
-        files=files
-    )
+    return ADRNode(adr_id=adr_id, adr_type=adr_type, title=title, files=files)
+
 
 def parse_master_index(filepath: str) -> List[ADRNode]:
     """Парсит Master Index для извлечения Laws и маппинга в ADRs."""
@@ -108,19 +109,21 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
             for offset in range(1, 9):
                 if i + offset >= len(lines):
                     break
-                nxt = lines[i+offset]
+                nxt = lines[i + offset]
                 if _ADR_LINE_REGEX.search(nxt) or nxt.startswith("## "):
                     break  # дошли до следующего ADR/секции — своего Files нет
                 files_match = _FILES_REGEX.search(nxt)
                 if files_match:
                     _standalone_files = _parse_files_value(files_match.group(1))
                     break
-            nodes.append(ADRNode(
-                adr_id=_adr_id,
-                adr_type=_m.group(2),
-                title=_title,
-                files=_standalone_files,
-            ))
+            nodes.append(
+                ADRNode(
+                    adr_id=_adr_id,
+                    adr_type=_m.group(2),
+                    title=_title,
+                    files=_standalone_files,
+                )
+            )
         elif line.startswith("**L"):
             # Пример: **L1: State Mutation Law** (ADR-001, 013, 117)
             law_match = re.match(r"\*\*(L[\d\.]+):\s*(.+?)\*\*\s*\((.+)\)", line)
@@ -132,15 +135,16 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                 # Ищем Files в следующих строках (до 5 строк вниз, чтобы не промахнуться при длинном описании)
                 current_files = []
                 for offset in range(1, 6):
-                    if i + offset < len(lines) and re.search(r"\bFiles\b", lines[i+offset]):
-                        files_match = _FILES_REGEX.search(lines[i+offset])
+                    if i + offset < len(lines) and re.search(r"\bFiles\b", lines[i + offset]):
+                        files_match = _FILES_REGEX.search(lines[i + offset])
                         if files_match:
                             current_files = _parse_files_value(files_match.group(1))
                         break
 
                 for adr_id_raw in adr_ids_raw:
                     adr_id_raw = adr_id_raw.strip()
-                    if not adr_id_raw: continue
+                    if not adr_id_raw:
+                        continue
 
                     adr_id = normalize_adr_id(adr_id_raw)
 
@@ -150,11 +154,12 @@ def parse_master_index(filepath: str) -> List[ADRNode]:
                         title=law_title,
                         domain=current_domain,
                         laws=[current_law],
-                        files=current_files
+                        files=current_files,
                     )
                     nodes.append(node)
 
     return nodes
+
 
 def _parse_files_value(raw: str) -> List[str]:
     """B1 (S315): экстракция файлов из значения Files-строки.
@@ -182,14 +187,17 @@ def _resolve_repo_path(path: str) -> str:
     (зонд №86) тихо давал 0/0. Резолвим от корня репо, если путь не найден."""
     if os.path.exists(path):
         return path
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    )
     # adr_parser.py → adr_net → services → app → backend → ROOT
     candidate = os.path.join(repo_root, path)
     return candidate if os.path.exists(candidate) else path
 
 
-def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (Architecture Decision Records).md") -> dict:
+def run_parser(
+    audits_dir: str = "docs/audits", master_index: str = "docs/ADR (Architecture Decision Records).md"
+) -> dict:
     """Собирает все ADR в словарь {adr_id: ADRNode}."""
     all_adrs = {}
     audits_dir = _resolve_repo_path(audits_dir)
@@ -228,6 +236,7 @@ def run_parser(audits_dir: str = "docs/audits", master_index: str = "docs/ADR (A
                         all_adrs[audit_node.adr_id] = audit_node
 
     return all_adrs
+
 
 if __name__ == "__main__":
     graph = run_parser()

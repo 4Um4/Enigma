@@ -91,9 +91,7 @@ def _modulate_trust(base_trust: float, profile: RelationshipResponseProfile) -> 
     return 0.0
 
 
-def _modulate_fear(
-    base_fear: float, fear_category: str, profile: RelationshipResponseProfile
-) -> float:
+def _modulate_fear(base_fear: float, fear_category: str, profile: RelationshipResponseProfile) -> float:
     """Модулирует дельту страха через профиль личности.
     fear > 0 + "aggression" → × fear_from_aggression (трусы пугаются сильнее)
     fear > 0 + "threat"     → × fear_from_threat (угрозы страшнее для параноиков)

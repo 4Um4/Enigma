@@ -13,6 +13,7 @@ path: /project/backend/tests/sandbox/SUPERBOX/scenarios/sleep_forensic.py
 Основные сущности: main
 Запуск: cd backend; python -m tests.sandbox.SUPERBOX.scenarios.sleep_forensic
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,6 +29,8 @@ _C = "Open_road"
 def _norm_node(s):
     # канон сравнения узлов (тот же, что в Н-4/мониторе): хвост без зоны
     return s.split(":")[-1] if s else s
+
+
 _LOCS = ("tavern", "city_gate", "market_square")
 # FORCED-ONSET (вердикт Мастера): устраняем startup nondeterminism needs
 # (класс DEBT-QUIESCE — намеренно обходим, НЕ закрывая долг). Инъекция
@@ -36,17 +39,34 @@ _LOCS = ("tavern", "city_gate", "market_square")
 # production writer'ы. forced onset ≠ deterministic startup proof.
 _MAX_TICKS = 300
 _FORCED_SHELTER = ("maid_lusya", "tavern_keeper_tornin")
-_MARK_KEYS = ("SLEEP_ONSET", "sleep_end", "SCHED_TRACE", "NEED_TRACE",
-              "GAP9", "NO_RESOLVE", "LIFE_ENGINE", "AROUSAL",
-              "PERSONAL_ROUTE", "UNKNOWN_ROUTE", "S186", "BOUNDARY_DWELL",
-              # DELIVERY-канал (критерий B): полный путь intent→BED
-              "INTENT_SCHEDULE", "INTENT_CREATE", "INTENT_CONSUME",
-              "ARBITER_REJECT", "GATE_B1", "GATE_B3", "NPC_MOVED",
-              "traversal", "MOVEMENT")
+_MARK_KEYS = (
+    "SLEEP_ONSET",
+    "sleep_end",
+    "SCHED_TRACE",
+    "NEED_TRACE",
+    "GAP9",
+    "NO_RESOLVE",
+    "LIFE_ENGINE",
+    "AROUSAL",
+    "PERSONAL_ROUTE",
+    "UNKNOWN_ROUTE",
+    "S186",
+    "BOUNDARY_DWELL",
+    # DELIVERY-канал (критерий B): полный путь intent→BED
+    "INTENT_SCHEDULE",
+    "INTENT_CREATE",
+    "INTENT_CONSUME",
+    "ARBITER_REJECT",
+    "GATE_B1",
+    "GATE_B3",
+    "NPC_MOVED",
+    "traversal",
+    "MOVEMENT",
+)
 
 _log_lines: list[tuple[int, str, str]] = []
 _trace: dict[str, list] = defaultdict(list)
-_body_path: list[str] = []      # найденный путь к body_state (интроспекция)
+_body_path: list[str] = []  # найденный путь к body_state (интроспекция)
 _body_capture: dict[str, list] = defaultdict(list)  # nid -> [(tick, fatigue, stress, sp, onset)]
 
 
@@ -109,13 +129,15 @@ def _capture_bodies(h, tick: int) -> None:
         if not isinstance(d, dict):
             continue
         b = d.get("body_state") or {}
-        _body_capture[nid].append((
-            tick,
-            b.get("fatigue"),
-            (d.get("psyche") or {}).get("stress"),
-            b.get("sleep_pressure"),
-            b.get("sleep_onset_tick"),
-        ))
+        _body_capture[nid].append(
+            (
+                tick,
+                b.get("fatigue"),
+                (d.get("psyche") or {}).get("stress"),
+                b.get("sleep_pressure"),
+                b.get("sleep_onset_tick"),
+            )
+        )
 
 
 def main() -> int:
@@ -145,7 +167,9 @@ def main() -> int:
             h.advance_ticks(1)
             if tick == 1:
                 _find_npc_container(h.game_loop)
-                print(f"[SLEEPF] body_state container: {_body_path or 'НЕ НАЙДЕН — fatigue-канал отключён'}", flush=True)
+                print(
+                    f"[SLEEPF] body_state container: {_body_path or 'НЕ НАЙДЕН — fatigue-канал отключён'}", flush=True
+                )
                 # FORCED-ONSET: инъекция ПОСЛЕ первого advance_ticks —
                 # снапшот жив (LEN=7), id совпадают с _FORCED_SHELTER.
                 # Инъекция ТОЛЬКО входа (S214 β-гибрид); дальше — production.
@@ -155,9 +179,11 @@ def main() -> int:
                         _n.setdefault("needs", {})["shelter_urge"] = 1.0
                         _injected.append(_n.get("id"))
                 # Верификация живучести инъекции: чтение обратно + на тике 2
-                _back = {n2.get("id"): (n2.get("needs") or {}).get("shelter_urge")
-                         for n2 in (h.game_loop._resolve_npcs_snapshot(_C) or [])
-                         if isinstance(n2, dict) and n2.get("id") in _FORCED_SHELTER}
+                _back = {
+                    n2.get("id"): (n2.get("needs") or {}).get("shelter_urge")
+                    for n2 in (h.game_loop._resolve_npcs_snapshot(_C) or [])
+                    if isinstance(n2, dict) and n2.get("id") in _FORCED_SHELTER
+                }
                 print(f"[SLEEPF] FORCED-ONSET: injected={_injected} back-read={_back}", flush=True)
             _capture_bodies(h, tick)
             for loc in _LOCS:
@@ -165,12 +191,15 @@ def main() -> int:
                 for nid, e in (sc.get("npc_positions") or {}).items():
                     if nid == "player":
                         continue
-                    _trace[nid].append({
-                        "tick": tick, "loc": loc,
-                        "visible": e.get("visible"),
-                        "act": str(e.get("activity") or ""),
-                        "pos": str(e.get("position") or ""),
-                    })
+                    _trace[nid].append(
+                        {
+                            "tick": tick,
+                            "loc": loc,
+                            "visible": e.get("visible"),
+                            "act": str(e.get("activity") or ""),
+                            "pos": str(e.get("position") or ""),
+                        }
+                    )
 
         # ── Выбор canonical case (вердикт Мастера): явная классификация
         # fixtures, не подбор результата. Валиден NPC, чей sleep-лейбл
@@ -182,13 +211,14 @@ def main() -> int:
         # (наблюдение Мастера); собираем node_id всех узлов у объектов с
         # affordances ⊇ sleep и узлов с "bed"/"tent" в editor_id.
         import json as _json
+
         _sleep_nodes: set[str] = set()
         # parents: [0]=scenarios [1]=SUPERBOX [2]=sandbox [3]=tests [4]=backend [5]=repo root
         _loc_dir = Path(__file__).resolve().parents[5] / "frontend" / "map_editor" / "campaigns" / _C / "locations"
         try:
             for _f in _loc_dir.glob("*.json"):
                 _loc = _json.loads(_f.read_text(encoding="utf-8-sig"))
-                for _obj in (_loc.get("objects") or _loc.get("affordance_objects") or []):
+                for _obj in _loc.get("objects") or _loc.get("affordance_objects") or []:
                     if "sleep" in (_obj.get("affordances") or []):
                         if _obj.get("node_id"):
                             _sleep_nodes.add(str(_obj["node_id"]))
@@ -210,12 +240,9 @@ def main() -> int:
             sleep_rows = [r for r in rows if is_sleeping(r["act"])]
             if not sleep_rows:
                 continue
-            on_bed = [r for r in sleep_rows
-                      if _norm_node(r["pos"]) in _sleep_nodes
-                      or r["pos"] in _sleep_nodes]
+            on_bed = [r for r in sleep_rows if _norm_node(r["pos"]) in _sleep_nodes or r["pos"] in _sleep_nodes]
             cls = "SLEEP_FIXTURE_VALID" if on_bed else "SLEEP_FIXTURE_INVALID_NO_BED"
-            print(f"[SLEEPF] {nid}: sleep-тиков={len(sleep_rows)} "
-                  f"на-BED={len(on_bed)} → {cls}", flush=True)
+            print(f"[SLEEPF] {nid}: sleep-тиков={len(sleep_rows)} на-BED={len(on_bed)} → {cls}", flush=True)
             if on_bed:
                 valid.append(nid)
         best = None
@@ -261,12 +288,14 @@ def main() -> int:
             for t2, k2, m2 in _log_lines:
                 _m_low = m2.lower()
                 if any(is_sleeping(a) for a in ("sleeping",)) and (
-                    "sleep" in _m_low or "kitchen_bed" in _m_low
-                    or "guard_bed" in _m_low or "tent_" in _m_low
+                    "sleep" in _m_low or "kitchen_bed" in _m_low or "guard_bed" in _m_low or "tent_" in _m_low
                 ):
                     print(f"[SLEEPF]   t={t2} {k2}: {m2[:150]}", flush=True)
-            print("[SLEEPF] ВЕРДИКТ: валидных sleep-fixtures нет (все sleep-эпизоды "
-                  "без BED-позиции) — см. классификацию и профиль выше", flush=True)
+            print(
+                "[SLEEPF] ВЕРДИКТ: валидных sleep-fixtures нет (все sleep-эпизоды "
+                "без BED-позиции) — см. классификацию и профиль выше",
+                flush=True,
+            )
             return 1
         nid, t0, t1, dur = best
         rows = {r["tick"]: r for r in _trace[nid]}
@@ -275,17 +304,22 @@ def main() -> int:
         bodies = _body_capture.get(nid, [])
         bmap = {b[0]: b for b in bodies}
         onset_seen = any(b[4] is not None for b in bodies)
-        print(f"[SLEEPF] PHYSIOLOGICAL SLEEP (sleep_onset_tick): "
-              f"{'ДА' if onset_seen else 'НЕТ — сон был только behavioral label'}", flush=True)
+        print(
+            f"[SLEEPF] PHYSIOLOGICAL SLEEP (sleep_onset_tick): "
+            f"{'ДА' if onset_seen else 'НЕТ — сон был только behavioral label'}",
+            flush=True,
+        )
         # per-tick до и во время сна + 3 тика после
         _empty = {"tick": 0, "loc": "?", "visible": None, "act": "", "pos": "?"}
         for t in range(max(1, t0 - 3), min(_MAX_TICKS, t1 + 3) + 1):
             r = rows.get(t) or _empty
             b = bmap.get(t)
             marks = [f"{k}:{m[:110]}" for (tt, k, m) in _log_lines if tt == t and nid in m]
-            line = (f"[SLEEPF] t={t} act={r['act']!r} pos={r['pos']} vis={r['visible']} loc={r['loc']}"
-                    + (f" fatigue={b[1]} stress={b[2]} sp={b[3]} onset={b[4]}" if b else "")
-                    + (f" || {' || '.join(marks)}" if marks else ""))
+            line = (
+                f"[SLEEPF] t={t} act={r['act']!r} pos={r['pos']} vis={r['visible']} loc={r['loc']}"
+                + (f" fatigue={b[1]} stress={b[2]} sp={b[3]} onset={b[4]}" if b else "")
+                + (f" || {' || '.join(marks)}" if marks else "")
+            )
             print(line, flush=True)
         # маркеры вокруг END — кандидат-writer
         print(f"\n[SLEEPF] WRITER-КАНДИДАТЫ вокруг SLEEP END (t={t1}):", flush=True)
@@ -309,14 +343,20 @@ def main() -> int:
             print(f"[SLEEPF]   {nid2}: всего={len(ts)} плотных повторов(<=3 тиков)={bursts}", flush=True)
             if bursts > 5:
                 storm_bad = True
-        print(f"[SLEEPF] ШТОРМ: {'RED — патч going_to_sleep не сработал' if storm_bad else 'GREEN (идемпотентность восстановлена)'}", flush=True)
+        print(
+            f"[SLEEPF] ШТОРМ: {'RED — патч going_to_sleep не сработал' if storm_bad else 'GREEN (идемпотентность восстановлена)'}",
+            flush=True,
+        )
 
         # fatigue динамика во сне
         if bmap:
-            f0 = bmap.get(t0, (None,)*5)[1]
-            f1 = bmap.get(t1, (None,)*5)[1]
-            print(f"[SLEEPF] FATIGUE во сне: {f0} → {f1} "
-                  f"({'двигалась' if f0 is not None and f1 is not None and f0 != f1 else 'НЕ двигалась/нет данных'})", flush=True)
+            f0 = bmap.get(t0, (None,) * 5)[1]
+            f1 = bmap.get(t1, (None,) * 5)[1]
+            print(
+                f"[SLEEPF] FATIGUE во сне: {f0} → {f1} "
+                f"({'двигалась' if f0 is not None and f1 is not None and f0 != f1 else 'НЕ двигалась/нет данных'})",
+                flush=True,
+            )
     return 0
 
 

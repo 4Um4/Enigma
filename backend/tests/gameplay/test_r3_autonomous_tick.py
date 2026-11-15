@@ -21,6 +21,7 @@ TickOrchestrator без игрока и без pygame.
 Дополнительно (R1): в памяти не появляется ложный Player Intent —
 target_id автономных событий ≠ "player".
 """
+
 import logging
 
 import pytest
@@ -84,8 +85,7 @@ class TestR3AutonomousTick:
         _tick_after = _scene_after.get("tick", 0) if _scene_after else 0
 
         assert _tick_after > _tick_before, (
-            f"R3: tick не инкрементирован ({_tick_before} -> {_tick_after}) "
-            f"— StateApplicator не применил изменение"
+            f"R3: tick не инкрементирован ({_tick_before} -> {_tick_after}) — StateApplicator не применил изменение"
         )
 
     def test_3_result_persists_to_next_cycle(self, harness):
@@ -102,12 +102,8 @@ class TestR3AutonomousTick:
         _tick_after_second = _scene_after_second.get("tick", 0) if _scene_after_second else 0
         _game_time_second = _scene_after_second.get("game_time_seconds", 0.0) if _scene_after_second else 0.0
 
-        assert _tick_after_second > _tick_after_first, (
-            "R3: второй тик не видит первый — результат не сохранён"
-        )
-        assert _game_time_second > _game_time_first, (
-            "R3: game_time не растёт между тиками — мир не движется"
-        )
+        assert _tick_after_second > _tick_after_first, "R3: второй тик не видит первый — результат не сохранён"
+        assert _game_time_second > _game_time_first, "R3: game_time не растёт между тиками — мир не движется"
 
     def test_4_no_false_player_intent_in_autonomous_tick(self, harness):
         """R1: в автономном тике не появляется ложный Player Intent.
@@ -155,9 +151,7 @@ class TestR3AutonomousTick:
                 {"pressure_delta": 0.9, "satiation_delta": 0.0, "frustration_delta": 0.0},
             )
         except Exception as _e:
-            pytest.skip(
-                f"R3: apply_need_deltas недоступен ({_e}) — NeedLevel writer требует флаг"
-            )
+            pytest.skip(f"R3: apply_need_deltas недоступен ({_e}) — NeedLevel writer требует флаг")
 
         # Сохранить сцену с инъекцией
         harness.game_loop.scene_manager.save_scene_state(_CAMPAIGN, _scene)
@@ -180,9 +174,7 @@ class TestR3AutonomousTick:
             _npc_needs = _needs_root.get(_npc_id, {})
             _intimacy = _npc_needs.get("intimacy", {})
             _intensity = _intimacy.get("current_intensity", 0.0)
-            assert _intensity > 0.0, (
-                f"R3: NeedLevel не сохранился после тика (intensity={_intensity})"
-            )
+            assert _intensity > 0.0, f"R3: NeedLevel не сохранился после тика (intensity={_intensity})"
 
     def test_6_multiple_autonomous_ticks_stable(self, harness):
         """R3: несколько автономных тиков подряд — стабильность.
@@ -213,12 +205,8 @@ class TestR3AutonomousTick:
         ADR-O-407 предотвращает конкурентное исполнение, не запрещает движение.
         """
         _in_flight = harness.game_loop._player_turn_in_flight
-        assert _CAMPAIGN not in _in_flight, (
-            "R3: campaign в _player_turn_in_flight без run_turn — ADR-O-407 сломан"
-        )
+        assert _CAMPAIGN not in _in_flight, "R3: campaign в _player_turn_in_flight без run_turn — ADR-O-407 сломан"
 
         _result = harness.game_loop.idle_tick(_CAMPAIGN)
         assert _result is not None
-        assert _result.get("status") != "player_turn_in_flight", (
-            "R3: idle_tick заблокирован ADR-O-407 без хода игрока"
-        )
+        assert _result.get("status") != "player_turn_in_flight", "R3: idle_tick заблокирован ADR-O-407 без хода игрока"

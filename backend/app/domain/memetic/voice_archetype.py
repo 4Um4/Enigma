@@ -3,6 +3,7 @@
 Доменный тип VoiceArchetype (Canon).
 Загружается из config/canon/voice_archetypes/<archetype>.yaml.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class VoiceArchetype:
     """Родной язык NPC. Canon-level.
@@ -25,29 +27,32 @@ class VoiceArchetype:
     Загружается из config/canon/voice_archetypes/<archetype>.yaml.
     Один архетип на много NPC (noble, thief, maid, ...).
     """
-    archetype_id: str                # "noble" / "thief" / "maid" / ...
-    culture: str                     # к какой культуре принадлежит по умолчанию
-    register: str                    # "formal" / "slang" / "rustic" / ...
+
+    archetype_id: str  # "noble" / "thief" / "maid" / ...
+    culture: str  # к какой культуре принадлежит по умолчанию
+    register: str  # "formal" / "slang" / "rustic" / ...
 
     # Базовые характеристики речи
-    sentence_length: str             # "short" / "medium" / "long"
-    vocabulary_richness: float       # 0..1
-    metaphor_density: float          # 0..1
+    sentence_length: str  # "short" / "medium" / "long"
+    vocabulary_richness: float  # 0..1
+    metaphor_density: float  # 0..1
 
     # Сопротивление дрейфу
     default_linguistic_integrity: float  # 0..1, базовое сопротивление
-    class_factor: float = 1.0        # множитель для целевых классов
+    class_factor: float = 1.0  # множитель для целевых классов
 
     # Свободное описание (для LLM)
-    voice_profile: str = ""           # "Говоришь тихо, короткими фразами..."
+    voice_profile: str = ""  # "Говоришь тихо, короткими фразами..."
 
     # Канонические Expressions по умолчанию
     default_expressions: Dict[str, str] = field(default_factory=dict)
+
 
 _CACHE: Dict[str, VoiceArchetype] = {}
 
 # Корень проекта (на 5 уровней выше этого файла: memetic/ -> domain/ -> app/ -> backend/ -> ROOT)
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
 
 def load_voice_archetype(archetype_id: str, canon_dir: Optional[str] = None) -> Optional[VoiceArchetype]:
     """Загружает VoiceArchetype из YAML файла. Кэширует результат."""
@@ -78,7 +83,7 @@ def load_voice_archetype(archetype_id: str, canon_dir: Optional[str] = None) -> 
             default_linguistic_integrity=float(data.get("default_linguistic_integrity", 0.5)),
             class_factor=float(data.get("class_factor", 1.0)),
             voice_profile=data.get("voice_profile", ""),
-            default_expressions=data.get("default_expressions", {})
+            default_expressions=data.get("default_expressions", {}),
         )
         _CACHE[archetype_id] = archetype
         return archetype

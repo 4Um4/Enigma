@@ -8,6 +8,7 @@ original=player, type=testimony).
 
 READ-ONLY. Не изменяет сохранения. Не меняет production-код.
 """
+
 from __future__ import annotations
 
 import os
@@ -42,14 +43,20 @@ OUT_FILE = OUT_FILE_DIR / "r2_b5_d2_save_state_search.txt"
 class TeeStream:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
-            try: s.write(data)
-            except Exception: pass
+            try:
+                s.write(data)
+            except Exception:
+                pass
+
     def flush(self):
         for s in self.streams:
-            try: s.flush()
-            except Exception: pass
+            try:
+                s.flush()
+            except Exception:
+                pass
 
 
 _stdout_buf = io.StringIO()
@@ -166,11 +173,13 @@ def _scan_dir_for_epistemic(d: Path, label: str, max_depth: int = 4) -> list[tup
                             if not line.strip():
                                 continue
                             obj = _safe_json_loads(line)
-                            if obj and isinstance(obj, dict) and (
-                                "epistemic_records" in obj or "epistemic_store" in obj
+                            if (
+                                obj
+                                and isinstance(obj, dict)
+                                and ("epistemic_records" in obj or "epistemic_store" in obj)
                             ):
                                 findings.append((entry, obj))
-                                print(f"  [{label}] FOUND epistemic in JSONL line {line_num+1}: {entry}")
+                                print(f"  [{label}] FOUND epistemic in JSONL line {line_num + 1}: {entry}")
                                 break
                     except Exception:
                         pass
@@ -282,7 +291,7 @@ def main() -> int:
         print(f"\n  --- {label}: {fpath} ---")
         ep_data = obj.get("epistemic_records") or obj.get("epistemic_store")
         if ep_data is None:
-            print(f"    (no epistemic data)")
+            print("    (no epistemic data)")
             continue
 
         if isinstance(ep_data, list):
@@ -291,10 +300,12 @@ def main() -> int:
                 if not isinstance(r, dict):
                     continue
                 prop = r.get("proposition", {})
-                if (prop.get("subject_id") == target_signature["subject_id"]
+                if (
+                    prop.get("subject_id") == target_signature["subject_id"]
                     and prop.get("predicate") == target_signature["predicate"]
-                    and prop.get("object_id") == target_signature["object_id"]):
-                    print(f"    >>> MATCH! Tornin's INSULTED belief:")
+                    and prop.get("object_id") == target_signature["object_id"]
+                ):
+                    print("    >>> MATCH! Tornin's INSULTED belief:")
                     _print_belief_record(r, indent="      ")
                     tornin_finds.append((label, fpath, r))
         elif isinstance(ep_data, dict):
@@ -305,9 +316,11 @@ def main() -> int:
                     if not isinstance(r, dict):
                         continue
                     prop = r.get("proposition", {})
-                    if (prop.get("subject_id") == target_signature["subject_id"]
+                    if (
+                        prop.get("subject_id") == target_signature["subject_id"]
                         and prop.get("predicate") == target_signature["predicate"]
-                        and prop.get("object_id") == target_signature["object_id"]):
+                        and prop.get("object_id") == target_signature["object_id"]
+                    ):
                         print(f"    >>> MATCH (agent={agent_id})! Tornin's INSULTED belief:")
                         _print_belief_record(r, indent="      ")
                         tornin_finds.append((label, fpath, r))
@@ -356,12 +369,14 @@ def main() -> int:
         all_match = match_agent and match_source and match_original and match_type and match_conf
         if all_match:
             b4r8_match_count += 1
-            print(f"    >>> B4-R8 MATCH: ALL FIELDS CONFIRMED")
+            print("    >>> B4-R8 MATCH: ALL FIELDS CONFIRMED")
         else:
-            print(f"    match_agent={match_agent} match_source={match_source} "
-                  f"match_original={match_original} match_type={match_type} match_conf={match_conf}")
+            print(
+                f"    match_agent={match_agent} match_source={match_source} "
+                f"match_original={match_original} match_type={match_type} match_conf={match_conf}"
+            )
             if not all_match:
-                print(f"    (partial match — but not exact B4-R8 signature)")
+                print("    (partial match — but not exact B4-R8 signature)")
 
     print()
     print(f"  TOTAL B4-R8 exact matches: {b4r8_match_count}")
@@ -397,6 +412,7 @@ def main() -> int:
         print("  --- Querying each DB for epistemic records ---")
         try:
             import sqlite3
+
             for db in sqlite_dbs:
                 print(f"\n  Database: {db}")
                 try:
@@ -418,13 +434,14 @@ def main() -> int:
                                 val = row[0]
                                 print(f"    key={k}: value length={len(val) if val else 0}")
                                 if val and "tavern_keeper_tornin" in val and "insulted" in val.lower():
-                                    print(f"      >>> Contains 'tavern_keeper_tornin' + 'insulted'!")
-                                    print(f"      --- first 2000 chars ---")
+                                    print("      >>> Contains 'tavern_keeper_tornin' + 'insulted'!")
+                                    print("      --- first 2000 chars ---")
                                     print(f"      {val[:2000]}")
                                     parsed = _safe_json_loads(val)
                                     if parsed is None:
                                         try:
                                             import ast
+
                                             parsed = ast.literal_eval(val)
                                         except Exception:
                                             pass
@@ -434,14 +451,16 @@ def main() -> int:
                                             for r in parsed:
                                                 if isinstance(r, dict):
                                                     prop = r.get("proposition", {})
-                                                    if (prop.get("object_id") == "tavern_keeper_tornin"
-                                                        and prop.get("predicate") == "insulted"):
-                                                        print(f"      >>> MATCH: Tornin's INSULTED belief")
+                                                    if (
+                                                        prop.get("object_id") == "tavern_keeper_tornin"
+                                                        and prop.get("predicate") == "insulted"
+                                                    ):
+                                                        print("      >>> MATCH: Tornin's INSULTED belief")
                                                         _print_belief_record(r, indent="        ")
                                         elif isinstance(parsed, dict):
                                             print(f"      parsed as dict, keys={list(parsed.keys())[:10]}")
                                     else:
-                                        print(f"      (cannot parse as JSON or Python literal)")
+                                        print("      (cannot parse as JSON or Python literal)")
                     for tbl in tables:
                         if "epistemic" in tbl.lower():
                             cur.execute(f"SELECT COUNT(*) FROM {tbl}")
@@ -472,6 +491,7 @@ def main() -> int:
     if runtime_db and runtime_db.exists():
         try:
             import sqlite3
+
             print(f"  Size: {runtime_db.stat().st_size} bytes")
             print(f"  Modified: {datetime.fromtimestamp(runtime_db.stat().st_mtime)}")
             print()
@@ -502,7 +522,7 @@ def main() -> int:
                         val = row[0]
                         print(f"\n  key={key_pattern}: value length={len(val)}")
                         if "epistemic" in val.lower():
-                            print(f"    >>> Contains 'epistemic'!")
+                            print("    >>> Contains 'epistemic'!")
                             lower_val = val.lower()
                             idx = lower_val.find("epistemic")
                             if idx >= 0:
@@ -522,9 +542,11 @@ def main() -> int:
                                     for r in er:
                                         if isinstance(r, dict):
                                             prop = r.get("proposition", {})
-                                            if (prop.get("object_id") == "tavern_keeper_tornin"
-                                                and prop.get("predicate") == "insulted"):
-                                                print(f"    >>> MATCH: Tornin's INSULTED belief")
+                                            if (
+                                                prop.get("object_id") == "tavern_keeper_tornin"
+                                                and prop.get("predicate") == "insulted"
+                                            ):
+                                                print("    >>> MATCH: Tornin's INSULTED belief")
                                                 _print_belief_record(r, indent="      ")
 
             conn.close()

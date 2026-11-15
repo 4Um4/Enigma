@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 ME-1.6 Мигратор: разрешение двойного хранения location_templates/ vs campaigns/<id>/locations/
 
@@ -86,11 +86,7 @@ def save_json(path: Path, data: dict) -> None:
 def list_campaigns() -> list[str]:
     if not CAMPAIGNS_DIR.exists():
         return []
-    return sorted(
-        d.name
-        for d in CAMPAIGNS_DIR.iterdir()
-        if d.is_dir() and (d / "campaign.json").exists()
-    )
+    return sorted(d.name for d in CAMPAIGNS_DIR.iterdir() if d.is_dir() and (d / "campaign.json").exists())
 
 
 def list_template_files() -> list[str]:
@@ -108,17 +104,10 @@ def list_campaign_files(campaign_id: str) -> list[str]:
 
 def _has_id_array(value: Any) -> bool:
     """Проверяет, является ли value массивом объектов с полем 'id'."""
-    return (
-        isinstance(value, list)
-        and len(value) > 0
-        and isinstance(value[0], dict)
-        and "id" in value[0]
-    )
+    return isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "id" in value[0]
 
 
-def merge_templates_into_campaign(
-    tpl: dict, camp: dict
-) -> tuple[dict, list[str], list[str]]:
+def merge_templates_into_campaign(tpl: dict, camp: dict) -> tuple[dict, list[str], list[str]]:
     """Применяет правки templates к campaigns (для --apply-templates-edits).
 
     Возвращает (merged_campaign, applied_actions, skipped_conflicts).
@@ -154,8 +143,7 @@ def merge_templates_into_campaign(
             only_camp = camp_ids - tpl_ids
             if only_camp:
                 skipped.append(
-                    f"SKIP {k!r}: campaigns has {len(only_camp)} unique ID(s) "
-                    f"not in templates: {sorted(only_camp)[:5]}"
+                    f"SKIP {k!r}: campaigns has {len(only_camp)} unique ID(s) not in templates: {sorted(only_camp)[:5]}"
                 )
                 continue
 
@@ -188,11 +176,13 @@ def migrate_campaign(
 
     # 1. Файлы только в templates — starter content not in campaign
     for f in sorted(tpl_files - camp_files):
-        report["conflicts"].append({
-            "file": f,
-            "type": "template_only",
-            "note": "starter file not in campaign",
-        })
+        report["conflicts"].append(
+            {
+                "file": f,
+                "type": "template_only",
+                "note": "starter file not in campaign",
+            }
+        )
         if apply:
             src = TEMPLATES_DIR / f
             dst = CAMPAIGNS_DIR / campaign_id / "locations" / f
@@ -201,11 +191,13 @@ def migrate_campaign(
 
     # 2. Файлы только в campaigns — campaign-only file (легитимно)
     for f in sorted(camp_files - tpl_files):
-        report["conflicts"].append({
-            "file": f,
-            "type": "campaign_only",
-            "note": "campaign-only file (no starter template)",
-        })
+        report["conflicts"].append(
+            {
+                "file": f,
+                "type": "campaign_only",
+                "note": "campaign-only file (no starter template)",
+            }
+        )
 
     # 3. Файлы в обоих — deep diff
     for f in sorted(tpl_files & camp_files):
@@ -217,34 +209,33 @@ def migrate_campaign(
             continue
 
         orphan = [d for d in diffs if not d.startswith("modified_at")]
-        report["conflicts"].append({
-            "file": f,
-            "type": "field_divergence",
-            "diff_count": len(diffs),
-            "diffs_sample": diffs[:20],
-        })
-        if orphan:
-            report["orphaned_template_edits"].append({
+        report["conflicts"].append(
+            {
                 "file": f,
-                "edits_count": len(orphan),
-                "edits_sample": orphan[:10],
-            })
+                "type": "field_divergence",
+                "diff_count": len(diffs),
+                "diffs_sample": diffs[:20],
+            }
+        )
+        if orphan:
+            report["orphaned_template_edits"].append(
+                {
+                    "file": f,
+                    "edits_count": len(orphan),
+                    "edits_sample": orphan[:10],
+                }
+            )
 
         if apply and apply_templates_edits and orphan:
             merged, applied, skipped = merge_templates_into_campaign(tpl, camp)
             if applied:
                 save_json(CAMPAIGNS_DIR / campaign_id / "locations" / f, merged)
-                report["actions"].extend(
-                    f"applied to {f}: {a}" for a in applied
-                )
+                report["actions"].extend(f"applied to {f}: {a}" for a in applied)
             if skipped:
-                report["skipped"].extend(
-                    f"{f}: {s}" for s in skipped
-                )
+                report["skipped"].extend(f"{f}: {s}" for s in skipped)
         elif apply and not apply_templates_edits:
             report["actions"].append(
-                f"{f}: campaigns canonical (verdikt v.1); "
-                f"{len(orphan)} templates-only edits remain orphaned"
+                f"{f}: campaigns canonical (verdikt v.1); {len(orphan)} templates-only edits remain orphaned"
             )
 
     return report
@@ -329,10 +320,7 @@ def main() -> int:
             print(f"  conflicts: {len(conflicts)}")
             for c in conflicts:
                 if c["type"] == "field_divergence":
-                    print(
-                        f"    [{c['file']}] field_divergence "
-                        f"({c['diff_count']} diffs):"
-                    )
+                    print(f"    [{c['file']}] field_divergence ({c['diff_count']} diffs):")
                     for d in c["diffs_sample"][:5]:
                         print(f"      {d}")
                     if c["diff_count"] > 5:
@@ -345,9 +333,7 @@ def main() -> int:
         if orphaned:
             print(f"  orphaned template edits: {len(orphaned)} file(s)")
             for o in orphaned:
-                print(
-                    f"    [{o['file']}] {o['edits_count']} orphaned edits"
-                )
+                print(f"    [{o['file']}] {o['edits_count']} orphaned edits")
 
         if actions:
             label = "DRY-RUN" if dry_run else "APPLIED"

@@ -12,6 +12,7 @@ Other 9 modifier layers untouched.
 Reference: npc_tick_pipeline.py:772/836/881/927 (or-None pattern)
            decision_hub.py:471-475 (skip falsy mod_dict)
 """
+
 from contextlib import contextmanager
 from typing import Dict, List, Optional
 

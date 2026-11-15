@@ -97,9 +97,7 @@ class AddPassageCommand(Command):
         self.label = f"Проход: {self.passage_type}"
 
     def do(self) -> str:
-        self.passage_id = self.dm.add_passage(
-            self.filename, self.wall_id, self.passage_type, self.position
-        )
+        self.passage_id = self.dm.add_passage(self.filename, self.wall_id, self.passage_type, self.position)
         return self.passage_id
 
     def undo(self):
@@ -127,7 +125,11 @@ class RemovePassageCommand(Command):
             loc = self.dm.locations[self.filename]
             # ME-D3: объектные проходы возвращаются в objects, легаси — в passages
             if self.passage_data.get("type") in (
-                "door", "window", "door_transition", "gap", "hatch",
+                "door",
+                "window",
+                "door_transition",
+                "gap",
+                "hatch",
             ):
                 loc["objects"].append(deepcopy(self.passage_data))
             else:
@@ -193,6 +195,7 @@ class RemoveRoomCommand(Command):
 
 class SimpleNodeUpdateCommand:
     """Простая команда обновления узла для Undo/Redo (ADR-O-326)"""
+
     def __init__(self, dm, filename, node_id, old_name, old_role, old_tags, new_name, new_role, new_tags):
         self.dm = dm
         self.filename = filename
@@ -223,14 +226,10 @@ class RenameCommand(Command):
         self.label = "Переименовать"
 
     def do(self):
-        self.dm.rename_entity(
-            self.filename, self.entity_type, self.entity_id, self.new_name
-        )
+        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.new_name)
 
     def undo(self):
-        self.dm.rename_entity(
-            self.filename, self.entity_type, self.entity_id, self.old_name
-        )
+        self.dm.rename_entity(self.filename, self.entity_type, self.entity_id, self.old_name)
 
 
 @dataclass
@@ -293,9 +292,7 @@ class AddNpcCommand(Command):
         self.label = "Разместить NPC"
 
     def do(self) -> str:
-        self.npc_ref = self.dm.add_npc(
-            self.filename, self.ref_id, self.x, self.y, self.room_id
-        )
+        self.npc_ref = self.dm.add_npc(self.filename, self.ref_id, self.x, self.y, self.room_id)
         return self.npc_ref
 
     def undo(self):
@@ -532,16 +529,12 @@ class MoveEntityCommand(Command):
     def _apply(self, dx: float, dy: float) -> None:
         loc = self.dm.locations[self.filename]
         if self.entity_type == "object":
-            obj = next(
-                (o for o in loc["objects"] if o.get("id") == self.entity_id), None
-            )
+            obj = next((o for o in loc["objects"] if o.get("id") == self.entity_id), None)
             if obj:
                 obj["position"]["x"] += dx
                 obj["position"]["y"] += dy
                 if self.drag_wall and obj.get("wall_id"):
-                    wall = next(
-                        (w for w in loc["walls"] if w["id"] == obj["wall_id"]), None
-                    )
+                    wall = next((w for w in loc["walls"] if w["id"] == obj["wall_id"]), None)
                     if wall:
                         wall["x1"] += dx
                         wall["y1"] += dy

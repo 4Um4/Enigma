@@ -5,6 +5,7 @@ path: /project/backend/tests/micro/test_npc_addressing_rendering.py
 Зависимости: frontend.focus_renderer, frontend.game_screen
 Основные сущности: тесты battery 1-8
 """
+
 from __future__ import annotations
 
 from pathlib import Path

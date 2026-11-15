@@ -13,6 +13,7 @@ class SleepState(str, Enum):
     RESTING = "resting"
     DROWSY = "drowsy"
 
+
 def is_sleeping(activity: str) -> bool:
     """Проверяет, находится ли NPC в состоянии сна или отдыха."""
     if not activity:

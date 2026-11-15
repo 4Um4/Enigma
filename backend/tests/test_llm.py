@@ -31,6 +31,7 @@ def test_multimodel():
 
     # Этап 6: SSOT — port from settings.llama_cpp_port (not runtime_ports.json).
     from app.core.config import settings as _enigma_settings
+
     llm_port = _enigma_settings.llama_cpp_port
 
     server_url = f"http://127.0.0.1:{llm_port}"

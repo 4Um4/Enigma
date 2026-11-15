@@ -11,6 +11,7 @@ path: backend/app/services/world/affordance_resolver.py
 Зависимости: app.domain (world_object, semantic_action, body_state_view, constants)
 Основные сущности: AffordanceResolver, PRECONDITION_REGISTRY, effective_state
 """
+
 import math
 from dataclasses import replace
 from typing import Any, Callable, Dict, Tuple
@@ -185,11 +186,7 @@ def _actions(
         row.append(
             SemanticAction(
                 action_type=action_type,
-                preconditions=(
-                    _BASE_PRECONDITIONS
-                    + (Precondition("STATE_IS", (eff_state,)),)
-                    + extra
-                ),
+                preconditions=(_BASE_PRECONDITIONS + (Precondition("STATE_IS", (eff_state,)),) + extra),
             )
         )
     return tuple(row)
@@ -325,15 +322,10 @@ class AffordanceResolver:
         npc_body_state: BodyStateView,
         npc_position: Tuple[float, float],
     ) -> Tuple[SemanticAction, ...]:
-        candidates = _AFFORDANCE_TABLE.get(
-            (obj.archetype, effective_state(obj)), ()
-        )
+        candidates = _AFFORDANCE_TABLE.get((obj.archetype, effective_state(obj)), ())
         result = []
         for action in candidates:
-            if all(
-                _evaluate(obj, npc_body_state, npc_position, p)
-                for p in action.preconditions
-            ):
+            if all(_evaluate(obj, npc_body_state, npc_position, p) for p in action.preconditions):
                 result.append(replace(action, target_object_id=obj.object_id))
         return tuple(result)
 
@@ -347,10 +339,7 @@ def _evaluate(
     evaluator = PRECONDITION_REGISTRY.get(p.predicate)
     if evaluator is None:
         # Громкий онтологический отказ: реестр закрыт (ADR-O-372)
-        raise KeyError(
-            f"Неизвестный предикат {p.predicate!r}: реестр v1 закрыт "
-            "(расширение = мини-ADR, ADR-O-372)"
-        )
+        raise KeyError(f"Неизвестный предикат {p.predicate!r}: реестр v1 закрыт (расширение = мини-ADR, ADR-O-372)")
     return evaluator(obj, body, npc_position, p.args)
 
 

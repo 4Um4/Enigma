@@ -4,6 +4,7 @@ ADR-049: Восприятие → Накопление → Фазовый пер
 
 - Проверять при каждом тике, если affective_load пересекает пороги.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional

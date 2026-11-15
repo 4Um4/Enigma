@@ -104,9 +104,7 @@ class OpportunityContext:
 
     def __post_init__(self) -> None:
         # Защита от невалидных значений из SceneState
-        object.__setattr__(
-            self, "player_attention", max(0.0, min(1.0, self.player_attention))
-        )
+        object.__setattr__(self, "player_attention", max(0.0, min(1.0, self.player_attention)))
         object.__setattr__(self, "distance", max(0.0, self.distance))
         object.__setattr__(self, "allies", max(0, self.allies))
 
@@ -180,12 +178,7 @@ class OpportunityEngine:
         # Союзники: нормализация 0–MAX_ALLY_COUNT
         allies_component = min(ctx.allies / MAX_ALLY_COUNT, 1.0) * W_ALLIES
 
-        raw_score = (
-            attention_component
-            + distance_component
-            + weapon_component
-            + allies_component
-        )
+        raw_score = attention_component + distance_component + weapon_component + allies_component
 
         final_score = round(min(raw_score, 1.0), 4)
         hidden_allowed = final_score >= OPPORTUNITY_THRESHOLD
@@ -193,11 +186,7 @@ class OpportunityEngine:
         return OpportunityResult(
             score=final_score,
             hidden_action_allowed=hidden_allowed,
-            unlocked_intents=(
-                frozenset({"betray", "steal", "escape", "sabotage"})
-                if hidden_allowed
-                else frozenset()
-            ),
+            unlocked_intents=(frozenset({"betray", "steal", "escape", "sabotage"}) if hidden_allowed else frozenset()),
             score_trace={
                 "attention_component": round(attention_component, 4),
                 "distance_component": round(distance_component, 4),

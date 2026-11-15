@@ -80,16 +80,10 @@ def _init_registry() -> dict[str, ModelConfig]:
     """Единственная модель проекта."""
     # Читаем provider_type из settings — позволяет переключить на mock без правки кода
     _qwen_cfg = settings.available_models.get("qwen_7b")
-    _qwen_pt = (
-        ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp"))
-        if _qwen_cfg
-        else ProviderType.LLAMA_CPP
-    )
+    _qwen_pt = ProviderType(getattr(_qwen_cfg, "provider_type", "llama_cpp")) if _qwen_cfg else ProviderType.LLAMA_CPP
     _saiga_cfg = settings.available_models.get("saiga_llama3_8b")
     _saiga_pt = (
-        ProviderType(getattr(_saiga_cfg, "provider_type", "llama_cpp"))
-        if _saiga_cfg
-        else ProviderType.LLAMA_CPP
+        ProviderType(getattr(_saiga_cfg, "provider_type", "llama_cpp")) if _saiga_cfg else ProviderType.LLAMA_CPP
     )
     return {
         "qwen_7b": ModelConfig(
@@ -150,7 +144,7 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
     "npc": Capability.DIALOGUE,
     "rules": Capability.RULES_REASONING,
     "memory": Capability.MEMORY_SUMMARIZATION,
-    "dialogue_extractor": Capability.MEMORY_SUMMARIZATION, # BUG-DLG-011 FIX
+    "dialogue_extractor": Capability.MEMORY_SUMMARIZATION,  # BUG-DLG-011 FIX
     "verifier": Capability.DIALOGUE,  # P5-B: PropositionVerifier uses same model as NPC dialogue
     "general": Capability.GENERAL,
 }
@@ -166,11 +160,11 @@ DEFAULT_AGENT_CAPABILITY_MAP: dict[str, Capability] = {
 # результата (epoch). CALIBRATION-константы (не env): перевод в env — только
 # вместе с записью flags.yaml (иначе C1-линтер RED).
 
-_CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0   # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
-_AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0   # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
-_AMBIENT_QUEUE_CAP: int = 8                  # максимум одновременно ожидающих ambient (сверх — DROP)
-_WORKER_WALL_TIME_CEILING_SEC: float = 120.0 # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
-_ABORT_GRACE_SEC: float = 2.0                # ожидание эффекта /abort до форфейта (прецедент: sleep 1-2с старого пути)
+_CANONICAL_QUEUE_TIMEOUT_SEC: float = 90.0  # бюджет ОЖИДАНИЯ слота (НЕ загрузка модели — та: model_load_timeout_sec)
+_AMBIENT_QUEUE_DEADLINE_SEC: float = 300.0  # дедлайн фоновой задачи, действует ВО ВРЕМЯ ожидания
+_AMBIENT_QUEUE_CAP: int = 8  # максимум одновременно ожидающих ambient (сверх — DROP)
+_WORKER_WALL_TIME_CEILING_SEC: float = 120.0  # потолок ВЫПОЛНЯЮЩЕГОСЯ вызова (3x30с retry + 1+2с sleeps + запас)
+_ABORT_GRACE_SEC: float = 2.0  # ожидание эффекта /abort до форфейта (прецедент: sleep 1-2с старого пути)
 
 
 def _llm_resilience_v1_enabled() -> bool:
@@ -182,7 +176,10 @@ def _llm_resilience_v1_enabled() -> bool:
     import os
 
     return os.environ.get("LLM_RESILIENCE_V1", "").strip().lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
 
 
@@ -325,9 +322,7 @@ class ModelRouter:
             self._vram_semaphore = asyncio.Semaphore(1)
         async with self._vram_semaphore:
             # Логируем вход в критическую секцию
-            logger.info(
-                f"ModelRouter: Acquired VRAM semaphore for capability={capability_obj}"
-            )
+            logger.info(f"ModelRouter: Acquired VRAM semaphore for capability={capability_obj}")
 
             try:
                 if self._lazy_loading:
@@ -346,9 +341,7 @@ class ModelRouter:
                         system_prompt=system_prompt,
                     )
             finally:
-                logger.debug(
-                    f"ModelRouter: Released VRAM semaphore for {capability_obj}"
-                )
+                logger.debug(f"ModelRouter: Released VRAM semaphore for {capability_obj}")
 
     def _abort_generation(self) -> None:
         """Прервать зависшую генерацию на llama-server (H-10 FIX: безопасный вызов)."""
@@ -392,16 +385,12 @@ class ModelRouter:
         with self._worker_lock:
             if not self._slot_busy or self._slot_epoch != my_epoch:
                 return  # вызов успел завершиться штатно (или уже осиротевший)
-        _root_logger.warning(
-            f"[R4A_WALLTIME] вызов epoch={my_epoch} превысил потолок — /abort"
-        )
+        _root_logger.warning(f"[R4A_WALLTIME] вызов epoch={my_epoch} превысил потолок — /abort")
         self._abort_generation()
         time.sleep(_ABORT_GRACE_SEC)
         with self._worker_lock:
             if self._slot_busy and self._slot_epoch == my_epoch:
-                _root_logger.error(
-                    f"[R4A_WALLTIME] abort не подействовал — форфейт слота epoch={my_epoch}"
-                )
+                _root_logger.error(f"[R4A_WALLTIME] abort не подействовал — форфейт слота epoch={my_epoch}")
                 self._slot_epoch += 1  # осиротить выполняющийся вызов
                 self._slot_busy = False
                 self._grant_next_locked()
@@ -442,16 +431,10 @@ class ModelRouter:
                 self._waiter_seq: int = 0
             if self._slot_busy:
                 if rank == 1:
-                    _live_ambient = sum(
-                        1 for _w in self._waiters if not _w.dead and _w.rank == 1
-                    )
+                    _live_ambient = sum(1 for _w in self._waiters if not _w.dead and _w.rank == 1)
                     if _live_ambient >= _AMBIENT_QUEUE_CAP:
-                        _root_logger.warning(
-                            f"[R4A_QUEUE] ambient DROP (overflow): agent={agent_name}"
-                        )
-                        raise LlmQueueOverflowError(
-                            f"ambient queue overflow (cap={_AMBIENT_QUEUE_CAP}): {agent_name}"
-                        )
+                        _root_logger.warning(f"[R4A_QUEUE] ambient DROP (overflow): agent={agent_name}")
+                        raise LlmQueueOverflowError(f"ambient queue overflow (cap={_AMBIENT_QUEUE_CAP}): {agent_name}")
                 waiter = _QueueWaiter(rank, self._waiter_seq)
                 self._waiter_seq += 1
                 heapq.heappush(self._waiters, waiter)
@@ -461,10 +444,7 @@ class ModelRouter:
                 _my_epoch = self._slot_epoch
 
         if waiter is not None:
-            _deadline = time.monotonic() + (
-                _AMBIENT_QUEUE_DEADLINE_SEC if rank == 1
-                else _CANONICAL_QUEUE_TIMEOUT_SEC
-            )
+            _deadline = time.monotonic() + (_AMBIENT_QUEUE_DEADLINE_SEC if rank == 1 else _CANONICAL_QUEUE_TIMEOUT_SEC)
             _granted = waiter.event.wait(timeout=max(0.0, _deadline - time.monotonic()))
             if not _granted:
                 with self._worker_lock:
@@ -472,15 +452,9 @@ class ModelRouter:
                     _granted = waiter.event.is_set()  # гонка выдачи <-> таймаута
             if not _granted:
                 if rank == 1:
-                    _root_logger.warning(
-                        f"[R4A_QUEUE] ambient DROP (deadline): agent={agent_name}"
-                    )
-                    raise LlmQueueDeadlineError(
-                        f"ambient queue deadline exceeded: {agent_name}"
-                    )
-                raise LlmQueueDeadlineError(
-                    f"canonical queue timeout exceeded: {agent_name}"
-                )
+                    _root_logger.warning(f"[R4A_QUEUE] ambient DROP (deadline): agent={agent_name}")
+                    raise LlmQueueDeadlineError(f"ambient queue deadline exceeded: {agent_name}")
+                raise LlmQueueDeadlineError(f"canonical queue timeout exceeded: {agent_name}")
             _my_epoch = waiter.granted_epoch
 
         _watchdog = threading.Timer(
@@ -509,9 +483,7 @@ class ModelRouter:
                     "R4A_WALLTIME: вызов покинут — слот форфейтен после потолка "
                     "wall-time; результат отброшен, слот у следующего владельца"
                 )
-            _root_logger.info(
-                f"[R4A_WORKER] returned {len(_result) if _result else 0} chars"
-            )
+            _root_logger.info(f"[R4A_WORKER] returned {len(_result) if _result else 0} chars")
             # Кэш + телеметрия: контракт прежнего worker-пути (дублирование
             # сознательное — OFF-путь остаётся нетронутым)
             if settings.replay_record:
@@ -531,17 +503,19 @@ class ModelRouter:
             from app.services.logging_tools import jsonl_log
             from app.services.replay.llm_cache import compute_prompt_hash
 
-            jsonl_log({
-                "level": "INFO",
-                "agent": "llm_output",
-                "tick_id": getattr(self, "_current_tick_id", 0),
-                "npc_id": agent_name,
-                "prompt_hash": prompt_hash,
-                "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
-                "model": self.get_model_for_agent(agent_name),
-                "latency": round((time.perf_counter() - worker_start) * 1000, 1),
-                "cache_hit": False,
-            })
+            jsonl_log(
+                {
+                    "level": "INFO",
+                    "agent": "llm_output",
+                    "tick_id": getattr(self, "_current_tick_id", 0),
+                    "npc_id": agent_name,
+                    "prompt_hash": prompt_hash,
+                    "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
+                    "model": self.get_model_for_agent(agent_name),
+                    "latency": round((time.perf_counter() - worker_start) * 1000, 1),
+                    "cache_hit": False,
+                }
+            )
             return _result
         finally:
             _watchdog.cancel()
@@ -584,12 +558,8 @@ class ModelRouter:
                 if model_provider:
                     try:
                         # Execute request
-                        _root_logger.info(
-                            f"[R4A_POOL] calling complete() on {model_key}..."
-                        )
-                        result = model_provider.provider.complete(
-                            prompt, params, system_prompt
-                        )
+                        _root_logger.info(f"[R4A_POOL] calling complete() on {model_key}...")
+                        result = model_provider.provider.complete(prompt, params, system_prompt)
                         _root_logger.info(
                             f"[R4A_POOL] complete() returned {len(result)} chars in {(time.time() - start_time) * 1000:.0f}ms"
                         )
@@ -599,9 +569,7 @@ class ModelRouter:
                         tokens = len(result.split())  # Rough estimate
                         # record_request — опциональная метрика, не критична
                         if hasattr(pool, "record_request"):
-                            pool.record_request(
-                                model_key, latency_ms, tokens, success=True
-                            )
+                            pool.record_request(model_key, latency_ms, tokens, success=True)
 
                         return result
                     except Exception as e:
@@ -626,9 +594,7 @@ class ModelRouter:
             model_provider = pool.get_model(model_key)
             if model_provider:
                 try:
-                    return model_provider.provider.complete(
-                        prompt, params, system_prompt
-                    )
+                    return model_provider.provider.complete(prompt, params, system_prompt)
                 except Exception as e:
                     logger.warning(f"Fallback {model_key} failed: {e}")
                     # H-12 FIX: Прерываем цикл, чтобы не thrash VRAM, выгружая и загружая модели подряд.
@@ -713,20 +679,14 @@ class ModelRouter:
                     return key
 
         # Fallback: find any model with this capability
-        suitable_models = [
-            (key, config)
-            for key, config in self._registry.items()
-            if capability in config.capabilities
-        ]
+        suitable_models = [(key, config) for key, config in self._registry.items() if capability in config.capabilities]
 
         if suitable_models:
             return suitable_models[0][0]
 
         # Fallback: general purpose
         suitable_models = [
-            (key, config)
-            for key, config in self._registry.items()
-            if Capability.GENERAL in config.capabilities
+            (key, config) for key, config in self._registry.items() if Capability.GENERAL in config.capabilities
         ]
 
         if suitable_models:
@@ -767,23 +727,18 @@ class ModelRouter:
         # только при LLM_RESILIENCE_V1=ON; валидация всегда — опечатка не
         # имеет права молча превратиться в canonical).
         if priority not in ("canonical", "ambient"):
-            raise ValueError(
-                f"priority must be 'canonical'|'ambient', got {priority!r}"
-            )
+            raise ValueError(f"priority must be 'canonical'|'ambient', got {priority!r}")
         capability = self._capability_map.get(agent_name, Capability.GENERAL)
 
         # Подсистема 2: LLM Cache для Replay (Этап 2.3)
         from app.core.config import settings
         from app.services.replay.llm_cache import compute_prompt_hash
+
         _prompt_hash = compute_prompt_hash(prompt, system_prompt, params)
 
         # === ЛОГИРОВАНИЕ ПРОМПТА ДЛЯ ОТЛАДКИ (M-08 FIX) ===
         _prompt_preview = (prompt[:500] + "...") if len(prompt) > 500 else prompt
-        _sys_preview = (
-            (system_prompt[:200] + "...")
-            if system_prompt and len(system_prompt) > 200
-            else system_prompt
-        )
+        _sys_preview = (system_prompt[:200] + "...") if system_prompt and len(system_prompt) > 200 else system_prompt
         jsonl_log(
             {
                 "level": "INFO",
@@ -794,10 +749,10 @@ class ModelRouter:
                 "tick_id": getattr(self, "_current_tick_id", 0),
                 "npc_id": agent_name,
                 "prompt_hash": _prompt_hash,
-                "response_hash": None, # Логируется в llm_output
+                "response_hash": None,  # Логируется в llm_output
                 "model": self.get_model_for_agent(agent_name),
-                "latency": 0.0, # Логируется в llm_output
-                "cache_hit": False, # Логируется в llm_output
+                "latency": 0.0,  # Логируется в llm_output
+                "cache_hit": False,  # Логируется в llm_output
                 "intent_before": None,
                 "intent_after": None,
             }
@@ -849,7 +804,7 @@ class ModelRouter:
                     prompt_hash=_prompt_hash,
                     worker_start=_worker_start,
                 )
-            with self._worker_lock: # H-11 FIX: Потокобезопасная проверка и установка флага
+            with self._worker_lock:  # H-11 FIX: Потокобезопасная проверка и установка флага
                 capability_obj = self._capability_map.get(agent_name, Capability.GENERAL)
                 preferred_keys = self.get_capability_preferences(capability_obj)
                 # Если предыдущий запрос завис — abort перед новым и ждём освобождения
@@ -864,9 +819,7 @@ class ModelRouter:
                         time.sleep(1.0)
                 self._request_in_progress = True
             try:
-                _root_logger.info(
-                    f"[R4A_WORKER] direct sync call, capability={capability_obj}"
-                )
+                _root_logger.info(f"[R4A_WORKER] direct sync call, capability={capability_obj}")
                 _result = self._request_via_pool(
                     capability_obj,
                     preferred_keys=preferred_keys,
@@ -874,9 +827,7 @@ class ModelRouter:
                     params=params,
                     system_prompt=system_prompt,
                 )
-                _root_logger.info(
-                    f"[R4A_WORKER] returned {len(_result) if _result else 0} chars"
-                )
+                _root_logger.info(f"[R4A_WORKER] returned {len(_result) if _result else 0} chars")
                 # C-11 FIX: Worker-thread path не писал в кэш. Пишем до возврата.
                 # H-07 FIX: Не пишем пустые ответы в кэш, чтобы не нарушать детерминизм.
                 # H-08 FIX: Передаём system_prompt и params для корректного вычисления хэша.
@@ -893,23 +844,26 @@ class ModelRouter:
                             model_name=self.get_model_for_agent(agent_name),
                             latency_ms=int((time.perf_counter() - _worker_start) * 1000),
                             system_prompt=system_prompt,
-                            params=params
+                            params=params,
                         )
 
                 # M-09/M-10 FIX: Логируем ответ LLM с метриками
                 from app.services.replay.llm_cache import compute_prompt_hash
-                jsonl_log({
-                    "level": "INFO",
-                    "agent": "llm_output",
-                    "tick_id": getattr(self, "_current_tick_id", 0),
-                    "npc_id": agent_name,
-                    "prompt_hash": _prompt_hash,
-                    "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
-                    "model": self.get_model_for_agent(agent_name),
-                    # COV-2/D64-ядро: фактическая latency worker-пути (perf_counter)
-                    "latency": round((time.perf_counter() - _worker_start) * 1000, 1),
-                    "cache_hit": False
-                })
+
+                jsonl_log(
+                    {
+                        "level": "INFO",
+                        "agent": "llm_output",
+                        "tick_id": getattr(self, "_current_tick_id", 0),
+                        "npc_id": agent_name,
+                        "prompt_hash": _prompt_hash,
+                        "response_hash": compute_prompt_hash(_result) if _result else None,  # noqa: ENIGMA001
+                        "model": self.get_model_for_agent(agent_name),
+                        # COV-2/D64-ядро: фактическая latency worker-пути (perf_counter)
+                        "latency": round((time.perf_counter() - _worker_start) * 1000, 1),
+                        "cache_hit": False,
+                    }
+                )
                 return _result
             except Exception as e:
                 _root_logger.error(f"[R4A_WORKER] exception: {e}")
@@ -975,7 +929,7 @@ class ModelRouter:
                     model_name=self.get_model_for_agent(agent_name),
                     latency_ms=0,
                     system_prompt=system_prompt,
-                    params=params
+                    params=params,
                 )
 
         return _result
@@ -1000,9 +954,7 @@ class ModelRouter:
         полный декодированный ответ и передаёт его в notify_stream_end(full_text=...).
         Хеш вычисляет стор (prompt|system|params) — ключи совместимы с не-стрим путями."""
         cap = self._normalize_capability(capability)
-        _root_logger.info(
-            f"[R4A_STREAM] calling stream_tokens(), agent={agent_name}, capability={cap.value}"
-        )
+        _root_logger.info(f"[R4A_STREAM] calling stream_tokens(), agent={agent_name}, capability={cap.value}")
         return {
             "start_time": time.time(),
             "agent_name": agent_name,
@@ -1012,18 +964,14 @@ class ModelRouter:
             "params": params,
         }
 
-    def notify_stream_end(
-        self, ctx: dict, chars_produced: int, full_text: str | None = None
-    ) -> None:
+    def notify_stream_end(self, ctx: dict, chars_produced: int, full_text: str | None = None) -> None:
         """Уведомляет Router о завершении streaming LLM-вызова. Эмитит [R4A_STREAM] маркер для CDS.
 
         COV-2/D65: при full_text (буфер декодированного стрима) и активном
         replay_record — запись в кэш по контракту не-стрим путей. Отказ записи
         наблюдаем (warning, L4): недозапись вскроется громким playback-miss (D67)."""
         elapsed_ms = (time.time() - ctx["start_time"]) * 1000
-        _root_logger.info(
-            f"[R4A_STREAM] stream complete, {chars_produced} chars in {elapsed_ms:.0f}ms"
-        )
+        _root_logger.info(f"[R4A_STREAM] stream complete, {chars_produced} chars in {elapsed_ms:.0f}ms")
         if full_text is None or ctx.get("prompt") is None:
             return
         from app.core.config import settings as _settings
@@ -1069,26 +1017,18 @@ class ModelRouter:
             return None
         _store = getattr(self, "_replay_store", None)  # noqa: ENIGMA002
         if _store is None:
-            raise RuntimeError(
-                "Replay determinism broken: playback mode without replay store "
-                f"(agent={agent_name})"
-            )
+            raise RuntimeError(f"Replay determinism broken: playback mode without replay store (agent={agent_name})")
         from app.services.replay.llm_cache import compute_prompt_hash
 
         _hash = compute_prompt_hash(prompt, system_prompt, params)
-        _cached = _store.get_llm_call(
-            getattr(self, "_current_session_id", "unknown"), agent_name, _hash
-        )
+        _cached = _store.get_llm_call(getattr(self, "_current_session_id", "unknown"), agent_name, _hash)
         if _cached is not None and "response" in _cached:
             return str(_cached["response"])
         raise RuntimeError(
-            "Replay determinism broken: LLM stream cache miss in playback "
-            f"(agent={agent_name}, hash={_hash[:8]})"
+            f"Replay determinism broken: LLM stream cache miss in playback (agent={agent_name}, hash={_hash[:8]})"
         )
 
-    def set_capability_for_agent(
-        self, agent_name: str, capability: Capability | str
-    ) -> None:
+    def set_capability_for_agent(self, agent_name: str, capability: Capability | str) -> None:
         """Установить маппинг агент → capability."""
         if isinstance(capability, str):
             capability = Capability(capability)
@@ -1180,6 +1120,7 @@ def initialize_router() -> None:
 
     logger.debug(f"Router initialized. ModelPool: {pool_results}")
     logger.debug("Lazy loading enabled: only one model in VRAM at a time")
+
 
 __all__ = [
     "ModelRouter",

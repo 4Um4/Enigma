@@ -24,9 +24,9 @@ from app.domain.desired_change import DesiredChange, acquire_resource
 logger = logging.getLogger(__name__)
 
 # Калибровочные параметры (вердикт Тай §3: НЕ законы ENIGMA)
-NEED_GATE: float = 0.5        # hunger уже причина (точка выхода LifeEngine)
-REACH_RADIUS: float = 5.0     # достижимость (SPEAK_RADIUS-прецедент S96)
-VIABILITY_GATE: float = 0.1   # ниже — ни один способ не жив → честный None
+NEED_GATE: float = 0.5  # hunger уже причина (точка выхода LifeEngine)
+REACH_RADIUS: float = 5.0  # достижимость (SPEAK_RADIUS-прецедент S96)
+VIABILITY_GATE: float = 0.1  # ниже — ни один способ не жив → честный None
 GOOD_ID = "food"
 
 # S209-паттерн (архетип, не npc_id-хардкод): базовая близость к краже
@@ -98,11 +98,7 @@ class HungerDesiredChangeProducer:
         trust_norm = max(-1.0, min(1.0, trust / 100.0))
 
         # ── Ограничения A (CS4: существующие машины) ──
-        gold = (
-            float(getattr(own_profile, "gold", 0.0) or 0.0)
-            if own_profile is not None
-            else 0.0
-        )
+        gold = float(getattr(own_profile, "gold", 0.0) or 0.0) if own_profile is not None else 0.0
         afford = 1.0 if gold >= float(food_price) else 0.0
 
         steal_base = _ARCHETYPE_STEAL_BASE.get(archetype, _DEFAULT_STEAL_BASE)

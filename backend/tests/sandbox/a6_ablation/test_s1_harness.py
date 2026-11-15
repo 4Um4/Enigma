@@ -1,4 +1,5 @@
 """S1 harness tests — verify patch and restore correctness (unit, no DriftLab)."""
+
 import pytest
 
 from app.services.npc.decision_hub import DecisionHub
@@ -24,9 +25,7 @@ def test_s1_layer_off_restores_originals():
     with s1_layer_off():
         pass
     for cls, orig in originals.items():
-        assert cls.__dict__["to_modifiers"] is orig, (
-            f"{cls.__name__}: original staticmethod not restored by identity"
-        )
+        assert cls.__dict__["to_modifiers"] is orig, f"{cls.__name__}: original staticmethod not restored by identity"
 
 
 def test_s1_layer_off_restores_on_exception():

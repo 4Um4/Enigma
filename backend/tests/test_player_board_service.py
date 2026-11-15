@@ -9,6 +9,7 @@ path: /project/backend/tests/test_player_board_service.py
 
 Запуск: cd backend; python -m pytest tests/test_player_board_service.py -v; cd ..
 """
+
 import json
 import sys
 from pathlib import Path
@@ -69,12 +70,17 @@ def test_counter_self_repair_upward(svc, tmp_path):
     d = tmp_path / CAMPAIGN
     d.mkdir(parents=True)
     (d / "board_state.json").write_text(
-        json.dumps({
-            "version": 1, "next_card_id": 1, "next_hypothesis_id": 1,
-            "cards": [{"id": "board-card-001", "ref_type": "journal",
-                       "ref_id": "evt-1", "pos": [1.0, 2.0]}],
-            "links": [], "hypotheses": [],
-        }, ensure_ascii=False),
+        json.dumps(
+            {
+                "version": 1,
+                "next_card_id": 1,
+                "next_hypothesis_id": 1,
+                "cards": [{"id": "board-card-001", "ref_type": "journal", "ref_id": "evt-1", "pos": [1.0, 2.0]}],
+                "links": [],
+                "hypotheses": [],
+            },
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     new_id = svc.mutate(CAMPAIGN, lambda b: add_card(b, "journal", "evt-2"))
@@ -91,6 +97,7 @@ def test_link_idempotent_unlink_noop(svc):
         assert unlink(b, c1, c2, "PLAYER_CONTRADICTS") == "noop"  # нет ребра
         assert unlink(b, c1, c2, "PLAYER_SUPPORTS") == "unlinked"
         assert unlink(b, c1, c2, "PLAYER_SUPPORTS") == "noop"  # повторный
+
     svc.mutate(CAMPAIGN, _ops)
 
 
@@ -104,9 +111,9 @@ def test_delete_hypothesis_cascade(svc):
         delete_hypothesis(b, hyp)
         # каскад: гипотеза, карточка-указатель, оба инцидентных ребра
         assert b["hypotheses"] == []
-        assert b["cards"] == [c_j.__class__ and
-                              next(c for c in b["cards"] if c["id"] == c_j)]
+        assert b["cards"] == [c_j.__class__ and next(c for c in b["cards"] if c["id"] == c_j)]
         assert b["links"] == []
+
     svc.mutate(CAMPAIGN, _ops)
 
 
@@ -128,9 +135,7 @@ def test_player_beliefs_byte_identical(svc):
     # Ранний контур гейта №3: полный цикл операций доски не трогает
     # эпистемику ни байтом (полная battery — B6)
     beliefs = [
-        {"agent_id": "player",
-         "proposition": {"subject_id": "goran", "predicate": "STOLE"},
-         "confidence": 0.9},
+        {"agent_id": "player", "proposition": {"subject_id": "goran", "predicate": "STOLE"}, "confidence": 0.9},
     ]
     before = json.dumps(beliefs, sort_keys=True, ensure_ascii=False)
 
@@ -152,8 +157,8 @@ def test_board_state_in_reset_list() -> None:
     доска. Замок от молчаливого выпадения строки (Continue не проходит
     этот список — доска при загрузке кампании сохраняется)."""
     from pathlib import Path
-    _src = Path(__file__).resolve().parents[1] / "app" / "services" / \
-        "game_loop" / "campaign_lifecycle.py"
+
+    _src = Path(__file__).resolve().parents[1] / "app" / "services" / "game_loop" / "campaign_lifecycle.py"
     _text = _src.read_text(encoding="utf-8")
     assert '"board_state.json"' in _text, (
         "board_state.json выпал из reset-списка campaign_lifecycle — "

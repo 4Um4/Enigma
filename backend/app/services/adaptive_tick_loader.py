@@ -8,6 +8,7 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 class AdaptiveTickLoader:
     """Дополнение Б (п. Б.11): Автоматический LOD (Level of Detail) для тика."""
 
@@ -32,7 +33,7 @@ class AdaptiveTickLoader:
         решениями). Решение — по npc_count (детерминировано состоянием мира).
         Вызов в finally упавшего тика НЕ кормит гистерезис (детерминизм
         не зависит от крашей)."""
-        self._tick_history.append({'duration': duration_ms, 'npc_count': npc_count})
+        self._tick_history.append({"duration": duration_ms, "npc_count": npc_count})
 
         _overload = npc_count >= self.NPC_LOAD_THRESHOLD
         if _overload:
@@ -57,7 +58,9 @@ class AdaptiveTickLoader:
     def is_lod_active(self) -> bool:
         return self._lod_active
 
-    def should_tick_fully(self, location_id: str, active_location_id: str, connected_locations: Optional[List[str]] = None) -> bool:
+    def should_tick_fully(
+        self, location_id: str, active_location_id: str, connected_locations: Optional[List[str]] = None
+    ) -> bool:
         """True если локация должна тикать полностью. False если только физиология."""
         if not self._lod_active:
             return True

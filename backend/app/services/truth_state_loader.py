@@ -34,7 +34,7 @@ class TruthStateLoader:
                 importance=float(s_data.get("importance", 0.5)),
                 initial_holders=tuple(s_data.get("initial_holders", [])),
                 discovery_surface=tuple(s_data.get("discovery_surface", [])),
-                confession_keywords=tuple(s_data.get("confession_keywords", [])), # V8-MVP-CK1 FIX
+                confession_keywords=tuple(s_data.get("confession_keywords", [])),  # V8-MVP-CK1 FIX
                 topics=tuple(s_data.get("topics", [])),  # M1/P3: индекс предмета (НЕ discovery)
             )
             secrets[secret.secret_id] = secret
@@ -45,7 +45,7 @@ class TruthStateLoader:
                 source_secret_id=r_data["source_secret_id"],
                 target_secret_id=r_data["target_secret_id"],
                 relation_type=RelationType(r_data["relation_type"]),
-                strength=float(r_data.get("strength", 1.0))
+                strength=float(r_data.get("strength", 1.0)),
             )
             relations.append(rel)
 
@@ -75,4 +75,6 @@ class TruthStateLoader:
             if rel.source_secret_id == rel.target_secret_id:
                 raise ValueError(f"Self-loop detected for secret '{rel.source_secret_id}'.")
             if not (0.0 <= rel.strength <= 1.0):
-                raise ValueError(f"Strength out of range for relation '{rel.source_secret_id}' -> '{rel.target_secret_id}'")
+                raise ValueError(
+                    f"Strength out of range for relation '{rel.source_secret_id}' -> '{rel.target_secret_id}'"
+                )

@@ -245,14 +245,10 @@ class CampaignStateService:
         self._save_to_file(self._state_file(campaign_id), state)
         return session
 
-    def get_session_summaries(
-        self, campaign_id: str, limit: int = 10
-    ) -> list[SessionSummary]:
+    def get_session_summaries(self, campaign_id: str, limit: int = 10) -> list[SessionSummary]:
         """Получить последние описания сессий."""
         state = self.get_campaign_state(campaign_id)
-        sessions = sorted(
-            state.session_summaries, key=lambda s: s.created_at, reverse=True
-        )
+        sessions = sorted(state.session_summaries, key=lambda s: s.created_at, reverse=True)
         return sessions[:limit]
 
     # === Utility Methods ===
