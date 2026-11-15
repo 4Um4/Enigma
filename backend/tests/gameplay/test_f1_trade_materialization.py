@@ -71,6 +71,20 @@ def test_trade_materialization_full_loop(world):
     assert _l and _t, "NPC не найдены"
     _l.setdefault("body_state", {})["hunger"] = 80.0  # инъекция входа: факт тела
     _l["position"] = _t.get("position")  # инъекция входа: позиция
+    # Изолируем food-сток для проверяемой заявки: без этого guard_borko
+    # может первым купить единственную порцию, и тест проверит конкуренцию,
+    # а не полный цикл сделки maid_lusya.
+    for _npc_state in gl._get_life_engine().get_npc_states(_CAMPAIGN):
+        if (_npc_state.get("npc_id") or _npc_state.get("id")) == LUSYA:
+            continue
+        _needs = _npc_state.get("needs")
+        if isinstance(_needs, dict):
+            _needs["hunger"] = 0.0
+        _npc_state["desires"] = [
+            _desire
+            for _desire in _npc_state.get("desires", [])
+            if _desire.get("subject_class") != "food"
+        ]
     _prof = gl._svc.get_or_create_economic_profiles(_CAMPAIGN)
     _gold_l0 = float(getattr(_prof.get(LUSYA), "gold", 0.0) or 0.0)
     _gold_t0 = float(getattr(_prof.get(TORNIN), "gold", 0.0) or 0.0)
