@@ -20,6 +20,7 @@
 | RE-01 M2/D + G/H · AG1 BC-1 · CCH-0…5 · LC-IMPL-1…2 | закрыты | — |
 | NPC Conversation Lifecycle (А16) | COMPLETED (автономное целеполагание диалога, R4) | 2026-11-14 |
 | Social Propagation: Rumor Chain (А17) | COMPLETED (R5: физическая доступность + trust > 0, детерминированный выбор, degrade в OBSERVE) | 2026-11-15 |
+| Rumor Chain Integration (А18) | COMPLETED (доказан полный цикл A→B→C с сохранением multi-hop provenance и независимым решением B) | 2026-11-15 |
 
 Власть координат объявлена (W1–W7). Осталась персистентность сейвов и выбор локации.
 
@@ -118,6 +119,7 @@ CRIT закрывается раньше очереди (§0.2 правило 3)
 | А15 | ТЗ модели: Этапы 1, 2, 3 | — | docs/research/* → передача Б |
 | А16 [x] | NPC Conversation Lifecycle: автономное целеполагание диалога (R4). EpistemicContext хранит source_id автора реплики, DecisionHub использует его для 	alk/warn/spread_rumor | Epistemic Store, D-A02 | ✅ unit 4/4; A→B→A цикл доказан; self-targeting заблокирован |
 | А17 [x] | Social Propagation (Rumor Chain): целеполагание для spread_rumor (R5). Фильтр по HEARING_RADIUS и 	rust > 0, выбор только при единственном кандидате, иначе degrade в OBSERVE | DecisionHub, RelationshipStore | ✅ unit 5/5; исключён произвольный выбор; цепочка A→B→C архитектурно возможна |
+| А18 [x] | Rumor Chain Integration: интеграционный тест полного цикла A→B→C. Доказано: B усваивает слух, самостоятельно выбирает C (единственный с trust>0), C получает слух с сохранением original_source_id=A | EpistemicStore, BeliefRevisionEngine | ✅ integration 1/1; multi-hop provenance работает; детерминизм подтверждён |
 
 **А3 `[x] INFRA` · BC-2 — INFRASTRUCTURE CLOSED / formation → А3.1 (2026-11-13, вердикт Master: вариант D)**
 
