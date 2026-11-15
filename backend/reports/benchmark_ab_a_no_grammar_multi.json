@@ -1,0 +1,190 @@
+{
+  "meta": {
+    "benchmark": "ENIGMA_LLM_COMPREHENSIVE_BENCHMARK",
+    "benchmark_version": "1.1.1",
+    "corpus_version": "1.1.1",
+    "methodology_version": "1.1.1",
+    "model_id": "lumimaid_ab_a_no_grammar",
+    "date_utc": "2026-11-15T04:58:59.915353+00:00",
+    "n_tasks": 78,
+    "multi_run": true,
+    "runs": 3,
+    "methodology": "ТЗ-v4 P0: multi-run averaging with stddev contract"
+  },
+  "profile": {
+    "composite_score": 23.62,
+    "verdict": "INVALID (variance exceeded — ТЗ-v4 P0 контракт stddev > 0.05)",
+    "module_scores": {
+      "FG": 0.5084,
+      "WSI": 0.7964,
+      "ATT": 0.7353,
+      "BIO": 0.7505,
+      "MEM": 0.7916,
+      "ID": 0.6482,
+      "SOC": 0.7208,
+      "INT": 0.5347,
+      "DLG": 0.3042,
+      "MUL": 0.7916,
+      "CMP": 0.4167
+    },
+    "module_stddev": {
+      "FG": 0.0334,
+      "WSI": 0.0,
+      "ATT": 0.0275,
+      "BIO": 0.0145,
+      "MEM": 0.0481,
+      "ID": 0.1123,
+      "SOC": 0.0361,
+      "INT": 0.0481,
+      "DLG": 0.1413,
+      "MUL": 0.0756,
+      "CMP": 0.0722
+    },
+    "critical_errors": {
+      "total": 10.0,
+      "by_type": {
+        "HALLUCINATION_FACT": 0,
+        "MEMORY_CONTAMINATION": 4,
+        "WORLD_TRUTH_VIOLATION": 1,
+        "FALSE_ACTION_CLAIM": 0,
+        "SPEAKER_ATTRIBUTION_ERROR": 0,
+        "ASSUMPTION_AS_FACT": 0,
+        "CONSTRAINT_VIOLATION": 25
+      },
+      "events": []
+    },
+    "hard_gates": {
+      "GATE_JSON": {
+        "ok": false,
+        "ok_fraction": 0.0,
+        "details": {
+          "ok": false,
+          "detail": "структурных заданий: 28, невалидных/ошибочных JSON: 8"
+        }
+      },
+      "GATE_ISOLATION": {
+        "ok": false,
+        "ok_fraction": 0.0,
+        "details": {
+          "ok": false,
+          "detail": "MEMORY_CONTAMINATION: 2"
+        }
+      },
+      "GATE_CENSORSHIP": {
+        "ok": true,
+        "ok_fraction": 1.0,
+        "details": {
+          "ok": true,
+          "detail": "отказов на тёмном контенте: 0"
+        }
+      },
+      "GATE_EPISTEMICS": {
+        "ok": true,
+        "ok_fraction": 1.0,
+        "details": {
+          "ok": true,
+          "detail": "ASSUMPTION_AS_FACT: 0"
+        }
+      },
+      "GATE_WORLD_TRUTH": {
+        "ok": false,
+        "ok_fraction": 0.67,
+        "details": {
+          "ok": true,
+          "detail": "WORLD_TRUTH_VIOLATION: 0"
+        }
+      }
+    },
+    "contrast_pairs": {
+      "sensitivity": 0.6667,
+      "results": []
+    },
+    "flags": [
+      "Невалидный JSON на структурных заданиях — GATE_JSON красный.",
+      "INVALID_RUN_VARIANCE: module=ID stddev=0.1123 threshold=0.05 (ТЗ-v4 P0: нужен больше прогонов; current runs=3)",
+      "INVALID_RUN_VARIANCE: module=DLG stddev=0.1413 threshold=0.05 (ТЗ-v4 P0: нужен больше прогонов; current runs=3)",
+      "INVALID_RUN_VARIANCE: module=MUL stddev=0.0756 threshold=0.05 (ТЗ-v4 P0: нужен больше прогонов; current runs=3)",
+      "INVALID_RUN_VARIANCE: module=CMP stddev=0.0722 threshold=0.05 (ТЗ-v4 P0: нужен больше прогонов; current runs=3)"
+    ],
+    "runs": 3,
+    "valid": false,
+    "variance_threshold": 0.05
+  },
+  "per_run": [
+    {
+      "run": 1,
+      "composite_score": 22.25,
+      "module_scores": {
+        "FG": 0.4764,
+        "WSI": 0.7964,
+        "ATT": 0.7194,
+        "BIO": 0.7527,
+        "MEM": 0.8194,
+        "ID": 0.5278,
+        "SOC": 0.7,
+        "INT": 0.5625,
+        "DLG": 0.2875,
+        "MUL": 0.7055,
+        "CMP": 0.5
+      },
+      "critical_errors_total": 10,
+      "hard_gates_ok": {
+        "GATE_JSON": false,
+        "GATE_ISOLATION": false,
+        "GATE_CENSORSHIP": true,
+        "GATE_EPISTEMICS": true,
+        "GATE_WORLD_TRUTH": true
+      }
+    },
+    {
+      "run": 2,
+      "composite_score": 19.270000000000003,
+      "module_scores": {
+        "FG": 0.5431,
+        "WSI": 0.7964,
+        "ATT": 0.767,
+        "BIO": 0.735,
+        "MEM": 0.8194,
+        "ID": 0.75,
+        "SOC": 0.7,
+        "INT": 0.4792,
+        "DLG": 0.1719,
+        "MUL": 0.8222,
+        "CMP": 0.375
+      },
+      "critical_errors_total": 11,
+      "hard_gates_ok": {
+        "GATE_JSON": false,
+        "GATE_ISOLATION": false,
+        "GATE_CENSORSHIP": true,
+        "GATE_EPISTEMICS": true,
+        "GATE_WORLD_TRUTH": false
+      }
+    },
+    {
+      "run": 3,
+      "composite_score": 29.349999999999994,
+      "module_scores": {
+        "FG": 0.5056,
+        "WSI": 0.7964,
+        "ATT": 0.7194,
+        "BIO": 0.7637,
+        "MEM": 0.7361,
+        "ID": 0.6667,
+        "SOC": 0.7625,
+        "INT": 0.5625,
+        "DLG": 0.4531,
+        "MUL": 0.8472,
+        "CMP": 0.375
+      },
+      "critical_errors_total": 9,
+      "hard_gates_ok": {
+        "GATE_JSON": false,
+        "GATE_ISOLATION": false,
+        "GATE_CENSORSHIP": true,
+        "GATE_EPISTEMICS": true,
+        "GATE_WORLD_TRUTH": true
+      }
+    }
+  ]
+}
