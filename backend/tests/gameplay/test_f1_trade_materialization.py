@@ -81,9 +81,7 @@ def test_trade_materialization_full_loop(world):
         if isinstance(_needs, dict):
             _needs["hunger"] = 0.0
         _npc_state["desires"] = [
-            _desire
-            for _desire in _npc_state.get("desires", [])
-            if _desire.get("subject_class") != "food"
+            _desire for _desire in _npc_state.get("desires", []) if _desire.get("subject_class") != "food"
         ]
     _prof = gl._svc.get_or_create_economic_profiles(_CAMPAIGN)
     _gold_l0 = float(getattr(_prof.get(LUSYA), "gold", 0.0) or 0.0)
