@@ -830,11 +830,14 @@ class DecisionHub:
                 
                 if tentative_target:
                     for belief in epistemic_context.recent_beliefs:
-                        if tentative_target in (belief.subject_id, belief.object_id):
-                            # Применяем архетип-специфичный модификатор, масштабированный уверенностью
+                        # A19.5 Semantic Fix: Диспозиции реакции (report, attack, warn) 
+                        # относятся к актору события (subject_id), а не к жертве (object_id).
+                        if tentative_target == belief.subject_id:
                             modifier = disposition.get(intent, 0.0) * belief.confidence
                             target_aware_scores[intent] = round(target_aware_scores[intent] + modifier, 4)
-                            break  # Одно совпадение на интент достаточно
+                            break
+                        # Если tentative_target == belief.object_id (жертва), мы намеренно 
+                        # НЕ применяем модификаторы актора, чтобы не наказывать жертву.
         
         best_candidate_str, best_score = max(target_aware_scores.items(), key=lambda x: x[1])  # (str, float)
 
