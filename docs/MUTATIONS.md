@@ -742,3 +742,36 @@ Lumimaid non-deterministic на уровне первого токена (temp=0
 **T3–T7 RED (атрибуция внешняя):** pytest micro baseline 11 CRIT (10 baseline + 1 `PARSE_ERROR decision_hub.py:1058`); IPT exit=1/2. Причина: параллельная сессия пишет `backend/app/services/npc/decision_hub.py` (`.M`, `4+/1-`, `py_compile FAIL`, `IndentationError` line 1058, col=8, строка 1055 на колонке 0); §3.12 quiet window не соблюдено. Не дефект TRIPLE; не откат, не синхронизация. По Master 2026-11-14: параллельная сессия работает свободно без взаимных блокировок.
 
 **Closeout gate (после quiet window):** pytest micro = 31/0; IPT `INV-MEM-TRIPLE` = 10 CRIT + 0 PARSE_ERROR.
+
+## S427 — P0-X2 entries LIKE cross-campaign + errata (ветвь А, 2026-11-15)
+
+**ERRATA (sweep, S354/S358 class):**
+  P0-1/2/4/5 были подхвачены параллельным коммитом 190c178e (A19.5 Step 2)
+  без атрибуции к S427. Изменения **в HEAD**; этот коммит их не переприменяет.
+
+**Scope S427 (2 files):**
+- backend/app/services/memory/sqlite_store.py — P0-X2
+- backend/tests/micro/test_p0_campaign_reset.py — P0-X2 test only
+
+**P0-X2:** delete_campaign entries = точный
+IN(campaign_canon_{cid}, playthrough_{cid}, npc_memory_{cid}) вместо LIKE %cid%.
+world_canon_{wid} — world-scoped, не трогается.
+
+**Baseline (IPT OUT final block, HEAD 190c178e):**
+- 21 CRIT = gap 10 + triple 10 + silent 1
+- Post-S427: 21 CRIT — P0-X2 не задействован в IPT-сценариях
+- Note: worktree-with-uncommitted A19.5 Step 2 был 22 (gap=11). После
+  коммита 190c178e = 21 (gap=10). P0-X1a A19.5 Step 2 улучшил NO_WRITER,
+  но ввёл 4 новых M-UNDECLARED (elief_summary.{confidence,object_id,
+  proposition,source_id}) — итоговый net -1, но это незавершённое улучшение.
+
+**Tests:** test_p0_campaign_reset: 6 passed / 1 skipped.
+
+**P0-3:** unresolved / not modified (EventDTO не несёт campaign_id).
+
+**Открытые P1-долги (не мои, зафиксированы для следующей сессии):**
+- A19.5 Step 2 belief_summary.{confidence,object_id,proposition,source_id}
+  — 4 M-UNDECLARED в causality_manifest. Зона A19.5.
+- CCH_SEED flood: 11 055 warnings / 1 прогон (P0-X1a, data-debt).
+- load_npcs_merged RecursionError (P0-X1, нужен traceback из registry_builder).
+- PowerShell 2>&1 | Out-File + Stop абортит на native stderr (tooling note).

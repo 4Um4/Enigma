@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 from app.domain.epistemology import Predicate
+from app.domain.epistemic_dispositions import get_epistemic_disposition
 
 if TYPE_CHECKING:
     from app.services.npc.kernel_rng import KernelRNG
@@ -807,7 +808,35 @@ class DecisionHub:
                 if k != current_intent_str_pre:
                     scores[k] = round(scores[k] - cost, 4)
 
-        best_candidate_str, best_score = max(scores.items(), key=lambda x: x[1])  # (str, float)
+        # A19.5 Step 3: Target-Aware Epistemic Scoring
+        # Корректируем utility интентов на основе конкретных убеждений о конкретных целях.
+        # Это позволяет NPC учитывать новую информацию без жёстких предписаний.
+        target_aware_scores = dict(scores)
+        if epistemic_context and getattr(epistemic_context, 'recent_beliefs', None):
+            archetype = getattr(personality, 'archetype', 'commoner')
+            disposition = get_epistemic_disposition(archetype)
+            
+            for intent in list(target_aware_scores.keys()):
+                # Tentatively resolve target for this specific intent
+                tentative_target = self._resolve_target(
+                    intent=intent,
+                    event=event,
+                    state=state,
+                    spatial_query=spatial_query,
+                    all_npc_ids=all_npc_ids,
+                    pending_response_target=pending_response_target,
+                    epistemic_context=epistemic_context,
+                )
+                
+                if tentative_target:
+                    for belief in epistemic_context.recent_beliefs:
+                        if tentative_target in (belief.subject_id, belief.object_id):
+                            # Применяем архетип-специфичный модификатор, масштабированный уверенностью
+                            modifier = disposition.get(intent, 0.0) * belief.confidence
+                            target_aware_scores[intent] = round(target_aware_scores[intent] + modifier, 4)
+                            break  # Одно совпадение на интент достаточно
+        
+        best_candidate_str, best_score = max(target_aware_scores.items(), key=lambda x: x[1])  # (str, float)
 
         # ── Commitment Model: порог смены intent ──
         threshold = self._commitment_threshold(commitment)
