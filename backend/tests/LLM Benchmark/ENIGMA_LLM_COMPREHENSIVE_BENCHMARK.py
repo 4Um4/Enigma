@@ -4554,6 +4554,11 @@ class ScriptedAdapter:
 # 6. РАННЕР
 # ============================================================================
 
+# ТЗ-v4 P1: grammar toggle для A/B test (Config A: --no-grammar, Config B: default ON).
+# S424 wired grammar always-ON; этот флаг позволяет отключить для multi-run сравнения.
+_USE_GRAMMAR = True
+
+
 def _params_for(task: Dict[str, Any], seed: int) -> Dict[str, Any]:
     kind = task.get("kind", "free")
     params = dict(RUN_DEFAULTS.get(kind, RUN_DEFAULTS["free"]))
@@ -4561,18 +4566,13 @@ def _params_for(task: Dict[str, Any], seed: int) -> Dict[str, Any]:
     params["seed"] = seed
     if kind in ("cch", "intent", "dm"):
         params.setdefault("response_format", "json_object")
-        if kind == "cch":
-            params.setdefault("grammar", GBNF_CCH)
-        elif kind == "dm":
-            params.setdefault("grammar", GBNF_DM)
-        if kind == "cch":
-            params.setdefault("grammar", GBNF_CCH)
-        elif kind == "dm":
-            params.setdefault("grammar", GBNF_DM)
-        if kind == "cch":
-            params.setdefault("grammar", GBNF_CCH)
-        elif kind == "dm":
-            params.setdefault("grammar", GBNF_DM)
+        # ТЗ-v4 P1: grammar только если _USE_GRAMMAR (toggle via --no-grammar CLI flag).
+        # S424 дублировал if/elif 3 раза (no-op setdefault) — коллапсировано в одну проверку.
+        if _USE_GRAMMAR:
+            if kind == "cch":
+                params.setdefault("grammar", GBNF_CCH)
+            elif kind == "dm":
+                params.setdefault("grammar", GBNF_DM)
     return params
 
 
@@ -5213,7 +5213,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--out", default="", help="путь отчёта JSON")
     ap.add_argument("--timeout", type=float, default=180.0, help="таймаут HTTP-запроса, с")
     ap.add_argument("--runs", type=int, default=1, help="число прогонов для multi-run averaging (ТЗ-v4 P0: N>=3 обязательно для валидного замера; default=1 = backward compat single-run)")
+    ap.add_argument("--no-grammar", action="store_true", help="отключить GBNF grammar (ТЗ-v4 P1: A/B test Config A = no grammar)")
     args = ap.parse_args(argv)
+
+    global _USE_GRAMMAR
+    if args.no_grammar:
+        _USE_GRAMMAR = False
 
     if args.self_test:
         return self_test()
