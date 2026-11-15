@@ -844,7 +844,7 @@ class SceneStateManager:
                 if isinstance(val, str) and val.startswith(("+", "-")) and field in obj:
                     try:
                         obj[field] = obj[field] + int(val)
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         obj[field] = val
                 else:
                     obj[field] = val

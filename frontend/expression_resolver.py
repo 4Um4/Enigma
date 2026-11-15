@@ -85,7 +85,7 @@ class ExpressionResolver:
                     return False
                 elif op == "<=" and not (float(entity_val) <= float(val)):
                     return False
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return False
 
         return True

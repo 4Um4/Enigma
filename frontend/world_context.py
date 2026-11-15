@@ -148,7 +148,7 @@ class SpatialDataLoader:
         """Найти корень проекта."""
         try:
             return Path(__file__).resolve().parents[1]
-        except (IndexError, ValueError):
+        except IndexError, ValueError:
             return Path(".")
 
     def _find_editor_json(self, campaign_id: str, location_id: str) -> Optional[dict]:
@@ -167,7 +167,7 @@ class SpatialDataLoader:
                 label = data.get("label", "")
                 if lid == location_id or label == location_id:
                     return data
-            except (json.JSONDecodeError, OSError):
+            except json.JSONDecodeError, OSError:
                 continue
 
         return None
@@ -183,7 +183,7 @@ class SpatialDataLoader:
         try:
             with open(file_path, "r", encoding="utf-8-sig") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, OSError):
+        except json.JSONDecodeError, OSError:
             return None
 
     @staticmethod

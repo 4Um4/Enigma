@@ -1024,7 +1024,7 @@ class IntentCompressor:
         try:
             # S199/S200/S203: Fault-tolerant parsing. LLM может возвращать неизвестные значения.
             from enum import Enum
-            from typing import Any, Optional, Type, TypeVar
+            from typing import Type, TypeVar
 
             _E = TypeVar("_E", bound=Enum)
 

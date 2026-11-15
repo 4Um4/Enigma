@@ -366,7 +366,7 @@ class AssetStore:
             try:
                 raw_on_disk = json.loads(disk_bytes.decode("utf-8-sig"))
                 disk_version = raw_on_disk.get(_KEY_VERSION, record.version)
-            except (json.JSONDecodeError, UnicodeDecodeError):
+            except json.JSONDecodeError, UnicodeDecodeError:
                 disk_version = record.version
             raise VersionConflict(bp_id, record.version, disk_version, reason="fingerprint")
 

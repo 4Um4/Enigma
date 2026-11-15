@@ -7,11 +7,11 @@ name = "enigma-backend"
 version = "0.5.4.6.7"
 description = "Local AI Dungeon Master Backend"
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
   "fastapi==0.115.0",
   "uvicorn[standard]==0.30.6",
-  "pydantic==2.9.2",
+  "pydantic==2.12.5",
   "pydantic-settings==2.5.2",
   "python-multipart==0.0.9",
   "psutil==6.0.0",
@@ -20,7 +20,7 @@ dependencies = [
   "aiohttp==3.10.11",
   "pytest==8.3.3",
   "pymorphy3",
-  "pygame==2.6.1",
+  "pygame-ce==2.5.8",
   "freetype-py",
 ]
 
@@ -44,7 +44,7 @@ filterwarnings = [
 "app" = "app"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.14"
 mypy_path = ".,../frontend,.."
 explicit_package_bases = true
 strict = true

@@ -22,7 +22,7 @@ def select_time_variant(template: dict, time_of_day: str) -> dict:
     try:
         h, m = map(int, time_of_day.split(":"))
         minutes = h * 60 + m
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         minutes = 12 * 60
 
     for time_range, variant in template.get("time_variants", {}).items():

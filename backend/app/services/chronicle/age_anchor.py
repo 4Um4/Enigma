@@ -159,7 +159,7 @@ def extract_age_anchors_typed(text: str) -> List[AgeAnchor]:
             else:
                 try:
                     n = int(raw)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     n = 0
             if 0 <= n <= 1000:  # гном может жить 146 лет; потолок 1000 (для эльфов)
                 anchors.append(

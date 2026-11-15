@@ -112,7 +112,7 @@ class SpatialCompilationOrchestrator:
         """Находит путь к кампании. Не зависит от caller context."""
         try:
             project_root = Path(__file__).resolve().parents[1]
-        except (IndexError, ValueError):
+        except IndexError, ValueError:
             project_root = Path(".")
 
         candidate = project_root / "frontend" / "map_editor" / "campaigns" / campaign_id
@@ -131,7 +131,7 @@ class SpatialCompilationOrchestrator:
         """Находит путь к артефакту."""
         try:
             project_root = Path(__file__).resolve().parents[1]
-        except (IndexError, ValueError):
+        except IndexError, ValueError:
             project_root = Path(".")
 
         candidate = (

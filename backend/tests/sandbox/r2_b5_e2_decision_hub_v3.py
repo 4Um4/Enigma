@@ -217,7 +217,7 @@ def main() -> int:
                         try:
                             sig = inspect.signature(val)
                             print(f"  loop.{attr_name}{sig}")
-                        except (ValueError, TypeError):
+                        except ValueError, TypeError:
                             print(f"  loop.{attr_name}(...)  [no signature]")
                 except Exception:
                     continue
@@ -238,7 +238,7 @@ def main() -> int:
                                 try:
                                     sig = inspect.signature(val)
                                     print(f"  _tick_orch.{attr_name}{sig}")
-                                except (ValueError, TypeError):
+                                except ValueError, TypeError:
                                     print(f"  _tick_orch.{attr_name}(...)")
                         except Exception:
                             continue

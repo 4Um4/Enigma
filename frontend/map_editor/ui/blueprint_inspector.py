@@ -312,7 +312,7 @@ class _DefaultPropertiesField(_FieldControl):
             return None
         try:
             return json.loads(self._text)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
 
     def handle_event(self, event) -> bool:
@@ -582,7 +582,7 @@ class BlueprintInspectorPanel:
             try:
                 value = self._session.get_field(control.path)
                 control.set_value(value)
-            except (KeyError, Exception):
+            except KeyError, Exception:
                 pass
 
     def _on_field_changed(self, control: _FieldControl) -> None:
@@ -742,7 +742,7 @@ class BlueprintInspectorPanel:
         for control in self._controls:
             try:
                 self._session.get_field(control.path)
-            except (KeyError, Exception):
+            except KeyError, Exception:
                 continue
             # Контрол уже отрисован в handle_event? Нет — draw отдельно
             # Контролы хранят абсолютные позиции, установленные в _build_controls

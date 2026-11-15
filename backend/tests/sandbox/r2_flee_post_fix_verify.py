@@ -453,7 +453,7 @@ def test4_market_square_entrance() -> Dict[str, Any]:
             fx, fy = float(x), float(y)
             outside = fx > W + 0.5 or fy > H + 0.5
             print(f"      вне declared size [{W}x{H}]: {outside}")
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
 
     # Compile market_square
@@ -577,7 +577,7 @@ def test5_city_gate_fallback() -> Dict[str, Any]:
             fx, fy = float(bx), float(by)
             is_local = (0 <= fx <= W + 0.5) and (0 <= fy <= H + 0.5)
             print(f"    is LOCAL: {is_local}")
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
 
     logs = _log_capture.getvalue()

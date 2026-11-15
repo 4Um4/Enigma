@@ -251,7 +251,7 @@ def main() -> int:
                 try:
                     sig = inspect.signature(attr)
                     print(f"    {name}{sig}")
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     print(f"    {name}(...)")
             else:
                 print(f"    [attr] {name} = {repr(attr)[:100]}")
@@ -434,7 +434,7 @@ def main() -> int:
                         try:
                             sig = inspect.signature(val)
                             print(f"    {attr}{sig}")
-                        except (ValueError, TypeError):
+                        except ValueError, TypeError:
                             print(f"    {attr}(...)")
                 except Exception:
                     continue

@@ -309,7 +309,7 @@ def build_truth_state_projection(
         importance = e.payload.get(PL_IMPORTANCE, DEFAULT_SECRET_IMPORTANCE)
         try:
             importance_f = float(importance)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             importance_f = DEFAULT_SECRET_IMPORTANCE
         if not (0.0 <= importance_f <= 1.0):
             raise ProjectionError(f"secret {e.entry_id}: importance {importance_f} вне [0,1]")

@@ -513,7 +513,7 @@ def attach_spies():
 
             setattr(MovementEngine, name, _make_wrapper(name, orig_method))
             wrapped_methods.append(name)
-        except (TypeError, AttributeError):
+        except TypeError, AttributeError:
             continue
     if wrapped_methods:
         print(

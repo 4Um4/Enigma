@@ -35,7 +35,7 @@ def _vector(npc: Dict[str, Any]) -> Tuple[float, ...]:
         raw = (npc.get(section) or {}).get(key, lo)
         try:
             value = float(raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             value = lo
         out.append(min(1.0, max(0.0, (value - lo) / (hi - lo))))
     return tuple(out)

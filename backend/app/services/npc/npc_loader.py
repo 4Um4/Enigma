@@ -878,7 +878,7 @@ def _beliefs_from_persistence(
                 ),
             )
             restored += 1
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # L4: тихий пропуск запрещён
             logger.warning(f"[NPC_LOADER] beliefs: повреждённая запись '{_bt_str}' — пропущена")
             continue

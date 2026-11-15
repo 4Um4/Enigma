@@ -442,7 +442,7 @@ def main() -> int:
                 if d > best_dist:
                     best_dist = d
                     best = nid
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
         print(f"  FURTHEST node: {best} (distance={best_dist:.3f})")
         nref = result["graph"].get(best)

@@ -266,7 +266,7 @@ class SocialEngine:
                 rel = self._graph.get((src, tgt))
                 if rel:
                     rel.apply_runtime_dict(rd)
-            except (ValueError, KeyError):
+            except ValueError, KeyError:
                 logger.warning("[SOCIAL] Invalid runtime key: %s", key)
 
     # ─── Приватные: искажение ───

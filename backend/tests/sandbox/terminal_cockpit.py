@@ -264,7 +264,7 @@ async def main() -> None:
     while True:
         try:
             line = input("> ").strip()
-        except (EOFError, KeyboardInterrupt):
+        except EOFError, KeyboardInterrupt:
             break
         if not line:
             continue
@@ -332,7 +332,7 @@ async def main() -> None:
         if low.startswith("wait"):
             try:
                 n = min(int(low.split()[1]), 20)
-            except (IndexError, ValueError):
+            except IndexError, ValueError:
                 n = 10
             await cp.wait(n)
             continue

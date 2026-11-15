@@ -66,7 +66,7 @@ TARGET_NODE_IDS = {
 def _approx_equal(a: float, b: float, tol: float = 1e-6) -> bool:
     try:
         return abs(float(a) - float(b)) < tol
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return False
 
 
@@ -145,7 +145,7 @@ def _extract_coords(val: Dict[str, Any]) -> Tuple[Optional[float], Optional[floa
     if x is not None and y is not None:
         try:
             return float(x), float(y)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
     # Nested position dict
     for pos_key in ("position", "pos", "coords", "coordinates", "location"):
@@ -156,7 +156,7 @@ def _extract_coords(val: Dict[str, Any]) -> Tuple[Optional[float], Optional[floa
             if xx is not None and yy is not None:
                 try:
                     return float(xx), float(yy)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     pass
     return None, None
 
@@ -394,7 +394,7 @@ def main() -> int:
                             try:
                                 wx1, wy1 = float(w["x1"]), float(w["y1"])
                                 wx2, wy2 = float(w["x2"]), float(w["y2"])
-                            except (KeyError, TypeError, ValueError):
+                            except KeyError, TypeError, ValueError:
                                 continue
                             on_wall = False
                             if _approx_equal(wx1, wx2):  # vertical
@@ -558,7 +558,7 @@ def _door_at_wall_5(objects: List[Any]) -> List[Dict[str, Any]]:
                 dx, dy = float(pos["x"]), float(pos["y"])
                 if _approx_equal(dx, 19.5, 0.1) and 0.5 - 0.01 <= dy <= 8.0 + 0.01:
                     out.append(obj)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
     return out
 

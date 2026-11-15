@@ -596,7 +596,7 @@ def step5_real_world_geometry() -> None:
                 wy = OY + fly
                 role = nd.get("role", "?")
                 print(f"    {nname:<20} local=({flx:.2f}, {fly:.2f}) → world=({wx:.2f}, {wy:.2f})  role={role}")
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
 
         # Show all walls (local coords)

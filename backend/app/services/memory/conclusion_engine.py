@@ -78,7 +78,7 @@ def generate_conclusion_proposals(
             continue
         try:
             value = float(payload.get("value", 0.0))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # L4 (INV-SILENT-FAILURE): отказ наблюдаем; мусорное value —
             # аномалия данных события: skip с диагнозом, не тихий провал
             logger.warning(

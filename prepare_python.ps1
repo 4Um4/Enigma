@@ -1,7 +1,7 @@
 # prepare_python.ps1
 # Скачивает портативный Python и устанавливает зависимости игры
 
- $PythonVersion = "3.12.3"
+ $PythonVersion = "3.14.3"
  $PythonZip = "python-$PythonVersion-embed-amd64.zip"
  $PythonUrl = "https://www.python.org/ftp/python/$PythonVersion/$PythonZip"
  $PayloadDir = "payload"

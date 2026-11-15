@@ -41,7 +41,7 @@ def _snapshot_positions(scene: dict) -> dict:
                 round(float(_lp.get("x", 0.0)), 2),
                 round(float(_lp.get("y", 0.0)), 2),
             )
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             _out[_nid] = None
     return _out
 

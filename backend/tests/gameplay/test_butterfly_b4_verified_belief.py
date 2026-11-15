@@ -267,7 +267,7 @@ def _safe_json_serialize(obj: Any) -> Any:
     try:
         json.dumps(obj, default=str)
         return obj
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         pass
     if isinstance(obj, dict):
         return {str(_k): _safe_json_serialize(_v) for _k, _v in obj.items()}

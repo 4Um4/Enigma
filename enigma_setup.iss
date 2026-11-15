@@ -69,7 +69,7 @@ Source: "C:\DDD\Codex\VSC_Enigma\RELIZZ\*"; DestDir: "{app}"; Excludes: ".venv,.
 
 ; 1.1 Портативный Python — S210: payload-пайплайн не автоматизирован (payload/
 ; не создаётся сборкой). До его реализации установщик — dev-дистрибутив:
-; требует установленный Python 3.13 на целевой машине. TODO(payload): embeddable
+; требует установленный Python 3.14 на целевой машине. TODO(payload): embeddable
 ; Python + pip install -r requirements + упаковка в payload/python — отдельная
 ; задача релизного пайплайна (см. MUTATIONS S210, долг BUILD-P1).
 Source: "payload\python\*"; DestDir: "{app}\_internal\python"; Components: core; Flags: recursesubdirs ignoreversion createallsubdirs; BeforeInstall: UpdateLog

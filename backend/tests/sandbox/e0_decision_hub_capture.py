@@ -241,7 +241,7 @@ def get_npc_states_via_snapshot(gl, cid):
             try:
                 sig = inspect.signature(fn)
                 params = list(sig.parameters.keys())
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 params = ["?"]
 
             # Try different call signatures

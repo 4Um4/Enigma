@@ -285,7 +285,7 @@ class EventHandler:
                             else:
                                 try:
                                     old_rot = float(obj.get("rotation") or 0)
-                                except (ValueError, TypeError):
+                                except ValueError, TypeError:
                                     old_rot = 0.0
                                 core.undo.push(
                                     RotateObjectCommand(

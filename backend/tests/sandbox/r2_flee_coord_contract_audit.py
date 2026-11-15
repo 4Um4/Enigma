@@ -299,7 +299,7 @@ def stage2_boundary_nodes() -> None:
             else:
                 coord_type = "LOCAL (локал)"
             print(f"  {key:<30} {fx:>10.3f} {fy:>10.3f} {coord_type}")
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             print(f"  {key:<30} {x!r:>10} {y!r:>10} ?")
 
     print("""
@@ -335,7 +335,7 @@ def stage2_boundary_nodes() -> None:
                 nx, ny = float(nd.get("x", 0)), float(nd.get("y", 0))
                 if nx > W + 0.5 or ny > H + 0.5:
                     out_of_bounds.append((nname, nx, ny))
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 pass
         if out_of_bounds:
             print(f"    Узлы ВНЕ declared size ({len(out_of_bounds)}):")

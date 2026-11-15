@@ -108,7 +108,7 @@ def validate_traversal_dict(data: Dict[str, Any]) -> List[str]:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 
 @dataclass(frozen=True)

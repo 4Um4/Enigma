@@ -32,7 +32,7 @@ def _llm_alive() -> bool:
     try:
         urllib.request.urlopen(settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3)
         return True
-    except (urllib.error.URLError, OSError):
+    except urllib.error.URLError, OSError:
         return False
 
 

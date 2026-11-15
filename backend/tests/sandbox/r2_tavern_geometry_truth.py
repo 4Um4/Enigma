@@ -82,7 +82,7 @@ def _print_section(title: str) -> None:
 def _approx_eq(a: float, b: float, tol: float = 0.01) -> bool:
     try:
         return abs(float(a) - float(b)) < tol
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return False
 
 
@@ -147,7 +147,7 @@ def main() -> int:
         try:
             fx, fy = float(x), float(y)
             node_coords[name] = (fx, fy)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             fx, fy = 0.0, 0.0
             print(f"  [WARN] node {name} has no coords: {nd}")
         role = nd.get("role", "?")
@@ -168,7 +168,7 @@ def main() -> int:
         wid = w.get("id", "?")
         try:
             x1, y1, x2, y2 = float(w["x1"]), float(w["y1"]), float(w["x2"]), float(w["y2"])
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             continue
         if _approx_eq(x1, x2):
             orient = "vertical"
@@ -213,7 +213,7 @@ def main() -> int:
                 rw, rh = float(r.get("width", 0)), float(r.get("height", 0))
                 all_x.extend([rx, rx + rw])
                 all_y.extend([ry, ry + rh])
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
 
     if all_x and all_y:
