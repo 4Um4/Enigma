@@ -585,8 +585,17 @@ class SqliteMemoryStore:
             deleted_traces = cur.rowcount
             cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
             deleted_events = cur.rowcount
+            # P0-X2: точное совпадение коллекций (было LIKE %cid% — cross-campaign
+            # deletion: 'campaign_canon_abc' убивал 'campaign_canon_abc_old',
+            # 'campaign_canon_abcd', 'playthrough_X_abc_suffix' и т.п.).
+            # world_canon_{wid} — world-scoped, не per-campaign → не трогаем.
             cur.execute(
-                "DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",)
+                "DELETE FROM entries WHERE collection IN (?, ?, ?)",
+                (
+                    f"campaign_canon_{campaign_id}",
+                    f"playthrough_{campaign_id}",
+                    f"npc_memory_{campaign_id}",
+                ),
             )
             deleted_entries = cur.rowcount
             logger.debug(

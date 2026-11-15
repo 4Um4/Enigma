@@ -147,6 +147,56 @@ def test_reset_does_not_touch_other_campaign_state(tmp_path):
     assert store.load_traces(CAMPAIGN_B, "owner") != []
 
 
+def test_p0_x2_delete_campaign_uses_exact_collection_match(tmp_path):
+    """P0-X2: entries LIKE %cid% удалял подстроки чужих кампаний (data loss).
+
+    Ожидание после фикса:
+    - точные коллекции целевой кампании удалены: campaign_canon_<A>,
+      playthrough_<A>, npc_memory_<A>;
+    - коллекции другой кампании и подстрочные коллизии целы;
+    - world_canon_{wid} не трогается (world-scoped, не per-campaign).
+    """
+    _, store = _make_manager(tmp_path)
+
+    # Целевая кампания A — три per-campaign коллекции
+    store.append("campaign_canon_A", {"event": "A1"})
+    store.append("playthrough_A", {"event": "A2"})
+    store.append("npc_memory_A", {"event": "A3"})
+
+    # Другая кампания B — не должна трогаться
+    store.append("campaign_canon_B", {"event": "B1"})
+    store.append("playthrough_B", {"event": "B2"})
+    store.append("npc_memory_B", {"event": "B3"})
+
+    # Подстрочные коллизии (LIKE %A% убивал их, точный IN — не должен)
+    store.append("campaign_canon_A_old", {"event": "old"})
+    store.append("campaign_canon_ABCD", {"event": "abcd"})
+    store.append("playthrough_X_A_suffix", {"event": "suffix"})
+
+    # world_canon — world-scoped, не per-campaign
+    store.append("world_canon_W_A", {"event": "world"})
+
+    store.delete_campaign("A")
+
+    # Целевая A — пусто
+    assert store.recent("campaign_canon_A", limit=10) == []
+    assert store.recent("playthrough_A", limit=10) == []
+    assert store.recent("npc_memory_A", limit=10) == []
+
+    # Другая кампания B — цела
+    assert store.recent("campaign_canon_B", limit=10) != []
+    assert store.recent("playthrough_B", limit=10) != []
+    assert store.recent("npc_memory_B", limit=10) != []
+
+    # Подстрочные коллизии — целы (регресс от старого LIKE)
+    assert store.recent("campaign_canon_A_old", limit=10) != []
+    assert store.recent("campaign_canon_ABCD", limit=10) != []
+    assert store.recent("playthrough_X_A_suffix", limit=10) != []
+
+    # world_canon не тронут
+    assert store.recent("world_canon_W_A", limit=10) != []
+
+
 def test_p0_3_pending_dialogue_memories_deferred():
     pytest.skip(
         "P0-3 deferred: EventDTO does not carry campaign_id; "
