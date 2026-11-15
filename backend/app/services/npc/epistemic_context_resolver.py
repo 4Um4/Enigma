@@ -7,7 +7,7 @@ path: /project/backend/app/services/npc/epistemic_context_resolver.py
 
 import logging
 
-from app.domain.epistemology import EpistemicContext, Predicate
+from app.domain.epistemology import EpistemicContext, Predicate, BeliefSummary
 from app.services.npc.epistemic_store import EpistemicStore
 
 logger = logging.getLogger(__name__)
@@ -137,6 +137,20 @@ class EpistemicContextResolver:
         # selection pattern. claims_about_self[0] = highest-confidence self-claim.
         about_self_with_conf.sort(key=lambda x: x[1], reverse=True)
         _claim_source = about_self_with_conf[0][2] if about_self_with_conf else None
+        
+        # A19.5 Step 2: Сборка топ-3 наиболее уверенных убеждений для DecisionHub
+        # Сортируем все записи агента по confidence (desc) и берём топ-3
+        all_records_sorted = sorted(records, key=lambda r: r.confidence, reverse=True)[:3]
+        _recent_beliefs = tuple(
+            BeliefSummary(
+                proposition=r.proposition,
+                confidence=r.confidence,
+                source_id=r.source_id,
+                subject_id=r.proposition.subject_id,
+                object_id=r.proposition.object_id
+            ) for r in all_records_sorted
+        )
+        
         return EpistemicContext(
             agent_id=agent_id,
             perceived_threats=tuple(threats),
@@ -150,7 +164,9 @@ class EpistemicContextResolver:
             max_self_confidence=max_self_conf,
             # COGNITIVE-CONTINUITY-01: report-канал. Proposition об оскорблении
             # третьего лица — для DecisionHub report-targeting (Этап 4).
-            report_proposition=_report_prop
+            report_proposition=_report_prop,
+            # A19.5 Step 2: Топ-3 убеждений для target-aware scoring
+            recent_beliefs=_recent_beliefs,
         )
 
     @staticmethod

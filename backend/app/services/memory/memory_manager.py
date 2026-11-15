@@ -177,6 +177,20 @@ class MemoryManager:
         # 2. Тик-счётчик (владелец — MemoryManager)
         if hasattr(self, "_tick_counters"):
             self._tick_counters.pop(campaign_id, None)
+        # 2b. P0-1/P0-2: identity_cache per-campaign (Variant B — фильтр в MemoryManager).
+        # Удаляем ТОЛЬКО ключи сбрасываемой кампании (prefix f"{campaign_id}:"),
+        # остальные сохраняем. Persist — whole-dict (store остаётся generic-KV).
+        with self._identity_lock:
+            _prefix = f"{campaign_id}:"
+            _stale = [k for k in self._identity_cache if k.startswith(_prefix)]
+            for _k in _stale:
+                del self._identity_cache[_k]
+            if _stale and hasattr(self._layered.store, "save_state"):
+                self._layered.store.save_state("identity_cache", self._identity_cache)
+                logger.info(
+                    f"[MEM_RESET] identity_cache cleared for '{campaign_id}' "
+                    f"({len(_stale)} keys)"
+                )
         # 3. Хранилище (второй уровень: LayeredMemory -> store)
         if hasattr(self, "_layered") and hasattr(self._layered, "store"):
             store = self._layered.store
@@ -348,7 +362,7 @@ class MemoryManager:
         cache = list(npc_state.narrative_cache)
         cache.append(mem)
         cache.sort(key=lambda f: f.importance, reverse=True)
-        object.__setattr__(npc_state, "narrative_cache", tuple(cache[:NARRATIVE_CACHE_MAX]))
+        npc_state.narrative_cache = tuple(cache[:NARRATIVE_CACHE_MAX])
 
         # 8. SQLite persistence — runtime truth (Закон 4.2.1)
         # Фаза A Шаг 9.6: BUG-FB-037 делает event.id детерминированным по

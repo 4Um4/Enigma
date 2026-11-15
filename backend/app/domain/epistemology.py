@@ -150,6 +150,18 @@ class EpistemicRecord:
     seen_claim_ids: tuple[str, ...] = ()
 
 @dataclass(frozen=True)
+class BeliefSummary:
+    """A19.5 Step 2: Лёгкая проекция убеждения для DecisionHub.
+    Содержит минимальную семантику для оценки действий без копирования всего EpistemicRecord.
+    """
+    proposition: Proposition
+    confidence: float
+    source_id: str
+    subject_id: str
+    object_id: str
+
+
+@dataclass(frozen=True)
 class EpistemicContext:
     """
     Проекция убеждений агента в когнитивно-релевантное состояние.
@@ -178,3 +190,5 @@ class EpistemicContext:
     # Заполняется EpistemicContextResolver для Predicate.INSULTED (и будущих
     # REPORT_PREDICATES) при conf >= REPORT_CONFIDENCE_THRESHOLD.
     report_proposition: Optional[Proposition] = None
+    # A19.5 Step 2: Топ-3 наиболее уверенных убеждения агента для target-aware scoring.
+    recent_beliefs: tuple[BeliefSummary, ...] = ()

@@ -574,15 +574,26 @@ class SqliteMemoryStore:
     def delete_campaign(self, campaign_id: str) -> int:
         """Удаляет все записи кампании из обеих таблиц.
         Вызывается из new_game() для полной очистки памяти."""
-        # S210: каскад из двух DELETE + commit — под Lock (атомарность пары)
+        # S210: каскад из четырёх DELETE + commit — под Lock (атомарность пары)
+        # P0-4/P0-5: memory_crystals + experience_traces — точный campaign_id,
+        # в той же транзакции, что event_memories + entries (атомарность reset).
         with self._lock:
             cur = self._conn.cursor()
+            cur.execute("DELETE FROM memory_crystals WHERE campaign_id = ?", (campaign_id,))
+            deleted_crystals = cur.rowcount
+            cur.execute("DELETE FROM experience_traces WHERE campaign_id = ?", (campaign_id,))
+            deleted_traces = cur.rowcount
             cur.execute("DELETE FROM event_memories WHERE campaign_id = ?", (campaign_id,))
             deleted_events = cur.rowcount
             cur.execute(
                 "DELETE FROM entries WHERE collection LIKE ?", (f"%{campaign_id}%",)
             )
             deleted_entries = cur.rowcount
+            logger.debug(
+                f"[SQLITE] delete_campaign {campaign_id}: "
+                f"crystals={deleted_crystals}, traces={deleted_traces}, "
+                f"events={deleted_events}, entries={deleted_entries}"
+            )
             self._conn.commit()
             return deleted_events + deleted_entries
 
