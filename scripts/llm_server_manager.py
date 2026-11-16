@@ -77,7 +77,16 @@ def _llama_env_fingerprint(
     _pid = str(spawn_pid) if spawn_pid is not None else _port_owner_pid(settings.llama_cpp_port)
     _mode = "REUSE — identity NOT verified" if reuse else "SPAWN"
     _cmd = f" cmd={' '.join(spawn_cmd)}" if spawn_cmd else ""
-    print(f"[DET-ENV] mode={_mode} | model={_model_id} | port={settings.llama_cpp_port} | owner_pid={_pid}{_cmd}")
+    # ТЗ-v5 P2: детерминизм-поля в fingerprint (видны в каждом прогоне)
+    _det = (
+        f" | det: batch={settings.llm_batch_size}"
+        f" cont_batch={settings.llm_cont_batching}"
+        f" no_mmap={settings.llm_no_mmap}"
+        f" seed={settings.llm_seed}"
+        f" cpu_fb={settings.llm_cpu_fallback}"
+        f" ngl={'0(cpu)' if settings.llm_cpu_fallback else settings.effective_gpu_layers}"
+    )
+    print(f"[DET-ENV] mode={_mode} | model={_model_id} | port={settings.llama_cpp_port} | owner_pid={_pid}{_cmd}{_det}")
 
 
 def start_llama_server() -> bool:
@@ -121,22 +130,10 @@ def start_llama_server() -> bool:
         )
         return False
     
-    server_cmd = [
-        settings.llama_cpp_server_executable,
-        "-m",
-        settings.llama_cpp_model_path,
-        "--port",
-        str(settings.llama_cpp_port),
-        "--host",
-        "127.0.0.1",
-        "-ngl",
-        str(settings.effective_gpu_layers),
-        "-c",
-        str(settings.ctx_size),
-        "-t",
-        str(settings.threads),
-        "--jinja",
-    ]
+    # ТЗ-v5 P2: команды собираются единым SSOT (Устав §19.3) —
+    # server_lifecycle._build_llama_cmd. Любая правка флагов — только там.
+    from app.services.llm.server_lifecycle import _build_llama_cmd
+    server_cmd = _build_llama_cmd()
     
     _stderr_path = _BACKEND_DIR / "logs" / "llama_server_stderr.log"
     _stderr_path.parent.mkdir(parents=True, exist_ok=True)

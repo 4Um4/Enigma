@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_flee_entrance_as_boundary_v4.py
+﻿# backend/tests/sandbox/r2_flee_entrance_as_boundary_v4.py
 """
 R2-FLEE-ENTRANCE-AS-BOUNDARY v4 — проверка гипотезы.
 
@@ -650,7 +650,7 @@ def check5_comparative_test() -> None:
                 try:
                     if (float(ey_b) > 13.0 and float(cy) < 13.0) or (float(ey_b) < 13.0 and float(cy) > 13.0):
                         print("      → пересекает y=13 (wall_2) — проходит через door_0 gap")
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     pass
 
     # Summary

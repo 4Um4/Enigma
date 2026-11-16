@@ -1,4 +1,4 @@
-# path: /project/backend/tests/gameplay/test_butterfly_b4_verified_belief.py
+﻿# path: /project/backend/tests/gameplay/test_butterfly_b4_verified_belief.py
 # Назначение: B4 — доказать что Торнин получает verified слух от maid_lusya
 #   через production цепочку: COMMUNICATION_CLAIM → membrane → BeliefRevisionEngine → EpistemicStore
 # Зависимости: tests.gameplay.harness, app.services.llm.health, app.services.npc.epistemic_store
@@ -267,7 +267,7 @@ def _safe_json_serialize(obj: Any) -> Any:
     try:
         json.dumps(obj, default=str)
         return obj
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         pass
     if isinstance(obj, dict):
         return {str(_k): _safe_json_serialize(_v) for _k, _v in obj.items()}

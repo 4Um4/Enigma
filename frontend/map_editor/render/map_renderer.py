@@ -1,4 +1,4 @@
-"""
+﻿"""
 map_editor/render/map_renderer.py
 Отрисовка карты: сетка, локации, объекты, NPC, UI элементы.
 """
@@ -381,7 +381,7 @@ class MapRenderer:
             h = obj["size"]["h"] * SCALE * core.zoom
             try:
                 rotation = float(obj.get("rotation") or 0)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 rotation = 0.0
             color = OBJECT_COLORS.get(obj["type"], OBJECT_COLORS["decoration"])
 
@@ -564,7 +564,7 @@ class MapRenderer:
                 h = obj["size"]["h"] * SCALE * core.zoom
                 try:
                     rotation = float(obj.get("rotation") or 0)
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     rotation = 0.0
                 preset = OBJECT_PRESETS.get(obj["type"], {})
                 if not preset.get("sprite"):

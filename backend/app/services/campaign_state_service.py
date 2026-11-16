@@ -1,4 +1,4 @@
-"""
+﻿"""
 Campaign State Service - "тёплый" слой между каноном мира и сессией.
 Интерфейс спроектирован для легкой миграции на SQLite.
 
@@ -65,7 +65,7 @@ class CampaignStateService:
         try:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
             return CampaignState.model_validate(data)
-        except json.JSONDecodeError, ValueError:
+        except (json.JSONDecodeError, ValueError):
             # Если файл поврежден - создаем новый
             state = CampaignState(campaign_id=campaign_id)
             self._save_to_file(path, state)

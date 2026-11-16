@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_b5_d2_router_investigation.py
+﻿# backend/tests/sandbox/r2_b5_d2_router_investigation.py
 """
 R2-B5-D2 — ModelRouter investigation (read-only).
 
@@ -251,7 +251,7 @@ def main() -> int:
                 try:
                     sig = inspect.signature(attr)
                     print(f"    {name}{sig}")
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     print(f"    {name}(...)")
             else:
                 print(f"    [attr] {name} = {repr(attr)[:100]}")
@@ -434,7 +434,7 @@ def main() -> int:
                         try:
                             sig = inspect.signature(val)
                             print(f"    {attr}{sig}")
-                        except ValueError, TypeError:
+                        except (ValueError, TypeError):
                             print(f"    {attr}(...)")
                 except Exception:
                     continue
@@ -588,7 +588,7 @@ def main() -> int:
       ):
           text = f"[{req.intent_type}] {task.owner_id} -> {req.target_id}: {req.topic}"
 
-    Plus: in L172-195 except block, add fallback:
+    Plus: in L172-195 except (block, add fallback):
       except Exception as e:
           if req.intent_type == "spread_rumor" and _proposition is not None:
               # B5-D2 FIX: LLM failure fallback to stub

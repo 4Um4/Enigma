@@ -1,4 +1,4 @@
-"""CCH-2.5 приёмочный проб: плетение авторских хроник (ADR-O-422).
+﻿"""CCH-2.5 приёмочный проб: плетение авторских хроник (ADR-O-422).
 
 Корпус Мастера (Люся + Торнин, verbatim) → декомпозиция живым LLM →
 ConsistencyService.check → отчёт. Гейт: механизм сверки (финал склеек — автор, CCH-3):
@@ -196,7 +196,7 @@ def _llm_alive() -> bool:
     try:
         urllib.request.urlopen(settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3)
         return True
-    except urllib.error.URLError, OSError:
+    except (urllib.error.URLError, OSError):
         return False
 
 

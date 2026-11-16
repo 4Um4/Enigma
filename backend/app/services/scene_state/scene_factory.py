@@ -1,4 +1,4 @@
-"""
+﻿"""
 DEGOD ITER4: фабрика канонического scene_state (перенос из scene_state_manager.py).
 Назначение: сборка канонического scene_state новой сцены из editor-JSON/template (initialize-фабрика). DEGOD ITER4: байт-в-байт перенос тела initialize_scene (:687–925) + _select_time_variant (:927–953) из scene_state_manager.py.
 Зависимости: hashlib, random, app.core.calendar, app.services.scene_state.environment_modifiers, editor_locator, npc_display_name
@@ -22,7 +22,7 @@ def select_time_variant(template: dict, time_of_day: str) -> dict:
     try:
         h, m = map(int, time_of_day.split(":"))
         minutes = h * 60 + m
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         minutes = 12 * 60
 
     for time_range, variant in template.get("time_variants", {}).items():

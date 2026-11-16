@@ -25,38 +25,28 @@ def build_canonical_registry() -> CanonicalRegistry:
     """?????? ?????? ????: production-?????? ??? ?????????/???? + ???? ????????.
 
     Read-only. ?????? ??????? ?? ????? ? ??? ????????? (???? ADR-O-422).
+
+    P2 / S427 FIX (ТЗ-v5 Приоритет 4): прямой glob JSON без вызова
+    load_npcs_merged(). Цикл был: registry_builder → load_npcs_merged →
+    chronicle_seeder → intent_compressor._resolve_npc_by_name →
+    registry_builder → RecursionError. registry_builder — read-only по
+    контракту; прямой glob соответствует контракту и разрывает цикл.
     """
     alias: Dict[str, str] = {}
     archetype: Dict[str, str] = {}
-    try:
-        from app.services.npc.npc_loader import load_npcs_merged
-
-        npcs = load_npcs_merged()
-        for raw in npcs:
-            npc_id = str(raw["id"])
-            archetype[npc_id] = str(raw.get("_archetype") or raw.get("archetype") or "commoner")
-            forms = [str(raw.get("name") or "")]
-            nf = raw.get("name_forms")
-            if isinstance(nf, list):
-                forms.extend(str(x) for x in nf)
-            elif isinstance(nf, dict):
-                forms.extend(str(v) for v in nf.values())
-            for f in forms:
-                if f.strip():
-                    alias[f.strip().lower()] = npc_id
-    except Exception as e:
-        logger.warning("load_npcs_merged ?????????? (%s) ? ????? individuals ????????", e)
-        for path in sorted((BASE_DIR / "config" / "npc" / "individuals").glob("*.json")):
-            raw = json.loads(path.read_text(encoding="utf-8-sig"))
-            npc_id = str(raw["id"])
-            archetype[npc_id] = str(raw.get("_archetype") or raw.get("archetype") or "commoner")
-            forms = [str(raw.get("name") or "")]
-            nf = raw.get("name_forms")
-            if isinstance(nf, list):
-                forms.extend(str(x) for x in nf)
-            for f in forms:
-                if f.strip():
-                    alias[f.strip().lower()] = npc_id
+    for path in sorted((BASE_DIR / "config" / "npc" / "individuals").glob("*.json")):
+        raw = json.loads(path.read_text(encoding="utf-8-sig"))
+        npc_id = str(raw["id"])
+        archetype[npc_id] = str(raw.get("_archetype") or raw.get("archetype") or "commoner")
+        forms = [str(raw.get("name") or "")]
+        nf = raw.get("name_forms")
+        if isinstance(nf, list):
+            forms.extend(str(x) for x in nf)
+        elif isinstance(nf, dict):
+            forms.extend(str(v) for v in nf.values())
+        for f in forms:
+            if f.strip():
+                alias[f.strip().lower()] = npc_id
 
     secret_known: Dict[str, FrozenSet[str]] = {}
     ts_path = BASE_DIR / "config" / "canon" / "truth_state_tavern.json"

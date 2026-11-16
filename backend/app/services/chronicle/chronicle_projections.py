@@ -1,4 +1,4 @@
-"""path: backend/app/services/chronicle/chronicle_projections.py
+﻿"""path: backend/app/services/chronicle/chronicle_projections.py
 Назначение: CCH-5 (ADR-O-420) — экспорт-проекции канон-хроник в форматы
             старых систем: origin_events / village_relations / truth_state.
             Артефакты аудита, НЕ источник истины для рантайма.
@@ -309,7 +309,7 @@ def build_truth_state_projection(
         importance = e.payload.get(PL_IMPORTANCE, DEFAULT_SECRET_IMPORTANCE)
         try:
             importance_f = float(importance)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             importance_f = DEFAULT_SECRET_IMPORTANCE
         if not (0.0 <= importance_f <= 1.0):
             raise ProjectionError(f"secret {e.entry_id}: importance {importance_f} вне [0,1]")

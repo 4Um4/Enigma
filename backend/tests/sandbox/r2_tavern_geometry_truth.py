@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_tavern_geometry_truth.py
+﻿# backend/tests/sandbox/r2_tavern_geometry_truth.py
 """
 R2-TAVERN-GEOMETRY-TRUTH probe — read-only.
 
@@ -82,7 +82,7 @@ def _print_section(title: str) -> None:
 def _approx_eq(a: float, b: float, tol: float = 0.01) -> bool:
     try:
         return abs(float(a) - float(b)) < tol
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return False
 
 
@@ -147,7 +147,7 @@ def main() -> int:
         try:
             fx, fy = float(x), float(y)
             node_coords[name] = (fx, fy)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             fx, fy = 0.0, 0.0
             print(f"  [WARN] node {name} has no coords: {nd}")
         role = nd.get("role", "?")
@@ -213,7 +213,7 @@ def main() -> int:
                 rw, rh = float(r.get("width", 0)), float(r.get("height", 0))
                 all_x.extend([rx, rx + rw])
                 all_y.extend([ry, ry + rh])
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 continue
 
     if all_x and all_y:

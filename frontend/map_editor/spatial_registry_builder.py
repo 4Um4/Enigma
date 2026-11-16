@@ -1,4 +1,4 @@
-"""
+﻿"""
 frontend/map_editor/spatial_registry_builder.py
 Назначение: Компилирует location JSONs → spatial_registry.json (SSOT пространства)
 Зависимости: location JSONs из campaigns/<id>/locations/
@@ -131,7 +131,7 @@ class SpatialRegistryBuilder:
         try:
             with open(registry_path, "r", encoding="utf-8") as f:
                 existing = json.load(f)
-        except json.JSONDecodeError, OSError:
+        except (json.JSONDecodeError, OSError):
             return True
 
         # Проверяем версию формата
@@ -152,7 +152,7 @@ class SpatialRegistryBuilder:
                     data = json.load(f)
                 lid = data.get("location_id", loc_file.stem)
                 current_files[lid] = self._hash_file(loc_file)
-            except json.JSONDecodeError, OSError:
+            except (json.JSONDecodeError, OSError):
                 continue
 
         # Количество чанков изменилось

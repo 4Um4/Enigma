@@ -1,4 +1,4 @@
-# backend/app/services/memory/conclusion_engine.py
+﻿# backend/app/services/memory/conclusion_engine.py
 """
 Назначение: BC-1/ADR-O-381 — pure-движок EXPERIENCE→CONCLUSION. Вход —
     ТОЛЬКО события EXPERIENCE_DELTA_COMMITTED текущего тика (NO-VACUUM:
@@ -78,7 +78,7 @@ def generate_conclusion_proposals(
             continue
         try:
             value = float(payload.get("value", 0.0))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             # L4 (INV-SILENT-FAILURE): отказ наблюдаем; мусорное value —
             # аномалия данных события: skip с диагнозом, не тихий провал
             logger.warning(

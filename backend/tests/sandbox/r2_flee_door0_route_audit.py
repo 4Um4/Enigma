@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_flee_door0_route_audit.py
+﻿# backend/tests/sandbox/r2_flee_door0_route_audit.py
 """
 R2-FLEE-DOOR0-ROUTE-AUDIT — исследование маршрута NPC через door_0.
 
@@ -177,7 +177,7 @@ def check1_entrance_connections() -> None:
             try:
                 d = ((float(nx) - float(dx)) ** 2 + (float(ny) - float(dy)) ** 2) ** 0.5
                 distances.append((nid, d, nx, ny))
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 pass
         distances.sort(key=lambda x: x[1])
         for nid, d, nx, ny in distances[:5]:
@@ -284,7 +284,7 @@ def check2_door0_in_graph() -> None:
                 fsy, fty = float(sy), float(ty)
                 if (fsy < 13.0 and fty > 13.0) or (fsy > 13.0 and fty < 13.0):
                     print(f"  {src} ({sx}, {sy}) ↔ {tgt} ({tx}, {ty}) — пересекает y=13")
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 pass
 
     print("\n--- Есть ли узел с y > 13.0 (вне здания)? ---")
@@ -295,7 +295,7 @@ def check2_door0_in_graph() -> None:
             fy = float(y)
             if fy > 13.0:
                 outside_nodes.append((nid, getattr(nref, "x", 0), fy))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             pass
     if outside_nodes:
         print(f"  Найдено {len(outside_nodes)} узлов с y > 13.0 (вне здания):")
@@ -366,7 +366,7 @@ def check3_outside_nodes() -> None:
                 inside_count += 1
             else:
                 outside_count += 1
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             pass
 
     print(f"\n  Итог: {inside_count} узлов внутри здания, {outside_count} узлов вне здания")

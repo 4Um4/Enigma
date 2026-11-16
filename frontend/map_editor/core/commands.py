@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /frontend/map_editor/undo_manager.py
 
 Система отмены/повтора действий (Undo/Redo)
@@ -469,7 +469,7 @@ class RotateObjectCommand(Command):
         if obj:
             try:
                 obj["rotation"] = (float(self.old_rotation) + self.delta) % 360
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 obj["rotation"] = self.delta % 360
 
     def undo(self):
@@ -477,7 +477,7 @@ class RotateObjectCommand(Command):
         if obj:
             try:
                 obj["rotation"] = float(self.old_rotation)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 obj["rotation"] = 0.0
 
 

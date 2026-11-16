@@ -1,4 +1,4 @@
-"""path: /project/backend/tests/sandbox/e0_decision_hub_capture.py
+﻿"""path: /project/backend/tests/sandbox/e0_decision_hub_capture.py
 Purpose: E0-PILOT-4 — class-level capture of DecisionHub.compute + phase 5 trace.
          Answers: is compute() called? TALK in candidates? WORLD_TICK events? Why TALK loses?
 Dependencies: tests/gameplay/harness.py, app.services.llm.runtime.client, app.services.npc.decision_hub
@@ -241,7 +241,7 @@ def get_npc_states_via_snapshot(gl, cid):
             try:
                 sig = inspect.signature(fn)
                 params = list(sig.parameters.keys())
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 params = ["?"]
 
             # Try different call signatures

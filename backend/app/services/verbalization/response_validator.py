@@ -283,10 +283,21 @@ class ResponseValidator:
         "проверка не удалась",
     )
 
+    # RT-LLM-02 (ТЗ §2.A, _QUESTION_2A): вопрос ИГРОКУ = '?' + обращение к игроку.
+    _PLAYER_PRONOUN_RE = re.compile(
+        r"\b(?:тебя|тебе|тобой|твой|твоя|твоё|вы|вас|вам|вами|ваш|ваша)\b",
+        re.IGNORECASE,
+    )
+
     def _contains_question_to_player(self, text: str) -> bool:
-        """TZ priority 3: DM-контракт требует 'Без вопросов' (dm_system.txt).
-        Любой '?' в DM-ответе — нарушение. DM описывает мир, не ведёт диалог."""
-        return "?" in text
+        """TZ priority 3 (_QUESTION_2A): вопрос ИГРОКУ = '?' И обращение.
+        Вопрос в реплике NPC без обращения к игроку — легитимен."""
+        for sentence in re.split(r"(?<=[.!?])\s+", text):
+            if "?" not in sentence:
+                continue
+            if self._PLAYER_PRONOUN_RE.search(sentence):
+                return True
+        return False
 
     def _addressee_present(self, text: str, addressee: str) -> bool:
         """TZ priority 3: если игрок адресовал NPC, этот NPC должен присутствовать в ответе.

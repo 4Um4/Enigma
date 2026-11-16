@@ -1,4 +1,4 @@
-"""CCH-12 Point 1: типизированные возрастные якоря.
+﻿"""CCH-12 Point 1: типизированные возрастные якоря.
 
 Плоский List[int] не различал CURRENT_AGE / DURATION / AT_AGE / SINCE_AGE.
 Fallback S368 (1 anchor + 1 EVENT) не срабатывал при множественных anchors.
@@ -159,7 +159,7 @@ def extract_age_anchors_typed(text: str) -> List[AgeAnchor]:
             else:
                 try:
                     n = int(raw)
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     n = 0
             if 0 <= n <= 1000:  # гном может жить 146 лет; потолок 1000 (для эльфов)
                 anchors.append(

@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_flee_traversal_lifecycle_probe.py
+﻿# backend/tests/sandbox/r2_flee_traversal_lifecycle_probe.py
 """
 R2-FLEE-TRAVERSAL-LIFECYCLE probe.
 
@@ -513,7 +513,7 @@ def attach_spies():
 
             setattr(MovementEngine, name, _make_wrapper(name, orig_method))
             wrapped_methods.append(name)
-        except TypeError, AttributeError:
+        except (TypeError, AttributeError):
             continue
     if wrapped_methods:
         print(

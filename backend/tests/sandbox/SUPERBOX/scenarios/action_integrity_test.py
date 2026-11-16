@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 path: /project/backend/tests/sandbox/SUPERBOX/scenarios/action_integrity_test.py
 Назначение: SUPERBOX-ACTION-INTEGRITY (Stage 2A, промежуточный behavioral gate
@@ -144,7 +144,7 @@ def _apply_npc_patch(campaign_dir: Path, patch: dict) -> None:
     for npc_file in campaign_dir.rglob("*.json"):
         try:
             data = json.loads(npc_file.read_text(encoding="utf-8"))
-        except json.JSONDecodeError, OSError:
+        except (json.JSONDecodeError, OSError):
             continue
         # npc-конфиг может быть списком или dict
         entries = data if isinstance(data, list) else [data]

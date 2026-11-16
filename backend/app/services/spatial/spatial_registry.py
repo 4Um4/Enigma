@@ -1,4 +1,4 @@
-"""
+﻿"""
 backend/app/services/spatial/spatial_registry.py
 Назначение: Read-only загрузчик скомпилированного пространственного реестра
 Зависимости: compiled/spatial_registry.json (артефакт)
@@ -124,7 +124,7 @@ class SpatialRegistry:
         Возвращает Path или None."""
         try:
             project_root = Path(__file__).resolve().parents[4]
-        except IndexError, ValueError:
+        except (IndexError, ValueError):
             project_root = Path(".")
         candidate = (project_root / "backend" / "data" / "campaigns" / f"{campaign_id}.json").resolve()
         if candidate.exists():

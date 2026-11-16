@@ -58,7 +58,7 @@ def load_npc_visual_casting(npc_id: str) -> Dict:
                 data = json.load(f)
             if data.get("id") == npc_id:
                 return data.get("visual_casting", {})
-        except json.JSONDecodeError, OSError:
+        except (json.JSONDecodeError, OSError):
             continue
     return {}
 
@@ -76,7 +76,7 @@ def save_npc_visual_casting(npc_id: str, casting: Dict) -> bool:
                 with open(json_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 return True
-        except json.JSONDecodeError, OSError:
+        except (json.JSONDecodeError, OSError):
             continue
     return False
 
@@ -91,7 +91,7 @@ def load_npc_calibration(npc_id: str) -> Tuple[Dict, Dict]:
                 data = json.load(f)
             if data.get("id") == npc_id:
                 return data.get("psyche", {}), data.get("drives", {})
-        except json.JSONDecodeError, OSError:
+        except (json.JSONDecodeError, OSError):
             continue
     return {}, {}
 

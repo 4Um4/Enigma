@@ -1,4 +1,4 @@
-# path: backend/tests/sandbox/SUPERBOX/scenarios/d61_llm_outage_doctrine_test.py
+﻿# path: backend/tests/sandbox/SUPERBOX/scenarios/d61_llm_outage_doctrine_test.py
 # Назначение: COV-2/D61 (ТЗ §4; вердикт Мастера: живой игровой тест вместо
 #   ручного launcher-smoke; прецеденты — probes/llm_down_smoke_probe.py,
 #   scenarios/lc_gc01_world_speaks_test.py, scenarios/chronicle_weave_probe).
@@ -142,7 +142,7 @@ def _llm_alive() -> bool:
     try:
         urllib.request.urlopen(settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3)
         return True
-    except urllib.error.URLError, OSError:
+    except (urllib.error.URLError, OSError):
         return False
 
 

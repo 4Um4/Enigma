@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     dm_max_tokens: int = 220  # A7-FIX: было хардкожено в 4 местах dm_agent.py
     environment: str = "production"  # B4-FIX: production | development | test
     llama_cpp_timeout_sec: int = 30
-    model_load_timeout_sec: int = 120  # Gemma-3-12B Q4_K_M: ~5GB, холодный старт до 90s
+    model_load_timeout_sec: int = 240  # ТЗ-v5 P2: --no-mmap грузит 4.9 ГБ в RAM (~120-180s холодный старт); 240 = безопасный буфер
 
     llm_servers: Dict[str, Dict[str, str]] = {}
 
@@ -162,6 +162,23 @@ class Settings(BaseSettings):
     gpu_layers: int = 99  # Fallback по умолчанию, если профиль не найден
     threads: int = 8
     ctx_size: int = 16384  # USL-2: промпт декомпозиции 8284 токена > 8192 (CCH-12+CCH-14+CCH-15+USL правки)
+
+    # ─────────────────────────────────────────────────────────────────
+    # ТЗ-v5 P2: Deterministic Inference (stddev <0.02 на ALL modules)
+    # ─────────────────────────────────────────────────────────────────
+    # Флаги детерминизма llama-server. Источник: llama-server --help
+    # (подтверждено археологией S427):
+    #   -b, --batch-size N (default 2048) → 1 = single-sequence, no interleaving
+    #   -cb, --cont-batching / --no-cont-batching → disable dynamic batching
+    #   --mmap / --no-mmap → RAM-загрузка вместо mmap (изоляция от FS nondeterminism)
+    #   -s, --seed SEED (default -1 random) → fixed seed = воспроизводимость
+    #   -ngl 0 → CPU fallback (ngl=0 держит все слои в RAM/CPU, без VRAM nondeterminism)
+    # Rollback: revert на дефолты llama-server (2048/True/False/-1/False) одной правкой.
+    llm_batch_size: int = 512  # ТЗ-v5 P2: 1 роняет GGML_ASSERT(n_tokens_all <= n_batch) на warmup; 512 = safe minimum, cont-batching off даёт single-sequence-mode
+    llm_cont_batching: bool = False  # ТЗ-v5 P2: disable dynamic batching
+    llm_no_mmap: bool = True  # ТЗ-v5 P2: RAM-загрузка, изоляция от FS
+    llm_seed: Optional[int] = 42  # ТЗ-v5 P2: fixed seed (-1 = random, default llama-server)
+    llm_cpu_fallback: bool = False  # ТЗ-v5 P2: True → ngl=0 (CPU изоляция GPU nondeterminism)
 
     # ─────────────────────────────────────────────────────────────────
     # Генерация (из Before.md — оптимально для Dark Fantasy)

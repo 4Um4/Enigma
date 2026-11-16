@@ -1,4 +1,4 @@
-"""
+﻿"""
 path: /backend/app/services/game_loop/task_scheduler.py
 Назначение: Читает pending_tasks из scene_state, исполняет их через Executor'ы и публикует WorldEvent'ы.
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
@@ -929,7 +929,7 @@ class TaskScheduler:
         kind_str = task_dict.get("kind")
         try:
             kind = TaskKind(kind_str)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             logger.error(
                 f"[SCHEDULER] Reconstruction FAILED for task {task_id}: unknown kind '{kind_str}'. Task dropped."
             )
@@ -945,7 +945,7 @@ class TaskScheduler:
                 priority = TaskPriority(priority_val)
             else:
                 priority = TaskPriority[priority_val]
-        except ValueError, KeyError, TypeError:
+        except (ValueError, KeyError, TypeError):
             logger.error(
                 f"[SCHEDULER] Reconstruction FAILED for task {task_id}: invalid priority '{priority_val}'. Task dropped."
             )

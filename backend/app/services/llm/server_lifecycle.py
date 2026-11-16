@@ -139,6 +139,39 @@ def _read_stderr_tail() -> str:
         return ""
 
 
+def _build_llama_cmd() -> list[str]:
+    """Единый SSOT сборки команды llama-server (Устав §19.3: один владелец — один источник истины).
+
+    Используется обоими спавнерами: server_lifecycle._spawn_llama_server
+    и scripts.llm_server_manager.start_llama_server. Любая правка флагов —
+    только здесь.
+
+    ТЗ-v5 P2: детерминизм inference (batch=1, no-cont-batch, no-mmap, seed).
+    CPU fallback: llm_cpu_fallback=True → ngl=0 (все слои в RAM/CPU).
+    """
+    _cmd: list[str] = [
+        settings.llama_cpp_server_executable,
+        "-m", settings.llama_cpp_model_path,
+        "--port", str(settings.llama_cpp_port),
+        "--host", "127.0.0.1",
+        "-c", str(settings.ctx_size),
+        "-t", str(settings.threads),
+        "--jinja",
+    ]
+    # GPU layers: CPU fallback (ТЗ-v5 P2) или динамический из gpu_profile.json
+    _ngl = 0 if settings.llm_cpu_fallback else settings.effective_gpu_layers
+    _cmd.extend(["-ngl", str(_ngl)])
+    # ТЗ-v5 P2: флаги детерминизма inference
+    _cmd.extend(["-b", str(settings.llm_batch_size)])
+    if not settings.llm_cont_batching:
+        _cmd.append("--no-cont-batching")
+    if settings.llm_no_mmap:
+        _cmd.append("--no-mmap")
+    if settings.llm_seed is not None and settings.llm_seed >= 0:
+        _cmd.extend(["-s", str(settings.llm_seed)])
+    return _cmd
+
+
 def _spawn_llama_server() -> dict:
     """Канонический спавн (перенос блока main.py; host=127.0.0.1 —
     выравнивание с провайдерами/лаунчером: резолв localhost добавляет
@@ -167,22 +200,7 @@ def _spawn_llama_server() -> dict:
             "reason": "port_busy_unknown_owner",
             "detail": f"порт занят pid={_owner}",
         }
-    _cmd = [
-        settings.llama_cpp_server_executable,
-        "-m",
-        settings.llama_cpp_model_path,
-        "--port",
-        str(settings.llama_cpp_port),
-        "--host",
-        "127.0.0.1",
-        "-ngl",
-        str(settings.effective_gpu_layers),
-        "-c",
-        str(settings.ctx_size),
-        "-t",
-        str(settings.threads),
-        "--jinja",
-    ]
+    _cmd = _build_llama_cmd()
     _stderr_path = Path(__file__).resolve().parents[3] / "logs" / "llama_server_stderr.log"
     _stderr_path.parent.mkdir(parents=True, exist_ok=True)
     _stderr_file = open(_stderr_path, "a", encoding="utf-8")

@@ -1,4 +1,4 @@
-"""T-CCH-02 живой проб декомпозитора хроники (ADR-O-420, CCH-2).
+﻿"""T-CCH-02 живой проб декомпозитора хроники (ADR-O-420, CCH-2).
 
 Эталонный фрагмент №1 Люси (ТЗ CCH-01 §9/§10). Проверяет:
 1) decompose через ЖИВОЙ llama-server (ModelRouter → FACT_EXTRACTION, temp=0);
@@ -32,7 +32,7 @@ def _llm_alive() -> bool:
     try:
         urllib.request.urlopen(settings.llama_cpp_server_url.replace("/v1", "") + "/health", timeout=3)
         return True
-    except urllib.error.URLError, OSError:
+    except (urllib.error.URLError, OSError):
         return False
 
 

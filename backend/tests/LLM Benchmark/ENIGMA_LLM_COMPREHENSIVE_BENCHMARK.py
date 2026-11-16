@@ -61,7 +61,7 @@ ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py
       python ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py --list
   Прогон на модели (llama.cpp server / OpenAI-совместимый endpoint):
       python ENIGMA_LLM_COMPREHENSIVE_BENCHMARK.py --run \\
-          --url http://127.0.0.1:8183 --model-id my_model --out report.json
+          --url http://127.0.0.1:8181 --model-id my_model --out report.json
 
 ИСТОЧНИКИ МЕТОДИКИ (внутри проекта ENIGMA)
 ------------------------------------------
@@ -6063,10 +6063,6 @@ class HttpLlamaCppAdapter:
             body["chat_template_kwargs"] = params["chat_template_kwargs"]
         if params.get("grammar"):
             body["grammar"] = params["grammar"]
-        if params.get("grammar"):
-            body["grammar"] = params["grammar"]
-        if params.get("grammar"):
-            body["grammar"] = params["grammar"]
         req = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
             data=json.dumps(body).encode("utf-8"),
@@ -6874,7 +6870,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--self-test", action="store_true", help="самопроверка комплекса без LLM")
     ap.add_argument("--list", action="store_true", help="список заданий")
     ap.add_argument("--run", action="store_true", help="прогон на модели (нужен --url)")
-    ap.add_argument("--url", default="http://127.0.0.1:8183", help="базовый URL llama.cpp server")
+    ap.add_argument("--url", default="http://127.0.0.1:8181", help="базовый URL llama.cpp server (Устав §19.1.4: SSOT = settings.llama_cpp_port=8181)")
     ap.add_argument("--model-id", default="unnamed_model", help="идентификатор модели для отчёта")
     ap.add_argument("--modules", default="", help="фильтр модулей, напр. FG,WSI")
     ap.add_argument("--task-ids", default="", help="фильтр заданий, напр. WSI-01,BD-05")

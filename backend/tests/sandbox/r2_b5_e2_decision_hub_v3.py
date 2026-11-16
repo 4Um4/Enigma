@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_b5_e2_decision_hub_v3.py
+﻿# backend/tests/sandbox/r2_b5_e2_decision_hub_v3.py
 """
 R2-B5-E2 v3 — invoke production tick, observe maid_lusya's chosen intent.
 
@@ -217,7 +217,7 @@ def main() -> int:
                         try:
                             sig = inspect.signature(val)
                             print(f"  loop.{attr_name}{sig}")
-                        except ValueError, TypeError:
+                        except (ValueError, TypeError):
                             print(f"  loop.{attr_name}(...)  [no signature]")
                 except Exception:
                     continue
@@ -238,7 +238,7 @@ def main() -> int:
                                 try:
                                     sig = inspect.signature(val)
                                     print(f"  _tick_orch.{attr_name}{sig}")
-                                except ValueError, TypeError:
+                                except (ValueError, TypeError):
                                     print(f"  _tick_orch.{attr_name}(...)")
                         except Exception:
                             continue

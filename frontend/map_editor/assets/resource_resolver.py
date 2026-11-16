@@ -138,7 +138,7 @@ class LegacyDirResolver:
             candidate_resolved = candidate.resolve()
             # relative_to: если candidate_resolved вне root_resolved → ValueError
             candidate_resolved.relative_to(root_resolved)
-        except ValueError, OSError:
+        except (ValueError, OSError):
             return None
 
         # 8. R3: точная legacy-семантика (НЕ with_suffix).

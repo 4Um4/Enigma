@@ -1,4 +1,4 @@
-# backend/tests/sandbox/r2_tavern_archaeology_probe.py
+﻿# backend/tests/sandbox/r2_tavern_archaeology_probe.py
 """
 R2-TAVERN-ARCHAEOLOGY probe.
 
@@ -53,7 +53,7 @@ TARGET_NODES = {
 def _approx_equal(a: float, b: float, tol: float = 1e-6) -> bool:
     try:
         return abs(float(a) - float(b)) < tol
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return False
 
 
@@ -101,7 +101,7 @@ def _find_candidate_map_files() -> List[Path]:
                     if path not in seen:
                         candidates.append(path)
                         seen.add(path)
-        except PermissionError, OSError:
+        except (PermissionError, OSError):
             continue
 
     # 5. Also try the common data/scenes/locations path
@@ -115,7 +115,7 @@ def _find_candidate_map_files() -> List[Path]:
                             if path not in seen:
                                 candidates.append(path)
                                 seen.add(path)
-                except PermissionError, OSError:
+                except (PermissionError, OSError):
                     continue
 
     return candidates
@@ -200,7 +200,7 @@ def _find_all_walls(data: Any) -> List[Tuple[str, Dict[str, Any]]]:
                     float(val["x2"])
                     float(val["y2"])
                     walls.append((path, val))
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     continue
     return walls
 
@@ -371,7 +371,7 @@ def _find_door_wall_bindings(data: Any) -> List[Dict[str, Any]]:
                             break
                     except TypeError, ValueError, KeyError:
                         continue
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 pass
     return bindings
 
@@ -574,7 +574,7 @@ def main() -> int:
             if x is not None and y is not None:
                 try:
                     node_coords[str(node_id)] = (float(x), float(y))
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     pass
             # Also look for nested position dict
             for pos_key in ("position", "pos", "coords", "coordinates"):
@@ -585,7 +585,7 @@ def main() -> int:
                     if xx is not None and yy is not None:
                         try:
                             node_coords[str(node_id)] = (float(xx), float(yy))
-                        except TypeError, ValueError:
+                        except (TypeError, ValueError):
                             pass
 
     print("\nNode coordinates found:")
@@ -631,7 +631,7 @@ def main() -> int:
                                 if _approx_equal(fdx, 19.5, tol=0.01) and abs(fdy - y_cross) < 0.5:
                                     door_at_intersection = (d_path, d_val)
                                     break
-                            except TypeError, ValueError:
+                            except (TypeError, ValueError):
                                 continue
                 if door_at_intersection:
                     print("\n*** DOOR FOUND at intersection point ***")
