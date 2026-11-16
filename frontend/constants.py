@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 path: /frontend/constants.py
 
@@ -13,7 +13,7 @@ path: /frontend/constants.py
 # ─── Версия проекта ────────────────────────────────────────────────
 # Единственное место во frontend, где версия задаётся явно.
 # Истина: backend/pyproject.toml (строка 7). Дублируется для UI в точности без префикса 'v' для единообразия SSOT.
-PROJECT_VERSION: str = "0.5.4.6.7"
+PROJECT_VERSION: str = "0.5.4.6.8"
 
 # Тайминги опроса backend в зависимости от расстояния до ближайшего NPC
 IDLE_TICK_NEAR_MS: int = 500
