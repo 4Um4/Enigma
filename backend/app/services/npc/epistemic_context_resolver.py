@@ -28,7 +28,7 @@ _THREAT_PREDICATES = (Predicate.STOLE, Predicate.ATTACKED)
 # Отдельный порог (не CONFIDENCE_THRESHOLD): report — салиентность, а не угроза.
 # Слышанное через цепочку свидетельств дешевеет (trust×100/100).
 # Калибровочный кандидат, меняется отдельной ревизией.
-REPORT_PREDICATES = (Predicate.INSULTED,)
+REPORT_PREDICATES = (Predicate.INSULTED, Predicate.STOLE, Predicate.ATTACKED, Predicate.HELPED)
 REPORT_CONFIDENCE_THRESHOLD = 0.25
 
 

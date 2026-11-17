@@ -2066,20 +2066,20 @@ class DecisionHub:
                 # 2. Социальный фильтр: trust > 0
                 _trust = self._get_rel_value(state, _cid, "trust") or 0.0
                 if _trust > 0.0:
-                    _candidates.append(_cid)
+                    _candidates.append((_cid, _trust))
 
-            # 3. Детерминированный выбор: только если ровно один кандидат
-            if len(_candidates) == 1:
+            # 3. Детерминированный выбор: ранжирование по trust, tie-break по npc_id
+            if _candidates:
+                _candidates.sort(key=lambda x: (-x[1], x[0]))
+                _best = _candidates[0][0]
                 logger.info(
-                    f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target={_candidates[0]} "
-                    f"(reason: single physically available candidate with trust > 0)"
+                    f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target={_best} "
+                    f"(reason: highest trust among {len(_candidates)} candidates)"
                 )
-                return _candidates[0]
-
-            # Если 0 или >1, возвращаем None (деградация сработает ниже)
+                return _best
             logger.debug(
                 f"[EPISTEMIC_TARGET] npc={state.npc_id} intent=spread_rumor target=None "
-                f"(reason: {len(_candidates)} candidates with trust > 0 in range; no deterministic rank)"
+                f"(reason: no candidates with trust > 0 in range)"
             )
             return None
 
