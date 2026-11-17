@@ -58,7 +58,9 @@ class BeliefRevisionEngine:
         )
 
         # Базовый вес утверждения (в будущем может зависеть от speech_act)
-        incoming_confidence = reliability * _CLAIM_WEIGHT
+        # A21: Dampening by speaker's own confidence (trust propagation chain)
+        _speaker_conf = (reliability_context or {}).get("speaker_confidence", 1.0)
+        incoming_confidence = reliability * _CLAIM_WEIGHT * _speaker_conf
 
         current_tick = claim.tick
 

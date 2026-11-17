@@ -311,7 +311,7 @@ class ClaimEventSubscriber:
                         _listener_id,
                         claim,
                         existing,
-                        reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig},
+                        reliability_context={"source_type": "testimony", "original_source_id": _speaker_orig, "speaker_confidence": _speaker_record.confidence if _speaker_record else 1.0},
                     )
                     self._store.upsert(updated_record)
                 except Exception as _listener_err:
