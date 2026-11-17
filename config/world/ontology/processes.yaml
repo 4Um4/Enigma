@@ -1,0 +1,74 @@
+# config/world/ontology/processes.yaml
+# Назначение: каталог Process'ов — SSOT слоя Process (ТЗ Отчёт №6 §2.2/§7, ADR-O-445).
+#             НЕ закрытый enum: новый Process = новая запись, правки кода не нужны.
+# Схема (маппинг 1:1 на app.models.world.process.Process):
+#   applies_deltas:       список {domain, attribute, delta, target_ref} — обязателен, непустой
+#   requires_world_state: список {domain, attribute, value} — WorldPredicate без target;
+#                         требования к состоянию провайдера живут в sources/*.yaml
+#                         (requires_provider_state, Спринт 2)
+#   duration_ticks:       int, по умолчанию 1
+#   side_effects:         список event_type для EventDTO (опционально)
+# Плейсхолдеры {customer}, {keeper}, {target_item}, ... резолвит ProcessExecutor (Спринт 2).
+# Домены item/npc/relationship/location отсутствуют в стартовом каталоге domains.yaml —
+# открытая онтология это допускает (каталог — документация, не enum).
+# Известный гэп ТЗ (решение в Спринте 2): nightfall_darkens_area требует
+# time.hour = "in [22, 6]" — interval-семантику value_matches пока не несёт (fail-closed).
+
+processes:
+  item_repair_via_blacksmith:
+    applies_deltas:
+      - { domain: item, attribute: state, delta: "broken->functional", target_ref: "item:{target_item}" }
+      - { domain: npc, attribute: gold, delta: -5, target_ref: "npc:{customer}" }
+      - { domain: relationship, attribute: trust, delta: 0.05, target_ref: "npc:{customer}|npc:{blacksmith}" }
+    requires_world_state:
+      - { domain: infrastructure, attribute: metalwork, value: present }
+    duration_ticks: 5
+    side_effects: [ITEM_REPAIRED]
+
+  alcohol_serving:
+    applies_deltas:
+      - { domain: npc, attribute: intoxication, delta: 0.2, target_ref: "npc:{customer}" }
+      - { domain: npc, attribute: gold, delta: -1, target_ref: "npc:{customer}" }
+      - { domain: npc, attribute: gold, delta: 1, target_ref: "npc:{keeper}" }
+    requires_world_state:
+      - { domain: resource, attribute: alcohol, value: present }
+    duration_ticks: 1
+    side_effects: [DRINK_SERVED]
+
+  rain_fills_river:
+    applies_deltas:
+      - { domain: environment, attribute: water_level, delta: 0.3, target_ref: "location:river" }
+    requires_world_state:
+      - { domain: environment, attribute: rain_intensity, value: ">0.5" }
+    duration_ticks: 10
+
+  nightfall_darkens_area:
+    applies_deltas:
+      - { domain: environment, attribute: light_level, delta: "->low", target_ref: "location:current" }
+    requires_world_state:
+      - { domain: time, attribute: hour, value: "in [22, 6]" }
+    duration_ticks: 1
+
+  fire_destroys_storage:
+    applies_deltas:
+      - { domain: location, attribute: structural_integrity, delta: "->0", target_ref: "location:storage_1" }
+      - { domain: item, attribute: state, delta: "->destroyed", target_ref: "item:{target_item}" }
+    requires_world_state:
+      - { domain: environment, attribute: fire, value: present }
+    duration_ticks: 50
+    side_effects: [STORAGE_DESTROYED]
+
+  information_acquisition:
+    applies_deltas:
+      - { domain: npc, attribute: knowledge, delta: "->acquired", target_ref: "npc:{asker}" }
+    duration_ticks: 1
+    side_effects: [INFORMATION_ACQUIRED]
+
+  lodging_booking:
+    applies_deltas:
+      - { domain: resource, attribute: gold, delta: -2, target_ref: "npc:{guest}" }
+      - { domain: infrastructure, attribute: sleeping, delta: "->booked", target_ref: "location:{inn}" }
+    requires_world_state:
+      - { domain: infrastructure, attribute: sleeping, value: present }
+    duration_ticks: 1
+    side_effects: [LODGING_BOOKED]

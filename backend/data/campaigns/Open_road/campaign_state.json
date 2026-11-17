@@ -1130,5 +1130,6 @@
     "active_traversals": {},
     "tick": 0,
     "game_time_seconds": 28800
-  }
+  },
+  "coord_frame_version": "W"
 }

@@ -108,6 +108,36 @@ _ACTION_LEMMAS: dict[str, frozenset[str]] = {
             "уставиться",
         }
     ),
+    # NPC_SPEECH_SILENCE_ROOT_CAUSE D-CLASSIFY FIX: приветствия и вежливая
+    # речь = dialogue. Прежний default-fallback возвращал "player_interacts"
+    # для "Привет!" / "Здравствуй" — game_loop.py:1975 verbal-list не включал
+    # "player_interacts" → _verbal=False → M17 recognition не persistит →
+    # NPC не формирует TALK intent → NPC_SPOKE не публикуется → пузырь молчит.
+    # Возврат "dialogue" матчит verbal-list и активирует речевой конвейер.
+    "dialogue": frozenset(
+        {
+            "привет",
+            "приветствовать",
+            "здравствуй",
+            "здравствовать",
+            "здравствуйте",
+            "хай",
+            "здорово",
+            "добрый",
+            "доброе",
+            "доброе утро",
+            "добрый вечер",
+            "спасибо",
+            "благодарю",
+            "благодарить",
+            "извини",
+            "извинить",
+            "прости",
+            "простить",
+            "прощай",
+            "свидание",
+        }
+    ),
 }
 
 

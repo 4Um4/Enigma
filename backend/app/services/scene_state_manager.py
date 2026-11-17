@@ -1,4 +1,4 @@
-﻿# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
+# C:\DDD\Codex\VSC_Enigma\Enigma\backend\app\services\scene_state_manager.py
 # -*- coding: utf-8 -*-
 """
 SceneStateManager — Python как единственный источник истины о состоянии мира.
@@ -443,6 +443,9 @@ class SceneStateManager:
             return saves_path
         # Миграция: если файл в старом месте — копируем в saves/
         legacy_path = self.campaigns_dir / campaign_id / "campaign_state.json"
+        print(
+            f"[DIAG_SSM] saves={saves_path} (exists={saves_path.exists()}), legacy={legacy_path} (exists={legacy_path.exists()})"
+        )
         if legacy_path.exists():
             saves_path.parent.mkdir(parents=True, exist_ok=True)
             import shutil

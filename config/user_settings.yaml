@@ -13,6 +13,6 @@ content:
 graphics:
   display_mode: windowed
   resolution:
-    height: 900
-    width: 1600
+    height: 1080
+    width: 1920
   vsync: 1

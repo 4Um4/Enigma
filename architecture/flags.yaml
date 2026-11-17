@@ -477,6 +477,30 @@ flags:
     verdict: INFRA
     adr: "-"
     owner: B
+  llm_cont_batching:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: INFRA
+    adr: "ТЗ-v5 P2"
+    owner: B
+    note: "llama-server runtime: dynamic batching; default OFF для single-sequence mode. Не игровой контур."
+  llm_no_mmap:
+    type: pydantic
+    read_mode: pydantic
+    default: "true"
+    verdict: INFRA
+    adr: "ТЗ-v5 P2"
+    owner: B
+    note: "llama-server runtime: RAM-загрузка модели, изоляция от filesystem. Не игровой контур."
+  llm_cpu_fallback:
+    type: pydantic
+    read_mode: pydantic
+    default: "false"
+    verdict: INFRA
+    adr: "ТЗ-v5 P2"
+    owner: B
+    note: "llama-server runtime: явный CPU-only режим; default OFF. Не игровой контур."
   ENIGMA_BACKEND_URL:
     type: env
     read_mode: call

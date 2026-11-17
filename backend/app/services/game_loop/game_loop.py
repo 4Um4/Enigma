@@ -1977,6 +1977,12 @@ class GameLoop:
                 "blackmail",
                 "bribe",
                 "accuse",
+                # NPC_SPEECH_SILENCE_ROOT_CAUSE D-VERBAL FIX: "player_interacts"
+                # — default-fallback DM-classifier для непонятных входов, включая
+                # приветствия. Прежний list не включал его → _verbal=False для
+                # "Привет!" → M17 не persistит → NPC молчит. Включаем как verbal:
+                # player_interacts = игрок пишет текст для взаимодействия = verbal.
+                "player_interacts",
             )
             # DIAG-M17 (Часть VIII.5, ВРЕМЕННЫЙ): почему confirmed не рождается.
             print(

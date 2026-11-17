@@ -1,0 +1,30 @@
+# config/world/ontology/domains.yaml
+# Назначение: стартовая открытая онтология доменов/атрибутов слоя Process
+#             (ТЗ Отчёт №6 §5.1, ADR-O-445).
+#             НЕ закрытый enum — документация. Новый домен = новая запись,
+#             правки кода не нужны. Читает ontology_registry (Спринт 1).
+
+domains:
+  resource: # что есть в мире физически
+    attributes: [alcohol, food, iron, wood, water, gold, mana]
+  environment: # свойства среды
+    attributes: [temperature, light_level, weather, mana_level, noise]
+  cover: # укрытия
+    attributes: [visual, acoustic, magical]
+  social: # социальные свойства
+    attributes: [crowd_density, social_class, faction_dominant]
+  authority: # власть
+    attributes: [presence, type, jurisdiction]
+  infrastructure: # физическая инфраструктура
+    attributes: [metalwork, woodwork, kitchen, commerce, sleeping, sacred]
+  commerce: # торговая инфраструктура
+    attributes: [market_venue, currency_exchange, storage]
+  spiritual: # духовные свойства
+    attributes: [sanctuary, confession_space, meditation_space, sacred_space]
+  safety: # безопасность
+    attributes: [danger_level, refuge_available, faction_territory]
+  time: # время
+    attributes: [hour, day_phase, season]
+  faction: # фракции
+    attributes: [controlled_by, influence_level, presence]
+# Открыто для расширения — добавляйте новые домены без правок кода

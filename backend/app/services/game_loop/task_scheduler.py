@@ -853,34 +853,47 @@ class TaskScheduler:
 
                         # ADR-O-313: Кэшируем реплику для Speech Bubbles
                         if artifact.result_type == "dialogue_line" and events:
-                            # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
-                            if self._economy_tracker:
-                                # ADR-O-399: observable economy — в drain
-                                _talks_collected.append((ev.source, scene_state.get("tick", 0)))
-                            import time
+                            # D1 FIX (NPC_SPEECH_SILENCE_ROOT_CAUSE §6.4): select NPC_SPOKE
+                            # explicitly, не последний event из цикла. Прежний код строил
+                            # _dlg_entry из ev — loop variable, после `for ev in events:`
+                            # указывающей на ПОСЛЕДНИЙ event. Когда materializer возвращает
+                            # [NPC_SPOKE, COMMUNICATION_CLAIM], ev = COMMUNICATION_CLAIM, у
+                            # которого нет payload.text — пузырь речи терялся.
+                            from app.services.events.event_types import EventType as _EventType
 
-                            _dlg_entry = {
-                                "speaker_id": ev.source,
-                                "target_id": ev.payload.get("target_id", ""),
-                                "text": ev.payload.get("text", ""),
-                                # Проброс exposure: материален в ev.payload (DialogueMaterializer),
-                                # потребитель — NarrativeProjector (delivery_type для портретов).
-                                # Чинит потерю provenance в ручной сборке entry.
-                                "exposure": ev.payload.get("exposure", "normal"),
-                                # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
-                                # ось game_time (значение уже в точке записи, :564),
-                                # детерминирован и входит в канон-хеш; real_ts —
-                                # UI-staleness (§15.2-исключение), из хеша исключён.
-                                "timestamp": _game_time,
-                                "real_ts": time.time(),
-                                # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
-                                "game_time": _game_time,
-                            }
-                            dialogue_entries.append(_dlg_entry)
-                            # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
-                            # _dlg_entry уходит в артефакт как есть
-                            # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
-                            # ADR-O-399: зеркалирование в scene_state — только в drain
+                            _speech_event = next(
+                                (e for e in events if e.type == _EventType.NPC_SPOKE.value),
+                                None,
+                            )
+                            if _speech_event is not None:
+                                # BUG-N8 FIX: Регистрируем разговор в EconomyTracker
+                                if self._economy_tracker:
+                                    # ADR-O-399: observable economy — в drain
+                                    _talks_collected.append((_speech_event.source, scene_state.get("tick", 0)))
+                                import time
+
+                                _dlg_entry = {
+                                    "speaker_id": _speech_event.source,
+                                    "target_id": _speech_event.payload.get("target_id", ""),
+                                    "text": _speech_event.payload.get("text", ""),
+                                    # Проброс exposure: материален в ev.payload (DialogueMaterializer),
+                                    # потребитель — NarrativeProjector (delivery_type для портретов).
+                                    # Чинит потерю provenance в ручной сборке entry.
+                                    "exposure": _speech_event.payload.get("exposure", "normal"),
+                                    # IRON RIVER D-1/P0-1 (F1a): timestamp — каузальная
+                                    # ось game_time (значение уже в точке записи, :564),
+                                    # детерминирован и входит в канон-хеш; real_ts —
+                                    # UI-staleness (§15.2-исключение), из хеша исключён.
+                                    "timestamp": _game_time,
+                                    "real_ts": time.time(),
+                                    # ADR-O-343 FIX: Используем зафиксированное время тика, чтобы избежать гонки с scene_state.
+                                    "game_time": _game_time,
+                                }
+                                dialogue_entries.append(_dlg_entry)
+                                # ADR-O-399: append в RAM-кэш перенесён в drain (main thread);
+                                # _dlg_entry уходит в артефакт как есть
+                                # ADR-O-313 FIX: Зеркалим в scene_state, иначе CDS видит 0 реплик (INV-DIALOGUE-PIPELINE)
+                                # ADR-O-399: зеркалирование в scene_state — только в drain
                     else:
                         logger.error(f"[SCHEDULER] Task {task.task_id} failed: {artifact.error_message}")
                         task.state = TaskState.FINISHED  # Пока без сложного ретрая
