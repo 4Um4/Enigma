@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Literal
 
+logger = logging.getLogger(__name__)
+
 PdfReader: Any = None
 try:
     from pypdf import PdfReader as _PdfReader
-except Exception:  # pragma: no cover
+except ImportError as exc:  # pragma: no cover
     # pypdf — опциональная runtime-зависимость; без неё PDF-импорт деградирует
     # в понятную ошибку (_extract_pdf → RuntimeError).
-    pass
+    logger.info("PDF import disabled because pypdf is unavailable: %s", exc)
 else:
     PdfReader = _PdfReader
 

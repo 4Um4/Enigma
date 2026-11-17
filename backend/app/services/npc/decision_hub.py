@@ -2056,11 +2056,8 @@ class DecisionHub:
                     continue  # Нельзя рассказывать слух самому себе
 
                 # 1. Физическая доступность
-                try:
-                    _dist = spatial_query.distance(state.npc_id, _cid)
-                    if _dist > HEARING_RADIUS:
-                        continue
-                except Exception:
+                _dist = spatial_query.distance(state.npc_id, _cid)
+                if _dist > HEARING_RADIUS:
                     continue
 
                 # 2. Социальный фильтр: trust > 0

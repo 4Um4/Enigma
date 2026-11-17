@@ -3,6 +3,7 @@ A21.1: Trust Propagation Chain Test.
 Доказывает разрыв: уверенность D должна зависеть от уверенности C и доверия D к первоисточнику A,
 а не только от доверия D к рассказчику C.
 """
+
 import pytest
 import sys
 from pathlib import Path
@@ -39,8 +40,8 @@ def test_trust_propagation_chain_dampening():
     """
     # Настройка доверия
     trust_map = {
-        ("C", "A"): 20.0,   # C немного доверяет A (нормализовано ~0.5)
-        ("D", "C"): 90.0,   # D очень доверяет C (нормализовано ~0.95)
+        ("C", "A"): 20.0,  # C немного доверяет A (нормализовано ~0.5)
+        ("D", "C"): 90.0,  # D очень доверяет C (нормализовано ~0.95)
         ("D", "A"): -50.0,  # D не доверяет A (враг, инверсия)
     }
     store = MockRelationshipStore(trust_map)
@@ -51,32 +52,46 @@ def test_trust_propagation_chain_dampening():
 
     # Шаг 1: A рассказывает C
     claim_a_to_c = ClaimEvent(
-        event_id="e1", claim_id="claim_1", speaker_id="A", listener_id="C",
-        proposition=prop, speech_act=SpeechAct.ASSERT, tick=1
+        event_id="e1",
+        claim_id="claim_1",
+        speaker_id="A",
+        listener_id="C",
+        proposition=prop,
+        speech_act=SpeechAct.ASSERT,
+        tick=1,
     )
     record_c = engine.revise(
-        listener_id="C", claim=claim_a_to_c, existing_record=None,
-        reliability_context={"source_type": "testimony", "original_source_id": "A"}
+        listener_id="C",
+        claim=claim_a_to_c,
+        existing_record=None,
+        reliability_context={"source_type": "testimony", "original_source_id": "A"},
     )
-    
+
     # C должен иметь умеренную/низкую уверенность, так как trust(C, A) невелик
     assert record_c.confidence < 0.6, f"C должен сомневаться в слухе от A, получено: {record_c.confidence}"
 
     # Шаг 2: C рассказывает D
     claim_c_to_d = ClaimEvent(
-        event_id="e2", claim_id="claim_1", speaker_id="C", listener_id="D",
-        proposition=prop, speech_act=SpeechAct.ASSERT, tick=2
+        event_id="e2",
+        claim_id="claim_1",
+        speaker_id="C",
+        listener_id="D",
+        proposition=prop,
+        speech_act=SpeechAct.ASSERT,
+        tick=2,
     )
-    
+
     # В реальном ClaimEventSubscriber сюда передаётся original_source_id="A"
     # и должна передаваться уверенность C (record_c.confidence)
     record_d = engine.revise(
-        listener_id="D", claim=claim_c_to_d, existing_record=None,
+        listener_id="D",
+        claim=claim_c_to_d,
+        existing_record=None,
         reliability_context={
-            "source_type": "testimony", 
+            "source_type": "testimony",
             "original_source_id": "A",
-            "speaker_confidence": record_c.confidence  # <-- Этого сейчас нет в production, но мы ожидаем
-        }
+            "speaker_confidence": record_c.confidence,  # <-- Этого сейчас нет в production, но мы ожидаем
+        },
     )
 
     # КРИТИЧЕСКОЕ ОЖИДАНИЕ A21:

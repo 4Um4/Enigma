@@ -147,9 +147,33 @@
       "game_time": 43210,
       "recent_dialogues": [
         {
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "maid_lusya",
+          "target_id": "blacksmith_orm",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> blacksmith_orm: безопасность",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
           "speaker_id": "merchant_goran",
           "target_id": "blacksmith_orm",
-          "text": "Надеюсь, они не придут сюда. Надеюсь...",
+          "text": "Говорят, на севере началась война.",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
           "timestamp": 43210,
           "thread_id": "",
           "intent": ""
@@ -158,96 +182,45 @@
       "movement_intents": [
         {
           "tick": 1,
+          "npc_id": "guard_borko",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 1,
           "npc_id": "merchant_goran",
           "intent": "?",
-          "target": "tavern:fireplace"
+          "target": "tavern:kitchen_bed_2"
         },
         {
           "tick": 1,
           "npc_id": "maid_lusya",
           "intent": "?",
-          "target": "tavern:behind_bar"
+          "target": "tavern:kitchen_bed_2"
         },
         {
           "tick": 1,
           "npc_id": "blacksmith_orm",
           "intent": "?",
-          "target": "tavern:behind_bar"
+          "target": "tavern:kitchen_bed_2"
         },
         {
           "tick": 1,
           "npc_id": "tavern_keeper_tornin",
           "intent": "?",
-          "target": "tavern:fireplace"
+          "target": "tavern:kitchen_bed_2"
         }
       ],
-      "scene_changes": [
-        {
-          "tick": 1,
-          "target": "merchant_goran",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:schedule:eating"
-        },
-        {
-          "tick": 1,
-          "target": "merchant_goran",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        },
-        {
-          "tick": 1,
-          "target": "maid_lusya",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:schedule:working"
-        },
-        {
-          "tick": 1,
-          "target": "maid_lusya",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        },
-        {
-          "tick": 1,
-          "target": "blacksmith_orm",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:schedule:eating"
-        },
-        {
-          "tick": 1,
-          "target": "blacksmith_orm",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        },
-        {
-          "tick": 1,
-          "target": "tavern_keeper_tornin",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:schedule:eating"
-        },
-        {
-          "tick": 1,
-          "target": "tavern_keeper_tornin",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        }
-      ],
+      "scene_changes": [],
       "errors": [],
       "npc_positions": {
-        "maid_lusya": "{'x': 32.94835648148147, 'y': 6.8685015432098835, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 35.53333333333332, 'y': 9.018000000000008, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 29.53333333333332, 'y': 7.518000000000007, 'z': 0.0}",
-        "merchant_goran": "{'x': 35.13333333333332, 'y': 11.118000000000006, 'z': 0.0}",
-        "guard_borko": "{'x': 41.73333333333332, 'y': 8.793000000000006}",
-        "thief_shadow": "{'x': 36.53333333333332, 'y': 16.018000000000008}",
-        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
+        "maid_lusya": "{'x': 57.981656481481465, 'y': 11.886501543209883}",
+        "blacksmith_orm": "{'x': 60.566633333333314, 'y': 14.036000000000008}",
+        "tavern_keeper_tornin": "{'x': 54.56663333333332, 'y': 12.536000000000007}",
+        "merchant_goran": "{'x': 60.16663333333332, 'y': 16.136000000000006}",
+        "guard_borko": "{'x': 66.76663333333332, 'y': 13.811000000000007}",
+        "thief_shadow": "{'x': 61.566633333333314, 'y': 21.03600000000001}",
+        "player": "{'x': 58.27306466429023, 'y': 20.201648057033854}"
       }
     },
     {
@@ -255,97 +228,57 @@
       "game_time": 43220,
       "recent_dialogues": [
         {
-          "speaker_id": "merchant_goran",
-          "target_id": "blacksmith_orm",
-          "text": "Надеюсь, они не придут сюда. Надеюсь...",
-          "timestamp": 43210,
-          "thread_id": "",
-          "intent": ""
-        }
-      ],
-      "movement_intents": [
-        {
-          "tick": 2,
-          "npc_id": "merchant_goran",
-          "intent": "?",
-          "target": "tavern:fireplace"
-        },
-        {
-          "tick": 2,
-          "npc_id": "maid_lusya",
-          "intent": "?",
-          "target": "tavern:bar_west"
-        },
-        {
-          "tick": 2,
-          "npc_id": "blacksmith_orm",
-          "intent": "?",
-          "target": "tavern:bar_west"
-        },
-        {
-          "tick": 2,
-          "npc_id": "tavern_keeper_tornin",
-          "intent": "?",
-          "target": "tavern:fireplace"
-        }
-      ],
-      "scene_changes": [
-        {
-          "tick": 2,
-          "target": "thief_shadow",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:exploration:frontier"
-        },
-        {
-          "tick": 2,
-          "target": "thief_shadow",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        },
-        {
-          "tick": 2,
-          "target": "guard_borko",
-          "field": "position",
-          "new_value": "",
-          "cause": "semantic_relocation:exploration:frontier"
-        },
-        {
-          "tick": 2,
-          "target": "guard_borko",
-          "field": "body_heading",
-          "new_value": "",
-          "cause": "semantic_relocation_heading"
-        }
-      ],
-      "errors": [],
-      "npc_positions": {
-        "maid_lusya": "{'x': 34.44660069444443, 'y': 7.189408564814822, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 34.19999999999999, 'y': 9.518000000000008, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 31.03333333333332, 'y': 7.643000000000007, 'z': 0.0}",
-        "merchant_goran": "{'x': 33.33333333333332, 'y': 10.818000000000007, 'z': 0.7053061224489948}",
-        "guard_borko": "{'x': 41.73333333333332, 'y': 8.793000000000006, 'z': 0.0}",
-        "thief_shadow": "{'x': 36.53333333333332, 'y': 16.018000000000008, 'z': 0.0}",
-        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
-      }
-    },
-    {
-      "tick_id": 3,
-      "game_time": 43230,
-      "recent_dialogues": [
-        {
-          "speaker_id": "merchant_goran",
-          "target_id": "blacksmith_orm",
-          "text": "Надеюсь, они не придут сюда. Надеюсь...",
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
           "timestamp": 43210,
           "thread_id": "",
           "intent": ""
         },
         {
-          "speaker_id": "blacksmith_orm",
-          "target_id": "tavern_keeper_tornin",
-          "text": "Ведьма на болоте продаёт приворотное зелье. Говорят, оно работает. Говорят, оно работает слишком хорошо. Говорят, её муж уже двадцать лет не может отойти от забора.",
+          "speaker_id": "maid_lusya",
+          "target_id": "blacksmith_orm",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> blacksmith_orm: безопасность",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "merchant_goran",
+          "target_id": "blacksmith_orm",
+          "text": "Говорят, на севере началась война.",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "maid_lusya",
+          "target_id": "guard_borko",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> guard_borko: безопасность",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
           "timestamp": 43220,
           "thread_id": "",
           "intent": ""
@@ -353,40 +286,183 @@
       ],
       "movement_intents": [
         {
-          "tick": 3,
+          "tick": 2,
+          "npc_id": "guard_borko",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 2,
           "npc_id": "merchant_goran",
           "intent": "?",
-          "target": "tavern:main_hall"
+          "target": "tavern:kitchen_bed_2"
         },
         {
-          "tick": 3,
+          "tick": 2,
           "npc_id": "maid_lusya",
           "intent": "?",
-          "target": "tavern:bar_west"
+          "target": "tavern:kitchen_bed_2"
         },
         {
-          "tick": 3,
+          "tick": 2,
           "npc_id": "blacksmith_orm",
           "intent": "?",
-          "target": "tavern:bar_west"
+          "target": "tavern:kitchen_bed_2"
         },
         {
-          "tick": 3,
+          "tick": 2,
           "npc_id": "tavern_keeper_tornin",
           "intent": "?",
-          "target": "tavern:fireplace"
+          "target": "tavern:kitchen_bed_2"
         }
       ],
       "scene_changes": [],
       "errors": [],
       "npc_positions": {
-        "maid_lusya": "{'x': 35.94484490740739, 'y': 7.510315586419761, 'z': 0.0}",
-        "blacksmith_orm": "{'x': 32.86666666666665, 'y': 10.018000000000008, 'z': 0.0}",
-        "tavern_keeper_tornin": "{'x': 32.53333333333332, 'y': 7.768000000000008, 'z': 0.0}",
-        "merchant_goran": "{'x': 31.53333333333332, 'y': 10.518000000000008, 'z': 0.0}",
-        "guard_borko": "{'x': 40.33733333333332, 'y': 8.472564814814822, 'z': 0.0}",
-        "thief_shadow": "{'x': 34.865245306069944, 'y': 17.034591049382726, 'z': 0.0}",
-        "player": "{'x': 33.239764664290234, 'y': 15.183648057033853}"
+        "maid_lusya": "{'x': 57.981656481481465, 'y': 11.886501543209883}",
+        "blacksmith_orm": "{'x': 60.566633333333314, 'y': 14.036000000000008}",
+        "tavern_keeper_tornin": "{'x': 54.56663333333332, 'y': 12.536000000000007}",
+        "merchant_goran": "{'x': 60.16663333333332, 'y': 16.136000000000006}",
+        "guard_borko": "{'x': 66.76663333333332, 'y': 13.811000000000007}",
+        "thief_shadow": "{'x': 61.566633333333314, 'y': 21.03600000000001}",
+        "player": "{'x': 58.27306466429023, 'y': 20.201648057033854}"
+      }
+    },
+    {
+      "tick_id": 3,
+      "game_time": 43230,
+      "recent_dialogues": [
+        {
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "maid_lusya",
+          "target_id": "blacksmith_orm",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> blacksmith_orm: безопасность",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "merchant_goran",
+          "target_id": "blacksmith_orm",
+          "text": "Говорят, на севере началась война.",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
+          "timestamp": 43210,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "maid_lusya",
+          "target_id": "guard_borko",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> guard_borko: безопасность",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "blacksmith_orm",
+          "target_id": "tavern_keeper_tornin",
+          "text": "Приехал торговец из далёких земель. Говорит, у них женщины ходят в открытую. Мы спросили: 'В смысле?' Он сказал: 'Без чадры'. Мы сказали: 'И всё?' Он удивился.",
+          "timestamp": 43220,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "guard_borko",
+          "target_id": "maid_lusya",
+          "text": "[Intent.SPREAD_RUMOR] guard_borko -> maid_lusya: власть",
+          "timestamp": 43230,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "maid_lusya",
+          "target_id": "guard_borko",
+          "text": "[Intent.SPREAD_RUMOR] maid_lusya -> guard_borko: безопасность",
+          "timestamp": 43230,
+          "thread_id": "",
+          "intent": ""
+        },
+        {
+          "speaker_id": "tavern_keeper_tornin",
+          "target_id": "merchant_goran",
+          "text": "[Intent.SPREAD_RUMOR] tavern_keeper_tornin -> merchant_goran: власть",
+          "timestamp": 43230,
+          "thread_id": "",
+          "intent": ""
+        }
+      ],
+      "movement_intents": [
+        {
+          "tick": 3,
+          "npc_id": "guard_borko",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 3,
+          "npc_id": "merchant_goran",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 3,
+          "npc_id": "maid_lusya",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 3,
+          "npc_id": "blacksmith_orm",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        },
+        {
+          "tick": 3,
+          "npc_id": "tavern_keeper_tornin",
+          "intent": "?",
+          "target": "tavern:kitchen_bed_2"
+        }
+      ],
+      "scene_changes": [],
+      "errors": [],
+      "npc_positions": {
+        "maid_lusya": "{'x': 57.981656481481465, 'y': 11.886501543209883}",
+        "blacksmith_orm": "{'x': 60.566633333333314, 'y': 14.036000000000008}",
+        "tavern_keeper_tornin": "{'x': 54.56663333333332, 'y': 12.536000000000007}",
+        "merchant_goran": "{'x': 60.16663333333332, 'y': 16.136000000000006}",
+        "guard_borko": "{'x': 66.76663333333332, 'y': 13.811000000000007}",
+        "thief_shadow": "{'x': 61.566633333333314, 'y': 21.03600000000001}",
+        "player": "{'x': 58.27306466429023, 'y': 20.201648057033854}"
       }
     }
   ],
@@ -500,6 +576,6 @@
       }
     }
   },
-  "elapsed_seconds": 0.34,
+  "elapsed_seconds": 0.36,
   "errors": []
 }
