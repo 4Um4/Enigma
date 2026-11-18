@@ -594,7 +594,7 @@ def publish_classified_player_event(
             logger.error(f"[SEMANTIC_BRIDGE] Legacy dict parameters detected: {_params}")
 
         _original_intent = shared_context.intent_resolution.original_intent
-        _target_id = _original_intent.target
+        _target_id = getattr(_original_intent, "target", None)
         if not _semantic_action:
             logger.debug("[SEMANTIC_BRIDGE] No semantic_action in DTO")
         else:
