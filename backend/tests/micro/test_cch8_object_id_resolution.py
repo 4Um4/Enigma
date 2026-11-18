@@ -155,7 +155,7 @@ def test_decompose_fragment_sets_object_id_on_exact_match(monkeypatch):
     _fake_result = DecomposeResult.success(_fake_items, age_anchors=[])
 
     class _FakeDecomposer:
-        async def decompose(self, chronicle_id, fragment_ord, fragment):
+        async def decompose(self, chronicle_id, fragment_ord, fragment, **kwargs):
             return _fake_result
 
     monkeypatch.setattr(routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer())
@@ -219,7 +219,7 @@ def test_decompose_fragment_no_object_id_on_partial_match(monkeypatch):
 
     real_decomposer = BiographyDecomposer()
 
-    async def _fake_decompose(self, chronicle_id, fragment_ord, fragment):
+    async def _fake_decompose(self, chronicle_id, fragment_ord, fragment, **kwargs):
         items = ChronicleDecompositionNormalizer.normalize(
             {
                 "items": [

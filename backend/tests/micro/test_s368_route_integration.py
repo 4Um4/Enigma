@@ -34,7 +34,7 @@ class _MockDecomposer:
         self._items = items
         self._anchors = anchors
 
-    async def decompose(self, npc_id: str, fragment_ord: int, fragment: str) -> DecomposeResult:
+    async def decompose(self, npc_id: str, fragment_ord: int, fragment: str, **kwargs) -> DecomposeResult:
         return DecomposeResult.success(self._items, self._anchors)
 
 
@@ -102,6 +102,7 @@ def test_route_fallback_full_path_to_chronicle_entry(monkeypatch, tmp_path):
         npc_id="maid_lusya",
         fragment_ord=0,
         fragment="В 8 лет Люся осталась без родителей.",
+        author_text_full="В 8 лет Люся осталась без родителей.",
     )
     result = asyncio.run(rc.decompose_fragment("test_campaign", "maid_lusya", req))
 
