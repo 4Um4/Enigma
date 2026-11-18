@@ -59,8 +59,8 @@ def test_spread_rumor_returns_none_if_no_trusted_candidates():
     assert target is None, f"Ожидался None, получен {target}"
 
 
-def test_spread_rumor_returns_none_if_multiple_trusted_candidates():
-    """Сценарий: Несколько кандидатов с trust > 0 (нет детерминированного ранжирования)."""
+def test_spread_rumor_tie_breaks_by_npc_id_when_equal_trust():
+    """A21.2: Равный trust у npc_A и npc_C -> детерминированный tie-break по npc_id (ascending) -> npc_A."""
     hub = DecisionHub()
     state = MagicMock()
     state.npc_id = "npc_B"
@@ -82,7 +82,7 @@ def test_spread_rumor_returns_none_if_multiple_trusted_candidates():
         intent="spread_rumor", event=MagicMock(), state=state, spatial_query=spatial_query, all_npc_ids=all_npcs
     )
 
-    assert target is not None, "A21.2: должен выбрать кандидата с максимальным trust"
+    assert target == "npc_A", f"A21.2: равный trust -> tie-break по npc_id -> npc_A, получен {target}"
 
 
 def test_spread_rumor_excludes_self_and_out_of_range():
@@ -125,3 +125,27 @@ def test_spread_rumor_handles_spatial_query_error_gracefully():
     )
 
     assert target is None, f"Ожидался None при ошибке spatial, получен {target}"
+
+
+def test_spread_rumor_selects_highest_trust_when_unequal():
+    """A21.2: Неравный trust -> выбирается кандидат с максимальным trust (npc_C=50 > npc_A=20)."""
+    hub = DecisionHub()
+    state = MagicMock()
+    state.npc_id = "npc_B"
+
+    spatial_query = MagicMock()
+    spatial_query.distance = MagicMock(return_value=5.0)
+
+    def mock_rel(s, t, attr):
+        if attr == "trust":
+            return {"npc_A": 20.0, "npc_C": 50.0}.get(t, 0.0)
+        return 0.0
+
+    hub._get_rel_value = MagicMock(side_effect=mock_rel)
+    all_npcs = ["npc_A", "npc_B", "npc_C"]
+
+    target = hub._resolve_target(
+        intent="spread_rumor", event=MagicMock(), state=state, spatial_query=spatial_query, all_npc_ids=all_npcs
+    )
+
+    assert target == "npc_C", f"A21.2: должен выбрать npc_C (trust=50 > 20), получен {target}"

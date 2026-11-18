@@ -125,12 +125,22 @@ def test_self_claim_yields_talk_modifier_only():
     assert "attack" not in mods
 
 
-def test_third_party_claim_yields_no_talk_modifier():
+def test_third_party_claim_decoupled_from_self_channel():
+    """GC-RELEVANCE-01 core: third-party клейм НЕ попадает в self-канал.
+
+    A21.2: STOLE добавлен в REPORT_PREDICATES -> report-канал теперь даёт
+    spread_rumor/talk для третьего лица (одобренное расширение). Но
+    self-relevance канал (claims_about_self) остаётся пустым — развязка жива.
+    """
     ctx = _resolve_for([_make_claim("thief_shadow")])
     mods = EpistemicContextResolver.to_modifiers(ctx)
-    # A21.2: STOLE теперь в REPORT_PREDICATES → report-канал даёт talk boost
-    assert "spread_rumor" in mods, "A21.2: third-party STOLE должен триггерить spread_rumor"
-    assert "warn" in mods and "attack" in mods  # легаси S198 жив
+    # Core GC-RELEVANCE-01: third-party НЕ течёт в self-канал
+    assert ctx.claims_about_self == ()
+    assert ctx.max_self_confidence == 0.0
+    # Легаси threat-канал нетронут (S198)
+    assert "warn" in mods and "attack" in mods
+    # A21.2: report-канал теперь срабатывает для third-party STOLE
+    assert "spread_rumor" in mods
 
 
 def test_empty_context_neutral():
