@@ -168,7 +168,7 @@ def main() -> int:
         wid = w.get("id", "?")
         try:
             x1, y1, x2, y2 = float(w["x1"]), float(w["y1"]), float(w["x2"]), float(w["y2"])
-        except KeyError, TypeError, ValueError:
+        except (KeyError, TypeError, ValueError):
             continue
         if _approx_eq(x1, x2):
             orient = "vertical"

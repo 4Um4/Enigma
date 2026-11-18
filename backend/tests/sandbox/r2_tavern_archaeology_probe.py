@@ -369,7 +369,7 @@ def _find_door_wall_bindings(data: Any) -> List[Dict[str, Any]]:
                                 }
                             )
                             break
-                    except TypeError, ValueError, KeyError:
+                    except (TypeError, ValueError, KeyError):
                         continue
             except (TypeError, ValueError):
                 pass

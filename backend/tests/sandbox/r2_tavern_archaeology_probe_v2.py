@@ -394,7 +394,7 @@ def main() -> int:
                             try:
                                 wx1, wy1 = float(w["x1"]), float(w["y1"])
                                 wx2, wy2 = float(w["x2"]), float(w["y2"])
-                            except KeyError, TypeError, ValueError:
+                            except (KeyError, TypeError, ValueError):
                                 continue
                             on_wall = False
                             if _approx_equal(wx1, wx2):  # vertical
