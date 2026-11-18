@@ -1,0 +1,11 @@
+# Назначение: декларация ProcessSource (ТЗ Отчёт №6 §2.1; ADR-O-445; Спринт 2A).
+# Схема 1:1 = app/models/world/process.py::ProcessSource. Каталог открыт:
+# новый источник = новый YAML-файл, без правок кода. requires_provider_state —
+# условия ПОСТАВЩИКА, проверяются отдельно от requires_world_state процесса
+# (решение Мастера по 2A); привязка к живому миру — Спринт 2B.
+
+source_id: fire_hazard
+source_kind: environment
+available_processes:
+  - fire_destroys_storage
+requires_provider_state: []
