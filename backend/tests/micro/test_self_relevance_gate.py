@@ -128,7 +128,8 @@ def test_self_claim_yields_talk_modifier_only():
 def test_third_party_claim_yields_no_talk_modifier():
     ctx = _resolve_for([_make_claim("thief_shadow")])
     mods = EpistemicContextResolver.to_modifiers(ctx)
-    assert "talk" not in mods
+    # A21.2: STOLE теперь в REPORT_PREDICATES → report-канал даёт talk boost
+    assert "spread_rumor" in mods, "A21.2: third-party STOLE должен триггерить spread_rumor"
     assert "warn" in mods and "attack" in mods  # легаси S198 жив
 
 

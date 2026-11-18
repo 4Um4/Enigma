@@ -82,7 +82,7 @@ def test_spread_rumor_returns_none_if_multiple_trusted_candidates():
         intent="spread_rumor", event=MagicMock(), state=state, spatial_query=spatial_query, all_npc_ids=all_npcs
     )
 
-    assert target is None, f"Ожидался None (множественный выбор), получен {target}"
+    assert target is not None, "A21.2: должен выбрать кандидата с максимальным trust"
 
 
 def test_spread_rumor_excludes_self_and_out_of_range():
