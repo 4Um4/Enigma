@@ -144,7 +144,7 @@ def _install_decomposer(monkeypatch: pytest.MonkeyPatch, question=None) -> None:
     """question=None → exact match (no question); question=ClarificationQuestion → non-match."""
 
     class _FakeDecomposer:
-        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
+        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str, **kwargs):
             payload = {
                 "summary": "хороший друг",
                 "target_hint": "Торнин",

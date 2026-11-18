@@ -15,6 +15,7 @@ from tools.constants import (
 from core.commands import (
     MirrorObjectCommand,
     MoveEntityCommand,
+    MultiMoveCommand,
     ResizeObjectCommand,
     RotateObjectCommand,
 )
@@ -246,10 +247,30 @@ class EventHandler:
                     etype, eid = core.selected_object
                     orig = core._get_drag_orig(etype, eid)
                     if orig:
+                        # Сохраняем orig для всех выделенных объектов (для группового перемещения)
+                        group_origs = {}
+                        if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                            _sel_set = set(core.selected_objects)
+                            for sel_type, sel_id in core.selected_objects:
+                                sel_orig = core._get_drag_orig(sel_type, sel_id)
+                                if not sel_orig:
+                                    continue
+                                if (
+                                    sel_type == "object"
+                                    and sel_orig.get("wall_id")
+                                    and ("wall", sel_orig["wall_id"]) in _sel_set
+                                ):
+                                    sel_orig = dict(sel_orig)
+                                    sel_orig.pop("wall_id", None)
+                                    for _k in ("wx1", "wy1", "wx2", "wy2"):
+                                        sel_orig.pop(_k, None)
+                                group_origs[(sel_type, sel_id)] = sel_orig
+                        
                         core._dragging_entity = {
                             "start_mx": mx,
                             "start_my": my,
                             "orig": orig,
+                            "group_origs": group_origs,
                         }
                     return
 
@@ -452,20 +473,36 @@ class EventHandler:
                     scale = 1.0 / (SCALE * core.zoom)
                     dx_world = round(total_dx * scale, 2)
                     dy_world = round(total_dy * scale, 2)
+                    
                     if abs(dx_world) > 0.01 or abs(dy_world) > 0.01:
-                        etype, eid = core.selected_object
-                        drag_wall = etype == "object" and bool(core._dragging_entity["orig"].get("wall_id"))
-                        cmd = MoveEntityCommand(
-                            core.dm,
-                            core.current_file,
-                            etype,
-                            eid,
-                            dx_world,
-                            dy_world,
-                            drag_wall,
-                        )
-                        cmd._skip_do = True
-                        core.undo.push(cmd)
+                        _group_origs = core._dragging_entity.get("group_origs", {})
+                        if len(core.selected_objects) > 1 and _group_origs:
+                            # Групповое перемещение (Shift+drag)
+                            move_commands = []
+                            for etype, eid in core.selected_objects:
+                                orig = _group_origs.get((etype, eid))
+                                if orig:
+                                    drag_wall = etype == "object" and bool(orig.get("wall_id"))
+                                    cmd = MoveEntityCommand(
+                                        core.dm, core.current_file, etype, eid, dx_world, dy_world, drag_wall
+                                    )
+                                    cmd._skip_do = True
+                                    move_commands.append(cmd)
+                            
+                            if move_commands:
+                                multi_cmd = MultiMoveCommand(core.dm, core.current_file, move_commands)
+                                multi_cmd._skip_do = True
+                                core.undo.push(multi_cmd)
+                        else:
+                            # Одиночное перемещение
+                            etype, eid = core.selected_object
+                            drag_wall = etype == "object" and bool(core._dragging_entity["orig"].get("wall_id"))
+                            cmd = MoveEntityCommand(
+                                core.dm, core.current_file, etype, eid, dx_world, dy_world, drag_wall
+                            )
+                            cmd._skip_do = True
+                            core.undo.push(cmd)
+                            
                     core._dragging_entity = None
                 else:
                     core._handle_left_release(mx, my, world_x, world_y, grid_x, grid_y)
@@ -473,6 +510,8 @@ class EventHandler:
                 core.dragging_camera = False
 
         elif event.type == pygame.MOUSEMOTION:
+            if core.rubber_band_start:
+                core.rubber_band_current = (world_x, world_y)
             if core._dragging_entity and core.selected_object is not None:
                 mx_now, my_now = event.pos
                 total_dx = mx_now - core._dragging_entity["start_mx"]
@@ -480,9 +519,19 @@ class EventHandler:
                 scale = 1.0 / (SCALE * core.zoom)
                 dx_world = total_dx * scale
                 dy_world = total_dy * scale
-                if core.selected_object is not None:
-                    etype, eid = core.selected_object
-                    core._apply_drag(etype, eid, core._dragging_entity["orig"], dx_world, dy_world)
+                
+                # Групповое перемещение всех выделенных объектов
+                group_origs = core._dragging_entity.get("group_origs", {})
+                if len(core.selected_objects) > 1 and group_origs:
+                    for sel_type, sel_id in core.selected_objects:
+                        orig = group_origs.get((sel_type, sel_id))
+                        if orig:
+                            core._apply_drag(sel_type, sel_id, orig, dx_world, dy_world)
+                else:
+                    # Одиночное перемещение
+                    if core.selected_object is not None:
+                        etype, eid = core.selected_object
+                        core._apply_drag(etype, eid, core._dragging_entity["orig"], dx_world, dy_world)
             elif core._resizing:
                 obj = next(
                     (

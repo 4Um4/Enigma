@@ -123,6 +123,11 @@ class EditorCore:
         self.clipboard = {"walls": [], "objects": [], "origin": (0.0, 0.0)}
         self.current_z: int = 0
 
+        # ME-2.5: Rubber band selection (выделение прямоугольником)
+        self.selected_objects: List[Tuple[str, Any]] = []  # Список всех выделенных сущностей
+        self.rubber_band_start: Optional[Tuple[float, float]] = None  # Мировые координаты начала
+        self.rubber_band_current: Optional[Tuple[float, float]] = None  # Мировые координаты текущие
+
         # Состояние
         self.mode = MODE_WORLD
         self.current_file: Optional[str] = None
@@ -1536,10 +1541,37 @@ class EditorCore:
         self.dialog = ModalDialog(self.screen, "Переименовать", fields, on_confirm)
 
     def _handle_left_click(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
-        self.interaction_manager.handle_left_click(self, mx, my, wx, wy, gx, gy)
+        # Сначала пробуем выделить существующий объект
+        was_selected = self.interaction_manager.try_select_existing(self, mx, my)
+        
+        # Если кликнули по комнате или по пустому месту — стартуем рамку выделения
+        # (комнату не сбрасываем, чтобы можно было добавить объекты к выделению)
+        is_real_object = was_selected and self.selected_object and self.selected_object[0] != "room"
+        
+        if is_real_object:
+            # Клик по реальному объекту (NPC, стена, узел, объект, спавн) — сбрасываем рамку
+            self.rubber_band_start = None
+            self.rubber_band_current = None
+        else:
+            # Клик по пустому месту или по комнате — стартуем рамку
+            import pygame
+            mods = pygame.key.get_mods()
+            if not (mods & pygame.KMOD_SHIFT):
+                self.selected_objects = []
+                if not was_selected:
+                    self.selected_object = None
+            self.rubber_band_start = (wx, wy)
+            self.rubber_band_current = (wx, wy)
 
     def _handle_left_release(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
-        self.interaction_manager.handle_left_release(self, mx, my, wx, wy, gx, gy)
+        if self.rubber_band_start:
+            # Завершаем выделение прямоугольником
+            self._finalize_rubber_band_selection(mx, my)
+            self.rubber_band_start = None
+            self.rubber_band_current = None
+        else:
+            # Стандартная обработка отпускания (для drag и т.д.)
+            self.interaction_manager.handle_left_release(self, mx, my, wx, wy, gx, gy)
 
     def _try_auto_room(self, last_wall_id: str) -> None:
         self.interaction_manager.try_auto_room(self, last_wall_id)
@@ -1568,6 +1600,77 @@ class EditorCore:
     ) -> bool:
         """Стандартный алгоритм проверки пересечения отрезков (CCW)."""
         return Geometry.segments_intersect(x1, y1, x2, y2, x3, y3, x4, y4)
+
+    def _finalize_rubber_band_selection(self, mx: int, my: int) -> None:
+        """Собирает все сущности, попавшие в прямоугольник выделения"""
+        if not self.current_file or not self.rubber_band_start or not self.rubber_band_current:
+            return
+        
+        sx1, sy1 = self.world_to_screen(self.rubber_band_start[0], self.rubber_band_start[1])
+        sx2, sy2 = self.world_to_screen(self.rubber_band_current[0], self.rubber_band_current[1])
+        rect = pygame.Rect(min(sx1, sx2), min(sy1, sy2), abs(sx2 - sx1), abs(sy2 - sy1))
+        
+        if rect.width < 5 and rect.height < 5:
+            return
+        
+        loc = self.dm.locations[self.current_file]
+        new_selections = []
+        
+        for npc in loc.get("npcs", []):
+            sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
+            if rect.collidepoint(sx, sy):
+                new_selections.append(("npc", npc["ref_id"]))
+        
+        for obj in loc.get("objects", []):
+            pos = obj.get("position", {})
+            sx, sy = self.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
+            if rect.collidepoint(sx, sy):
+                new_selections.append(("object", obj.get("id", "")))
+        
+        for nid, ndata in loc.get("nodes", {}).items():
+            sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
+            if rect.collidepoint(sx, sy):
+                new_selections.append(("node", nid))
+        
+        for wall in loc.get("walls", []):
+            # Проверяем оба конца стены и середину
+            sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
+            sx2, sy2 = self.world_to_screen(wall["x2"], wall["y2"])
+            sx_mid, sy_mid = self.world_to_screen((wall["x1"] + wall["x2"]) / 2.0, (wall["y1"] + wall["y2"]) / 2.0)
+            if rect.collidepoint(sx1, sy1) or rect.collidepoint(sx2, sy2) or rect.collidepoint(sx_mid, sy_mid):
+                new_selections.append(("wall", wall["id"]))
+        
+        # Точка спавна игрока
+        spawn = loc.get("player_spawn")
+        if spawn:
+            sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
+            if rect.collidepoint(sx, sy):
+                new_selections.append(("spawn", "player_spawn"))
+        
+        # Комнаты (проверяем центр)
+        for room in loc.get("rooms", []):
+            rx = room.get("x", 0.0)
+            ry = room.get("y", 0.0)
+            rw = room.get("width", 1.0)
+            rh = room.get("height", 1.0)
+            center_x = rx + rw / 2.0
+            center_y = ry + rh / 2.0
+            sx, sy = self.world_to_screen(center_x, center_y)
+            if rect.collidepoint(sx, sy):
+                new_selections.append(("room", room["id"]))
+        
+        mods = pygame.key.get_mods()
+        if mods & pygame.KMOD_SHIFT:
+            for item in new_selections:
+                if item not in self.selected_objects:
+                    self.selected_objects.append(item)
+        else:
+            self.selected_objects = new_selections
+        
+        if self.selected_objects:
+            self.selected_object = self.selected_objects[0]
+        else:
+            self.selected_object = None
 
     def _try_select_existing(self, mx: int, my: int) -> bool:
         return self.interaction_manager.try_select_existing(self, mx, my)

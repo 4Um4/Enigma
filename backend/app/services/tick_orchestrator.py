@@ -2096,21 +2096,54 @@ class TickOrchestrator:
 
             topic = None
 
+            # NPC_SPEECH_SILENCE_ROOT_CAUSE ROOT FIX v2: PLAYER_SPOKE → response_targets.
+            # v1 проверял str.upper()=="PLAYER_SPOKE" — никогда не матчило, т.к.
+            # hub_event.event_type это DM-classify output ("player_interacts",
+            # "dialogue", "player_spoke"), не EventType.PLAYER_SPOKE enum value.
+            # Фактический контракт (из _ensure_direct_player_reply npc_tick_pipeline.py:130):
+            # hub_event.event_type ∈ {"player_interacts", "player_spoke", "dialogue"}
+            # + payload.semantic_action == "DIALOGUE" + target_id == npc_id.
+            # v2: матчем на DM-classify string + semantic_action, не на enum.
+            _hub_evt = getattr(ctx, "hub_event", None)
+            if _hub_evt is not None:
+                _hub_evt_type = getattr(_hub_evt, "event_type", "")
+                _hub_evt_type = getattr(_hub_evt_type, "value", _hub_evt_type)
+                _hub_evt_type_str = str(_hub_evt_type).lower()
+                if _hub_evt_type_str in ("player_interacts", "player_spoke", "dialogue"):
+                    _hub_payload = getattr(_hub_evt, "payload", {}) or {}
+                    _semantic_action = ""
+                    if isinstance(_hub_payload, dict):
+                        _semantic_action = str(_hub_payload.get("semantic_action") or "").upper()
+                    _hub_target = getattr(_hub_evt, "target_id", None)
+                    if _hub_target is None and isinstance(_hub_payload, dict):
+                        _hub_target = _hub_payload.get("target_id")
+                    # DIALOGUE + target NPC → populate response_targets для Bridge 7
+                    if _semantic_action == "DIALOGUE" and _hub_target == npc_id:
+                        _raw_input = getattr(ctx, "raw_input", "") or ""
+                        _reply_topic = (
+                            f"ответить: {_raw_input.strip()[:200]}"
+                            if _raw_input.strip()
+                            else "ответить"
+                        )
+                        ctx.response_targets[npc_id] = "player"
+                        topic = _reply_topic
+
             # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
             # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".
-            _recent_dialogues = []
-            if ctx.task_scheduler:
-                _recent_dialogues = ctx.task_scheduler.get_recent_dialogues(
-                    ctx.scene_state.get("game_time_seconds", 0.0)
-                )
-            for dialogue in _recent_dialogues:
-                if dialogue.get("target_id") == npc_id:
-                    _speaker = dialogue.get("speaker_id", "кто-то")
-                    _text = dialogue.get("text", "")
-                    # S129: Тема содержит только семантику. Адресат передаётся структурно.
-                    topic = f"ответить: {_text}"
-                    ctx.response_targets[npc_id] = _speaker
-                    break
+            if not topic:
+                _recent_dialogues = []
+                if ctx.task_scheduler:
+                    _recent_dialogues = ctx.task_scheduler.get_recent_dialogues(
+                        ctx.scene_state.get("game_time_seconds", 0.0)
+                    )
+                for dialogue in _recent_dialogues:
+                    if dialogue.get("target_id") == npc_id:
+                        _speaker = dialogue.get("speaker_id", "кто-то")
+                        _text = dialogue.get("text", "")
+                        # S129: Тема содержит только семантику. Адресат передаётся структурно.
+                        topic = f"ответить: {_text}"
+                        ctx.response_targets[npc_id] = _speaker
+                        break
 
             # 1. Проверяем spatial events затронувшие этого NPC
             if not topic:

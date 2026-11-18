@@ -551,10 +551,79 @@ class MapRenderer:
 
     def _draw_selection(self, core):
         """Отрисовывает выделение объекта"""
-        if not core.current_file or not core.selected_object:
+        if not core.current_file:
+            return
+        loc = core.dm.locations[core.current_file]
+
+        # 1. Отрисовка прямоугольника выделения (Rubber Band) — ДО проверки selected_object
+        if core.rubber_band_start and core.rubber_band_current:
+            sx1, sy1 = self._world_to_screen(core, core.rubber_band_start[0], core.rubber_band_start[1])
+            sx2, sy2 = self._world_to_screen(core, core.rubber_band_current[0], core.rubber_band_current[1])
+            rect = pygame.Rect(min(sx1, sx2), min(sy1, sy2), abs(sx2 - sx1), abs(sy2 - sy1))
+            
+            if rect.width > 0 and rect.height > 0:
+                # Полупрозрачная заливка
+                s = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+                s.fill((100, 150, 255, 60))
+                core.screen.blit(s, rect.topleft)
+                # Рамка
+                pygame.draw.rect(core.screen, COLORS["accent_yellow"], rect, 2)
+
+        if not core.selected_object:
             return
         obj_type, obj_key = core.selected_object
-        loc = core.dm.locations[core.current_file]
+
+        # 2. Отрисовка всех элементов из множественного выделения
+        for sel_type, sel_key in core.selected_objects:
+            if sel_type == "wall":
+                _w = next((w for w in loc.get("walls", []) if w.get("id") == sel_key), None)
+                if _w:
+                    _x1, _y1 = self._world_to_screen(core, _w["x1"], _w["y1"])
+                    _x2, _y2 = self._world_to_screen(core, _w["x2"], _w["y2"])
+                    pygame.draw.line(core.screen, (0, 255, 0), (_x1, _y1), (_x2, _y2), 5)
+            elif sel_type == "node":
+                _n = loc.get("nodes", {}).get(sel_key)
+                if _n:
+                    _sx, _sy = self._world_to_screen(core, _n["x"], _n["y"])
+                    pygame.draw.circle(core.screen, (0, 255, 0), (_sx, _sy), 11, 2)
+            elif sel_type == "spawn":
+                _sp = loc.get("player_spawn")
+                if _sp:
+                    _sx, _sy = self._world_to_screen(core, _sp["x"], _sp["y"])
+                    pygame.draw.circle(core.screen, (0, 255, 0), (_sx, _sy), 14, 2)
+            elif sel_type == "room":
+                _r = next((r for r in loc.get("rooms", []) if r.get("id") == sel_key), None)
+                if _r:
+                    _poly = _r.get("polygon")
+                    if _poly and len(_poly) >= 3:
+                        _pts = [self._world_to_screen(core, p[0], p[1]) for p in _poly]
+                        pygame.draw.polygon(core.screen, (0, 255, 0), _pts, 2)
+                    else:
+                        _sx, _sy = self._world_to_screen(core, _r["x"], _r["y"])
+                        _rw = _r["width"] * SCALE * core.zoom
+                        _rh = _r["height"] * SCALE * core.zoom
+                        pygame.draw.rect(core.screen, (0, 255, 0), (_sx - 2, _sy - 2, _rw + 4, _rh + 4), 2)
+            elif sel_type == "label":
+                _l = next((lbl for lbl in loc.get("labels", []) if lbl.get("id") == sel_key), None)
+                if _l:
+                    _sx, _sy = self._world_to_screen(core, _l["x"], _l["y"])
+                    pygame.draw.rect(core.screen, (0, 255, 0), (_sx - 4, _sy - 12, 60, 18), 2)
+            # Пропускаем основной, если он уже отрисовывается стандартной логикой ниже,
+            # но для простоты нарисуем поверх тонкой зеленой рамкой для всех
+            if sel_type == "npc":
+                npc = next((n for n in loc.get("npcs", []) if n.get("ref_id") == sel_key), None)
+                if npc:
+                    sx, sy = self._world_to_screen(core, npc["position"]["x"], npc["position"]["y"])
+                    hit_r = int(SCALE * core.zoom * 0.4)
+                    pygame.draw.rect(core.screen, (0, 255, 0), (sx - hit_r - 2, sy - hit_r - 2, hit_r * 2 + 4, hit_r * 2 + 4), 2)
+            elif sel_type == "object":
+                obj = next((o for o in loc.get("objects", []) if o.get("id") == sel_key), None)
+                if obj:
+                    sx, sy = self._world_to_screen(core, obj["position"]["x"], obj["position"]["y"])
+                    w = obj["size"]["w"] * SCALE * core.zoom
+                    h = obj["size"]["h"] * SCALE * core.zoom
+                    pygame.draw.rect(core.screen, (0, 255, 0), (sx - w/2 - 2, sy - h/2 - 2, w + 4, h + 4), 2)
+
 
         if obj_type == "object":
             obj = next((o for o in loc.get("objects", []) if o.get("id") == obj_key), None)

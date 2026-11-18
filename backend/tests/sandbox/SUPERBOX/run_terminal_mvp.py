@@ -66,6 +66,22 @@ LOCATION_ID = "tavern"
 WORLD_ID = "default"
 MAX_TURNS = 20
 
+# SUPERBOX production-parity: player_spawn из tavern.json (S1).
+# Прежний хардкод (6.5, 5.5) — тестовая позиция, далеко от NPC.
+# tavern.json: player_spawn = (58.27, 20.20), NPCs в радиусе 5-12.
+# Без этого DM validator отклоняет dialogue («NPC не видит игрока», dist 50+).
+import json as _json
+
+_TAVERN_PATH = _ROOT_DIR / "frontend" / "map_editor" / "campaigns" / CAMPAIGN_ID / "locations" / "tavern.json"
+_PLAYER_SPAWN: tuple[float, float] = (6.5, 5.5)  # fallback
+try:
+    _tavern_data = _json.loads(_TAVERN_PATH.read_text(encoding="utf-8-sig"))
+    _spawn = _tavern_data.get("player_spawn") or {}
+    if _spawn.get("x") is not None and _spawn.get("y") is not None:
+        _PLAYER_SPAWN = (float(_spawn["x"]), float(_spawn["y"]))
+except (OSError, _json.JSONDecodeError) as _e:
+    print(f"⚠️ player_spawn не загружен из tavern.json: {_e}. Fallback=(6.5, 5.5)")
+
 
 async def main():
     print("🚀 Инициализация ядра симуляции ENIGMA...")
@@ -87,7 +103,10 @@ async def main():
     _prev_beliefs: list = []
     _prev_journal_len: int = 0
 
-    _current_player_pos: tuple[float, float] = (6.5, 5.5)  # x, y
+    # S1: player_spawn из tavern.json (модуль-уровень _PLAYER_SPAWN).
+    # Прежний хардкод (6.5, 5.5) — далеко от NPC, DM validator отклонял диалоги.
+    _current_player_pos: tuple[float, float] = _PLAYER_SPAWN
+    print(f"[SPAWN] player_position={_current_player_pos} (из tavern.json)")
 
     turn = 0
     while turn < MAX_TURNS:
@@ -105,9 +124,12 @@ async def main():
             # поэтому сначала запустим тик с текущей позицией, а затем обновим её.
             pass
 
-        # Создаём действие игрока
+        # S5: player_name — production-parity. Прежний хардкод "ВВорг" —
+        # не совпадает с avatar в saves (из лога: "имя не совпадает: None != ВВорг"
+        # или "имя не совпадает: ВВорг != Dav12"). Используем стабильное
+        # тестовое имя "Игрок" — avatar создаётся в new_game автоматически.
         action = PlayerAction(
-            player_name="ВВорг",  # Имя игрока
+            player_name="Игрок",  # стабильное тестовое имя
             action=user_input,
         )
 
@@ -124,13 +146,42 @@ async def main():
             # Выполняем тик
             response = await game_loop.run_turn(req)
 
-            # Выводим ответ DM
+            # S3: NPC speech отдельно от DM narrative.
+            # npc_reactions содержит NPC_SPOKE entries (channel='dialogue'),
+            # которые в production рендерятся как speech bubbles.
+            # DM narrative (channel='narrative', speaker='Рассказчик') — отдельно.
             print("\n🎭 [DM]:", response.dm_response)
 
+            # NPC speech bubbles — отображаем отдельно, как в production frontend
             if response.npc_reactions:
-                print("\n💬 [NPC Реакции]:")
+                print("\n💬 [NPC Реплики]:")
                 for react in response.npc_reactions:
-                    print(f"  - {react}")
+                    # react может быть dict или object — унифицируем
+                    if hasattr(react, "model_dump"):
+                        react = react.model_dump()
+                    if isinstance(react, dict):
+                        _spk = react.get("speaker_id") or react.get("speaker") or react.get("name") or "?"
+                        _txt = react.get("text") or react.get("content") or react.get("line") or ""
+                        _tgt = react.get("target_id") or ""
+                        _ch = react.get("channel") or "dialogue"
+                        if _txt:
+                            _tgt_str = f" → {_tgt}" if _tgt and _tgt != "player" else ""
+                            print(f"  [{_spk}{_tgt_str}] ({_ch}): {_txt}")
+                        else:
+                            print(f"  [{_spk}] (без текста — D1 regression?)")
+                    else:
+                        print(f"  - {react}")
+            else:
+                # S3 diagnostic: если NPC speech нет, но был PLAYER_SPOKE —
+                # указываем, что NPC не ответил (диагност для ROOT FIX проверки)
+                _ws = response.world_snapshot or {}
+                _journal = _ws.get("dialog_journal") or []
+                _has_player_spoke = any(
+                    isinstance(e, dict) and e.get("channel") == "self"
+                    for e in _journal
+                )
+                if _has_player_spoke:
+                    print("\n  (NPC не ответил — PLAYER_SPOKE опубликован, NPC_SPOKE отсутствует)")
 
             # Проверяем координату выхода (Y >= 12.5)
             # В ChatTurnResponse координаты игрока могут лежать в world_snapshot или npc_positions
@@ -156,37 +207,53 @@ async def main():
             elif isinstance(_p_pos, dict):
                 _current_player_pos = (float(_p_pos.get("x", 0.0)), float(_p_pos.get("y", 0.0)))
 
-            # MVP WORKAROUND: Мгновенное перемещение к NPC для теста боя
-            if "ПОДОЙТИ" in user_input.upper():
+            # S4: MVP WORKAROUND — мгновенное перемещение к любому NPC по имени.
+            # Прежний код поддерживал только "люся" (maid_lusya). Теперь: при
+            # команде "подойти к <имя>" ищем NPC по подстроке имени в user_input
+            # и телепортируемся рядом (offset 0.5 по X — в радиусе hearing 5.0).
+            if "ПОДОЙТИ" in user_input.upper() or "ПОДОЙТИ" in user_input.lower():
                 _snapshot = response.world_snapshot or {}
                 _ws_npcs = _snapshot.get("npc_positions", {})
-                # Конвертируем DTO в dict для безопасного чтения
-                _npc_positions = {}
-                for _k, _v in _ws_npcs.items():
-                    if hasattr(_v, "model_dump"):
-                        _v = _v.model_dump()
-                    elif hasattr(_v, "__dict__"):
-                        _v = _v.__dict__
-                    _npc_positions[_k] = _v
 
-                for _pid, _v in _ws_npcs.items():
-                    if _pid == "player":
-                        continue
-                    # Универсально извлекаем local_position из DTO, dict или dataclass
-                    _npc_pos = getattr(_v, "local_position", None)
-                    if _npc_pos is None and isinstance(_v, dict):
-                        _npc_pos = _v.get("local_position")
-                    elif hasattr(_v, "model_dump"):
-                        _npc_pos = _v.model_dump().get("local_position")
+                # Маппинг русских имён → npc_id (canonical из tavern.json)
+                _NAME_TO_NPC_ID = {
+                    "люся": "maid_lusya",
+                    "лус": "maid_lusya",
+                    "торнин": "tavern_keeper_tornin",
+                    "орм": "blacksmith_orm",
+                    "горан": "merchant_goran",
+                    "борко": "guard_borko",
+                    "тень": "thief_shadow",
+                }
 
-                    if isinstance(_npc_pos, dict):
-                        # MVP FIX: проверяем по ID, так как NPCPositionDTO не хранит name
-                        if "люся" in user_input.lower() and _pid == "maid_lusya":
+                _input_lower = user_input.lower()
+                _target_npc_id = None
+                for _name_fragment, _npc_id in _NAME_TO_NPC_ID.items():
+                    if _name_fragment in _input_lower:
+                        _target_npc_id = _npc_id
+                        break
+
+                if _target_npc_id:
+                    # Извлекаем позицию target NPC из snapshot
+                    for _pid, _v in _ws_npcs.items():
+                        if _pid != _target_npc_id:
+                            continue
+                        _npc_pos = getattr(_v, "local_position", None)
+                        if _npc_pos is None and isinstance(_v, dict):
+                            _npc_pos = _v.get("local_position")
+                        elif hasattr(_v, "model_dump"):
+                            _npc_pos = _v.model_dump().get("local_position")
+                        if isinstance(_npc_pos, dict):
                             _nx = float(_npc_pos.get("x", 0.0)) + 0.5
                             _ny = float(_npc_pos.get("y", 0.0))
                             _current_player_pos = (_nx, _ny)
-                            print(f"\n[DEBUG] MVP Workaround: Игрок телепортирован к {_pid} ({_current_player_pos})")
-                            break
+                            print(f"\n[TELEPORT] Игрок → {_target_npc_id} ({_current_player_pos})")
+                        break
+                    else:
+                        print(f"\n[TELEPORT] NPC '{_target_npc_id}' не найден в snapshot")
+                else:
+                    print(f"\n[TELEPORT] Имя NPC не распознано в: '{user_input}'")
+                    print("  Доступные: люся, торнин, орм, горан, борко, тень")
 
             # === [UNDERSTANDING] ТРАССА ПОНИМАНИЯ (главный артефакт зонда) ===
             # A=сказано | B=понято | C=сделано | D=рассказано (renderer, НЕ oracle).
@@ -285,12 +352,10 @@ async def main():
                     print(f"  - {err}")
                 print("-" * 50)
 
-            if player_y >= 12.5:
-                print("\n🚪 Игрок пересёк порог таверны (Y >= 12.5)!")
-                print("Генерация финального отчета...")
-                # Симулируем вызов CausalObserver для генерации LAST_SESSION.md
-                # (В реальности он вызывается при завершении игры)
-                break
+            # S2: порог Y >= 12.5 удалён — player_spawn (58.27, 20.20) уже выше
+            # порога. Прежний testbed constraint — устаревший сценарий "old tavern";
+            # теперь SUPERBOX эмулирует production player position, где Y может быть
+            # любым. Порог убивал сессию на первом же тике.
 
         except Exception as e:
             print(f"\n[ERROR] Ошибка во время тика: {e}")

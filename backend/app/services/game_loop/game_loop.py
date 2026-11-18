@@ -2471,12 +2471,17 @@ class GameLoop:
         # Резолвим авторитетную локацию: metadata.current_location (пишется
         # факт-писателем action-пути). Пустая metadata → легаси-поведение.
         _resume_loc = ""
+        _cs_resume = None
         try:
             from app.services.campaign_state_service import get_campaign_state_service
 
             _cs_resume = get_campaign_state_service().get_campaign_state(campaign_id)
             if _cs_resume is not None:
                 _resume_loc = _cs_resume.metadata.get("current_location", "") or ""
+                # DIAG: Логируем, что нашли в metadata
+                _dbg_wx = _cs_resume.metadata.get("player_world_x")
+                _dbg_wy = _cs_resume.metadata.get("player_world_y")
+                logger.info(f"[SESSION_STATE] campaign metadata: location={_resume_loc!r}, world_x={_dbg_wx}, world_y={_dbg_wy}")
         except Exception as _e:
             logger.warning(f"[SESSION_STATE] current_location lookup failed: {_e}")
         scene = self.scene_manager.get_scene_state(campaign_id, location_id=_resume_loc)
@@ -2484,6 +2489,15 @@ class GameLoop:
         # M16-RESUME: отдаём текущую локацию в metadata (была заглушка).
         # Мёртвые строки после return (layers) удалены — никогда не исполнялись.
         state.metadata = {"current_location": _resume_loc} if _resume_loc else {}
+
+        # S85-FIX: Копируем player_world_x/y из кампании для Spatial Oracle в idle-тике.
+        # Без этого оракул получает None и не может определить локацию игрока при resume.
+        if _cs_resume is not None:
+            _saved_wx = _cs_resume.metadata.get("player_world_x")
+            _saved_wy = _cs_resume.metadata.get("player_world_y")
+            if _saved_wx is not None and _saved_wy is not None:
+                state.metadata["player_world_x"] = _saved_wx
+                state.metadata["player_world_y"] = _saved_wy
 
         return state
 

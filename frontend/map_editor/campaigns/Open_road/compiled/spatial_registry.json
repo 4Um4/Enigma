@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "campaign_id": "Open_road",
+  "compiled_at": "2026-11-18T22:09:34.710979",
+  "chunks": [
+    {
+      "location_id": "city_gate",
+      "filename": "city_gate.json",
+      "origin_x": 45.033333333333324,
+      "origin_y": 0.01800000000000708,
+      "width": 30.0,
+      "height": 20.0,
+      "is_outdoor": true,
+      "label": "Городские ворота",
+      "content_hash": "b93a11e1dd0f31306e469309d2972e9c",
+      "global_coords": true
+    },
+    {
+      "location_id": "market_square",
+      "filename": "market_square.json",
+      "origin_x": 25.033333333333328,
+      "origin_y": 20.018000000000008,
+      "width": 25.0,
+      "height": 25.0,
+      "is_outdoor": true,
+      "label": "Торговая площадь",
+      "content_hash": "23b90121e43df64050a25fc24ed32b70",
+      "global_coords": true
+    },
+    {
+      "location_id": "tavern",
+      "filename": "tavern.json",
+      "origin_x": 25.03333333333332,
+      "origin_y": 5.018000000000007,
+      "width": 20.0,
+      "height": 15.0,
+      "is_outdoor": false,
+      "label": "Таверна Серебряного Волка",
+      "content_hash": "ba532466c52a4a46273d5100890d2b2a",
+      "global_coords": true
+    }
+  ],
+  "adjacency": [
+    {
+      "location_a": "city_gate",
+      "location_b": "market_square",
+      "contact_axis": "y",
+      "contact_coord": 20.02,
+      "overlap_start": 45.03,
+      "overlap_end": 50.03,
+      "connection_type": "contiguous"
+    },
+    {
+      "location_a": "city_gate",
+      "location_b": "tavern",
+      "contact_axis": "x",
+      "contact_coord": 45.03,
+      "overlap_start": 5.02,
+      "overlap_end": 20.02,
+      "connection_type": "contiguous"
+    },
+    {
+      "location_a": "market_square",
+      "location_b": "tavern",
+      "contact_axis": "y",
+      "contact_coord": 20.02,
+      "overlap_start": 25.03,
+      "overlap_end": 45.03,
+      "connection_type": "contiguous"
+    }
+  ],
+  "world_bounds": {
+    "min_x": 25.03,
+    "min_y": 0.02,
+    "max_x": 75.03,
+    "max_y": 45.02
+  }
+}

@@ -44,7 +44,7 @@ def _make_store(tmp_path: Path) -> ChronicleStore:
 
 def _install_decomposer(monkeypatch: pytest.MonkeyPatch) -> None:
     class _FakeDecomposer:
-        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
+        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str, **kwargs):
             from types import SimpleNamespace as NS
 
             return NS(

@@ -61,7 +61,7 @@ def _fake_result(items_count: int) -> SimpleNamespace:
 
 def _install_decomposer(monkeypatch: pytest.MonkeyPatch, items_count: int) -> None:
     class _FakeDecomposer:
-        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str):
+        async def decompose(self, npc_id: str, fragment_ord: int, fragment: str, **kwargs):
             return _fake_result(items_count)
 
     monkeypatch.setattr(routes_chronicle, "_get_decomposer", lambda: _FakeDecomposer())
