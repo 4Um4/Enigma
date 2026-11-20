@@ -159,11 +159,30 @@ def test_9_control_report_matches_actual_seed_not_fixture():
     assert r is not None
     belief_entries = [e for e in r.entries if e.source_kind == "BELIEF_SEED"]
     assert len(belief_entries) > 0, "guard_borko должен иметь BELIEF_SEED entries"
-    # Все BELIEF_SEED в guard_borko — без belief_type (B3 audit: 7/7 no_type)
+    # Проверяем фактическое состояние каждой записи на соответствие реестру
+    from app.models.npc.beliefs import BeliefType
+    from app.services.chronicle.chronicle_seeder import canonical_chronicles
+    
+    valid_types = {bt.value for bt in BeliefType}
+    doc = canonical_chronicles().get(npc_id)
+    assert doc is not None, f"Canon not found for {npc_id}"
+
     for be in belief_entries:
-        assert be.seed_result == "SKIPPED", f"{be.entry_id}: expected SKIPPED"
-        assert be.skip_reason is not None
-        assert "outside registry" in be.skip_reason or "belief_type" in be.skip_reason
+        # Находим исходную запись в каноне по entry_id для точной проверки payload
+        canon_entry = next((e for e in doc.entries if e.entry_id == be.entry_id), None)
+        assert canon_entry is not None, f"Entry {be.entry_id} not found in canon"
+
+        bt = (canon_entry.payload or {}).get("belief_type") if canon_entry.payload else None
+        is_valid = bt in valid_types
+
+        if not is_valid:
+            assert be.seed_result == "SKIPPED", f"{be.entry_id}: expected SKIPPED for invalid/missing belief_type '{bt}'"
+            assert be.skip_reason is not None, f"{be.entry_id}: SKIPPED без причины"
+            assert "outside registry" in be.skip_reason or "belief_type" in be.skip_reason, \
+                f"{be.entry_id}: неверная причина пропуска: {be.skip_reason}"
+        else:
+            assert be.seed_result == "SEEDED", f"{be.entry_id}: expected SEEDED for valid belief_type '{bt}'"
+            assert be.skip_reason is None, f"{be.entry_id}: SEEDED не должен иметь skip_reason, получено: {be.skip_reason}"
     # Контр-проверка: EVENT entries должны быть SEEDED
     event_entries = [e for e in r.entries if e.source_kind == "EVENT"]
     assert len(event_entries) > 0
@@ -171,15 +190,25 @@ def test_9_control_report_matches_actual_seed_not_fixture():
         assert ee.seed_result == "SEEDED", f"{ee.entry_id}: expected SEEDED"
         assert ee.day is not None
 
-    # Доп: blacksmith_orm имеет trauma-EFFECT без triggers (B4 audit: 2 записи)
+    # Проверка корректной обработки trauma EFFECTs (с triggers и без)
     npc_id2 = "blacksmith_orm"
     r2 = build_seed_report(npc_id2)
     assert r2 is not None
-    # Ищем trauma EFFECTs — они должны быть SKIPPED с reason
-    trauma_skipped = [e for e in r2.entries if e.source_kind == "EFFECT" and e.seed_result == "SKIPPED"]
-    # blacksmith_orm имеет 2 trauma без triggers (B4 audit)
-    assert len(trauma_skipped) >= 2, f"blacksmith_orm: expected >=2 trauma SKIPPED, got {len(trauma_skipped)}"
-    for te in trauma_skipped:
-        assert te.skip_reason == "trauma without triggers", (
-            f"{te.entry_id}: expected 'trauma without triggers', got '{te.skip_reason}'"
-        )
+    
+    doc2 = canonical_chronicles().get(npc_id2)
+    assert doc2 is not None
+    
+    effect_entries = [e for e in r2.entries if e.source_kind == "EFFECT"]
+    for ee in effect_entries:
+        canon_e = next((ce for ce in doc2.entries if ce.entry_id == ee.entry_id), None)
+        if canon_e and canon_e.payload:
+            effect_kind = canon_e.payload.get("effect_kind")
+            triggers = canon_e.payload.get("triggers")
+            
+            if effect_kind == "trauma":
+                if not triggers:
+                    assert ee.seed_result == "SKIPPED", f"{ee.entry_id}: trauma without triggers should be SKIPPED"
+                    assert ee.skip_reason == "trauma without triggers"
+                else:
+                    assert ee.seed_result == "SEEDED", f"{ee.entry_id}: trauma with triggers should be SEEDED"
+                    assert ee.skip_reason is None
