@@ -238,6 +238,38 @@ class CampaignLifecycle:
             logger.warning(f"[NEW_GAME] SQLite cleanup failed: {e}")
             raise CampaignResetError(campaign_id, "sqlite_persistence", str(e)) from e
 
+        # === 1.5. S85-NEW-GAME: Инициализация player_world_x/y из player_spawn ===
+        # Без этого metadata пуста до первого turn, Spatial Oracle в idle-тике
+        # получает None и не может определить локацию игрока при resume.
+        try:
+            from app.services.campaign_state_service import get_campaign_state_service
+
+            _cs_init = get_campaign_state_service().get_campaign_state(campaign_id)
+            if _cs_init is not None:
+                # Используем self.scene_manager напрямую (нет self.game_loop)
+                _start_loc = self.scene_manager.find_starting_location(campaign_id)
+                if _start_loc:
+                    # Читаем player_spawn из editor JSON стартовой локации
+                    from pathlib import Path
+                    _editor_root = Path(__file__).resolve().parents[4] / "frontend" / "map_editor" / "campaigns" / campaign_id / "locations"
+                    _start_json = _editor_root / f"{_start_loc}.json"
+                    if _start_json.exists():
+                        import json as _json
+                        _editor_data = _json.loads(_start_json.read_text(encoding="utf-8"))
+                        _spawn = _editor_data.get("player_spawn")
+                        if _spawn and isinstance(_spawn, dict):
+                            _cs_init.metadata["current_location"] = _start_loc
+                            _cs_init.metadata["player_world_x"] = float(_spawn.get("x", 0.0))
+                            _cs_init.metadata["player_world_y"] = float(_spawn.get("y", 0.0))
+                            logger.info(
+                                f"[NEW_GAME] player_world initialized: "
+                                f"location={_start_loc}, x={_cs_init.metadata['player_world_x']}, y={_cs_init.metadata['player_world_y']}"
+                            )
+        except Exception as _e_init:
+            logger.error(f"[NEW_GAME] player_world init failed: {_e_init}")
+            import traceback
+            traceback.print_exc()
+
         # === 2. ОЧИСТКА JSON ФАЙЛОВ в saves/<campaign_id>/ ===
         runtime_files = [
             "npc_runtime.json",

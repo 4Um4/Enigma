@@ -1614,7 +1614,11 @@ class GameScreen:
                 if _d61_act == "restart":
                     _llm_ctrl.begin_restart()
                 elif _d61_act == "resume":
+                    logger.info(f"[RESUME] Before: location_id={location_id}, scene_state.location_id={scene_state.get('location_id', 'NONE')}")
+                    _resume_player_xy = scene_state.get("player_xy") or scene_state.get("player_position")
+                    logger.info(f"[RESUME] player_xy={_resume_player_xy}")
                     _llm_ctrl.confirm_resume()
+                    logger.info(f"[RESUME] After confirm_resume, location_id={location_id}")
                 elif _d61_act == "exit":
                     _llm_ctrl.stop()
                     action_queue.stop()
@@ -1697,6 +1701,11 @@ class GameScreen:
                                 f"[SPATIAL_RECONCILE] local_position recalculated: "
                                 f"world=({_last_world_pos[0]:.2f},{_last_world_pos[1]:.2f}) "
                                 f"→ local=({new_lx:.2f},{new_ly:.2f}) via origin({_confirmed_loc})"
+                            )
+                        else:
+                            logger.warning(
+                                f"[SPATIAL_RECONCILE] SKIPPED: world_ctx={_world_ctx is not None}, "
+                                f"last_world_pos={_last_world_pos}, confirmed_loc={_confirmed_loc!r}"
                             )
 
                     if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:

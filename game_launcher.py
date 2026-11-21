@@ -707,7 +707,39 @@ def _dt(msg: str) -> None:
     except Exception:
         pass  # диагностика не должна ронять запуск
 
+def _kill_ports(*ports: int) -> list[int]:
+    """Убивает процессы, занимающие указанные порты. Возвращает список убитых PID."""
+    killed: list[int] = []
+    try:
+        import subprocess
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             f"Get-NetTCPConnection -LocalPort {','.join(map(str, ports))} -ErrorAction SilentlyContinue | "
+             "Select-Object -ExpandProperty OwningProcess -Unique"],
+            capture_output=True, text=True, timeout=10,
+        )
+        for line in out.stdout.splitlines():
+            pid_str = line.strip()
+            if not pid_str.isdigit():
+                continue
+            pid = int(pid_str)
+            if pid in (0, os.getpid()):
+                continue
+            try:
+                os.kill(pid, 9)
+                killed.append(pid)
+            except Exception:
+                pass
+    except Exception as _e:
+        print(f"  ⚠ Port cleanup failed: {_e}")
+    return killed
+
+
 def main() -> None:
+    # Авто-убийство портов при старте (исполнение обещания о портах).
+    _killed = _kill_ports(8000, 8181)
+    if _killed:
+        print(f"  ✓ Убиты старые процессы на портах 8000/8181: PIDs {_killed}")
     """Главная функция — запускает backend, инициализирует pygame, запускает цикл меню"""
     # Окно загрузки — ПЕРВОЕ действие main(): игрок видит отклик мгновенно,
     # пока идёт тяжёлая подготовка (zombie-kill ~1с, LLM health timeout ~2с,

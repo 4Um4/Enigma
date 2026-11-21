@@ -1,7 +1,7 @@
 {
   "version": 1,
   "campaign_id": "Open_road",
-  "compiled_at": "2026-11-18T22:09:34.710979",
+  "compiled_at": "2026-11-22T01:12:12.050987",
   "chunks": [
     {
       "location_id": "city_gate",
@@ -36,7 +36,7 @@
       "height": 15.0,
       "is_outdoor": false,
       "label": "Таверна Серебряного Волка",
-      "content_hash": "ba532466c52a4a46273d5100890d2b2a",
+      "content_hash": "a467ed6347c775835b8dc98e0cfe328b",
       "global_coords": true
     }
   ],

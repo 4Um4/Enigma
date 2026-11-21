@@ -766,12 +766,16 @@ class EditorCore:
                 )
                 ok, err = self.dm.create_location(inputs["filename"], w, h, inputs["label"], is_outdoor)
                 if ok:
-                    self.cm.save_location(inputs["filename"])
+                    result = self.cm.save_location(inputs["filename"])
                     self.current_file = inputs["filename"]
                     self.mode = MODE_LOCAL
                     self.undo.clear()
                     self._center_camera()
-                    self._show_toast(f"Создана: {inputs['label']}")
+                    # P3-01 (D.6 п.4): создание в памяти ≠ запись на диск
+                    if result:
+                        self._show_toast(f"Создана: {inputs['label']}")
+                    else:
+                        self._show_toast(f"Создана (не сохранена: {result.reason_text()})")
                 else:
                     self._show_toast(f"Ошибка: {err}")
             except ValueError:
@@ -780,12 +784,15 @@ class EditorCore:
         self.dialog = ModalDialog(self.screen, "Новая локация", fields, on_confirm)
 
     def _save_campaign(self):
-        """Сохраняет ВСЕ локации текущей кампании"""
+        """Сохраняет ВСЕ локации текущей кампании. P3-01: частичный отказ виден."""
         if not self.cm.is_open:
             self._show_toast("Нет открытой кампании")
             return
-        count = self.cm.save_all_locations()
-        self._show_toast(f"Кампания сохранена ({count} локаций)")
+        result = self.cm.save_all_locations()
+        if self._report_save(
+            result, f"Кампания сохранена ({result.count} локаций)", "Сохранение кампании"
+        ):
+            self._rebuild_spatial_registry()
 
     def _dialog_delete_location(self):
         """Диалог удаления текущей локации из кампании"""
@@ -818,15 +825,16 @@ class EditorCore:
         self.dialog = ModalDialog(self.screen, "Удаление локации", fields, on_confirm)
 
     def _quick_save(self):
-        """Быстрое сохранение текущей локации"""
+        """Быстрое сохранение текущей локации. P3-01: честный результат."""
         if not self.current_file:
             return
         if self.cm.is_open:
-            self.cm.save_location(self.current_file)
+            result = self.cm.save_location(self.current_file)
         else:
-            self.dm.save(self.current_file)
-        self._rebuild_spatial_registry()
-        self._show_toast(f"Сохранено: {self.current_file}")
+            result = self.dm.save(self.current_file)
+        # P3-01 (F-7): реестр пересобирается только после подтверждённой записи
+        if self._report_save(result, f"Сохранено: {self.current_file}", "Быстрое сохранение"):
+            self._rebuild_spatial_registry()
 
     def _toggle_simulation(self):
         """Включает/выключает режим Spatial Observatory."""
@@ -949,23 +957,36 @@ class EditorCore:
         if not filepath:
             return
         filepath = Path(filepath)
+        # P3-01 (D-2): та же валидация и та же свёртка, что в DataManager.save.
+        # Путь назначения не меняется — семантика Save As сохранена.
         try:
+            from save_result import SaveResult
+        except ImportError:
+            from .save_result import SaveResult
+        from schema_validator import validate_location
+
+        loc = self.dm.locations[self.current_file]
+        schema_errors = validate_location(loc, f"{filepath.name} (save_as)")
+        if schema_errors:
+            self._report_save(SaveResult.failure(schema_errors), "", "Сохранить как")
+            return
+        try:
+            payload = self.dm._fold_for_save(self.current_file)
             with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(
-                    self.dm.locations[self.current_file],
-                    f,
-                    indent=2,
-                    ensure_ascii=False,
-                )
-            self._open_file_path = filepath
-            self._show_toast(f"Сохранено: {filepath.name}")
-        except Exception as e:
-            self._show_toast(f"Ошибка сохранения: {e}")
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+        except (OSError, ValueError, TypeError) as e:
+            self._report_save(
+                SaveResult.failure([f"{filepath.name}: ошибка записи: {e}"]), "", "Сохранить как"
+            )
+            return
+        self._open_file_path = filepath
+        self._report_save(SaveResult.success(), f"Сохранено: {filepath.name}", "Сохранить как")
 
     def _save_all(self):
-        count = self.cm.save_all_locations()
-        self._rebuild_spatial_registry()
-        self._show_toast(f"Сохранено локаций: {count}")
+        """P3-01 (D-3): мёртвый API приведён к общему контракту без перепроектирования."""
+        result = self.cm.save_all_locations()
+        if self._report_save(result, f"Сохранено локаций: {result.count}", "Сохранение всех локаций"):
+            self._rebuild_spatial_registry()
 
     def _rebuild_spatial_registry(self) -> None:
         """S80.2: Запрашивает перестроение реестра через Gateway.
@@ -1030,6 +1051,27 @@ class EditorCore:
         """Переключает видимость сетки"""
         self.show_grid = not self.show_grid
         self._show_toast(f"Сетка: {'вкл' if self.show_grid else 'выкл'}")
+
+    def _report_save(self, result, success_text: str, action_label: str = "Сохранение") -> bool:
+        """P3-01 (D.6 п.3): единая точка уведомления о результате сохранения.
+
+        Размещена в EditorCore, а не в CampaignManager: `_show_toast` —
+        UI-слой, у CampaignManager доступа к нему нет (отклонение от буквы
+        D.6 зафиксировано в журнале; семантика helper сохранена).
+        """
+        import logging
+
+        _log = logging.getLogger(__name__)
+        if result:
+            _log.info("[P3-01] %s OK: %s", action_label, success_text)
+            self._show_toast(success_text)
+            return True
+        reason = result.reason_text()
+        if result.failed:
+            reason = f"{reason} | записано {result.count}, отказали: {', '.join(result.failed[:3])}"
+        _log.error("[P3-01] %s FAILED: %s", action_label, reason)
+        self._show_toast(f"Ошибка сохранения: {reason}")
+        return False
 
     def _show_toast(self, message: str, duration: int = 180):
         """Показывает временное сообщение"""

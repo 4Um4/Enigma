@@ -1142,33 +1142,71 @@ class DataManager:
             label["x"] = round(label["x"] + dx, 2)
             label["y"] = round(label["y"] + dy, 2)
 
-    def save(self, filename: str) -> bool:
-        """Сохраняет локацию в JSON"""
+    def save(self, filename: str):
+        """Сохраняет локацию в JSON. P3-01: результат с причинами отказа.
+
+        `bool(result) == result.ok` — legacy-проверки `if dm.save(...)` корректны.
+        """
+        try:
+            from save_result import SaveResult
+        except ImportError:
+            from .save_result import SaveResult
+
         if filename not in self.locations:
-            return False
+            return SaveResult.failure([f"{filename}: локация отсутствует в памяти"])
         # ME-1.6: starter templates is read-only; save blocked to prevent orphaned edits
         if not self._writable:
-            logger.error(
-                "[ME-1.6] Save blocked: base_dir is read-only starter templates (%s). Open or create a campaign first.",
-                self.base_dir,
+            msg = (
+                "[ME-1.6] Save blocked: base_dir is read-only starter templates "
+                f"({self.base_dir}). Open or create a campaign first."
             )
-            return False
-        self.locations[filename]["modified_at"] = datetime.now().isoformat()
+            logger.error(msg)
+            return SaveResult.failure([msg], failed=[filename])
+
+        loc = self.locations[filename]
+        # P3-01 (F-3/F-24): снапшот мутируемых полей. Перенос мутаций ниже
+        # валидации невозможен: валидатор требует непустой location_id, а
+        # modified_at попадает в payload на диске. Поэтому — откат при отказе.
+        _had_modified = "modified_at" in loc
+        _old_modified = loc.get("modified_at")
+        _had_loc_id = "location_id" in loc
+        _old_loc_id = loc.get("location_id")
+
+        def _rollback() -> None:
+            if _had_modified:
+                loc["modified_at"] = _old_modified
+            else:
+                loc.pop("modified_at", None)
+            if _had_loc_id:
+                loc["location_id"] = _old_loc_id
+            else:
+                loc.pop("location_id", None)
+
+        loc["modified_at"] = datetime.now().isoformat()
         # ADR-061: Schema Enforcement. location_id ОБЯЗАН быть заполнен.
         # Если UI не заполнил — наследуем из имени файла (tavern.json -> tavern)
-        if not self.locations[filename].get("location_id"):
+        if not loc.get("location_id"):
             inferred_id = filename.replace(".json", "")
-            self.locations[filename]["location_id"] = inferred_id
-        schema_errors = validate_location(self.locations[filename], f"{filename} (save)")
+            loc["location_id"] = inferred_id
+        schema_errors = validate_location(loc, f"{filename} (save)")
         if schema_errors:
             for err in schema_errors:
                 logger.error(f"[ME-1.4] Сохранение заблокировано: {err}")
-            return False
-        payload = self._fold_for_save(filename)
-        path = self.base_dir / filename
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, ensure_ascii=False)
-        return True
+            _rollback()
+            return SaveResult.failure(schema_errors, failed=[filename])
+        try:
+            payload = self._fold_for_save(filename)
+            path = self.base_dir / filename
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+        except (OSError, ValueError, TypeError) as e:
+            # P3-01 (F-2/F-18): отказ ФС/сериализации — результат, не исключение.
+            # Без этого read-only каталог ОС ронял редактор и весь стек.
+            msg = f"{filename}: ошибка записи: {e}"
+            logger.error(f"[P3-01] {msg}")
+            _rollback()
+            return SaveResult.failure([msg], failed=[filename])
+        return SaveResult.success()
 
     # === ME-1.3: экземпляры-ссылки (развёртка/свёртка) ===
 
@@ -1364,16 +1402,33 @@ class DataManager:
         return payload
 
     def save_all(self):
-        """Сохраняет все локации"""
+        """Сохраняет все локации. P3-01 (D-3): агрегированный результат вместо None."""
+        try:
+            from save_result import SaveResult
+        except ImportError:
+            from .save_result import SaveResult
+
         # ME-1.6: starter templates is read-only
         if not self._writable:
-            logger.error(
-                "[ME-1.6] save_all blocked: base_dir is read-only starter templates (%s).",
-                self.base_dir,
+            msg = (
+                "[ME-1.6] save_all blocked: base_dir is read-only starter templates "
+                f"({self.base_dir})."
             )
-            return
-        for fname in self.locations:
-            self.save(fname)
+            logger.error(msg)
+            return SaveResult.failure([msg], failed=list(self.locations.keys()))
+        count = 0
+        errors: List[str] = []
+        failed: List[str] = []
+        for fname in list(self.locations.keys()):
+            res = self.save(fname)
+            if res:
+                count += 1
+            else:
+                failed.append(fname)
+                errors.extend(res.errors)
+        if failed:
+            return SaveResult(ok=False, errors=errors, count=count, failed=failed)
+        return SaveResult.success(count=count)
 
     def delete_location(self, filename: str) -> bool:
         """Удаляет локацию"""

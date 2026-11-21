@@ -2033,7 +2033,12 @@ class GameLoop:
                 # реплики видны в recent_dialogues этого же хода; LLM-задачи уходят
                 # на executor-пул, REST не блокируется (ADR-O-343/O-364).
                 if _auth_scene.get("pending_tasks"):
-                    _player_reply_entries = self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+                    # RE-D2 FIX (Variant Б): player_reply через async pool + wrap_future,
+                    # затем autonomous drain через sync execute_pending.
+                    _player_reply_entries = await self._get_task_scheduler().execute_player_replies_async(
+                        _auth_scene, req.campaign_id
+                    )
+                    self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
                 _append_direct_reply_reactions(
                     dm_result,
                     _player_reply_entries,
@@ -2291,11 +2296,34 @@ class GameLoop:
         async for event in yield_model_info(state):
             yield event
 
-        # NPC реакции — ДО токенов DM
-        if npc_reactions := (state.npc_result.get("npc_reactions", []) + state.npc_result.get("npc_actions", [])):
+        # RE-D2 FIX (Variant Б): player_reply tasks через async pool + wrap_future.
+        # stream_turn (frontend path) прежде НЕ вызывал execute_player_replies_async —
+        # player_reply tasks создавались в pipeline, но не исполнялись через
+        # DialogueExecutor → LLM → NPC_SPOKE. run_turn (SUPERBOX path) имел фикс,
+        # но frontend использует stream_turn. Теперь оба пути одинаковы.
+        _stream_auth_scene: dict | None = None
+        _stream_player_replies: list[dict] = []
+        if state.shared_context and state.shared_context.scene_state:
+            _stream_turn_scene = state.shared_context.scene_state
+            if self.scene_manager:
+                _stream_loc_key = _stream_turn_scene.get("location_id", "default")
+                _stream_auth_scene = self.scene_manager._tick_scenes.get(_stream_loc_key)  # noqa: ENIGMA001
+            if _stream_auth_scene is None:
+                _stream_auth_scene = _stream_turn_scene
+            if _stream_auth_scene.get("pending_tasks"):
+                _stream_player_replies = await self._get_task_scheduler().execute_player_replies_async(
+                    _stream_auth_scene, campaign_id
+                )
+                self._get_task_scheduler().execute_pending(_stream_auth_scene, campaign_id)
+            self._get_task_scheduler().drain_commitment_outbox(_stream_auth_scene)
+
+        # NPC реакции — ДО токенов DM (включая player_reply entries из execute_player_replies_async)
+        _npc_reactions = state.npc_result.get("npc_reactions", []) + state.npc_result.get("npc_actions", [])
+        _npc_reactions.extend(_stream_player_replies)
+        if _npc_reactions:
             yield {
                 "type": "npc",
-                "data": npc_reactions,
+                "data": _npc_reactions,
                 "model": state.npc_result.get("model"),
             }
 
@@ -2484,6 +2512,14 @@ class GameLoop:
                 logger.info(f"[SESSION_STATE] campaign metadata: location={_resume_loc!r}, world_x={_dbg_wx}, world_y={_dbg_wy}")
         except Exception as _e:
             logger.warning(f"[SESSION_STATE] current_location lookup failed: {_e}")
+
+        # M16-RESUME FIX: Если _resume_loc пустой, используем find_starting_location.
+        # Без этого get_scene_state(..., location_id="") вызывает load_scene() БЕЗ фильтра,
+        # что возвращает ПЕРВУЮ ПОПАВШУЮСЯ сцену из SQLite → телепорт игрока.
+        if not _resume_loc:
+            _resume_loc = self.scene_manager.find_starting_location(campaign_id)
+            logger.info(f"[SESSION_STATE] _resume_loc was empty, using starting location: {_resume_loc!r}")
+
         scene = self.scene_manager.get_scene_state(campaign_id, location_id=_resume_loc)
         state.scene_state = scene if scene else {}
         # M16-RESUME: отдаём текущую локацию в metadata (была заглушка).

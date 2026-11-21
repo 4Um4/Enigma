@@ -161,7 +161,6 @@ def test_9_control_report_matches_actual_seed_not_fixture():
     assert len(belief_entries) > 0, "guard_borko должен иметь BELIEF_SEED entries"
     # Проверяем фактическое состояние каждой записи на соответствие реестру
     from app.models.npc.beliefs import BeliefType
-    from app.services.chronicle.chronicle_seeder import canonical_chronicles
     
     valid_types = {bt.value for bt in BeliefType}
     doc = canonical_chronicles().get(npc_id)

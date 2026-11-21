@@ -145,13 +145,8 @@ class EventHandler:
                 core._show_toast(f"Этаж: {core.current_z}")
 
             elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
-                if core.current_file:
-                    if core.cm.is_open:
-                        core.cm.save_location(core.current_file)
-                    else:
-                        core.dm.save(core.current_file)
-                    core._rebuild_spatial_registry()
-                    core._show_toast(f"Сохранено: {core.current_file}")
+                # P3-01: делегирование вместо дубля _quick_save (гард current_file внутри)
+                core._quick_save()
 
             elif event.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 label = core.undo.undo()
@@ -368,9 +363,10 @@ class EventHandler:
             if event.button == 1 and core._dragging_location:
                 fname = core._dragging_location
                 core._dragging_location = None
-                saved = core.cm.save_location(fname)
-                if not saved:
-                    core._show_toast(f"Ошибка сохранения: {fname}")
+                result = core.cm.save_location(fname)
+                # P3-01: проверка уже была (B-18 пятый сайт — REJECTED);
+                # добавлены причины отказа и единая точка уведомления.
+                core._report_save(result, f"Сохранено: {fname}", "Перенос локации")
 
         elif event.type == pygame.MOUSEMOTION:
             if core.dragging_camera:

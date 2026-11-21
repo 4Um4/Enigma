@@ -8,9 +8,9 @@ path: /backend/app/services/game_loop/task_scheduler.py
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future as _CFFuture, ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, Iterable, Optional, cast
 
 
 # ADR-O-399: атомарный контейнер результата worker-задачи. Не SSOT, не шина,
@@ -403,35 +403,70 @@ class TaskScheduler:
 
         return True
 
+    async def execute_player_replies_async(self, scene_state: dict, campaign_id: str) -> list[dict]:
+        """Process player-reply dialogue tasks through the executor pool without blocking the event loop.
+
+        RE-D2 FIX (Variant Б, вердикт Мастера 2026-11-18): player_reply tasks
+        ранее вызывались SYNC из execute_pending в event loop thread.
+        request_for_agent детектил running loop → RE-D2 raise → NPC_SPOKE
+        не публиковался → NPC молчал. Этот метод отправляет задачи в существующий
+        _executor_pool и асинхронно ожидает результат через asyncio.wrap_future:
+        не блокирует event loop, не создаёт поток на запрос, не меняет Router.
+        """
+        import asyncio
+
+        pending = scene_state.get("pending_tasks", [])
+        _game_time = scene_state.get("game_time_seconds", 0.0)
+        direct_replies: list[dict] = []
+        processed_indices: list[int] = []
+
+        for _i, _td in enumerate(pending):
+            if _td.get("kind") == "dialogue" and self._is_player_reply_task(_td):
+                _future = self._executor_pool.submit(
+                    self._process_tasks_async,
+                    scene_state,
+                    [_td],
+                    campaign_id,
+                    "player_reply",
+                    _game_time,
+                    scene_state.get("tick", 0),
+                )
+                direct_replies.extend(await asyncio.wrap_future(cast(_CFFuture[Iterable[dict[Any, Any]]], _future)))
+                processed_indices.append(_i)
+
+        # Удаляем обработанные player_reply tasks из pending — предотвращает
+        # двойное исполнение при следующем вызове execute_pending (idle_tick).
+        if processed_indices:
+            scene_state["pending_tasks"] = [
+                _td for _i, _td in enumerate(pending) if _i not in processed_indices
+            ]
+
+        # S203.4 (D-2): drain outbox после player replies
+        self.drain_task_worker_outbox(scene_state)
+        self.drain_commitment_outbox(scene_state)
+
+        return direct_replies
+
     def execute_pending(self, scene_state: dict, campaign_id: str) -> list[dict]:
-        """Deliver direct player replies now and schedule remaining queued tasks."""
+        """Schedule remaining queued tasks (autonomous only).
+
+        RE-D2 FIX: player_reply branch удалён — теперь обрабатывается
+        execute_player_replies_async (async, через _executor_pool).
+        Этот метод вызывается из sync контекстов (idle_tick, experiment_runner)
+        и обрабатывает только autonomous tasks. Player_reply tasks в pending
+        пропускаются autonomous loop (continue ниже) и будут обработаны
+        execute_player_replies_async из run_turn (async context).
+        """
         pending = scene_state.get("pending_tasks", [])
         # BUG-DLG-006 FIX: Используем game_time_seconds из scene_state вместо wall-clock.
         _game_time = scene_state.get("game_time_seconds", 0.0)
-        direct_replies: list[dict] = []
-
-        # A player-initiated reply is delivered in this request, not paced as
-        # autonomous ambient speech. It still uses DialogueExecutor and the
-        # normal materializer/outbox path.
-        for task_dict in pending:
-            if task_dict.get("kind") == "dialogue" and self._is_player_reply_task(task_dict):
-                direct_replies.extend(
-                    self._process_tasks_async(
-                        scene_state,
-                        [task_dict],
-                        campaign_id,
-                        "player_reply",
-                        _game_time,
-                        scene_state.get("tick", 0),
-                    )
-                )
 
         # S203.4 (D-2): commit completed worker artifacts before dequeuing
         # autonomous tasks; includes any synchronous player reply above.
         self.drain_task_worker_outbox(scene_state)
         self.drain_commitment_outbox(scene_state)
         if not pending:
-            return direct_replies
+            return []
 
         # ADR-O-343: SpeechScheduler Arbitration инициализируется здесь
         if not hasattr(self, "_speech_scheduler"):
@@ -667,7 +702,7 @@ class TaskScheduler:
                 scene_state.get("tick", 0),
             )
             _processed_count += 1
-        return direct_replies
+        return []
 
     def _process_tasks_async(
         self,

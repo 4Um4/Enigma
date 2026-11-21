@@ -552,7 +552,14 @@ class DecisionHub:
 
         # L1 черты: только из NPCIdentityL1
         active_traits: Dict[str, float] = identity.active_traits if identity else {}
-        possible = self._get_possible_intents(state, personality, event, opportunity, effective_drives=effective_drives)
+        possible = self._get_possible_intents(
+            state,
+            personality,
+            event,
+            opportunity,
+            effective_drives=effective_drives,
+            pending_response_target=pending_response_target,
+        )
         scores, components_trace = self._score_all(
             state,
             personality,
@@ -1047,6 +1054,7 @@ class DecisionHub:
         event: EventContext,
         opportunity: OpportunityResult,
         effective_drives: Optional["EffectiveDrives"] = None,
+        pending_response_target: Optional[str] = None,
     ) -> List[str]:
         from app.services.events.event_types import EventType
 
@@ -1059,7 +1067,14 @@ class DecisionHub:
         for intent in all_intents:
             # Фильтруем проактивные интенты при реактивных событиях
             if not _is_proactive_tick and intent in PROACTIVE_INTENTS:
-                continue
+                # NPC_SPEECH_SILENCE_ROOT_CAUSE FIX: TALK разрешён на reactive tick
+                # если игрок обратился к NPC (pending_response_target populated).
+                # Прежний фильтр убирал TALK на player turn → NPC не мог ответить
+                # даже когда игрок напрямую к нему обращался → NPC_SPOKE не публиковался.
+                if intent == Intent.TALK.value and pending_response_target:
+                    pass  # не фильтровать — NPC отвечает игроку
+                else:
+                    continue
             if self._is_intent_available(
                 intent,
                 state,

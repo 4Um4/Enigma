@@ -129,12 +129,12 @@ def _get_create_time() -> float:
         return 0.0
 
 
-def _post_json(url: str, data: dict) -> dict:
+def _post_json(url: str, data: dict, timeout: int = 10) -> dict:
     body = json.dumps(data).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"}, method="POST")
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
-        with opener.open(req, timeout=10) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             return cast(dict[str, Any], json.loads(resp.read().decode("utf-8")))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="replace")
@@ -197,6 +197,12 @@ def ensure_llm(label: str = "", pinned: bool = False) -> str:
     _discover_or_start_host()
 
     # 4. Get lease
+    # TECH_DEBT #2 FIX (S427): /ensure spawn'ит llama-server с --no-mmap (cold start
+    # 120-180s). Прежний timeout=10 обрывал HTTP-запрос до готовности сервера →
+    # "LLM недоступна: timed out" в game_launcher. Timeout = model_load_timeout_sec
+    # (240s после B6) — game_launcher сам дожидается cold start, массовый
+    # пользователь просто запускает python game_launcher.py.
+    from app.core.config import settings as _settings
     resp = _post_json(
         f"{_host_url()}/ensure",
         {
@@ -205,6 +211,7 @@ def ensure_llm(label: str = "", pinned: bool = False) -> str:
             "label": label,
             "pinned": pinned,
         },
+        timeout=_settings.model_load_timeout_sec,
     )
     _lease_id = resp["lease_id"]
     _lease_url = resp["url"]

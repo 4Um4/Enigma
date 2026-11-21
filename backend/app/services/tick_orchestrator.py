@@ -2109,14 +2109,16 @@ class TickOrchestrator:
                 _hub_evt_type = getattr(_hub_evt, "event_type", "")
                 _hub_evt_type = getattr(_hub_evt_type, "value", _hub_evt_type)
                 _hub_evt_type_str = str(_hub_evt_type).lower()
+                _hub_payload = getattr(_hub_evt, "payload", {}) or {}
+                _semantic_action = ""
+                if isinstance(_hub_payload, dict):
+                    _semantic_action = str(_hub_payload.get("semantic_action") or "").upper()
+                _hub_target = getattr(_hub_evt, "target_id", None)
+                if _hub_target is None and isinstance(_hub_payload, dict):
+                    _hub_target = _hub_payload.get("target_id")
+                # DIAG-ROOT-FIX: почему pending=0? Зонд показывает реальные значения.
+                print(f"[DIAG-ROOT-FIX] npc_id={npc_id} hub_type={_hub_evt_type_str!r} semantic={_semantic_action!r} target={_hub_target!r} match={_hub_evt_type_str in ('player_interacts', 'player_spoke', 'dialogue') and _semantic_action == 'DIALOGUE' and _hub_target == npc_id}")
                 if _hub_evt_type_str in ("player_interacts", "player_spoke", "dialogue"):
-                    _hub_payload = getattr(_hub_evt, "payload", {}) or {}
-                    _semantic_action = ""
-                    if isinstance(_hub_payload, dict):
-                        _semantic_action = str(_hub_payload.get("semantic_action") or "").upper()
-                    _hub_target = getattr(_hub_evt, "target_id", None)
-                    if _hub_target is None and isinstance(_hub_payload, dict):
-                        _hub_target = _hub_payload.get("target_id")
                     # DIALOGUE + target NPC → populate response_targets для Bridge 7
                     if _semantic_action == "DIALOGUE" and _hub_target == npc_id:
                         _raw_input = getattr(ctx, "raw_input", "") or ""
@@ -2127,6 +2129,7 @@ class TickOrchestrator:
                         )
                         ctx.response_targets[npc_id] = "player"
                         topic = _reply_topic
+                        print(f"[DIAG-ROOT-FIX] POPULATED response_targets[{npc_id}]='player' topic={_reply_topic!r}")
 
             # 0. Приоритет: Проверяем недавние диалоги в TaskScheduler (NPC_SPOKE)
             # Если к NPC обратились, он должен ответить, а не болтать "наблюдение".

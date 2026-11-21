@@ -144,24 +144,45 @@ class CampaignManager:
         self.campaign_data = None
         self.dm.set_base_dir(TEMPLATE_DIR)
 
-    def save_location(self, filename: str) -> bool:
-        """Сохраняет указанную локацию в текущую кампанию"""
+    def save_location(self, filename: str):
+        """Сохраняет указанную локацию в текущую кампанию.
+
+        P3-01: возвращает SaveResult (bool-совместим). Успех означает только
+        «файл записан»; состояние зеркал и реестра — предмет P4-01 (F-12).
+        """
         result = self.dm.save(filename)
         if result:
             self._update_modified()
             self._sync_to_runtime()
         return result
 
-    def save_all_locations(self) -> int:
-        """Сохраняет все локации текущей кампании"""
+    def save_all_locations(self):
+        """Сохраняет все локации текущей кампании.
+
+        P3-01 (F-5): SaveResult с count/failed; `_update_modified` только при
+        реально записанных файлах — кампания не помечается сохранённой при 0.
+        """
+        try:
+            from save_result import SaveResult
+        except ImportError:
+            from .save_result import SaveResult
+
         count = 0
+        errors: List[str] = []
+        failed: List[str] = []
         for fname in list(self.dm.locations.keys()):
-            if self.dm.save(fname):
+            res = self.dm.save(fname)
+            if res:
                 count += 1
-        self._update_modified()
+            else:
+                failed.append(fname)
+                errors.extend(res.errors)
         if count > 0:
+            self._update_modified()
             self._sync_to_runtime()
-        return count
+        if failed:
+            return SaveResult(ok=False, errors=errors, count=count, failed=failed)
+        return SaveResult.success(count=count)
 
     def _sync_to_runtime(self):
         """Синхронизирует карты с saves и build/staging, пересобирает кэш графа (spatial_registry.json)."""
@@ -217,7 +238,12 @@ class CampaignManager:
             return False, "Файл уже существует"
         self.dm.locations[new_filename] = copy.deepcopy(self.dm.locations[source_filename])
         self.dm.locations[new_filename]["filename"] = new_filename
-        self.dm.save(new_filename)
+        res = self.dm.save(new_filename)
+        if not res:
+            # P3-01 (F-11, D-3): откат сироты — незаписанная локация не остаётся
+            # в памяти и не исчезает «после перезапуска».
+            self.dm.locations.pop(new_filename, None)
+            return False, res.reason_text()
         self._update_modified()
         return True, ""
 
