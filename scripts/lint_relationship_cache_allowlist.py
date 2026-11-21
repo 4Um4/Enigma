@@ -51,7 +51,7 @@ ALLOWLIST: dict[str, int] = {
     "services/npc/decision/social_deltas.py": 1,  # DECISION-READER (карта S318)
     "services/npc/decision_hub.py": 2,            # DOC-NEGATIVE (запретительные доки)
     "services/npc/interpretation_engine.py": 2,   # DECISION-READER (карта S318)
-    "services/npc/npc_loader.py": 18,             # LOADER-BOOTSTRAP (GAP-4) + CHRONICLE-SEED-WRITER (CCH-4/ADR-O-423: посев связей канона при new-game-гейте) + CCH-4 P1 FIX (7199cc2b: new-game gate усилен — chronicle_origin check, 3 сайта = 1 логический if в _needs_chronicle_relations)
+    "services/npc/npc_loader.py": 17,  # FIX: синхронизация с baseline cca915b0 (фактически 17 вхождений, не 18)             # LOADER-BOOTSTRAP (GAP-4) + CHRONICLE-SEED-WRITER (CCH-4/ADR-O-423: посев связей канона при new-game-гейте) + CCH-4 P1 FIX (7199cc2b: new-game gate усилен — chronicle_origin check, 3 сайта = 1 логический if в _needs_chronicle_relations)
     "services/npc/npc_tick_pipeline.py": 2,       # WRITER-TICK-HYDRATE (TZ-10)
     "services/npc/social_target_resolver.py": 1,  # DECISION-READER (карта S318)
     "services/npc/state_applicator.py": 2,        # WRITER-SYNC (update_relationships)
@@ -62,7 +62,7 @@ ALLOWLIST: dict[str, int] = {
     "services/social/social_decay_handler.py": 2,     # DECAY-READER (GAP-4-контекст)
     "services/social/v2_relationship_backend.py": 2,  # BOOTSTRAP-SOURCE (M1b.1)
     "services/tick_utils.py": 10,                     # SANITIZER (единств. обогащение)
-    "api/routes_chronicle.py": 4,  # DEBUGGER-PROJECTION (COV-11/S373): Character Debugger endpoint — reads relationship_cache keys for API response ("relationship_cache_targets": sorted keys); read-only, 0 writes. 4 сайта: .get() extract (877) + dict-key string "relationship_cache_targets" (900) + .keys() reader (901) + isinstance type-check (902). B1 runtime observability — npc_dict projection для debug API.
+    "api/routes_chronicle.py": 3,  # FIX: синхронизация с baseline cca915b0 (фактически 3 вхождения, не 4)  # DEBUGGER-PROJECTION (COV-11/S373): Character Debugger endpoint — reads relationship_cache keys for API response ("relationship_cache_targets": sorted keys); read-only, 0 writes. 4 сайта: .get() extract (877) + dict-key string "relationship_cache_targets" (900) + .keys() reader (901) + isinstance type-check (902). B1 runtime observability — npc_dict projection для debug API.
 }
 
 
