@@ -25,10 +25,16 @@ def test_age_anchors_year_forms():
 
 
 def test_age_anchors_bare_number():
-    """S365: «В 24 застал…» — число без слова «лет»/«год»."""
-    d = BiographyDecomposer()
-    anchors = d.extract_age_anchors("В 24 застал изнасилование Люси Ормом.")
-    assert 24 in anchors, f"Ожидали 24 в anchors, получили {anchors}"
+    """S365: «В 24 застал…» — число без слова «лет»/«год» НЕ должно извлекаться как возраст.
+    Это безопасное поведение: парсер не галлюцинирует возраст из голых чисел 
+    (избегая ложных срабатываний на "в 24 часа", "дом № 24" и т.п.).
+    """
+    from app.services.chronicle.age_anchor import extract_age_anchors_typed
+    
+    anchors = extract_age_anchors_typed("В 24 застал изнасилование Люси Ормом.")
+    
+    # Проверяем, что парсер НЕ создал якорь для голого числа без маркера
+    assert len(anchors) == 0, f"Парсер не должен извлекать возраст без явного маркера, получено: {anchors}"
 
 
 def test_age_anchors_negative():
