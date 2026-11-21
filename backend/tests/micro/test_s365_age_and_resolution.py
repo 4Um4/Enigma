@@ -50,7 +50,8 @@ def test_cot_leak_blocked():
     assert "ФРАГМЕНТ:" in prompt_no_anchors
 
     prompt_with_anchors = d.build_user_prompt("В 16 лет поступил.", [16])
-    assert "Возрастные якоря фрагмента: [16]" in prompt_with_anchors
+    assert "ambiguous: 16" in prompt_with_anchors, "Ожидается классификация якоря как неоднозначного"
+    assert "ВНИМАНИЕ:" in prompt_with_anchors, "Ожидается предупреждение о неоднозначном возрасте"
 
 
 # ── S2-C: age из draft_payload проходит в ChronicleEntry (через route) ──────
