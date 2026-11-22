@@ -795,7 +795,7 @@ class EditorCore:
             self._rebuild_spatial_registry()
 
     def _dialog_delete_location(self):
-        """Диалог удаления текущей локации из кампании"""
+        """Диалог удаления текущей локации из кампании. P3-03: безопасное удаление с синхронизацией."""
         if not self.current_file or not self.cm.is_open:
             return
         loc_name = self.dm.locations[self.current_file].get("label", self.current_file)
@@ -811,16 +811,42 @@ class EditorCore:
 
         def on_confirm(inputs):
             if inputs["confirm"] == "да":
-                # Удаляем файл с диска
-                loc_path = self.cm.campaign_path / "locations" / self.current_file
-                if loc_path.exists():
-                    loc_path.unlink()
-                # Удаляем из памяти
-                if self.current_file in self.dm.locations:
-                    del self.dm.locations[self.current_file]
+                # Локальная переменная для явного сужения типа (устраняет предупреждение Pylance)
+                file_to_delete = self.current_file
+                if not file_to_delete:
+                    return
+
+                # 1. Удаляем исходник и запись в памяти через DM
+                res = self.dm.delete_location(file_to_delete)
+                if not res["success"]:
+                    # Условие А: при ошибке состояние редактора сохраняется, показываем ошибку
+                    self._show_toast(f"Ошибка удаления: {res['error']}")
+                    return
+
+                # 2. Исходник удалён. Запускаем синхронизацию для очистки зеркал и реестра (Условие В)
+                sync_res = self.cm._sync_to_runtime()
+
+                # 3. Формируем сообщение о результате (Условие Б)
+                import logging
+                _log = logging.getLogger(__name__)
+
+                if sync_res.get("failed", 0) > 0 or sync_res.get("errors"):
+                    errors = sync_res.get("errors", [])
+                    err_text = "; ".join(errors[:2])
+                    if len(errors) > 2:
+                        err_text += f" (+ещё {len(errors)-2})"
+                    msg = f"Локация '{loc_name}' удалена, но с ошибками синхронизации: {err_text}"
+                    _log.warning(f"[P3-03] {msg}")
+                else:
+                    msg = f"Локация '{loc_name}' успешно удалена"
+                    _log.info(f"[P3-03] {msg}")
+
+                self._show_toast(msg)
+
+                # 4. Только теперь меняем состояние редактора
                 self.current_file = None
                 self.mode = MODE_WORLD
-                self._show_toast(f"Локация удалена: {loc_name}")
+                self.undo.clear()
 
         self.dialog = ModalDialog(self.screen, "Удаление локации", fields, on_confirm)
 
@@ -1585,11 +1611,11 @@ class EditorCore:
     def _handle_left_click(self, mx: int, my: int, wx: float, wy: float, gx: float, gy: float):
         # Сначала пробуем выделить существующий объект
         was_selected = self.interaction_manager.try_select_existing(self, mx, my)
-        
+
         # Если кликнули по комнате или по пустому месту — стартуем рамку выделения
         # (комнату не сбрасываем, чтобы можно было добавить объекты к выделению)
         is_real_object = was_selected and self.selected_object and self.selected_object[0] != "room"
-        
+
         if is_real_object:
             # Клик по реальному объекту (NPC, стена, узел, объект, спавн) — сбрасываем рамку
             self.rubber_band_start = None
@@ -1647,33 +1673,33 @@ class EditorCore:
         """Собирает все сущности, попавшие в прямоугольник выделения"""
         if not self.current_file or not self.rubber_band_start or not self.rubber_band_current:
             return
-        
+
         sx1, sy1 = self.world_to_screen(self.rubber_band_start[0], self.rubber_band_start[1])
         sx2, sy2 = self.world_to_screen(self.rubber_band_current[0], self.rubber_band_current[1])
         rect = pygame.Rect(min(sx1, sx2), min(sy1, sy2), abs(sx2 - sx1), abs(sy2 - sy1))
-        
+
         if rect.width < 5 and rect.height < 5:
             return
-        
+
         loc = self.dm.locations[self.current_file]
         new_selections = []
-        
+
         for npc in loc.get("npcs", []):
             sx, sy = self.world_to_screen(npc["position"]["x"], npc["position"]["y"])
             if rect.collidepoint(sx, sy):
                 new_selections.append(("npc", npc["ref_id"]))
-        
+
         for obj in loc.get("objects", []):
             pos = obj.get("position", {})
             sx, sy = self.world_to_screen(pos.get("x", 0.0), pos.get("y", 0.0))
             if rect.collidepoint(sx, sy):
                 new_selections.append(("object", obj.get("id", "")))
-        
+
         for nid, ndata in loc.get("nodes", {}).items():
             sx, sy = self.world_to_screen(ndata["x"], ndata["y"])
             if rect.collidepoint(sx, sy):
                 new_selections.append(("node", nid))
-        
+
         for wall in loc.get("walls", []):
             # Проверяем оба конца стены и середину
             sx1, sy1 = self.world_to_screen(wall["x1"], wall["y1"])
@@ -1681,14 +1707,14 @@ class EditorCore:
             sx_mid, sy_mid = self.world_to_screen((wall["x1"] + wall["x2"]) / 2.0, (wall["y1"] + wall["y2"]) / 2.0)
             if rect.collidepoint(sx1, sy1) or rect.collidepoint(sx2, sy2) or rect.collidepoint(sx_mid, sy_mid):
                 new_selections.append(("wall", wall["id"]))
-        
+
         # Точка спавна игрока
         spawn = loc.get("player_spawn")
         if spawn:
             sx, sy = self.world_to_screen(spawn["x"], spawn["y"])
             if rect.collidepoint(sx, sy):
                 new_selections.append(("spawn", "player_spawn"))
-        
+
         # Комнаты (проверяем центр)
         for room in loc.get("rooms", []):
             rx = room.get("x", 0.0)
@@ -1700,7 +1726,7 @@ class EditorCore:
             sx, sy = self.world_to_screen(center_x, center_y)
             if rect.collidepoint(sx, sy):
                 new_selections.append(("room", room["id"]))
-        
+
         mods = pygame.key.get_mods()
         if mods & pygame.KMOD_SHIFT:
             for item in new_selections:
@@ -1708,7 +1734,7 @@ class EditorCore:
                     self.selected_objects.append(item)
         else:
             self.selected_objects = new_selections
-        
+
         if self.selected_objects:
             self.selected_object = self.selected_objects[0]
         else:

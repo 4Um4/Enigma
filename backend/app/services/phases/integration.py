@@ -478,7 +478,7 @@ def run_phase_9_integration(ctx: _TickContext, deps: Phase9IntegrationDeps) -> N
     _spatial_query = SpatialQueryService(
         npc_positions=ctx.scene_state.get("npc_positions", {}),
         scene_state=ctx.scene_state,
-    )
+        tick_id=int(ctx.scene_state.get("tick", 0)),)
 
     _traces = []
     _all_signals = []

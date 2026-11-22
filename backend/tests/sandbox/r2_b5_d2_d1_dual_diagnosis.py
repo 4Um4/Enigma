@@ -682,13 +682,13 @@ def main() -> int:
     RESOLVER_PASS:   {verdict_a["resolver_pass"]}
     PROVENANCE_PASS: {verdict_a["provenance_pass"]}
     CLEANUP_OK:      {verdict_a["cleanup_ok"]}
-    
+
   RUN B (with override):
     BELIEF_PASS:     {verdict_b["belief_pass"]}  (tick: {verdict_b["target_belief_appeared_at_tick"]})
     RESOLVER_PASS:   {verdict_b["resolver_pass"]}
     PROVENANCE_PASS: {verdict_b["provenance_pass"]}
     CLEANUP_OK:      {verdict_b["cleanup_ok"]}
-    
+
   Comparison:
     A vs B belief appeared:    {verdict_a["target_belief_appeared_at_tick"]} vs {verdict_b["target_belief_appeared_at_tick"]}
     A vs B resolver non-empty: {verdict_a["resolver_pass"]} vs {verdict_b["resolver_pass"]}

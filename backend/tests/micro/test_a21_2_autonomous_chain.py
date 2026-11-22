@@ -70,7 +70,7 @@ def test_autonomous_rumor_chain_trajectory():
     Фиксируем уверенность и реальный выбор интента на каждом этапе.
     """
     prop = Proposition(subject_id="A", predicate=Predicate.STOLE, object_id="B")
-    
+
     # Социальная сеть: все доверяют друг другу умеренно
     trust_map = {
         ("C", "A"): 60.0,
@@ -82,12 +82,12 @@ def test_autonomous_rumor_chain_trajectory():
     rel_store = MockRelStore(trust_map)
     provider = TrustBasedReliabilityProvider(relationship_store=rel_store, campaign_id="test")
     engine = BeliefRevisionEngine(reliability_provider=provider)
-    
+
     stores = {npc: EpistemicStore() for npc in ["C", "D", "E"]}
     resolvers = {npc: EpistemicContextResolver(store=stores[npc]) for npc in stores}
-    
+
     trajectory = []
-    
+
     # === Этап 1: C становится свидетелем кражи A (direct_observation) ===
     # Даём слуху初始 вес 0.9, чтобы измерить пропускную способность сети,
     # а не умереть на пороге REPORT_CONFIDENCE_THRESHOLD=0.25.
@@ -100,18 +100,18 @@ def test_autonomous_rumor_chain_trajectory():
     })
     stores["C"].upsert(rec_c)
     trajectory.append(("A->C", rec_c.confidence, None, None))
-    
+
     # === Этап 2: C принимает решение ===
     ctx_c = resolvers["C"].resolve("C")
     mods_c = resolvers["C"].to_modifiers(ctx_c, archetype="maid")
-    
+
     spatial = MagicMock()
     spatial.distance.return_value = 1.0
-    
+
     hub = DecisionHub(seed=42)
     # Мокаем _get_rel_value для target selection
     hub._get_rel_value = lambda st, cid, key: trust_map.get((st.npc_id, cid), 0.0) if key == "trust" else 0.0
-    
+
     event = MagicMock()
     event.event_type = "STOLE"
     event.witness_count = 1
@@ -122,9 +122,9 @@ def test_autonomous_rumor_chain_trajectory():
     event.scene_flags = set()
     event.scene_facts = []
     event.location = "tavern"
-    
+
     drives = MockDrives(values={"hunger": 0.1, "safety": 0.3, "control": 0.2})
-    
+
     decision_c = hub.compute(
         state=_make_state("C"),
         personality=_make_profile("maid"),
@@ -135,11 +135,11 @@ def test_autonomous_rumor_chain_trajectory():
         spatial_query=spatial,
         all_npc_ids=["A", "B", "C", "D", "E"],
     )
-    
+
     intent_c = decision_c.decision.intent.value
     target_c = decision_c.decision.intent_target
     trajectory.append(("C decision", rec_c.confidence, intent_c, target_c))
-    
+
     # === Этап 3: Если C выбрал spread_rumor, передаём D ===
     if intent_c == "spread_rumor" and target_c:
         claim_c_d = ClaimEvent(
@@ -153,11 +153,11 @@ def test_autonomous_rumor_chain_trajectory():
         })
         stores[target_c].upsert(rec_d)
         trajectory.append((f"C->{target_c}", rec_d.confidence, None, None))
-        
+
         # === Этап 4: D принимает решение ===
         ctx_d = resolvers[target_c].resolve(target_c)
         mods_d = resolvers[target_c].to_modifiers(ctx_d, archetype="guard")
-        
+
         decision_d = hub.compute(
             state=_make_state(target_c),
             personality=_make_profile("guard"),
@@ -171,7 +171,7 @@ def test_autonomous_rumor_chain_trajectory():
         intent_d = decision_d.decision.intent.value
         target_d = decision_d.decision.intent_target
         trajectory.append((f"{target_c} decision", rec_d.confidence, intent_d, target_d))
-        
+
         # === Этап 5: Если D выбрал spread_rumor, передаём E ===
         if intent_d == "spread_rumor" and target_d:
             claim_d_e = ClaimEvent(
@@ -185,7 +185,7 @@ def test_autonomous_rumor_chain_trajectory():
             })
             stores[target_d].upsert(rec_e)
             trajectory.append((f"{target_c}->{target_d}", rec_e.confidence, None, None))
-    
+
     # === ОТЧЁТ ===
     print("\n" + "="*60)
     print("A21.2 ЧИСЛОВАЯ ТРАЕКТОРИЯ АВТОНОМНОЙ ЦЕПОЧКИ")
@@ -196,7 +196,7 @@ def test_autonomous_rumor_chain_trajectory():
         else:
             print(f"{stage:20s} | confidence={conf:.4f}")
     print("="*60)
-    
+
     # Проверяем, что хотя бы первый этап прошёл
     assert trajectory[0][1] > 0.0, "C должен получить ненулевую уверенность"
     assert ctx_c.report_proposition is not None, "C должен иметь proposition для слуха"

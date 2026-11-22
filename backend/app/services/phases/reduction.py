@@ -182,6 +182,7 @@ def _execute_handler(
         ctx.shared_context.spatial_query = SpatialQueryService(
             npc_positions=ctx.scene_state.get("npc_positions", {}),
             scene_state=ctx.scene_state,
+            tick_id=int(ctx.scene_state.get("tick", 0)),
         )
 
     _npc_contexts = ctx.npc_contexts if ctx.npc_contexts else []

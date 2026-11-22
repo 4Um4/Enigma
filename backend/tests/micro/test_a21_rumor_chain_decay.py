@@ -46,7 +46,7 @@ def test_rumor_chain_decay_10_hops():
     engine = BeliefRevisionEngine(reliability_provider=provider)
 
     prop = Proposition(subject_id="X", predicate=Predicate.STOLE, object_id="Y")
-    
+
     # A сам видел (direct_observation)
     claim_a = ClaimEvent(
         event_id="e0", claim_id="claim_1", speaker_id="A", listener_id="C1",
@@ -56,9 +56,9 @@ def test_rumor_chain_decay_10_hops():
         listener_id="C1", claim=claim_a, existing_record=None,
         reliability_context={"source_type": "direct_observation", "original_source_id": "A"}
     )
-    
+
     confidences = [record.confidence]
-    
+
     # Цепочка пересказов
     for i in range(1, 10):
         speaker = npcs[i]
@@ -76,10 +76,10 @@ def test_rumor_chain_decay_10_hops():
             }
         )
         confidences.append(record.confidence)
-    
+
     # Проверяем затухание
     print(f"Confidences along chain: {[round(c, 3) for c in confidences]}")
-    
+
     # Уверенность должна монотонно убывать (или хотя бы не расти до 1.0)
     assert confidences[-1] < confidences[0], f"Цепочка должна затухать: начало={confidences[0]}, конец={confidences[-1]}"
     assert confidences[-1] < 0.5, f"После 10 пересказов уверенность должна быть низкой, получено: {confidences[-1]}"

@@ -247,7 +247,7 @@ def project_idle_events(captured: List[EventDTO], scene_state: Dict[str, Any]) -
         _sq = SpatialQueryService(
             npc_positions=scene_state.get("npc_positions", {}),
             scene_state=scene_state,
-        )
+            tick_id=int(scene_state.get("tick", 0)),)
     except Exception as exc:
         logger.error(f"[IDLE_PROJECTION] SpatialQueryService build failed: {exc}")
         return []

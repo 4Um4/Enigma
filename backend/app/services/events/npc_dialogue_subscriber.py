@@ -245,7 +245,15 @@ class NpcDialogueSubscriber:
                 _journal_threshold = 8.0  # легаси-порог S128 (fail-open)
                 if isinstance(_evt_radius, (int, float)) and 0.0 <= float(_evt_radius) <= exposure_radius("shout"):
                     _journal_threshold = float(_evt_radius)
-                if _dist_to_player < _journal_threshold and is_canonical:
+                # SPATIAL-UNIFICATION (B4): тик-гейт прованса. Отказ — диагностируемый
+                # WARN (détectируемая запись-отказ), синтетики нет; событие без event_tick
+                # (легаси dict-события тестов) не гейтится — паритет fail-open Р-Б2.
+                _sq_tick = getattr(_spatial_query, "tick_id", None)  # noqa: ENIGMA002
+                if _sq_tick is not None and _event_tick and _sq_tick != _event_tick:
+                    logger.warning(
+                        f"[NPC_DIALOGUE_SUB] journal SKIP (tick-gate, B4): event_tick={_event_tick} != SQ.tick_id={_sq_tick} speaker={speaker!r} dist={_dist_to_player}"
+                    )
+                elif _dist_to_player < _journal_threshold and is_canonical:
                     # INV-NPC-NAME: журнал игрока хранит наблюдаемое имя, не machine-id.
                     # Резолв через SSOT имён (npc_positions["name"], CAUSAL CONTRACT §2.1).
                     # Источник — тот же _spatial_query, что и для дистанции (прецедент

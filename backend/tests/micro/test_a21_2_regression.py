@@ -27,14 +27,14 @@ def test_rumor_proposition_for_theft():
         source_type="testimony", original_source_id="witness"
     )
     store.upsert(rec)
-    
+
     resolver = EpistemicContextResolver(store=store)
     ctx = resolver.resolve("C")
-    
+
     # ОЖИДАНИЕ: report_proposition должен содержать кражу
     assert ctx.report_proposition is not None, "Разрыв: C не получил proposition для слуха о краже"
     assert ctx.report_proposition.predicate == Predicate.STOLE
-    
+
     mods = resolver.to_modifiers(ctx, archetype="maid")
     assert mods.get("spread_rumor", 0.0) > 0.0, "Разрыв: C не получил мотивацию пересказать кражу"
 
@@ -45,18 +45,18 @@ def test_spread_rumor_target_ranking():
     state = MagicMock(spec=NPCState)
     state.npc_id = "C"
     state.relationship_cache = {}
-    
+
     # Мокаем spatial_query: оба в радиусе
     spatial = MagicMock()
     spatial.distance.return_value = 1.0
-    
+
     # Мокаем _get_rel_value: D1 trust=0.9, D2 trust=0.5
     def mock_rel(st, cid, key):
         if key == "trust":
             return {"D1": 0.9, "D2": 0.5}.get(cid, 0.0)
         return 0.0
     hub._get_rel_value = mock_rel
-    
+
     target = hub._resolve_target(
         intent="spread_rumor",
         event=MagicMock(),
@@ -65,7 +65,7 @@ def test_spread_rumor_target_ranking():
         all_npc_ids=["C", "D1", "D2"],
         epistemic_context=None
     )
-    
+
     # ОЖИДАНИЕ: должен выбрать D1 (больше trust), а не None
     assert target is not None, "Разрыв: при 2 кандидатах target=None"
     assert target == "D1", f"Должен выбрать D1 с большим trust, получено: {target}"

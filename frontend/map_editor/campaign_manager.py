@@ -184,49 +184,101 @@ class CampaignManager:
             return SaveResult(ok=False, errors=errors, count=count, failed=failed)
         return SaveResult.success(count=count)
 
-    def _sync_to_runtime(self):
-        """Синхронизирует карты с saves и build/staging, пересобирает кэш графа (spatial_registry.json)."""
+    def _sync_to_runtime(self) -> dict:
+        """P4-01: Синхронизация с зеркалами (абсолютные пути, whitelist, mirror-delete).
+
+        Возвращает: {"copied": int, "deleted": int, "failed": int, "errors": list[str]}
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        result = {"copied": 0, "deleted": 0, "failed": 0, "errors": []}
+
         if not self._campaign_dir or not self.current_campaign_name:
-            return
+            return result
 
         campaign_name = self.current_campaign_name
         source_dir = self._campaign_dir / "locations"
         if not source_dir.exists():
-            return
+            result["errors"].append(f"Source directory does not exist: {source_dir}")
+            return result
 
-        target_dirs = [
-            Path("saves") / campaign_name / "locations",
-            Path("build/staging/saves") / campaign_name / "locations",
-            Path("build/staging/frontend/map_editor/campaigns") / campaign_name / "locations",
+        # 1. Абсолютный корень репозитория (не зависит от CWD)
+        repo_root = Path(__file__).resolve().parents[2]
+        abs_repo_root = repo_root.resolve()
+
+        # 2. Белый список целей (строго относительно корня)
+        target_paths = [
+            repo_root / "saves" / campaign_name / "locations",
+            repo_root / "build" / "staging" / "saves" / campaign_name / "locations",
+            repo_root / "build" / "staging" / "frontend" / "map_editor" / "campaigns" / campaign_name / "locations",
         ]
 
-        for target_dir in target_dirs:
-            try:
-                target_dir.mkdir(parents=True, exist_ok=True)
-                for src_file in source_dir.glob("*.json"):
-                    shutil.copy2(src_file, target_dir / src_file.name)
-            except Exception as e:
-                print(f"[EDITOR_SYNC] Warning: Failed to sync to {target_dir}: {e}")
+        # Список файлов, которые ДОЛЖНЫ быть в зеркалах (только .json)
+        source_files = {f.name for f in source_dir.glob("*.json")}
 
-        # Принудительная пересборка SpatialRegistry через Orchestrator
+        for target_dir in target_paths:
+            try:
+                # 3. Проверка принадлежности и защита от выхода за корень / symlink
+                abs_target = target_dir.resolve()
+                if not abs_target.is_relative_to(abs_repo_root):
+                    result["errors"].append(f"Target escapes repo root: {target_dir}")
+                    continue
+                if campaign_name not in abs_target.parts:
+                    result["errors"].append(f"Target missing campaign name: {target_dir}")
+                    continue
+
+                abs_target.mkdir(parents=True, exist_ok=True)
+
+                # 4. Mirror-delete: удаляем только .json, которых нет в source
+                target_files = {f.name for f in abs_target.glob("*.json")}
+                files_to_delete = target_files - source_files
+                for fname in files_to_delete:
+                    try:
+                        (abs_target / fname).unlink()
+                        result["deleted"] += 1
+                    except Exception as e:
+                        result["failed"] += 1
+                        result["errors"].append(f"Delete failed {fname} in {target_dir}: {e}")
+
+                # Предупреждение о посторонних файлах (не удаляем их, как требует D.3)
+                for f in abs_target.iterdir():
+                    if f.is_file() and f.suffix.lower() != ".json":
+                        logger.warning(f"[EDITOR_SYNC] Non-JSON file ignored in mirror: {f.name}")
+
+                # 5. Копирование/обновление
+                for fname in source_files:
+                    src_file = source_dir / fname
+                    tgt_file = abs_target / fname
+                    try:
+                        shutil.copy2(src_file, tgt_file)
+                        result["copied"] += 1
+                    except Exception as e:
+                        result["failed"] += 1
+                        result["errors"].append(f"Copy failed {fname} to {target_dir}: {e}")
+
+            except Exception as e:
+                result["errors"].append(f"Target processing failed {target_dir}: {e}")
+
+        # 6. Пересборка реестра (сохраняем логику, но интегрируем в результат)
         try:
             import sys
-
             frontend_dir = Path(__file__).parent.parent
             if str(frontend_dir) not in sys.path:
                 sys.path.insert(0, str(frontend_dir))
             from spatial_compilation_orchestrator import SpatialCompilationOrchestrator
 
-            # Удаляем старый артефакт, чтобы форсировать пересборку
             artifact_path = self._campaign_dir / "compiled" / "spatial_registry.json"
             if artifact_path.exists():
                 artifact_path.unlink()
 
             orch = SpatialCompilationOrchestrator()
             orch.rebuild_if_needed(campaign_name)
-            print(f"[EDITOR_SYNC] SpatialRegistry rebuilt for {campaign_name}")
+            logger.info(f"[EDITOR_SYNC] SpatialRegistry rebuilt for {campaign_name}")
         except Exception as e:
-            print(f"[EDITOR_SYNC] Warning: Failed to rebuild SpatialRegistry: {e}")
+            result["errors"].append(f"Registry rebuild failed: {e}")
+            logger.error(f"[EDITOR_SYNC] Failed to rebuild SpatialRegistry: {e}")
+
+        return result
 
     def save_location_as(self, source_filename: str, new_filename: str) -> Tuple[bool, str]:
         """Копирует локацию под новым именем в текущую кампанию"""

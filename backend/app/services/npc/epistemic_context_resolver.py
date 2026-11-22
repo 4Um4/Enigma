@@ -147,7 +147,7 @@ class EpistemicContextResolver:
         # EPISTEMIC-005: Разделение каналов. Прямые убеждения не должны вытесняться атрибутированными.
         direct_records = [r for r in records if getattr(r, 'attribution_chain', None) is None]
         attributed_records = [r for r in records if getattr(r, 'attribution_chain', None) is not None]
-        
+
         # Top-3 прямых убеждений для существующего target-aware scoring
         all_direct_sorted = sorted(direct_records, key=lambda r: r.confidence, reverse=True)[:3]
         _recent_beliefs = tuple(
@@ -161,7 +161,7 @@ class EpistemicContextResolver:
             )
             for r in all_direct_sorted
         )
-        
+
         # Top-3 атрибутированных убеждений для Theory of Mind (не влияют на прямой scoring)
         all_attributed_sorted = sorted(attributed_records, key=lambda r: r.confidence, reverse=True)[:3]
         _attributed_beliefs = tuple(

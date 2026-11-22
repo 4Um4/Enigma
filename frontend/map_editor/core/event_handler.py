@@ -260,7 +260,7 @@ class EventHandler:
                                     for _k in ("wx1", "wy1", "wx2", "wy2"):
                                         sel_orig.pop(_k, None)
                                 group_origs[(sel_type, sel_id)] = sel_orig
-                        
+
                         core._dragging_entity = {
                             "start_mx": mx,
                             "start_my": my,
@@ -469,7 +469,7 @@ class EventHandler:
                     scale = 1.0 / (SCALE * core.zoom)
                     dx_world = round(total_dx * scale, 2)
                     dy_world = round(total_dy * scale, 2)
-                    
+
                     if abs(dx_world) > 0.01 or abs(dy_world) > 0.01:
                         _group_origs = core._dragging_entity.get("group_origs", {})
                         if len(core.selected_objects) > 1 and _group_origs:
@@ -484,7 +484,7 @@ class EventHandler:
                                     )
                                     cmd._skip_do = True
                                     move_commands.append(cmd)
-                            
+
                             if move_commands:
                                 multi_cmd = MultiMoveCommand(core.dm, core.current_file, move_commands)
                                 multi_cmd._skip_do = True
@@ -498,7 +498,7 @@ class EventHandler:
                             )
                             cmd._skip_do = True
                             core.undo.push(cmd)
-                            
+
                     core._dragging_entity = None
                 else:
                     core._handle_left_release(mx, my, world_x, world_y, grid_x, grid_y)
@@ -515,7 +515,7 @@ class EventHandler:
                 scale = 1.0 / (SCALE * core.zoom)
                 dx_world = total_dx * scale
                 dy_world = total_dy * scale
-                
+
                 # Групповое перемещение всех выделенных объектов
                 group_origs = core._dragging_entity.get("group_origs", {})
                 if len(core.selected_objects) > 1 and group_origs:

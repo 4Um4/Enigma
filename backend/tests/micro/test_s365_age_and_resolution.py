@@ -30,9 +30,9 @@ def test_age_anchors_bare_number():
     (избегая ложных срабатываний на "в 24 часа", "дом № 24" и т.п.).
     """
     from app.services.chronicle.age_anchor import extract_age_anchors_typed
-    
+
     anchors = extract_age_anchors_typed("В 24 застал изнасилование Люси Ормом.")
-    
+
     # Проверяем, что парсер НЕ создал якорь для голого числа без маркера
     assert len(anchors) == 0, f"Парсер не должен извлекать возраст без явного маркера, получено: {anchors}"
 

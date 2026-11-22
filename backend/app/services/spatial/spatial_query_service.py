@@ -31,11 +31,15 @@ class SpatialQueryService:
         npc_positions: Dict[str, Dict[str, Any]],
         cluster_occupancy: Optional[ClusterOccupancy] = None,
         scene_state: Optional[Dict[str, Any]] = None,
+        *,
+        tick_id: int,  # SPATIAL-UNIFICATION (B2): без дефолта; SQ обязан быть снимком тика, не абстракцией
     ) -> None:
         # Внутреннее хранилище. Не экспортируется наружу.
         self._npc_positions = npc_positions or {}
         self._cluster_occupancy = cluster_occupancy
         self._scene_state = scene_state or {}
+        # SPATIAL-UNIFICATION (B2): происхождение снимка (тик рождения); проверяется провайдером (B4).
+        self.tick_id = tick_id
 
     def get_entity_position(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """Возвращает словарь с 'local_position', 'position', 'node_id' или None."""

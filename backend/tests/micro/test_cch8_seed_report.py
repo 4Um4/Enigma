@@ -161,7 +161,7 @@ def test_9_control_report_matches_actual_seed_not_fixture():
     assert len(belief_entries) > 0, "guard_borko должен иметь BELIEF_SEED entries"
     # Проверяем фактическое состояние каждой записи на соответствие реестру
     from app.models.npc.beliefs import BeliefType
-    
+
     valid_types = {bt.value for bt in BeliefType}
     doc = canonical_chronicles().get(npc_id)
     assert doc is not None, f"Canon not found for {npc_id}"
@@ -193,17 +193,17 @@ def test_9_control_report_matches_actual_seed_not_fixture():
     npc_id2 = "blacksmith_orm"
     r2 = build_seed_report(npc_id2)
     assert r2 is not None
-    
+
     doc2 = canonical_chronicles().get(npc_id2)
     assert doc2 is not None
-    
+
     effect_entries = [e for e in r2.entries if e.source_kind == "EFFECT"]
     for ee in effect_entries:
         canon_e = next((ce for ce in doc2.entries if ce.entry_id == ee.entry_id), None)
         if canon_e and canon_e.payload:
             effect_kind = canon_e.payload.get("effect_kind")
             triggers = canon_e.payload.get("triggers")
-            
+
             if effect_kind == "trauma":
                 if not triggers:
                     assert ee.seed_result == "SKIPPED", f"{ee.entry_id}: trauma without triggers should be SKIPPED"

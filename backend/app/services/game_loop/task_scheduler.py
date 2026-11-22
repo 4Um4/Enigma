@@ -1,4 +1,4 @@
-﻿"""
+"""
 path: /backend/app/services/game_loop/task_scheduler.py
 Назначение: Читает pending_tasks из scene_state, исполняет их через Executor'ы и публикует WorldEvent'ы.
 Зависимости: app.domain.execution, app.services.execution.dialogue_executor, app.services.execution.dialogue_materializer
@@ -819,7 +819,7 @@ class TaskScheduler:
                 _sqs = SpatialQueryService(
                     npc_positions=scene_state.get("npc_positions", {}),
                     scene_state=scene_state,
-                )
+                    tick_id=int(scene_state.get("tick", 0)),)
 
                 _candidates = []
                 _all_npcs = [

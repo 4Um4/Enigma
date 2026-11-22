@@ -41,6 +41,7 @@ class SocialActionSubscriber:
                     "speech_act": speech_act,
                     "claim_id": f"proj-{event.id}",
                     "tick": payload.get("tick", 0),
+                    "event_tick": payload.get("event_tick", payload.get("tick", 0)),  # SPATIAL-UNIFICATION (B4)
                 },
                 visibility=event.visibility,
                 radius=event.radius,
@@ -58,6 +59,7 @@ class SocialActionSubscriber:
                     "tone": payload.get("tone", "NEUTRAL"),
                     "topic": payload.get("topic", ""),
                     "intent_type": payload.get("social_intent", "talk"),
+                    "event_tick": payload.get("event_tick", payload.get("tick", 0)),  # SPATIAL-UNIFICATION (B4)
                 },
                 visibility=event.visibility,
                 radius=event.radius,

@@ -597,14 +597,14 @@ class MultiMoveCommand(Command):
     dm: Any = None
     filename: str = ""
     commands: List[Any] = field(default_factory=list)
-    
+
     def __post_init__(self):
         self.label = "Групповое перемещение"
-        
+
     def do(self):
         for cmd in self.commands:
             cmd.do()
-            
+
     def undo(self):
         for cmd in reversed(self.commands):
             cmd.undo()

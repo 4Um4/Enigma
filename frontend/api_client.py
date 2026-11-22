@@ -944,7 +944,7 @@ class FallbackGateway:
 
     """
     HTTP приоритет, Direct fallback при обрыве.
-    
+
     Логика:
     - send_action: пробует HTTP, при ошибке — Direct
     - Каждые _retry_interval запросов — перепроверяет HTTP

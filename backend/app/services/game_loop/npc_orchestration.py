@@ -148,6 +148,7 @@ def run_npc_orchestration(
     _spatial_query = SpatialQueryService(
         npc_positions=_scene_state.get("npc_positions", {}),
         scene_state=_scene_state,
+        tick_id=int(_scene_state.get("tick", 0)),
     )
     _cryst_store = deps.crystallized_belief_store  # AUDIT-002 §3.2
     _npc_svc = NpcTickServices(

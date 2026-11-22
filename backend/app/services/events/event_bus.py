@@ -104,6 +104,11 @@ class EventBus:
             logger.error(f"[EVENT_IDENTITY] no scene for {event.type}/{event.source} — provisional id")
             return event
         _tick, _ordinal = self._identity_provider(event.type, event.source)
+        _payload = event.payload
+        if isinstance(_payload, dict) and "event_tick" not in _payload:
+            # SPATIAL-UNIFICATION (B4): прованс по умолчанию = identity-тик
+            # (время публикации в сцене). Штампы ADR-O-399 не перетираются.
+            event = dataclasses.replace(event, payload={**_payload, "event_tick": int(_tick)})
         _seed = f"{event.type}:{event.source}:{_tick}:{_ordinal}".encode("utf-8")
         return dataclasses.replace(
             event,

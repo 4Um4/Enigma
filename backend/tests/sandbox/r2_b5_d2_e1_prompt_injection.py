@@ -586,12 +586,12 @@ def main() -> int:
         print(f"""
   RESOLVER_PASS:   {resolver_pass}
     (manual resolve_block returned non-empty text of length {len(resolver_block_text) if resolver_block_text else 0})
-  
+
   INJECTION_PASS:  {injection_pass}
     (cog_block markers found in user_prompt of at least one Tornin router call)
     Tornin calls total: {len(tornin_calls) if "tornin_calls" in dir() else 0}
     Tornin calls with markers: {len(tornin_calls_with_markers) if "tornin_calls_with_markers" in dir() else 0}
-  
+
   ROUTER_PASS:     {router_pass}
     (router actually received prompt with cog_block markers for Tornin)
     (verified via transparent recorder at request_for_agent boundary)
@@ -610,7 +610,7 @@ def main() -> int:
     - 'когнитив': False, 'убеждени': False, 'сообщил': False
     - 'source_id': False, 'original_source': False
     - Only 'confidence': True (from STM, not cog_block)
-  
+
   B4-R13 E1 (this run):
     - belief appeared at tick: {belief_appeared_at_tick}
     - RESOLVER_PASS: {resolver_pass}
@@ -618,7 +618,7 @@ def main() -> int:
     - ROUTER_PASS: {router_pass}
     - Tornin router calls: {len(tornin_calls) if "tornin_calls" in dir() else 0}
     - Tornin calls with cog_block markers: {len(tornin_calls_with_markers) if "tornin_calls_with_markers" in dir() else 0}
-  
+
   Interpretation:
 """)
 

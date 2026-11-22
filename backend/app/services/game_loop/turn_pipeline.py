@@ -87,6 +87,7 @@ class TurnPipeline:
         spawn_world_tick_task: Any,
         build_dm_phase_deps: Any,
         build_npc_orch_deps: Any,
+        publish_spatial_context: Any = None,  # SPATIAL-UNIFICATION (B4)
     ) -> None:
         # Имена атрибутов = прежние self-имена => тела методов переезжают 1-в-1
         self.memory_manager = memory_manager
@@ -106,6 +107,7 @@ class TurnPipeline:
         self._spawn_world_tick_task = spawn_world_tick_task
         self._build_dm_phase_deps = build_dm_phase_deps
         self._build_npc_orch_deps = build_npc_orch_deps
+        self._publish_spatial_context = publish_spatial_context
 
     # ── B-провайдеры (GameLoop-owned) ──────────────────────────────────────
 
@@ -118,7 +120,10 @@ class TurnPipeline:
         shared_context.spatial_query = SpatialQueryService(
             npc_positions=scene_state.get("npc_positions", {}),
             scene_state=scene_state,
+            tick_id=int(scene_state.get("tick", 0)),
         )
+        if self._publish_spatial_context is not None:
+            self._publish_spatial_context(shared_context)  # SPATIAL-UNIFICATION (B4)
 
         if hasattr(shared_context, "current_tick"):
             shared_context.current_tick = scene_state.get("tick", 0) + 1
@@ -522,7 +527,10 @@ class TurnPipeline:
                     "physical_force": _semantic_field.physical_force,
                     "emotional_charge": _semantic_field.emotional_charge,
                     "social_pressure": _semantic_field.social_pressure,
-                    "tick": shared_context.current_tick,
+                    # SPATIAL-UNIFICATION (B4, вердикт б): прованс = тик сцены-источника.
+                    # event_tick — канон (поправка №2); "tick" — легаси прежних потребителей.
+                    "tick": int(scene_state.get("tick", 0)),
+                    "event_tick": int(scene_state.get("tick", 0)),
                 }
 
                 _event = EventDTO.create_social_action(

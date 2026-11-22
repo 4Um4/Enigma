@@ -560,7 +560,7 @@ class MapRenderer:
             sx1, sy1 = self._world_to_screen(core, core.rubber_band_start[0], core.rubber_band_start[1])
             sx2, sy2 = self._world_to_screen(core, core.rubber_band_current[0], core.rubber_band_current[1])
             rect = pygame.Rect(min(sx1, sx2), min(sy1, sy2), abs(sx2 - sx1), abs(sy2 - sy1))
-            
+
             if rect.width > 0 and rect.height > 0:
                 # Полупрозрачная заливка
                 s = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)

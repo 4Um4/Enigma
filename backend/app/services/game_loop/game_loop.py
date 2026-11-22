@@ -459,6 +459,13 @@ class GameLoop:
         # — идиома булева флага (прецедент _skip_locks:373). Anti-Race:
         # ядро TickOrchestrator не тронуто (ADR-O-344 в силе).
         self._player_turn_in_flight: set[str] = set()
+        # SPATIAL-UNIFICATION (B4): реестр активных SQ-контекстов хода
+        # {campaign_id: (token, sq)}; token — монотонный счётчик (не id()).
+        # Release стирает запись только при совпадении token (поправка №3).
+        self._active_turn_contexts: dict[str, tuple] = {}
+        self._active_turn_ctx_seq = 0
+        self._active_turn_ctx_lock = threading.Lock()
+        self._spatial_pub_boxes: dict[str, dict] = {}
         # DEGOD Phase3B: CampaignLifecycle — владелец жизненного цикла кампании
         from app.services.game_loop.campaign_lifecycle import CampaignLifecycle
 
@@ -494,41 +501,82 @@ class GameLoop:
             spawn_world_tick_task=self._spawn_world_tick_task,
             build_dm_phase_deps=self._build_dm_phase_deps,
             build_npc_orch_deps=self._build_npc_orch_deps,
+            publish_spatial_context=self._publish_active_spatial_context,
         )
 
+    def _publish_active_spatial_context(self, shared_context: Any) -> None:
+        """SPATIAL-UNIFICATION (B4): регистрирует SQ активного хода в реестре.
+
+        Вызывается из TurnPipeline._sync_shared_context_with_scene сразу после
+        сборки spatial_query (замена демонтажного writer'а F-2). Ключ —
+        campaign_id (изоляция кампаний), значение — (token, SQ).
+        """
+        _sq = getattr(shared_context, "spatial_query", None)  # noqa: ENIGMA002
+        if _sq is None:
+            logger.warning("[SPATIAL-REG] publish without spatial_query — skip")
+            return
+        _cid = getattr(shared_context, "campaign_id", None)  # noqa: ENIGMA002
+        if not _cid:
+            _cid = getattr(self, "_current_campaign_id", "Open_road")  # noqa: ENIGMA002
+        _box = self._spatial_pub_boxes.setdefault(cast(str, _cid), {})
+        _box["token"] = self._register_active_spatial_context(cast(str, _cid), _sq)
+
+    def _register_idle_spatial_context(self, campaign_id: str, spatial_query: Any) -> Any:
+        """SPATIAL-UNIFICATION (B5): idle/skip публикуют SQ в общий реестр.
+
+        Регистрация только if-absent: занятое ходом игрока окно не
+        перетирается (его release защищён токеном). Возвращает токен или None.
+        """
+        if spatial_query is None:
+            return None
+        with self._active_turn_ctx_lock:
+            if self._active_turn_contexts.get(campaign_id) is not None:
+                logger.debug(
+                    f"[SPATIAL-REG] idle bind skipped — campaign={campaign_id} уже в реестре (ход игрока)"
+                )
+                return None
+            self._active_turn_ctx_seq += 1
+            _token = self._active_turn_ctx_seq
+            self._active_turn_contexts[campaign_id] = (_token, spatial_query)
+        return _token
+    def _register_active_spatial_context(self, campaign_id: str, spatial_query: Any) -> int:
+        """Bind: перезаписывает только СВОЮ кампанию (под локом); token — монотонный."""
+        with self._active_turn_ctx_lock:
+            self._active_turn_ctx_seq += 1
+            _token = self._active_turn_ctx_seq
+            self._active_turn_contexts[campaign_id] = (_token, spatial_query)
+        return _token
+
+    def _release_active_spatial_context(self, campaign_id: str, token: Any) -> None:
+        """Clear: удаляет запись только при совпадении token; чужой/устаревший — WARN."""
+        with self._active_turn_ctx_lock:
+            _entry = self._active_turn_contexts.get(campaign_id)
+            if _entry is None:
+                return
+            if token is None or token != _entry[0]:
+                logger.warning(
+                    f"[SPATIAL-REG] release skipped (campaign={campaign_id}): token mismatch — защищён более новый контекст"
+                )
+                return
+            del self._active_turn_contexts[campaign_id]
     def _get_spatial_query_for_subscriber(self) -> Any:
-        """Провайдер SpatialQueryService для NpcDialogueSubscriber (eavesdrop).
-        S196 FIX: Берёт актуальный SpatialQueryService из shared_context,
-        устраняя зависимость от mutable hidden state _current_spatial_query.
-        S197 FIX: Если spatial_query отсутствует, конструирует его на лету из scene_state."""
-        _shared_ctx = getattr(self._tick_orch, "_shared_context", None)  # noqa: ENIGMA002
-        if _shared_ctx is not None:
-            _sq = getattr(_shared_ctx, "spatial_query", None)  # noqa: ENIGMA002
-            if _sq is not None:
-                return _sq
+        """Провайдер SpatialQueryService для подписчиков (eavesdrop).
 
-        _sq = getattr(self, "_current_spatial_query", None)  # noqa: ENIGMA002
-        if _sq is not None:
-            return _sq
+        SPATIAL-UNIFICATION (B5): единственный источник — реестр активных
+        контекстов тика (ход игрока: run_turn register/release; idle/skip:
+        _register_idle_spatial_context + release в finally). Исторические
+        SQ недоступны по контракту (снапшот живёт внутри своего тика).
+        """
+        _provider_cid = getattr(self, "_current_campaign_id", "Open_road")  # noqa: ENIGMA002
+        with self._active_turn_ctx_lock:
+            _active_entry = self._active_turn_contexts.get(_provider_cid)  # noqa: ENIGMA002
+        if _active_entry is not None:
+            return _active_entry[1]
 
-        # S197 FIX: Fallback - конструируем на лету, чтобы избежать INV-SPATIAL-QUERY при ранних событиях
-        _campaign_id = getattr(self, "_current_campaign_id", "Open_road")
-        _scene = self.scene_manager.get_scene_state(_campaign_id, "tavern")
-        if not _scene:
-            _scene = self.scene_manager.get_scene_state(_campaign_id, "city_gate")
-
-        if _scene:
-            from app.services.spatial.spatial_query_service import SpatialQueryService
-
-            _new_sq = SpatialQueryService(npc_positions=_scene.get("npc_positions", {}), scene_state=_scene)
-            self._current_spatial_query = _new_sq
-            logger.warning("[SPATIAL_FALLBACK] SpatialQueryService was missing, constructed on-the-fly.")
-            return _new_sq
-
-        logger.error("SpatialQueryService missing in GameLoop for NpcDialogueSubscriber (eavesdrop).")
-        raise RuntimeError(
-            "INV-SPATIAL-QUERY: Missing spatial_query during NPC_SPOKE handling and scene_state is unavailable."
+        logger.error(
+            f"[SPATIAL-PROVIDER] no active SQ for campaign={_provider_cid} — подписчик получает None (диагностируемый skip гейта)"
         )
+        return None
 
     def _on_npc_spoke_economy_tracker(self, event: Any) -> None:
         """S150 FIX: Регистрирует диалоги для EconomyTracker (потребность SOCIAL)."""
@@ -1068,7 +1116,8 @@ class GameLoop:
             _scene = self.scene_manager.lock_for_tick(campaign_id, _loc_id)
             if _scene is None:
                 return {"status": "no_scene", "npc_positions": {}, "npc_addressing": []}
-
+            _sq_local = None  # SPATIAL-UNIFICATION (B6): локальный байндинг тика
+            _reg_token = None  # SPATIAL-UNIFICATION (B5): токен idle-байндинга
             _spatial_svc = None
             if _loc_id:
                 from app.services.spatial.spatial_factory import SpatialFactory
@@ -1079,13 +1128,14 @@ class GameLoop:
                     )
                     from app.services.spatial.spatial_query_service import SpatialQueryService
 
-                    self._current_spatial_query = SpatialQueryService(
+                    _sq_local = SpatialQueryService(
                         npc_positions=_scene.get("npc_positions", {}),
                         scene_state=_scene,
+                        tick_id=int(_scene.get("tick", 0)),
                     )
+                    _reg_token = self._register_idle_spatial_context(campaign_id, _sq_local)
                 except Exception as e:
                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
-                    self._current_spatial_query = None
 
             # AUDIT-003 §3.3: сервисный контекст NPC для тиков вне хода игрока
             from app.services.events.event_bus import get_event_bus
@@ -1099,7 +1149,7 @@ class GameLoop:
                 economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
                 event_bus=get_event_bus(),
                 spatial_service=_spatial_svc,
-                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                spatial_query=_sq_local,  # noqa: ENIGMA002  # SPATIAL-UNIFICATION (B6)
                 crystallized_belief_store=getattr(  # noqa: ENIGMA002
                     getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
                     "crystallized_belief_store",
@@ -1188,6 +1238,8 @@ class GameLoop:
         finally:
             # BUG-FB-002 FIX: Снимаем блокировку scene_manager, иначе ядро зависнет навсегда.
             self.scene_manager.unlock_tick(campaign_id)
+            if _reg_token is not None:
+                self._release_active_spatial_context(campaign_id, _reg_token)
             lock.release()
 
     # E.2: Публичные методы для инкапсуляции внутренних сервисов
@@ -1434,7 +1486,8 @@ class GameLoop:
                                     _scene["location_id"] = _oracle_loc
             except Exception as e:
                 logger.warning(f"[SPATIAL_ORACLE_IDLE] Oracle lookup failed: {e}")
-
+            _sq_local = None  # SPATIAL-UNIFICATION (B6): локальный байндинг тика
+            _reg_token = None  # SPATIAL-UNIFICATION (B5): токен idle-байндинга
             # ADR-048: GameLoop собирает SpatialService для активной локации
             _spatial_svc = None
             if _active_loc:
@@ -1446,12 +1499,13 @@ class GameLoop:
                     )
                     from app.services.spatial.spatial_query_service import SpatialQueryService
 
-                    self._current_spatial_query = SpatialQueryService(
-                        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene
+                    _sq_local = SpatialQueryService(
+                        npc_positions=_scene.get("npc_positions", {}), scene_state=_scene,
+                        tick_id=int(_scene.get("tick", 0)),
                     )
+                    _reg_token = self._register_idle_spatial_context(campaign_id, _sq_local)
                 except Exception as e:
                     logger.warning(f"[SPATIAL_AUTHORITY] SpatialService build failed: {e}")
-                    self._current_spatial_query = None
 
             _player_eco_profile = self._svc.get_or_create_economic_profiles(campaign_id).get("player")
 
@@ -1467,7 +1521,7 @@ class GameLoop:
 
             _idle_ctx = _SNS(
                 scene_state=_scene,
-                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                spatial_query=_sq_local,  # noqa: ENIGMA002  # SPATIAL-UNIFICATION (B6)
                 relationship_store=getattr(self, "_rel_store", None),  # noqa: ENIGMA002
                 campaign_id=campaign_id,
             )
@@ -1484,7 +1538,7 @@ class GameLoop:
                 economic_profiles=self._svc.get_or_create_economic_profiles(campaign_id),
                 event_bus=get_event_bus(),
                 spatial_service=_spatial_svc,
-                spatial_query=getattr(self, "_current_spatial_query", None),  # noqa: ENIGMA002
+                spatial_query=_sq_local,  # noqa: ENIGMA002  # SPATIAL-UNIFICATION (B6)
                 crystallized_belief_store=getattr(  # noqa: ENIGMA002
                     getattr(self, "_tick_orch", None),  # noqa: ENIGMA002
                     "crystallized_belief_store",
@@ -1674,6 +1728,8 @@ class GameLoop:
             # unlock_tick сохраняет его на диск (если тик НЕ помечен aborted).
             self.scene_manager.unlock_tick(campaign_id)
         self.scene_manager.unlock_tick(campaign_id)
+        if _reg_token is not None:
+            self._release_active_spatial_context(campaign_id, _reg_token)
 
         # ADR-O-420 (LC-IMPL-1): наблюдаемая проекция захваченных idle-событий.
         # Read-only (§15.4-8): EventDTO уже произошедшего → {cause,target,value};
@@ -2129,6 +2185,11 @@ class GameLoop:
             # (ADR-O-364 reuse; вечный фриз невозможен). discard — идемпотентен
             # (safe при отсутствии в сете).
             self._player_turn_in_flight.discard(req.campaign_id)
+            # SPATIAL-UNIFICATION (B4): release активного SQ-контекста хода
+            # (только при совпадении token; более новый контекст не стираем).
+            _spatial_pub = self._spatial_pub_boxes.pop(req.campaign_id, None)  # noqa: ENIGMA001
+            if _spatial_pub is not None:
+                self._release_active_spatial_context(req.campaign_id, _spatial_pub.get("token"))
             # ADR-SCENE-LOCK: Разблокируем тик — финальный персист кэша
             # (если тик НЕ помечен aborted).
             self.scene_manager.unlock_tick(req.campaign_id)

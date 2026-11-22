@@ -12,9 +12,12 @@ path: /backend/app/models/pipeline_context.py
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from app.models.will import IntentResolution
+
+if TYPE_CHECKING:
+    from app.services.spatial.spatial_query_service import SpatialQueryService
 
 # TODO: после миграции domain — раскомментировать
 # from app.domain.communication import CommunicationIntent
@@ -88,7 +91,7 @@ class PipelineContext:
     character_filter: Dict[str, Any] = field(default_factory=dict)
 
     # ── Пространственные и социальные события ──────────────────────
-    spatial_query: Any = None  # ADR-121: SpatialQueryService — ADR-048 Authoritative Spatial Spine
+    spatial_query: "SpatialQueryService | None" = None  # SPATIAL-UNIFICATION (B1) + ADR-121: SpatialQueryService — ADR-048 Authoritative Spatial Spine
     spatial_events: List[Any] = field(default_factory=list)
     scene_events: List[Any] = field(default_factory=list)
     social_propagation: List[Any] = field(default_factory=list)

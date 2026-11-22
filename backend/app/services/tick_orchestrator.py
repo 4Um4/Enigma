@@ -2325,6 +2325,7 @@ class TickOrchestrator:
             _spatial_query_for_pipeline = SpatialQueryService(
                 npc_positions=ctx.scene_state.get("npc_positions", {}),
                 scene_state=ctx.scene_state,
+                tick_id=int(ctx.scene_state.get("tick", 0)),
             )
         _life_engine = self._get_life_engine()
         _idle_pressure_map = _life_engine.get_idle_pressure_map() if _life_engine else {}

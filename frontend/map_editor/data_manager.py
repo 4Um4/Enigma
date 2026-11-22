@@ -1090,57 +1090,78 @@ class DataManager:
 
         data["global_coords"] = True
 
-    def shift_all(self, filename: str, dx: float, dy: float) -> None:
-        """Сдвигает все координаты внутри локации на (dx, dy).
-        Используется при перетаскивании локации на карте мира."""
+    def shift_all(self, filename: str, dx: float, dy: float) -> dict:
+        """Сдвигает все координаты внутри локации на (dx, dy). P3-04: атомарная операция.
+
+        Используется при перетаскивании локации на карте мира.
+        Возвращает: {"success": bool, "error": str | None}
+
+        P3-04: добавлена обработка rooms[*].polygon (критический дефект исправлен).
+        """
+        import copy
         loc = self.locations[filename]
 
-        # Глобальная позиция локации
-        loc["origin"]["x"] = round(loc["origin"]["x"] + dx, 2)
-        loc["origin"]["y"] = round(loc["origin"]["y"] + dy, 2)
+        # Снимок для отката (P3-04: атомарность)
+        snapshot = copy.deepcopy(loc)
 
-        # Комнаты
-        for room in loc.get("rooms", []):
-            room["x"] = round(room["x"] + dx, 2)
-            room["y"] = round(room["y"] + dy, 2)
+        try:
+            # Глобальная позиция локации
+            loc["origin"]["x"] = round(loc["origin"]["x"] + dx, 2)
+            loc["origin"]["y"] = round(loc["origin"]["y"] + dy, 2)
 
-        # Стены
-        for wall in loc.get("walls", []):
-            wall["x1"] = round(wall["x1"] + dx, 2)
-            wall["y1"] = round(wall["y1"] + dy, 2)
-            wall["x2"] = round(wall["x2"] + dx, 2)
-            wall["y2"] = round(wall["y2"] + dy, 2)
+            # Комнаты
+            for room in loc.get("rooms", []):
+                room["x"] = round(room["x"] + dx, 2)
+                room["y"] = round(room["y"] + dy, 2)
+                # P3-04: обработка полигональных комнат
+                for point in room.get("polygon", []):
+                    point[0] = round(point[0] + dx, 2)
+                    point[1] = round(point[1] + dy, 2)
 
-        # Навигационные узлы
-        for node in loc.get("nodes", {}).values():
-            node["x"] = round(node["x"] + dx, 2)
-            node["y"] = round(node["y"] + dy, 2)
+            # Стены
+            for wall in loc.get("walls", []):
+                wall["x1"] = round(wall["x1"] + dx, 2)
+                wall["y1"] = round(wall["y1"] + dy, 2)
+                wall["x2"] = round(wall["x2"] + dx, 2)
+                wall["y2"] = round(wall["y2"] + dy, 2)
 
-        # Объекты
-        for obj in loc.get("objects", []):
-            obj["position"]["x"] = round(obj["position"]["x"] + dx, 2)
-            obj["position"]["y"] = round(obj["position"]["y"] + dy, 2)
+            # Навигационные узлы
+            for node in loc.get("nodes", {}).values():
+                node["x"] = round(node["x"] + dx, 2)
+                node["y"] = round(node["y"] + dy, 2)
 
-        # Проходы (внутренние)
-        for passage in loc.get("passages", []):
-            passage["position"]["x"] = round(passage["position"]["x"] + dx, 2)
-            passage["position"]["y"] = round(passage["position"]["y"] + dy, 2)
+            # Объекты
+            for obj in loc.get("objects", []):
+                obj["position"]["x"] = round(obj["position"]["x"] + dx, 2)
+                obj["position"]["y"] = round(obj["position"]["y"] + dy, 2)
 
-        # NPC
-        for npc in loc.get("npcs", []):
-            npc["position"]["x"] = round(npc["position"]["x"] + dx, 2)
-            npc["position"]["y"] = round(npc["position"]["y"] + dy, 2)
+            # Проходы (внутренние)
+            for passage in loc.get("passages", []):
+                passage["position"]["x"] = round(passage["position"]["x"] + dx, 2)
+                passage["position"]["y"] = round(passage["position"]["y"] + dy, 2)
 
-        # Точка спавна игрока
-        spawn = loc.get("player_spawn")
-        if spawn:
-            spawn["x"] = round(spawn["x"] + dx, 2)
-            spawn["y"] = round(spawn["y"] + dy, 2)
+            # NPC
+            for npc in loc.get("npcs", []):
+                npc["position"]["x"] = round(npc["position"]["x"] + dx, 2)
+                npc["position"]["y"] = round(npc["position"]["y"] + dy, 2)
 
-        # Надписи
-        for label in loc.get("labels", []):
-            label["x"] = round(label["x"] + dx, 2)
-            label["y"] = round(label["y"] + dy, 2)
+            # Точка спавна игрока
+            spawn = loc.get("player_spawn")
+            if spawn:
+                spawn["x"] = round(spawn["x"] + dx, 2)
+                spawn["y"] = round(spawn["y"] + dy, 2)
+
+            # Надписи
+            for label in loc.get("labels", []):
+                label["x"] = round(label["x"] + dx, 2)
+                label["y"] = round(label["y"] + dy, 2)
+
+            return {"success": True, "error": None}
+
+        except Exception as e:
+            # Откат при ошибке (P3-04: атомарность)
+            self.locations[filename] = snapshot
+            return {"success": False, "error": f"Ошибка сдвига координат: {e}"}
 
     def save(self, filename: str):
         """Сохраняет локацию в JSON. P3-01: результат с причинами отказа.
@@ -1204,7 +1225,7 @@ class DataManager:
             logger.error(f"[P3-01] {msg}")
             _rollback()
             return SaveResult.failure([msg], failed=[filename])
-        
+
         res = SaveResult.success()
         if schema_warnings:
             res.warnings = schema_warnings
@@ -1434,23 +1455,37 @@ class DataManager:
             return SaveResult(ok=False, errors=errors, count=count, failed=failed)
         return SaveResult.success(count=count)
 
-    def delete_location(self, filename: str) -> bool:
-        """Удаляет локацию"""
+    def delete_location(self, filename: str) -> dict:
+        """Удаляет локацию. P3-03: возвращает dict с результатом для безопасной обработки ошибок.
+
+        Возвращает: {"success": bool, "error": str | None}
+        """
         if filename not in self.locations:
-            return False
+            return {"success": False, "error": f"Локация {filename} не найдена в памяти"}
+
         # ME-1.6: starter templates is read-only
         if not self._writable:
-            logger.error(
-                "[ME-1.6] Delete blocked: base_dir is read-only starter templates (%s).",
-                self.base_dir,
-            )
-            return False
+            err_msg = f"[ME-1.6] Delete blocked: base_dir is read-only starter templates ({self.base_dir})."
+            logger.error(err_msg)
+            return {"success": False, "error": err_msg}
+
         path = self.base_dir / filename
-        if path.exists():
-            path.unlink()
+        try:
+            if path.exists():
+                path.unlink()
+        except OSError as e:
+            err_msg = f"Ошибка файловой системы при удалении {filename}: {e}"
+            logger.error(f"[P3-03] {err_msg}")
+            return {"success": False, "error": err_msg}
+        except Exception as e:
+            err_msg = f"Неожиданная ошибка при удалении {filename}: {e}"
+            logger.error(f"[P3-03] {err_msg}")
+            return {"success": False, "error": err_msg}
+
+        # Только при успешном удалении файла очищаем память (Условие 1)
         del self.locations[filename]
         self._instance_refs.pop(filename, None)
-        return True
+        return {"success": True, "error": None}
 
     # === Управление комнатами ===
     @staticmethod

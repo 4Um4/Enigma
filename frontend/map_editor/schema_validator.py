@@ -76,7 +76,7 @@ def validate_location_top_level(data: dict, source: str) -> list[str]:
 
 def _check_frame_contract(data: dict, source: str) -> tuple[list[str], list[str]]:
     """Проверка строгой принадлежности координат фрейму (P3-02).
-    
+
     ERROR: поле вне обоих фреймов (ни локальный, ни мировой).
     WARNING: поле в локальном фрейме при global_coords=true.
     Особое правило: player_spawn вне мирового фрейма при наличии комнат = ERROR.
@@ -182,11 +182,11 @@ def validate_location(data: dict, source: str) -> tuple[list[str], list[str]]:
     errors.extend(_check_labels(data, source))
     errors.extend(_check_unique_object_ids(data, source))
     errors.extend(_check_levels(data, source))
-    
+
     # P3-02: Активация строгого координатного контракта
     frame_errors, frame_warnings = _check_frame_contract(data, source)
     errors.extend(frame_errors)
-    
+
     return errors, frame_warnings
 
 

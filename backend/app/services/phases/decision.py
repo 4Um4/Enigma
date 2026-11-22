@@ -281,7 +281,7 @@ def assemble_preloaded_data(ctx: Any, alive_npcs: list) -> tuple:
         _spatial_query = SpatialQueryService(
             npc_positions=ctx.scene_state.get("npc_positions", {}),
             scene_state=ctx.scene_state,
-        )
+            tick_id=int(ctx.scene_state.get("tick", 0)),)
     _npc_ids = [n.get("id") or n.get("npc_id") for n in alive_npcs]
     _player_dists = _spatial_query.player_distances(_npc_ids) if _spatial_query else {}
 

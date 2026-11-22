@@ -225,6 +225,7 @@ def build_npc_contexts_from_intents(ctx: Any, mutation: TickMutation) -> None:
             _spatial_query = SpatialQueryService(
                 npc_positions=ctx.scene_state.get("npc_positions", {}),
                 scene_state=ctx.scene_state,  # S266: чистый читатель; изоляция — snapshot (Сайт 7)
+                tick_id=int(ctx.scene_state.get("tick", 0)),
             )
 
         # BUG-AUDIT-11 (Фаза 2): Эпистемический барьер.
