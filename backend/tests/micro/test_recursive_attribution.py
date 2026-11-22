@@ -239,7 +239,7 @@ class TestRecursiveAttribution:
         assert record.attribution_chain.content.holder_id == "B"
     
     def test_structural_cycle_protection(self):
-        """Защита от структурного цикла при сериализации."""
+        """Защита от структурного цикла при создании записи (fail-fast)."""
         prop = Proposition(subject_id="X", predicate=Predicate.STOLE, object_id="Y")
         
         # Создаём цепочку
@@ -250,21 +250,19 @@ class TestRecursiveAttribution:
         # Это искусственный сценарий для проверки защиты
         object.__setattr__(chain1, 'content', chain2)
         
-        record = EpistemicRecord(
-            agent_id="A",
-            proposition=prop,
-            confidence=0.7,
-            source_id="B",
-            source_claim_id="claim_cycle",
-            first_observed_tick=100,
-            last_updated_tick=100,
-            attribution_chain=chain2
-        )
-        
-        # Сериализация должна обнаружить цикл
+        # Создание EpistemicRecord должно упасть, так как __post_init__ 
+        # вызывает _get_atomic_content, который обнаруживает цикл.
         with pytest.raises(ValueError, match="Structural cycle detected"):
-            record.to_dict()
-    
+            EpistemicRecord(
+                agent_id="A",
+                proposition=prop,
+                confidence=0.7,
+                source_id="B",
+                source_claim_id="claim_cycle",
+                first_observed_tick=100,
+                last_updated_tick=100,
+                attribution_chain=chain2
+            )
     def test_two_records_same_proposition_different_chains(self):
         """Две записи с одинаковым proposition, но разными цепочками не перезаписывают друг друга."""
         prop = Proposition(subject_id="X", predicate=Predicate.STOLE, object_id="item")
