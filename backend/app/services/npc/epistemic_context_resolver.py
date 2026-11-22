@@ -77,6 +77,9 @@ class EpistemicContextResolver:
         _report_conf = 0.0
 
         for record in records:
+            # EPISTEMIC-005: Атрибутированные убеждения не формируют прямые триггеры/угрозы/репорты
+            if getattr(record, 'attribution_chain', None) is not None:
+                continue
             pred = record.proposition.predicate
             subj = record.proposition.subject_id
             _obj = record.proposition.object_id
@@ -141,8 +144,12 @@ class EpistemicContextResolver:
         _claim_source = about_self_with_conf[0][2] if about_self_with_conf else None
 
         # A19.5 Step 2: Сборка топ-3 наиболее уверенных убеждений для DecisionHub
-        # Сортируем все записи агента по confidence (desc) и берём топ-3
-        all_records_sorted = sorted(records, key=lambda r: r.confidence, reverse=True)[:3]
+        # EPISTEMIC-005: Разделение каналов. Прямые убеждения не должны вытесняться атрибутированными.
+        direct_records = [r for r in records if getattr(r, 'attribution_chain', None) is None]
+        attributed_records = [r for r in records if getattr(r, 'attribution_chain', None) is not None]
+        
+        # Top-3 прямых убеждений для существующего target-aware scoring
+        all_direct_sorted = sorted(direct_records, key=lambda r: r.confidence, reverse=True)[:3]
         _recent_beliefs = tuple(
             BeliefSummary(
                 proposition=r.proposition,
@@ -150,8 +157,23 @@ class EpistemicContextResolver:
                 source_id=r.source_id,
                 subject_id=r.proposition.subject_id,
                 object_id=r.proposition.object_id,
+                is_attributed=False,
             )
-            for r in all_records_sorted
+            for r in all_direct_sorted
+        )
+        
+        # Top-3 атрибутированных убеждений для Theory of Mind (не влияют на прямой scoring)
+        all_attributed_sorted = sorted(attributed_records, key=lambda r: r.confidence, reverse=True)[:3]
+        _attributed_beliefs = tuple(
+            BeliefSummary(
+                proposition=r.proposition,
+                confidence=r.confidence,
+                source_id=r.source_id,
+                subject_id=r.proposition.subject_id,
+                object_id=r.proposition.object_id,
+                is_attributed=True,
+            )
+            for r in all_attributed_sorted
         )
 
         return EpistemicContext(
@@ -170,6 +192,7 @@ class EpistemicContextResolver:
             report_proposition=_report_prop,
             # A19.5 Step 2: Топ-3 убеждений для target-aware scoring
             recent_beliefs=_recent_beliefs,
+            attributed_beliefs=_attributed_beliefs,
         )
 
     @staticmethod

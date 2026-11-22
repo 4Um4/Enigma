@@ -837,6 +837,9 @@ class DecisionHub:
 
                 if tentative_target:
                     for belief in epistemic_context.recent_beliefs:
+                        # EPISTEMIC-005: Defense in depth - пропускаем атрибутированные убеждения
+                        if getattr(belief, 'is_attributed', False):
+                            continue
                         # A19.5 Semantic Fix: Диспозиции реакции (report, attack, warn)
                         # относятся к актору события (subject_id), а не к жертве (object_id).
                         if tentative_target == belief.subject_id:

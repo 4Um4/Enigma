@@ -89,7 +89,8 @@ class Proposition:
 
     subject_id: str  # О ком утверждение
     predicate: Predicate  # Что произошло
-    object_id: str  # С чем/кем взаимодействовали
+    object_id: str
+    is_attributed: bool = False  # EPISTEMIC-005: True если это модель чужого убеждения  # С чем/кем взаимодействовали
     polarity: bool = True  # True: "B украл X". False: "B НЕ украл X".
 
     def to_dict(self) -> dict[str, Any]:
@@ -313,6 +314,7 @@ class BeliefSummary:
     source_id: str
     subject_id: str
     object_id: str
+    is_attributed: bool = False  # EPISTEMIC-005: True если это модель чужого убеждения
 
 
 @dataclass(frozen=True)
@@ -347,3 +349,6 @@ class EpistemicContext:
     report_proposition: Optional[Proposition] = None
     # A19.5 Step 2: Топ-3 наиболее уверенных убеждения агента для target-aware scoring.
     recent_beliefs: tuple[BeliefSummary, ...] = ()
+    # EPISTEMIC-005: Отдельное хранение атрибутированных убеждений (Theory of Mind).
+    # Не вытесняют прямые убеждения и не влияют на прямой scoring.
+    attributed_beliefs: tuple[BeliefSummary, ...] = ()
