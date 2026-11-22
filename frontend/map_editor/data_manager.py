@@ -974,7 +974,7 @@ class DataManager:
                     # ME-1.3: экземпляры-ссылки разворачиваются ДО проверки —
                     # валидатор всегда видит полные объекты старой формы
                     self._resolve_instance_refs(data, f.name)
-                    schema_errors = validate_location(data, f.name)
+                    schema_errors, _ = validate_location(data, f.name)
                     if schema_errors:
                         for err in schema_errors:
                             logger.warning(f"[ME-1.4] {err}")
@@ -1188,7 +1188,7 @@ class DataManager:
         if not loc.get("location_id"):
             inferred_id = filename.replace(".json", "")
             loc["location_id"] = inferred_id
-        schema_errors = validate_location(loc, f"{filename} (save)")
+        schema_errors, schema_warnings = validate_location(loc, f"{filename} (save)")
         if schema_errors:
             for err in schema_errors:
                 logger.error(f"[ME-1.4] Сохранение заблокировано: {err}")
@@ -1200,13 +1200,17 @@ class DataManager:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
         except (OSError, ValueError, TypeError) as e:
-            # P3-01 (F-2/F-18): отказ ФС/сериализации — результат, не исключение.
-            # Без этого read-only каталог ОС ронял редактор и весь стек.
             msg = f"{filename}: ошибка записи: {e}"
             logger.error(f"[P3-01] {msg}")
             _rollback()
             return SaveResult.failure([msg], failed=[filename])
-        return SaveResult.success()
+        
+        res = SaveResult.success()
+        if schema_warnings:
+            res.warnings = schema_warnings
+            for warn in schema_warnings:
+                logger.warning(f"[ME-1.4] Предупреждение валидации: {warn}")
+        return res
 
     # === ME-1.3: экземпляры-ссылки (развёртка/свёртка) ===
 

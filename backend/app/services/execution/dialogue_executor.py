@@ -672,7 +672,7 @@ class DialogueExecutor:
                     "proposition": getattr(req, "proposition", None),
                     "system_prompt": system_prompt,
                     "user_prompt": user_prompt,
-                    "max_tokens": 100,
+                    "max_tokens": 220,
                     "timestamp": time.time(),
                     "system_prompt_chars": len(system_prompt),
                     "user_prompt_chars": len(user_prompt),
@@ -689,7 +689,7 @@ class DialogueExecutor:
                 agent_name="npc",
                 prompt=user_prompt,
                 system_prompt=system_prompt,
-                params=GenerationParams(max_tokens=100),
+                params=GenerationParams(max_tokens=220),
             )
             if not isinstance(raw, str) or not raw.strip():
                 raise DialogueContractViolation("LLM returned empty text.")

@@ -74,16 +74,103 @@ def validate_location_top_level(data: dict, source: str) -> list[str]:
     return errors
 
 
-def validate_location(data: dict, source: str) -> list[str]:
-    """Полная схема локации; пустой список = валидна.
-
-    Вызывается после разворота экземпляров-ссылок (пути load/save в
-    DataManager): объектные проверки рассчитывают на полную старую форму.
+def _check_frame_contract(data: dict, source: str) -> tuple[list[str], list[str]]:
+    """Проверка строгой принадлежности координат фрейму (P3-02).
+    
+    ERROR: поле вне обоих фреймов (ни локальный, ни мировой).
+    WARNING: поле в локальном фрейме при global_coords=true.
+    Особое правило: player_spawn вне мирового фрейма при наличии комнат = ERROR.
     """
-    from data_manager import _validate_location_objects  # цикл модулей — лениво
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not isinstance(data, dict):
+        return errors, warnings
+
+    origin = data.get("origin", {})
+    size = data.get("size", {})
+    ox = float(origin.get("x", 0.0))
+    oy = float(origin.get("y", 0.0))
+    w = float(size.get("w", 0.0))
+    h = float(size.get("h", 0.0))
+    global_coords = data.get("global_coords", False)
+
+    wx_min, wx_max = ox, ox + w
+    wy_min, wy_max = oy, oy + h
+    lx_min, lx_max = 0.0, w
+    ly_min, ly_max = 0.0, h
+
+    eps = 1e-6
+
+    def in_frame(x: float, y: float, xmin: float, xmax: float, ymin: float, ymax: float) -> bool:
+        return (xmin - eps) <= x <= (xmax + eps) and (ymin - eps) <= y <= (ymax + eps)
+
+    points_to_check = []
+
+    sp = data.get("player_spawn")
+    if sp and "x" in sp and "y" in sp:
+        points_to_check.append(("player_spawn", float(sp["x"]), float(sp["y"])))
+
+    for i, npc in enumerate(data.get("npcs", [])):
+        pos = npc.get("position", {})
+        if "x" in pos and "y" in pos:
+            points_to_check.append((f"npcs[{i}].position ({npc.get('ref_id', '?')})", float(pos["x"]), float(pos["y"])))
+
+    for k, v in (data.get("nodes") or {}).items():
+        if "x" in v and "y" in v:
+            points_to_check.append((f"nodes.{k}", float(v["x"]), float(v["y"])))
+
+    for i, wall in enumerate(data.get("walls", [])):
+        if "x1" in wall and "y1" in wall:
+            points_to_check.append((f"walls[{i}].p1 ({wall.get('id', '?')})", float(wall["x1"]), float(wall["y1"])))
+        if "x2" in wall and "y2" in wall:
+            points_to_check.append((f"walls[{i}].p2 ({wall.get('id', '?')})", float(wall["x2"]), float(wall["y2"])))
+
+    for i, obj in enumerate(data.get("objects", [])):
+        pos = obj.get("position", {})
+        if "x" in pos and "y" in pos:
+            points_to_check.append((f"objects[{i}].position ({obj.get('id', '?')})", float(pos["x"]), float(pos["y"])))
+
+    for i, room in enumerate(data.get("rooms", [])):
+        if "x" in room and "y" in room and "width" in room and "height" in room:
+            rx, ry = float(room["x"]), float(room["y"])
+            rw, rh = float(room["width"]), float(room["height"])
+            points_to_check.append((f"rooms[{i}].corner_min ({room.get('id', '?')})", rx, ry))
+            points_to_check.append((f"rooms[{i}].corner_max ({room.get('id', '?')})", rx + rw, ry + rh))
+
+    for i, label in enumerate(data.get("labels", []) or []):
+        if "x" in label and "y" in label:
+            points_to_check.append((f"labels[{i}]", float(label["x"]), float(label["y"])))
+
+    for i, passage in enumerate(data.get("passages", []) or []):
+        if "x" in passage and "y" in passage:
+            points_to_check.append((f"passages[{i}]", float(passage["x"]), float(passage["y"])))
+
+    rooms_count = len(data.get("rooms", []))
+
+    for name, x, y in points_to_check:
+        in_w = in_frame(x, y, wx_min, wx_max, wy_min, wy_max)
+        in_l = in_frame(x, y, lx_min, lx_max, ly_min, ly_max)
+
+        if not in_w and not in_l:
+            errors.append(f"{source}: {name} ({x}, {y}) вне обоих фреймов (ERROR)")
+        elif global_coords and not in_w:
+            if name.startswith("player_spawn") and rooms_count > 0:
+                errors.append(f"{source}: {name} ({x}, {y}) вне мирового фрейма при наличии комнат (ERROR)")
+            else:
+                warnings.append(f"{source}: {name} ({x}, {y}) в локальном фрейме при global_coords=true (WARNING)")
+
+    return errors, warnings
+
+
+def validate_location(data: dict, source: str) -> tuple[list[str], list[str]]:
+    """Полная схема локации; возвращает (errors, warnings).
+    P3-02: активирован _check_frame_contract со строгими границами.
+    """
+    from data_manager import _validate_location_objects
 
     if not isinstance(data, dict):
-        return [f"{source}: локация должна быть JSON-объектом, получен {type(data).__name__}"]
+        return [f"{source}: локация должна быть JSON-объектом, получен {type(data).__name__}"], []
+
     errors = validate_location_top_level(data, source)
     errors.extend(_check_origin_size(data, source))
     errors.extend(_check_spawn(data, source))
@@ -94,9 +181,13 @@ def validate_location(data: dict, source: str) -> list[str]:
     errors.extend(_check_npcs(data, source))
     errors.extend(_check_labels(data, source))
     errors.extend(_check_unique_object_ids(data, source))
-    errors.extend(_check_levels(data, source))  # ME-1.9: multi-level contract
-    errors.extend(_check_spatial_contract(data, source))  # ME-1.12: spatial contract
-    return errors
+    errors.extend(_check_levels(data, source))
+    
+    # P3-02: Активация строгого координатного контракта
+    frame_errors, frame_warnings = _check_frame_contract(data, source)
+    errors.extend(frame_errors)
+    
+    return errors, frame_warnings
 
 
 def _check_origin_size(data: dict, source: str) -> list[str]:

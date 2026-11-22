@@ -1,14 +1,14 @@
 # backend/app/services/npc/epistemic_store.py
 """
 path: /project/backend/app/services/npc/epistemic_store.py
-Назначение: In-memory хранилище субъективных убеждений агентов (EpistemicRecord).
+Назначение: Хранилище субъективных убеждений NPC.
 Зависимости: app.domain.epistemology
+Основные сущности: EpistemicStore
 """
 
-import logging
 from typing import Dict, List, Optional, Tuple
-
-from app.domain.epistemology import EpistemicRecord, Proposition
+import logging
+from app.domain.epistemology import EpistemicRecord, Proposition, AttributedBelief
 
 logger = logging.getLogger(__name__)
 
@@ -16,121 +16,124 @@ logger = logging.getLogger(__name__)
 class EpistemicStore:
     """
     Хранит убеждения NPC.
-    Ключ: (agent_id, proposition).
+    Ключ: (agent_id, proposition, attribution_chain_signature).
     Полностью изолирован от RelationshipStore и L1Chronicle.
     """
-
-    def __init__(self) -> None:
-        self._records: Dict[Tuple[str, Proposition], EpistemicRecord] = {}
-
-    def get(self, agent_id: str, proposition: Optional[Proposition] = None) -> Optional[EpistemicRecord]:
-        """S197: Возвращает запись об убеждении агента. Если proposition не указан, возвращает топ-1."""
-        records = [r for r in self._records.values() if r.agent_id == agent_id]
-        if not records:
+    
+    def __init__(self):
+        self._records: Dict[Tuple[str, Proposition, Optional[str]], EpistemicRecord] = {}
+    
+    @staticmethod
+    def _compute_chain_signature(chain: Optional[AttributedBelief]) -> Optional[str]:
+        """
+        Вычисляет сигнатуру цепочки атрибуции для индексации.
+        Итеративный обход без рекурсии.
+        """
+        if chain is None:
             return None
-        if proposition:
-            for r in records:
-                if r.proposition == proposition:
-                    return r
-            return None
-        return max(records, key=lambda r: r.confidence, default=None)
-
+        
+        # Итеративный обход для извлечения всех holder_id
+        holders = []
+        current = chain
+        visited = set()
+        
+        while isinstance(current, AttributedBelief):
+            obj_id = id(current)
+            if obj_id in visited:
+                raise ValueError("Structural cycle detected during signature computation")
+            visited.add(obj_id)
+            holders.append(current.holder_id)
+            current = current.content
+        
+        # Сигнатура — это кортеж holder_id, преобразованный в строку
+        return "|".join(holders)
+    
+    def _get_key(self, record: EpistemicRecord) -> Tuple[str, Proposition, Optional[str]]:
+        """Вычисляет ключ для индексации записи."""
+        chain_sig = self._compute_chain_signature(record.attribution_chain)
+        return (record.agent_id, record.proposition, chain_sig)
+    
+    def get(self, agent_id: str, proposition: Optional[Proposition] = None, 
+            attribution_chain: Optional[AttributedBelief] = None) -> Optional[EpistemicRecord]:
+        """
+        S197: Возвращает запись об убеждении агента.
+        
+        Если proposition и attribution_chain не указаны, возвращает топ-1 по confidence.
+        Если указаны, возвращает точное совпадение.
+        """
+        if proposition is None and attribution_chain is None:
+            # Возвращаем топ-1 по confidence для данного agent_id
+            records = [r for r in self._records.values() if r.agent_id == agent_id]
+            return max(records, key=lambda r: r.confidence, default=None)
+        
+        if proposition is None:
+            raise ValueError("proposition must be provided when attribution_chain is specified")
+        
+        # Точный поиск по ключу
+        target_key = (agent_id, proposition, self._compute_chain_signature(attribution_chain))
+        return self._records.get(target_key)
+    
     def get_all_for_agent(self, agent_id: str) -> List[EpistemicRecord]:
+        """Возвращает все записи для данного агента."""
         return [r for r in self._records.values() if r.agent_id == agent_id]
-
+    
     def upsert(self, record: EpistemicRecord) -> None:
-        """S296-приёмка (баг №2): upsert — точка записи без акторного фильтра.
-        S292-мембрана удалена как мёртвый код: can_address(_subj, _subj) для
-        любого непустого не-player subject возвращал True (resolve_control_source
-        не различает NPC и узел графа) — фильтр не отклонял ничего, блоклист
-        startswith был недостижим. Защита от не-акторных WARN-целей —
-        predicate-фильтр trigger_proposition в EpistemicContextResolver
-        (GATE-TRIGGER-01, этот же коммит); реестр акторов — будущее ADR."""
-        # GATE-TRIGGER-01: S292 акторный фильтр удалён — мёртвый код.
-        # Доказательство недостижимости (статическое, раунды 2-4):
-        # can_address(_subj, _subj) для любого непустого не-player subject
-        # возвращает True (resolve_control_source не различает NPC и узел
-        # графа) → «not can_address» = False → short-circuit гасит ветку
-        # ДО startswith-блоклиста. Фильтр не отклонял НИЧЕГО с момента
-        # внесения; побочных эффектов нет (внутри только логирование).
-        # EXITS_TO-гео-записи легитимны (персональный граф маршрутов NPC,
-        # tick_orchestrator:874/:1156). Защита от не-акторных WARN-целей —
-        # predicate-фильтр trigger_proposition в EpistemicContextResolver;
-        # реестр живых акторов для can_address — отдельное будущее ADR
-        # (Two-Domain Rule: ждём второго домена-подтверждения).
-        self._records[(record.agent_id, record.proposition)] = record
+        """
+        S296-приёмка (баг №2): upsert — точка записи без акторного фильтра.
+        Ключ включает attribution_chain_signature, чтобы разные атрибуции не перезаписывали друг друга.
+        """
+        key = self._get_key(record)
+        self._records[key] = record
         logger.debug(
-            f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: {record.proposition} conf={record.confidence:.2f}"
+            f"[EPISTEMIC_STORE] Upserted belief for {record.agent_id}: "
+            f"{record.proposition} (chain={record.attribution_chain is not None}) "
+            f"conf={record.confidence:.2f}"
         )
-
+    
     def to_dict(self) -> list:
         """S193: Сериализует все записи в список словарей для scene_state."""
         records = []
         for record in self._records.values():
-            records.append(
-                {
-                    "agent_id": record.agent_id,
-                    "proposition": {
-                        "subject_id": record.proposition.subject_id,
-                        "predicate": record.proposition.predicate.value,
-                        "object_id": record.proposition.object_id,
-                        "polarity": record.proposition.polarity,
-                    },
-                    "confidence": record.confidence,
-                    "source_id": record.source_id,
-                    "source_claim_id": record.source_claim_id,
-                    "first_observed_tick": record.first_observed_tick,
-                    "last_updated_tick": record.last_updated_tick,
-                    # COGNITIVE-CONTINUITY-01: provenance chain serialization (§12 WARA).
-                    "source_type": record.source_type,
-                    "original_source_id": record.original_source_id,
-                    # A19.5: Сериализация истории обработанных claim_id для идемпотентности
-                    "seen_claim_ids": list(record.seen_claim_ids),
-                }
-            )
+            records.append(record.to_dict())
         return records
-
+    
     @classmethod
     def from_dict(cls, data: list) -> "EpistemicStore":
-        """S193: Десериализует записи из scene_state."""
-        from app.domain.epistemology import Predicate
-
+        """S193: Десериализует записи из scene_state с обратной совместимостью."""
         store = cls()
         if not data:
             return store
+        
         for item in data:
-            prop_data = item.get("proposition", {})
             try:
-                prop = Proposition(
-                    subject_id=prop_data.get("subject_id"),
-                    predicate=Predicate(prop_data.get("predicate")),
-                    object_id=prop_data.get("object_id"),
-                    polarity=prop_data.get("polarity", True),
-                )
-                # A19.5: Обратная совместимость — если seen_claim_ids отсутствует,
-                # восстанавливаем хотя бы последний известный source_claim_id.
-                _seen_raw = item.get("seen_claim_ids")
-                if _seen_raw is None:
-                    _source_claim = item.get("source_claim_id", "")
-                    _seen = (_source_claim,) if _source_claim else ()
-                else:
-                    _seen = tuple(cid for cid in _seen_raw if cid)
-
-                record = EpistemicRecord(
-                    agent_id=item.get("agent_id"),
-                    proposition=prop,
-                    confidence=item.get("confidence", 0.0),
-                    source_id=item.get("source_id", ""),
-                    source_claim_id=item.get("source_claim_id", ""),
-                    first_observed_tick=item.get("first_observed_tick", 0),
-                    last_updated_tick=item.get("last_updated_tick", 0),
-                    # COGNITIVE-CONTINUITY-01: provenance chain deserialization.
-                    # .get default "" — обратная совместимость со старыми сейвами.
-                    source_type=item.get("source_type", ""),
-                    original_source_id=item.get("original_source_id", ""),
-                    seen_claim_ids=_seen,
-                )
+                record = EpistemicRecord.from_dict(item)
                 store.upsert(record)
             except Exception as e:
                 logger.warning(f"[EPISTEMIC_STORE] Failed to deserialize record: {e}")
+                # Обратная совместимость: пытаемся восстановить без attribution_chain
+                try:
+                    from app.domain.epistemology import Proposition, Predicate
+                    prop_data = item.get("proposition", {})
+                    prop = Proposition(
+                        subject_id=prop_data.get("subject_id"),
+                        predicate=Predicate(prop_data.get("predicate")),
+                        object_id=prop_data.get("object_id"),
+                        polarity=prop_data.get("polarity", True)
+                    )
+                    record = EpistemicRecord(
+                        agent_id=item.get("agent_id"),
+                        proposition=prop,
+                        confidence=item.get("confidence", 0.0),
+                        source_id=item.get("source_id", ""),
+                        source_claim_id=item.get("source_claim_id", ""),
+                        first_observed_tick=item.get("first_observed_tick", 0),
+                        last_updated_tick=item.get("last_updated_tick", 0),
+                        source_type=item.get("source_type", ""),
+                        original_source_id=item.get("original_source_id", ""),
+                        seen_claim_ids=tuple(item.get("seen_claim_ids", []))
+                    )
+                    store.upsert(record)
+                except Exception as e2:
+                    logger.error(f"[EPISTEMIC_STORE] Fallback deserialization also failed: {e2}")
+        
         return store

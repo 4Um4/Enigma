@@ -92,6 +92,16 @@ def _append_direct_reply_reactions(
 ) -> None:
     if not entries:
         return
+    # DIAG-APPEND: видим реальные значения target_id vs speaker_id
+    for _di, _de in enumerate(entries[:3]):
+        logger.warning(
+            "[DIAG-APPEND] entry[%d] speaker_id=%r target_id=%r match=%s text_len=%d",
+            _di,
+            str(_de.get("speaker_id") or ""),
+            target_id,
+            str(_de.get("speaker_id") or "") == str(target_id or ""),
+            len(str(_de.get("text") or "")),
+        )
     if not isinstance(dm_result, dict):
         logger.error("[PLAYER_REPLY] direct line was materialized but game response is not a dictionary")
         return
@@ -124,7 +134,10 @@ def _append_direct_reply_reactions(
         if speaker_id != target_id or not text:
             continue
         speaker_name = target_name or name_by_id.get(speaker_id) or speaker_id
-        reaction = f"{speaker_name}: {text}"
+        # NPC_SPEECH_SILENCE FIX: dict format с npc_id — frontend ищет по ID,
+        # не по имени. Прежний string "Имя: текст" ломался: полное имя
+        # "Торнин Серебряная Луна" != короткое "Торнин" в npc_positions.
+        reaction = {"npc_id": speaker_id, "npc_name": speaker_name, "reaction": text}
         if reaction not in reactions:
             reactions.append(reaction)
 
@@ -1691,6 +1704,7 @@ class GameLoop:
         }
 
     async def run_turn(self, req: ChatTurnRequest) -> ChatTurnResponse:
+        logger.warning("[DIAG-ENTRY] run_turn called — action=%s", req.actions[0].action if req.actions else "?")
         logger.debug(f"[ARCHAE_PLAYER_ENTRY] req={req}")
         """Блокирующий путь (REST). DM-нарратив собирается целиком."""
         self.assert_requirements()
@@ -2035,14 +2049,28 @@ class GameLoop:
                 if _auth_scene.get("pending_tasks"):
                     # RE-D2 FIX (Variant Б): player_reply через async pool + wrap_future,
                     # затем autonomous drain через sync execute_pending.
+                    _rt_pending = _auth_scene.get("pending_tasks", [])
+                    logger.warning("[DIAG-RUNTURN] pending_tasks=%d scene_id=%d", len(_rt_pending), id(_auth_scene))
+                    for _i, _td in enumerate(_rt_pending):
+                        _intent = _td.get("payload", {}).get("intent_type", "?")
+                        logger.warning("  [DIAG-RUNTURN] task[%d] kind=%s intent=%s owner=%s", _i, _td.get('kind'), _intent, _td.get('owner_id', '?'))
                     _player_reply_entries = await self._get_task_scheduler().execute_player_replies_async(
                         _auth_scene, req.campaign_id
                     )
+                    logger.warning("[DIAG-RUNTURN] player_replies=%d", len(_player_reply_entries))
                     self._get_task_scheduler().execute_pending(_auth_scene, req.campaign_id)
+                # NPC_SPEECH_SILENCE ROOT FIX: _direct_reply_target_id может быть None
+                # (intent projection не содержит target). Прежний код пропускал все
+                # entries в _append_direct_reply_reactions (speaker_id != None → skip).
+                # Fallback: берём target_id из первой player_reply entry (speaker_id).
+                _reply_target_id = _direct_reply_target_id
+                if not _reply_target_id and _player_reply_entries:
+                    _reply_target_id = str(_player_reply_entries[0].get("speaker_id") or "")
+                    logger.warning("[DIAG-REPLY] target_id fallback from entry: %s", _reply_target_id)
                 _append_direct_reply_reactions(
                     dm_result,
                     _player_reply_entries,
-                    _direct_reply_target_id,
+                    _reply_target_id,
                     _direct_reply_target_name,
                     _npc_roster_for_reply,
                 )
@@ -2272,6 +2300,26 @@ class GameLoop:
             player_position=player_position,
         )
 
+        # DIAG-PIPELINE: pipeline отработал — что в state?
+        _diag_sc = getattr(state, "shared_context", None)
+        _diag_scene = getattr(_diag_sc, "scene_state", None) if _diag_sc else None
+        _diag_pending = _diag_scene.get("pending_tasks", []) if _diag_scene else []
+        logger.warning(
+            "[DIAG-PIPELINE] action_type=%s pending=%d scene=%s",
+            getattr(_diag_sc, "action_type", "?"),
+            len(_diag_pending),
+            "yes" if _diag_scene else "NO",
+        )
+        if _diag_pending:
+            for _i, _td in enumerate(_diag_pending[:5]):
+                logger.warning(
+                    "  [DIAG-PIPELINE] task[%d] kind=%s intent=%s owner=%s",
+                    _i,
+                    _td.get("kind"),
+                    _td.get("payload", {}).get("intent_type", "?"),
+                    _td.get("owner_id", "?"),
+                )
+
         # Death Guard: если pipeline вернул ранний ChatTurnResponse (игрок мёртв)
         # Аналог проверки в run_turn (строка ~451), но для SSE-потока
         from app.models.schemas import ChatTurnResponse as _CTR_STREAM
@@ -2301,21 +2349,33 @@ class GameLoop:
         # player_reply tasks создавались в pipeline, но не исполнялись через
         # DialogueExecutor → LLM → NPC_SPOKE. run_turn (SUPERBOX path) имел фикс,
         # но frontend использует stream_turn. Теперь оба пути одинаковы.
-        _stream_auth_scene: dict | None = None
         _stream_player_replies: list[dict] = []
         if state.shared_context and state.shared_context.scene_state:
-            _stream_turn_scene = state.shared_context.scene_state
-            if self.scene_manager:
-                _stream_loc_key = _stream_turn_scene.get("location_id", "default")
-                _stream_auth_scene = self.scene_manager._tick_scenes.get(_stream_loc_key)  # noqa: ENIGMA001
-            if _stream_auth_scene is None:
-                _stream_auth_scene = _stream_turn_scene
-            if _stream_auth_scene.get("pending_tasks"):
+            # RE-D2 FIX (Variant Б) + _tick_scenes indirection fix:
+            # Используем shared_context.scene_state НАПРЯМУЮ — pipeline пишет
+            # pending_tasks именно сюда. Прежний код через _tick_scenes.get(loc)
+            # мог вернуть другой объект scene_state → pending_tasks пустой →
+            # execute_player_replies_async не вызывается → NPC молчит.
+            _stream_auth_scene = state.shared_context.scene_state
+            _stream_pending = _stream_auth_scene.get("pending_tasks", [])
+            logger.warning(
+                f"[DIAG-STREAM] pending_tasks={len(_stream_pending)} "
+                f"scene_id={id(_stream_auth_scene)} action_type={getattr(state.shared_context, 'action_type', '?')}"
+            )
+            for _i, _td in enumerate(_stream_pending):
+                _intent = _td.get("payload", {}).get("intent_type", "?")
+                logger.warning(f"  [DIAG-STREAM] task[{_i}] kind={_td.get('kind')} intent={_intent} owner={_td.get('owner_id', '?')}")
+            if _stream_pending:
                 _stream_player_replies = await self._get_task_scheduler().execute_player_replies_async(
                     _stream_auth_scene, campaign_id
                 )
+                logger.warning(f"[DIAG-STREAM] player_replies={len(_stream_player_replies)}")
                 self._get_task_scheduler().execute_pending(_stream_auth_scene, campaign_id)
+            else:
+                logger.warning("[DIAG-STREAM] SKIP execute_player_replies_async — pending_tasks empty")
             self._get_task_scheduler().drain_commitment_outbox(_stream_auth_scene)
+        else:
+            logger.warning(f"[DIAG-STREAM] NO shared_context or scene_state — shared={state.shared_context is not None}")
 
         # NPC реакции — ДО токенов DM (включая player_reply entries из execute_player_replies_async)
         _npc_reactions = state.npc_result.get("npc_reactions", []) + state.npc_result.get("npc_actions", [])

@@ -966,7 +966,7 @@ class EditorCore:
         from schema_validator import validate_location
 
         loc = self.dm.locations[self.current_file]
-        schema_errors = validate_location(loc, f"{filepath.name} (save_as)")
+        schema_errors, schema_warnings = validate_location(loc, f"{filepath.name} (save_as)")
         if schema_errors:
             self._report_save(SaveResult.failure(schema_errors), "", "Сохранить как")
             return

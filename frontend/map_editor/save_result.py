@@ -20,6 +20,7 @@ class SaveResult:
 
     ok: bool = False
     errors: List[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)  # P3-02: не влияют на ok
     count: int = 0
     failed: List[str] = field(default_factory=list)
 

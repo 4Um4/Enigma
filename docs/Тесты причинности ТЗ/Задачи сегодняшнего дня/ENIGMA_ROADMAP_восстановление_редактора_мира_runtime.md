@@ -1,4 +1,4 @@
-# ENIGMA — ROADMAP для архитектора: восстановление редактора, мира и runtime
+﻿# ENIGMA — ROADMAP для архитектора: восстановление редактора, мира и runtime
 
 **READ-ONLY RE-AUDIT → ROOT-CAUSE VALIDATION → IMPLEMENTATION ROADMAP**
 
@@ -1285,6 +1285,93 @@ Post-delete pipeline обязателен: unlink → удаление из `dm.
 ```
 
 ### I.4. Журнал (записи добавляются сюда, новые — сверху)
+### P3-01 — Единый контракт результата сохранения (замена F4 из RCA-1)
+
+**Статус:** [x] COMPLETED
+**Дата:** 2026-11-22
+**Изменённые файлы:**
+- rontend/map_editor/save_result.py (новый: SaveResult с ok/errors/count/failed, __bool__ -> ok)
+- rontend/map_editor/data_manager.py (save: причины отказа, try/except OSError, снапшот+откат modified_at/location_id; save_all: агрегированный результат)
+- rontend/map_editor/campaign_manager.py (save_location: проброс результата; save_all_locations: count/failed, _update_modified только при count>0; save_location_as: откат сироты при отказе)
+- rontend/map_editor/editor_core.py (новый _report_save; _quick_save, _save_campaign, _save_all, _dialog_new_location, _dialog_save_as переведены на результат; rebuild только при успехе)
+- rontend/map_editor/core/event_handler.py (Ctrl+S -> делегирование core._quick_save(); отпускание драга локации -> _report_save)
+- ackend/tests/test_p3_01_save_result.py (новый, 23 headless-теста)
+
+**Что сделано:**
+- Контракт D.6 реализован в варианте B (SaveResult с __bool__), а не кортежом (кортеж инвертировал бы legacy-if на 8+ сайтах).
+- Отказ ФС превращён в результат: open() больше не пробрасывает PermissionError наружу, что устраняло падение редактора (F-18).
+- Мутации modified_at/location_id сохраняются до валидации, но откатываются при любом отказе (F-3/F-24).
+- Единая точка уведомления _report_save -> тост + лог + возврат; пакетная сводка count/failed в тексте отказа.
+- Save As унифицирован: validate_location + _fold_for_save + честный результат; путь назначения не изменён.
+- Три мёртвых API приведены к контракту без перепроектирования: _save_all, save_location_as, dm.save_all.
+
+**Проверки:**
+- [x] T7 — 23/23 PASS за 1.40с (truthiness, read-only, schema+неизменность файла, OSError->отказ, откаты полей, пакетный частичный отказ, save_as сирота/успех, dm.save_all, source-инспекция UI).
+- [x] py_compile 5 файлов — PASS.
+- [x] Регрессии Фаз 0–2 — 38 passed / 1 failed; единственный провал test_t0_c_tavern_footprint_violations доказанно предсуществующий (mtime tavern.json = 11.19 против правок 11.22; T0-c не импортирует изменённые модули).
+- [x] Ручная 1 (успех) — hash изменён, mtime обновлён, modified_at внутри файла совпадает с mtime.
+- [x] Ручная 2 (шаблоны read-only) — [ME-1.6] Save blocked + FAILED тост; mtime шаблонов не изменился.
+- [x] Ручная 3 (отказ ФС) — [Errno 13] Permission denied -> отказ, редактор жив, hash не изменился, IsReadOnly восстановлен.
+- [x] Неизменность геометрии после успешного save — origin/size/spawn/counts/rooms/violations идентичны эталону; T0-c даёт тот же 75/77.
+
+**Критерии приёмки:**
+- [x] При _writable=False ни один путь не показывает успех.
+- [x] При schema-ошибке ни один путь не показывает успех, файл не изменён.
+- [x] Тесты зелёные.
+- [x] Редактирование при отказе не блокируется, данные остаются в памяти (откат снимает только служебные поля).
+
+**Ограничения / остаточные риски:**
+- REJECTED (D.6, буква): кортеж (bool, errors) несовместим с legacy-if. Принят SaveResult с __bool__ (вариант B).
+- Отклонение (D.6 п.3): helper размещён в EditorCore._report_save, а не cm.persist (у CampaignManager нет доступа к тосту).
+- Уточнение B-18: 4 сайта игнорировали результат; пятый (event_handler.py:371–373) уже проверял — как дефект REJECTED. Дополнительно найдены и исправлены 3 мёртвых save-API.
+- _dialog_save_as вызывает приватный dm._fold_for_save — публичный API не вводился, чтобы не расширять scope.
+- F-12/F-13 -> P4-01: _sync_to_runtime возвращает None, глотает ошибки через print; удаляет compiled/spatial_registry.json до пересборки.
+- F-21 -> P3-03: delete_location — unlink без try/except, без пост-обработки.
+- H-16/H-17: 2 поля комнат вне footprint на 0.030478; коллизия критериев T2 (допуск 0.5) vs T0-c (строгий). Владелец решения — P3-02.
+- Косметика: суффикс "| записано N, отказали: …" показывается и для одиночного save. Оставлено как есть.
+- Sourcery: save complexity 7 / size 127 — долг качества, дробление не выполнялось.
+
+**Откат:**
+- Revert data_manager.py, campaign_manager.py, editor_core.py, core/event_handler.py.
+- Удалить frontend/map_editor/save_result.py, backend/tests/test_p3_01_save_result.py.
+- Вернуть A.3 (Фаза 3: 1/4 -> 0/4 NOT STARTED) и удалить эту запись.
+
+**Следующий разрешённый пункт:**
+- P3-02 — Валидатор координатного фрейма. Предварительное условие P1-01 выполнено. На входе требуется решение архитектора по H-17 (канонический критерий: допуск 0.5 или строгий).
+
+---
+
+### P2-04 — Интеграционная проверка стартовой сцены (P1 acceptance)
+
+**Статус:** [x] COMPLETED (принято архитектором по матрице; отклонение зафиксировано)
+**Дата:** 2026-11-21
+**Изменённые файлы:** нет (верификация). Кодовые исправления телепорта при resume выполнены ранее в той же сession: backend/app/services/game_loop/game_loop.py (session_state: fallback find_starting_location при пустом metadata.current_location), campaign_lifecycle.py (инициализация player_world_x/y из player_spawn), game_launcher.py (_kill_ports).
+
+**Что сделано:** Пройден сквозной сценарий из 7 этапов.
+
+**Проверки:**
+- [x] NEW GAME — reset=True, 6 files_removed, без traceback.
+- [x] Старт в таверне — [SCENE] … tavern.json для location_id=tavern, [SPATIAL_SSOT] Scene prepared for save at location=tavern.
+- [x] Интерьер вокруг игрока — подтверждено визуально.
+- [x] NPC видны и выбираются кликом — подтверждено визуально.
+- [x] Переход по двери и возврат — переключение editor JSON tavern <-> city_gate в логе.
+- [x] CONTINUE / pause->resume — телепорт устранён, воспроизведение прекратилось.
+- [x] Автоматический T-набор прогнан позднее (в P3-01): 38 passed / 1 failed.
+
+**Критерии приёмки:**
+- [x] Субъективная проверка «старт в таверне» — подтверждена.
+- [x] Ни одного traceback в backend-логе.
+- [!] «Все зелёные» — НЕ выполнено буквально: T2/T0-c красный (75/77). Причина — H-16, предсуществующая (драги редактора 19.11 сдвинули обе комнаты вектором (-0.482253, -0.530478), corner_min вышел на 0.030478 выше северной границы). Принято архитектором явным решением; исправление — P3-02 (уровень) + отдельный подтверждённый скрипт данных.
+
+**Ограничения / остаточные риски:**
+- H-18: авто-движение игрока к выбранному NPC проходит сквозь стены (при ручном управлении коллизии работают). Вне scope P2-04; предположительно phases/motion.py. Требует нового пункта плана. Нумерация исправлена: ранее в сессии я ошибочно пометил эту находку как H-15, который в документе занят отсутствием config/npc/individuals (P0-01).
+- UX-долг: в меню паузы нет выхода в главное меню, только выход из игры.
+- Моя верификация A1 на стадии префлайта использовала допуск 0.5 и не проверяла rooms — более слабый критерий, чем T0-c. Обнаружено и зафиксировано в P3-01.
+
+**Откат:** не требуется (верификация).
+
+**Следующий разрешённый пункт:** P3-01 (выполнен, запись выше).
+
 
 ### P1-04 — Миграция существующих сейвов (W5) и висячая ссылка node_17
 
