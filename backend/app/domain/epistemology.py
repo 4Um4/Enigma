@@ -133,12 +133,12 @@ class ClaimEvent:
 class AttributedBelief:
     """
     Рекурсивная структура атрибуции убеждения (EPISTEMIC-005).
-    
+
     Семантика: holder_id верит, что content истинно.
     content может быть:
     - Proposition (атомарное утверждение) — базовый случай
     - AttributedBelief (следующий уровень атрибуции) — рекурсия
-    
+
     Пример:
     AttributedBelief(
         holder_id="B",
@@ -151,8 +151,8 @@ class AttributedBelief:
     """
     holder_id: str
     content: Union[Proposition, "AttributedBelief"]
-    
-    def __post_init__(self):
+
+    def __post_init__(self) -> None:
         # Валидация: content должен быть Proposition или AttributedBelief
         if not isinstance(self.content, (Proposition, AttributedBelief)):
             raise TypeError(
@@ -166,14 +166,14 @@ class EpistemicRecord:
     """
     Субъективное убеждение агента. Это состояние сознания, а не факт мира.
     Хранит provenance (откуда агент это узнал).
-    
+
     Семантика полей:
     - agent_id: корневой наблюдатель, владелец этой записи
     - proposition: атомарное содержание записи (о чём речь)
     - attribution_chain: если None — собственное убеждение agent_id;
                          если не None — приписанное убеждение (agent_id моделирует,
                          что цепочка holder_id верит в proposition)
-    
+
     Инвариант: если attribution_chain существует, атомарное содержание на её конце
     обязано совпадать с proposition.
     """
@@ -201,8 +201,8 @@ class EpistemicRecord:
     # None = собственное убеждение агента в proposition.
     # Не None = агент верит, что цепочка holder_id верит в proposition.
     attribution_chain: Optional[AttributedBelief] = None
-    
-    def __post_init__(self):
+
+    def __post_init__(self) -> None:
         # Проверка согласованности proposition и attribution_chain
         if self.attribution_chain is not None:
             # Извлекаем атомарное содержание с конца цепочки
@@ -212,24 +212,23 @@ class EpistemicRecord:
                     f"EpistemicRecord invariant violation: attribution_chain atomic content "
                     f"({atomic_content}) does not match proposition ({self.proposition})"
                 )
-    
+
     @staticmethod
     def _get_atomic_content(chain: AttributedBelief) -> Proposition:
         """Итеративно извлекает атомарное содержание с конца цепочки атрибуции."""
-        current = chain
+        current: Proposition | AttributedBelief = chain
         visited = set()  # Защита от структурных циклов
-        
+
         while isinstance(current, AttributedBelief):
             obj_id = id(current)
             if obj_id in visited:
                 raise ValueError("Structural cycle detected in attribution_chain")
             visited.add(obj_id)
             current = current.content
-        
-        if not isinstance(current, Proposition):
-            raise TypeError(f"Expected Proposition at end of chain, got {type(current).__name__}")
+
+        assert isinstance(current, Proposition)
         return current
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Итеративная сериализация без рекурсии."""
         result = {
@@ -244,13 +243,13 @@ class EpistemicRecord:
             "original_source_id": self.original_source_id,
             "seen_claim_ids": list(self.seen_claim_ids),
         }
-        
+
         if self.attribution_chain is not None:
             # Итеративная сериализация цепочки holder_id
             chain_data = []
-            current = self.attribution_chain
+            current: Proposition | AttributedBelief = self.attribution_chain
             visited = set()
-            
+
             while isinstance(current, AttributedBelief):
                 obj_id = id(current)
                 if obj_id in visited:
@@ -258,16 +257,16 @@ class EpistemicRecord:
                 visited.add(obj_id)
                 chain_data.append(current.holder_id)
                 current = current.content
-            
+
             result["attribution_chain"] = chain_data
-        
+
         return result
-    
+
     @staticmethod
     def from_dict(d: dict[str, Any]) -> "EpistemicRecord":
         """Десериализация с обратной совместимостью."""
         from app.domain.epistemology import Predicate  # forward-ref safe
-        
+
         prop_data = d["proposition"]
         proposition = Proposition(
             subject_id=prop_data["subject_id"],
@@ -275,18 +274,19 @@ class EpistemicRecord:
             object_id=prop_data["object_id"],
             polarity=prop_data.get("polarity", True)
         )
-        
-        attribution_chain = None
+
+        attribution_chain: AttributedBelief | None = None
         chain_data = d.get("attribution_chain")
         if chain_data:
             # Итеративная десериализация: строим цепочку снизу вверх
             # chain_data — это список holder_id от внешнего к внутреннему уровню
             # Последний holder_id верит в proposition
-            current_content = proposition
+            current_content: Proposition | AttributedBelief = proposition
             for holder_id in reversed(chain_data):
                 current_content = AttributedBelief(holder_id=holder_id, content=current_content)
+            assert isinstance(current_content, AttributedBelief)
             attribution_chain = current_content
-        
+
         return EpistemicRecord(
             agent_id=d["agent_id"],
             proposition=proposition,

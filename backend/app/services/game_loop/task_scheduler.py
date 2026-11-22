@@ -8,7 +8,8 @@ path: /backend/app/services/game_loop/task_scheduler.py
 from __future__ import annotations
 
 import logging
-from concurrent.futures import Future as _CFFuture, ThreadPoolExecutor
+from concurrent.futures import Future as _CFFuture
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional, cast
 
