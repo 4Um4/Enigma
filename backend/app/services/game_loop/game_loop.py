@@ -134,10 +134,7 @@ def _append_direct_reply_reactions(
         if speaker_id != target_id or not text:
             continue
         speaker_name = target_name or name_by_id.get(speaker_id) or speaker_id
-        # NPC_SPEECH_SILENCE FIX: dict format с npc_id — frontend ищет по ID,
-        # не по имени. Прежний string "Имя: текст" ломался: полное имя
-        # "Торнин Серебряная Луна" != короткое "Торнин" в npc_positions.
-        reaction = {"npc_id": speaker_id, "npc_name": speaker_name, "reaction": text}
+        reaction = f"{speaker_name}: {text}"
         if reaction not in reactions:
             reactions.append(reaction)
 
@@ -198,7 +195,6 @@ class GameLoop:
         # раньше присвоения; типы Any — классы импортируются локально ниже).
         self._load_npcs: Any = load_npcs_func
         self.mvp_controller: Any = None
-        self._current_spatial_query: Any = None
 
         # P7-MVP: Инициализация эпистемического фасада
 
@@ -1686,7 +1682,10 @@ class GameLoop:
                 # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
                 try:
                     _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                    logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} ws_dict={_ws_dict is not None} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
+                    if _recent_d:
+                        for _i, _rd in enumerate(_recent_d[:3]):
+                            logger.warning(f"  [DIAG-REBUILD] dialogue[{_i}] speaker={_rd.get('speaker_id')} target={_rd.get('target_id')} text={str(_rd.get('text', ''))[:50]}")
                     from app.domain.presentation import PerceptionContext
                     from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
 
@@ -1727,9 +1726,9 @@ class GameLoop:
             # commit_tick_result() уже обновил _tick_scene результатом тика.
             # unlock_tick сохраняет его на диск (если тик НЕ помечен aborted).
             self.scene_manager.unlock_tick(campaign_id)
+            if _reg_token is not None:
+                self._release_active_spatial_context(campaign_id, _reg_token)
         self.scene_manager.unlock_tick(campaign_id)
-        if _reg_token is not None:
-            self._release_active_spatial_context(campaign_id, _reg_token)
 
         # ADR-O-420 (LC-IMPL-1): наблюдаемая проекция захваченных idle-событий.
         # Read-only (§15.4-8): EventDTO уже произошедшего → {cause,target,value};
@@ -2130,6 +2129,23 @@ class GameLoop:
                     _direct_reply_target_name,
                     _npc_roster_for_reply,
                 )
+                # NPC speech → journal (единое ответственное лицо для journal).
+                # Прежний код логировал только player action (channel="self") и DM
+                # narrative (channel="narrative"), но НЕ NPC speech из player_reply.
+                # Журнал строится из avatar_service.get_journal() → dialog_journal
+                # в world_snapshot → frontend journal window. Без этой правки
+                # NPC speech появлялся в bubbles, но не в журнале.
+                for _entry in _player_reply_entries:
+                    _spk_id = str(_entry.get("speaker_id") or "")
+                    _txt = str(_entry.get("text") or "").strip()
+                    if _spk_id and _txt:
+                        _npc_name = _direct_reply_target_name or _spk_id
+                        self.avatar_service.append_journal(
+                            campaign_id=req.campaign_id,
+                            speaker=_npc_name,
+                            text=_txt,
+                            channel="dialogue",
+                        )
                 # S203.4 (ADR-O-365, D-2): безусловный дренаж outbox до unlock (F24),
                 # терминалы прошлого цикла применяются даже при пустой очереди.
                 self._get_task_scheduler().drain_commitment_outbox(_auth_scene)
@@ -2149,7 +2165,10 @@ class GameLoop:
                 try:
                     _scene = state.shared_context.scene_state or {}
                     _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                    logger.info(f"[IDLE_TICK_WS] recent_dialogues_count={len(_recent_d) if _recent_d else 0}")
+                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} ws_dict={_ws_dict is not None} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
+                    if _recent_d:
+                        for _i, _rd in enumerate(_recent_d[:3]):
+                            logger.warning(f"  [DIAG-REBUILD] dialogue[{_i}] speaker={_rd.get('speaker_id')} target={_rd.get('target_id')} text={str(_rd.get('text', ''))[:50]}")
                     from app.domain.presentation import PerceptionContext
                     from app.services.integration.legacy_dialogue_adapter import LegacyDialogueAdapter
 
