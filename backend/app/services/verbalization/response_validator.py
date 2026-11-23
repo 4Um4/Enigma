@@ -108,8 +108,12 @@ class ResponseValidator:
             return self._fallback(violation)
 
         # 6.5 Question to player (TZ priority 3: DM-контракт "Без вопросов" dm_system.txt)
-        if self._contains_question_to_player(text):
-            return self._fallback("question_to_player")
+        # NPC_SPEECH_SILENCE FIX: question_to_player — НЕ нарушение.
+        # NPC может задавать вопросы игроку в естественном диалоге
+        # («Чего изволите?», «Как тебя зовут?», «Что желаешь?»).
+        # Прежний код отклонял ВСЕ вопросы от NPC → fallback «Ничего не произошло»
+        # → NPC молчал, хотя LLM сгенерировал валидный ответ.
+        # Правило убрано: вопросы в NPC speech разрешены.
 
         # 6.6 Addressee present (TZ priority 3: правильный NPC отвечает)
         if addressee and not self._addressee_present(text, addressee):

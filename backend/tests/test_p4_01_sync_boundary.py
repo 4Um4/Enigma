@@ -29,7 +29,20 @@ def temp_campaign(tmp_path):
     cm = CampaignManager(dm)
     cm.current_campaign_name = "test_camp"
     cm._campaign_dir = camp_dir.parent
-    return cm, camp_dir, src_file
+
+    yield cm, camp_dir, src_file
+
+    # P4-02 (post-gate): P4-01 оставлял test_camp в двух staging-зеркалах.
+    # Убираем все три зеркала, а не только saves/.
+    _repo_root = Path(__file__).resolve().parents[2]
+    for _rel in (
+        "saves",
+        "build/staging/saves",
+        "build/staging/frontend/map_editor/campaigns",
+    ):
+        _p = _repo_root / _rel / "test_camp"
+        if _p.exists():
+            shutil.rmtree(_p, ignore_errors=True)
 
 
 def test_t9_cwd_independence(temp_campaign, tmp_path, monkeypatch):

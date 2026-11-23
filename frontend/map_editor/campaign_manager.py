@@ -246,20 +246,36 @@ class CampaignManager:
                         logger.warning(f"[EDITOR_SYNC] Non-JSON file ignored in mirror: {f.name}")
 
                 # 5. Копирование/обновление
+                # P4-02 (T26): copy2 открывает приёмник на запись и пишет СКВОЗЬ
+                # symlink/hardlink, перезаписывая файл вне корня. Пишем во
+                # временный файл и атомарно заменяем запись каталога — связь
+                # с внешним inode рвётся, внешний файл не затрагивается.
                 for fname in source_files:
                     src_file = source_dir / fname
                     tgt_file = abs_target / fname
+                    tmp_file = abs_target / (fname + ".p402tmp")
                     try:
-                        shutil.copy2(src_file, tgt_file)
+                        shutil.copy2(src_file, tmp_file)
+                        tmp_file.replace(tgt_file)
                         result["copied"] += 1
                     except Exception as e:
                         result["failed"] += 1
                         result["errors"].append(f"Copy failed {fname} to {target_dir}: {e}")
+                    finally:
+                        if tmp_file.exists():
+                            try:
+                                tmp_file.unlink()
+                            except OSError:
+                                pass
 
             except Exception as e:
                 result["errors"].append(f"Target processing failed {target_dir}: {e}")
 
-        # 6. Пересборка реестра (сохраняем логику, но интегрируем в результат)
+        # 6. Пересборка реестра
+        # P4-02 (T27): артефакт удаляется для форсирования пересборки, но при
+        # отказе рабочий реестр ОБЯЗАН быть восстановлен — иначе потеря данных.
+        artifact_path = self._campaign_dir / "compiled" / "spatial_registry.json"
+        artifact_backup = None
         try:
             import sys
             frontend_dir = Path(__file__).parent.parent
@@ -267,8 +283,8 @@ class CampaignManager:
                 sys.path.insert(0, str(frontend_dir))
             from spatial_compilation_orchestrator import SpatialCompilationOrchestrator
 
-            artifact_path = self._campaign_dir / "compiled" / "spatial_registry.json"
             if artifact_path.exists():
+                artifact_backup = artifact_path.read_bytes()
                 artifact_path.unlink()
 
             orch = SpatialCompilationOrchestrator()
@@ -277,6 +293,14 @@ class CampaignManager:
         except Exception as e:
             result["errors"].append(f"Registry rebuild failed: {e}")
             logger.error(f"[EDITOR_SYNC] Failed to rebuild SpatialRegistry: {e}")
+            if artifact_backup is not None:
+                try:
+                    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+                    artifact_path.write_bytes(artifact_backup)
+                    logger.warning("[EDITOR_SYNC] Previous SpatialRegistry restored")
+                except Exception as restore_err:
+                    result["errors"].append(f"Registry restore failed: {restore_err}")
+                    logger.error(f"[EDITOR_SYNC] Restore failed: {restore_err}")
 
         return result
 

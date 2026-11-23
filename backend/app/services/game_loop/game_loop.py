@@ -1682,7 +1682,7 @@ class GameLoop:
                 # ADR-O-313: Внедряем кэш реплик для Speech Bubbles (UI)
                 try:
                     _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} ws_dict={_ws_dict is not None} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
+                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
                     if _recent_d:
                         for _i, _rd in enumerate(_recent_d[:3]):
                             logger.warning(f"  [DIAG-REBUILD] dialogue[{_i}] speaker={_rd.get('speaker_id')} target={_rd.get('target_id')} text={str(_rd.get('text', ''))[:50]}")
@@ -2165,7 +2165,7 @@ class GameLoop:
                 try:
                     _scene = state.shared_context.scene_state or {}
                     _recent_d = self._get_task_scheduler().get_recent_dialogues(_scene.get("game_time_seconds", 0.0))
-                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} ws_dict={_ws_dict is not None} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
+                    logger.warning(f"[DIAG-REBUILD] recent_dialogues={len(_recent_d) if _recent_d else 0} scene_id={id(_scene)} auth_scene_set={_auth_scene is not None}")
                     if _recent_d:
                         for _i, _rd in enumerate(_recent_d[:3]):
                             logger.warning(f"  [DIAG-REBUILD] dialogue[{_i}] speaker={_rd.get('speaker_id')} target={_rd.get('target_id')} text={str(_rd.get('text', ''))[:50]}")

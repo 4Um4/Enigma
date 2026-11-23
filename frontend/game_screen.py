@@ -1708,11 +1708,18 @@ class GameScreen:
                                 f"last_world_pos={_last_world_pos}, confirmed_loc={_confirmed_loc!r}"
                             )
 
-                    if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
-                        import copy
-
+                    # NPC_SPEECH_SILENCE ROOT FIX: perceived_narratives обрабатываются
+                    # БЕЗ зависимости от npc_positions. Прежний код был внутри
+                    # `if "npc_positions" in _action_ws:` — если world_snapshot не содержал
+                    # npc_positions (что бывает при определённых условиях), весь блок
+                    # пропускался, включая speech bubbles. Теперь narratives обрабатываются
+                    # всегда, когда есть _action_ws.
+                    if _action_ws and isinstance(_action_ws, dict):
                         # ADR-O-313: Извлечение реплик NPC для Speech Bubbles (action_tick)
                         _narratives = _action_ws.get("perceived_narratives", [])
+                        logger.info(f"[DIAG-NARRATIVES] count={len(_narratives)}")
+                        for _n in _narratives[:3]:
+                            logger.info(f"  [DIAG-NARRATIVES] speaker={_n.get('speaker_id')} text={str(_n.get('visible_text', ''))[:50]}")
                         if _narratives:
                             for _narr in _narratives:
                                 _spk_id = _narr.get("speaker_id", "")
@@ -1727,6 +1734,9 @@ class GameScreen:
                                             "delivery_type": _narr.get("delivery_type", "NORMAL"),
                                             "attention_weight": _narr.get("attention_weight", 0.0),
                                         }
+
+                    if _action_ws and isinstance(_action_ws, dict) and "npc_positions" in _action_ws:
+                        import copy
 
                         _lusya_data = _action_ws["npc_positions"].get("maid_lusya", {})
                         logger.debug(
@@ -2004,41 +2014,14 @@ class GameScreen:
                     if hasattr(result.response, "audible_dto") and result.response.audible_dto:
                         scene_state["audible_dto"] = result.response.audible_dto
 
-                    # npc_reactions → речевые облачка над головой NPC (не в чат!)
-                    for npc_r in result.response.npc_reactions or []:
-                        if isinstance(npc_r, dict):
-                            npc_name = npc_r.get("npc_name", "NPC")
-                            npc_text = npc_r.get("reaction", "")
-                            # NPC_SPEECH_SILENCE FIX: если есть npc_id — используем напрямую,
-                            # без поиска по имени (полное имя != короткое в npc_positions)
-                            _npc_id = npc_r.get("npc_id")
-                        elif isinstance(npc_r, str) and ":" in npc_r:
-                            _parts = npc_r.split(":", 1)
-                            npc_name = _parts[0].strip()
-                            npc_text = _parts[1].strip()
-                            _npc_id = None
-                        else:
-                            npc_name = "NPC"
-                            npc_text = str(npc_r) if npc_r else ""
-                            _npc_id = None
-
-                        logger.debug(
-                            f"[ECHO_DEBUG_NPC] Name: '{npc_name}' | Text: '{npc_text}' | npc_id='{_npc_id}'"
-                        )
-
-                        if npc_text:
-                            # Если npc_id уже есть (dict format) — используем напрямую
-                            if not _npc_id:
-                                # Fallback: ищем ID NPC по имени
-                                for _nid, _ndata in scene_state.get("npc_positions", {}).items():
-                                    if _ndata.get("name") == npc_name:
-                                        _npc_id = _nid
-                                        break
-                            if _npc_id:
-                                self.npc_speech_bubbles[_npc_id] = {
-                                    "text": npc_text,
-                                    "tick": pygame.time.get_ticks(),
-                                }
+                # npc_reactions rendering path УДАЛЁН.
+                # NPC speech рендерится только через world_snapshot.perceived_narratives
+                # в action_tick path (L1710). Это единое ответственное лицо:
+                # backend перестраивает perceived_narratives ПОСЛЕ execute_player_replies_async,
+                # frontend читает из одного источника. Прежний npc_reactions path был
+                # дублирующим механизмом, который мог перезаписывать bubbles.
+                # npc_reactions остаётся в ChatTurnResponse для совместимости/дебага,
+                # но не используется для рендеринга bubbles.
 
                 # Telegraph завершился — запускаем следующий если консоль открыта
                 # Telegraph завершился — НЕ перезапускаем автоматически
